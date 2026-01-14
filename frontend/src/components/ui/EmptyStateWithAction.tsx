@@ -49,7 +49,7 @@ export function EmptyStateWithAction({
   tips,
 }: EmptyStateWithActionProps) {
   return (
-    <div className="bg-card border border-border rounded-xl p-8 text-center">
+    <div className="bg-card border border-border rounded-xl p-8 text-center" data-testid="empty-state">
       {/* Icon */}
       {icon && (
         <div className="flex justify-center mb-4 text-muted-foreground">
@@ -63,7 +63,7 @@ export function EmptyStateWithAction({
       </h3>
 
       {/* Description */}
-      <p className="text-muted-foreground mb-6">
+      <p className="text-muted-foreground mb-6" data-testid="empty-state-message">
         {description}
       </p>
 

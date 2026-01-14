@@ -34,18 +34,28 @@ func NewUserRepository(db *pgxpool.Pool) *UserRepository {
 
 // Create creates a new user
 func (r *UserRepository) Create(ctx context.Context, user *models.User) error {
+	// Set default account_type if not specified
+	if user.AccountType == "" {
+		user.AccountType = models.AccountTypeMember
+	}
+
+	// Set default account_status if not specified
+	if user.AccountStatus == "" {
+		user.AccountStatus = "active"
+	}
+
 	query := `
 		INSERT INTO users (
 			id, twitch_id, username, display_name, email,
-			avatar_url, bio, role, last_login_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+			avatar_url, bio, role, account_type, account_status, last_login_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 		RETURNING created_at, updated_at
 	`
 
 	err := r.db.QueryRow(
 		ctx, query,
 		user.ID, user.TwitchID, user.Username, user.DisplayName, user.Email,
-		user.AvatarURL, user.Bio, user.Role, user.LastLoginAt,
+		user.AvatarURL, user.Bio, user.Role, user.AccountType, user.AccountStatus, user.LastLoginAt,
 	).Scan(&user.CreatedAt, &user.UpdatedAt)
 
 	if err != nil {
@@ -60,7 +70,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Use
 	query := `
 		SELECT
 			id, twitch_id, username, display_name, email, avatar_url, bio,
-			karma_points, role, is_banned, created_at, updated_at, last_login_at
+			karma_points, role, account_type, is_banned, created_at, updated_at, last_login_at
 		FROM users
 		WHERE id = $1
 	`
@@ -68,7 +78,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Use
 	var user models.User
 	err := r.db.QueryRow(ctx, query, id).Scan(
 		&user.ID, &user.TwitchID, &user.Username, &user.DisplayName, &user.Email,
-		&user.AvatarURL, &user.Bio, &user.KarmaPoints, &user.Role, &user.IsBanned,
+		&user.AvatarURL, &user.Bio, &user.KarmaPoints, &user.Role, &user.AccountType, &user.IsBanned,
 		&user.CreatedAt, &user.UpdatedAt, &user.LastLoginAt,
 	)
 
@@ -87,7 +97,7 @@ func (r *UserRepository) GetByTwitchID(ctx context.Context, twitchID string) (*m
 	query := `
 		SELECT
 			id, twitch_id, username, display_name, email, avatar_url, bio,
-			karma_points, role, is_banned, created_at, updated_at, last_login_at
+			karma_points, role, account_type, is_banned, created_at, updated_at, last_login_at
 		FROM users
 		WHERE twitch_id = $1
 	`
@@ -95,7 +105,7 @@ func (r *UserRepository) GetByTwitchID(ctx context.Context, twitchID string) (*m
 	var user models.User
 	err := r.db.QueryRow(ctx, query, twitchID).Scan(
 		&user.ID, &user.TwitchID, &user.Username, &user.DisplayName, &user.Email,
-		&user.AvatarURL, &user.Bio, &user.KarmaPoints, &user.Role, &user.IsBanned,
+		&user.AvatarURL, &user.Bio, &user.KarmaPoints, &user.Role, &user.AccountType, &user.IsBanned,
 		&user.CreatedAt, &user.UpdatedAt, &user.LastLoginAt,
 	)
 
@@ -114,7 +124,7 @@ func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*m
 	query := `
 		SELECT
 			id, twitch_id, username, display_name, email, avatar_url, bio,
-			karma_points, role, is_banned, created_at, updated_at, last_login_at
+			karma_points, role, account_type, is_banned, created_at, updated_at, last_login_at
 		FROM users
 		WHERE LOWER(username) = LOWER($1)
 	`
@@ -122,7 +132,7 @@ func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*m
 	var user models.User
 	err := r.db.QueryRow(ctx, query, username).Scan(
 		&user.ID, &user.TwitchID, &user.Username, &user.DisplayName, &user.Email,
-		&user.AvatarURL, &user.Bio, &user.KarmaPoints, &user.Role, &user.IsBanned,
+		&user.AvatarURL, &user.Bio, &user.KarmaPoints, &user.Role, &user.AccountType, &user.IsBanned,
 		&user.CreatedAt, &user.UpdatedAt, &user.LastLoginAt,
 	)
 
@@ -145,7 +155,7 @@ func (r *UserRepository) GetByIDs(ctx context.Context, ids []uuid.UUID) ([]*mode
 	query := `
 		SELECT
 			id, twitch_id, username, display_name, email, avatar_url, bio,
-			karma_points, role, is_banned, created_at, updated_at, last_login_at
+			karma_points, role, account_type, is_banned, created_at, updated_at, last_login_at
 		FROM users
 		WHERE id = ANY($1)
 	`
@@ -161,7 +171,7 @@ func (r *UserRepository) GetByIDs(ctx context.Context, ids []uuid.UUID) ([]*mode
 		var user models.User
 		err := rows.Scan(
 			&user.ID, &user.TwitchID, &user.Username, &user.DisplayName, &user.Email,
-			&user.AvatarURL, &user.Bio, &user.KarmaPoints, &user.Role, &user.IsBanned,
+			&user.AvatarURL, &user.Bio, &user.KarmaPoints, &user.Role, &user.AccountType, &user.IsBanned,
 			&user.CreatedAt, &user.UpdatedAt, &user.LastLoginAt,
 		)
 		if err != nil {
@@ -233,6 +243,46 @@ func (r *UserRepository) UpdateLastLogin(ctx context.Context, userID uuid.UUID) 
 
 	_, err := r.db.Exec(ctx, query, userID)
 	return err
+}
+
+// UpdateAccountStatus updates a user's account status
+func (r *UserRepository) UpdateAccountStatus(ctx context.Context, userID uuid.UUID, status string) error {
+	query := `
+		UPDATE users
+		SET account_status = $2, updated_at = NOW()
+		WHERE id = $1
+	`
+
+	result, err := r.db.Exec(ctx, query, userID, status)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return ErrUserNotFound
+	}
+
+	return nil
+}
+
+// UpdateDisplayName updates a user's display name
+func (r *UserRepository) UpdateDisplayName(ctx context.Context, userID uuid.UUID, displayName string) error {
+	query := `
+		UPDATE users
+		SET display_name = $2, updated_at = NOW()
+		WHERE id = $1
+	`
+
+	result, err := r.db.Exec(ctx, query, userID, displayName)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return ErrUserNotFound
+	}
+
+	return nil
 }
 
 // UpdateKarma updates a user's karma points
@@ -583,7 +633,7 @@ func (r *UserRepository) GetUserProfile(ctx context.Context, userID uuid.UUID, c
 		SELECT
 			u.id, u.twitch_id, u.username, u.display_name, u.email, u.avatar_url, u.bio,
 			u.social_links, u.karma_points, u.trust_score, u.trust_score_updated_at,
-			u.role, u.is_banned, u.follower_count, u.following_count,
+			u.role, u.account_type, u.is_banned, u.follower_count, u.following_count,
 			u.created_at, u.updated_at, u.last_login_at
 		FROM users u
 		WHERE u.id = $1
@@ -593,7 +643,7 @@ func (r *UserRepository) GetUserProfile(ctx context.Context, userID uuid.UUID, c
 	err := r.db.QueryRow(ctx, query, userID).Scan(
 		&profile.ID, &profile.TwitchID, &profile.Username, &profile.DisplayName, &profile.Email,
 		&profile.AvatarURL, &profile.Bio, &profile.SocialLinks, &profile.KarmaPoints,
-		&profile.TrustScore, &profile.TrustScoreUpdatedAt, &profile.Role, &profile.IsBanned,
+		&profile.TrustScore, &profile.TrustScoreUpdatedAt, &profile.Role, &profile.AccountType, &profile.IsBanned,
 		&profile.FollowerCount, &profile.FollowingCount,
 		&profile.CreatedAt, &profile.UpdatedAt, &profile.LastLoginAt,
 	)
@@ -1050,7 +1100,7 @@ func (r *UserRepository) AdminSearchUsers(ctx context.Context, searchQuery strin
 	baseQuery := `
 		SELECT
 			id, twitch_id, username, display_name, email, avatar_url, bio,
-			karma_points, role, is_banned, created_at, updated_at, last_login_at
+			karma_points, role, account_type, is_banned, created_at, updated_at, last_login_at
 		FROM users
 		WHERE 1=1
 	`
@@ -1062,8 +1112,8 @@ func (r *UserRepository) AdminSearchUsers(ctx context.Context, searchQuery strin
 
 	// Add search filter
 	if searchQuery != "" {
-		whereClause += ` AND (LOWER(username) LIKE LOWER($` + strconv.Itoa(argNum) + `) 
-			OR LOWER(display_name) LIKE LOWER($` + strconv.Itoa(argNum) + `) 
+		whereClause += ` AND (LOWER(username) LIKE LOWER($` + strconv.Itoa(argNum) + `)
+			OR LOWER(display_name) LIKE LOWER($` + strconv.Itoa(argNum) + `)
 			OR LOWER(email) LIKE LOWER($` + strconv.Itoa(argNum) + `))`
 		args = append(args, "%"+searchQuery+"%")
 		argNum++
@@ -1107,8 +1157,8 @@ func (r *UserRepository) AdminSearchUsers(ctx context.Context, searchQuery strin
 		var user models.User
 		err := rows.Scan(
 			&user.ID, &user.TwitchID, &user.Username, &user.DisplayName, &user.Email,
-			&user.AvatarURL, &user.Bio, &user.KarmaPoints, &user.Role, &user.IsBanned,
-			&user.CreatedAt, &user.UpdatedAt, &user.LastLoginAt,
+			&user.AvatarURL, &user.Bio, &user.KarmaPoints, &user.Role, &user.AccountType,
+			&user.IsBanned, &user.CreatedAt, &user.UpdatedAt, &user.LastLoginAt,
 		)
 		if err != nil {
 			return nil, 0, err
@@ -1121,6 +1171,69 @@ func (r *UserRepository) AdminSearchUsers(ctx context.Context, searchQuery strin
 	}
 
 	return users, total, nil
+}
+
+// SearchUsersForAutocomplete searches users by username prefix for chat mentions and autocomplete
+// Returns up to 'limit' users whose username starts with the query string
+func (r *UserRepository) SearchUsersForAutocomplete(ctx context.Context, query string, limit int) ([]*models.User, error) {
+	// Ensure limit is within a safe range
+	if limit < 1 {
+		limit = 10
+	} else if limit > 20 {
+		limit = 20
+	}
+
+	// Only search if query is non-empty
+	if query == "" {
+		return []*models.User{}, nil
+	}
+
+	// Note: This query uses LOWER() which prevents index usage on standard btree indexes.
+	// For better performance with large user tables, consider:
+	// 1. Creating a functional index: CREATE INDEX idx_users_username_lower ON users(LOWER(username))
+	// 2. Using PostgreSQL's citext extension for case-insensitive username column
+	// 3. Using pg_trgm extension with GIN index for fuzzy matching
+	searchQuery := `
+		SELECT
+			id, username, display_name, avatar_url, is_verified
+		FROM users
+		WHERE LOWER(username) LIKE LOWER($1)
+			AND is_banned = false
+			AND account_status = 'active'
+		ORDER BY
+			CASE WHEN is_verified THEN 0 ELSE 1 END,
+			LENGTH(username),
+			username
+		LIMIT $2
+	`
+
+	rows, err := r.db.Query(ctx, searchQuery, query+"%", limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []*models.User
+	for rows.Next() {
+		var user models.User
+		err := rows.Scan(
+			&user.ID,
+			&user.Username,
+			&user.DisplayName,
+			&user.AvatarURL,
+			&user.IsVerified,
+		)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, &user)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return users, nil
 }
 
 // UpdateUserRole updates a user's role (user, moderator, admin)
@@ -1307,7 +1420,7 @@ func (r *UserRepository) GetCommentSuspensionHistory(
 	limit int,
 ) ([]*models.CommentSuspensionHistory, error) {
 	query := `
-		SELECT 
+		SELECT
 			id, user_id, suspended_by, suspension_type, reason,
 			duration_hours, suspended_at, expires_at, is_active,
 			lifted_at, lifted_by, lift_reason, metadata
@@ -1367,8 +1480,8 @@ func (r *UserRepository) SetCommentReviewRequirement(
 // CanUserComment checks if a user can post comments (not suspended)
 func (r *UserRepository) CanUserComment(ctx context.Context, userID uuid.UUID) (bool, error) {
 	query := `
-		SELECT 
-			CASE 
+		SELECT
+			CASE
 				WHEN is_banned THEN false
 				WHEN comment_suspended_until IS NOT NULL AND comment_suspended_until > NOW() THEN false
 				ELSE true

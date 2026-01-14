@@ -166,14 +166,51 @@ class StructuredLogger {
       // Log to console for now, can be extended to send to backend
       console.log(JSON.stringify(entry));
 
-      // TODO: Send to backend log collection endpoint
-      // this.sendToBackend(entry);
+      // Send to backend log collection endpoint
+      this.sendToBackend(entry);
     } else {
       // In development, use console methods with colors
       const consoleMethod = entry.level === LogLevel.ERROR ? 'error' :
                            entry.level === LogLevel.WARN ? 'warn' :
                            entry.level === LogLevel.DEBUG ? 'debug' : 'log';
       console[consoleMethod](`[${entry.level.toUpperCase()}] ${entry.message}`, entry);
+    }
+  }
+
+  private async sendToBackend(entry: LogEntry): Promise<void> {
+    try {
+      // Map LogEntry to backend API format
+      const logPayload = {
+        level: entry.level,
+        message: entry.message,
+        timestamp: entry.timestamp,
+        service: entry.service,
+        platform: 'web',
+        user_id: entry.user_id,
+        session_id: entry.session_id,
+        trace_id: entry.trace_id,
+        url: entry.url,
+        user_agent: entry.user_agent,
+        error: entry.error,
+        stack: entry.stack,
+        context: entry.fields,
+      };
+
+      // Send without awaiting to avoid blocking, but handle errors
+      fetch('/api/v1/logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(logPayload),
+        // Use 'same-origin' so authenticated users are associated with their logs
+        credentials: 'same-origin',
+      }).catch((e) => {
+        // Don't log to backend (avoid infinite loop)
+        // Only log to console in case of failure
+        console.error('Failed to send log to backend', e);
+      });
+    } catch (e) {
+      // Handle synchronous errors like JSON.stringify failures
+      console.error('Failed to prepare log payload for backend', e);
     }
   }
 

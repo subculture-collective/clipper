@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
 	"github.com/subculture-collective/clipper/config"
 )
@@ -19,6 +20,11 @@ type Client struct {
 
 // NewClient creates a new Redis client
 func NewClient(cfg *config.RedisConfig) (*Client, error) {
+	return NewClientWithTracing(cfg, false)
+}
+
+// NewClientWithTracing creates a new Redis client with optional tracing
+func NewClientWithTracing(cfg *config.RedisConfig, enableTracing bool) (*Client, error) {
 	rdb := redis.NewClient(&redis.Options{
 		Addr:         fmt.Sprintf("%s:%s", cfg.Host, cfg.Port),
 		Password:     cfg.Password,
@@ -29,6 +35,14 @@ func NewClient(cfg *config.RedisConfig) (*Client, error) {
 		PoolSize:     10,
 		MinIdleConns: 2,
 	})
+
+	// Add tracing if enabled
+	if enableTracing {
+		if err := redisotel.InstrumentTracing(rdb); err != nil {
+			return nil, fmt.Errorf("failed to instrument Redis tracing: %w", err)
+		}
+		log.Println("Redis tracing enabled")
+	}
 
 	// Test connection
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -293,6 +307,12 @@ func (c *Client) ListTrim(ctx context.Context, key string, start, stop int64) er
 	return c.client.LTrim(ctx, key, start, stop).Err()
 }
 
+// ListPop removes and returns the first element from a Redis list (LPOP operation)
+// Returns an empty string and redis.Nil error if the list is empty
+func (c *Client) ListPop(ctx context.Context, key string) (string, error) {
+	return c.client.LPop(ctx, key).Result()
+}
+
 // SetAdd adds one or more members to a Redis set (SADD operation)
 func (c *Client) SetAdd(ctx context.Context, key string, members ...interface{}) error {
 	return c.client.SAdd(ctx, key, members...).Err()
@@ -311,4 +331,14 @@ func (c *Client) TTL(ctx context.Context, key string) (int64, error) {
 		return 0, err
 	}
 	return int64(ttl.Seconds()), nil
+}
+
+// SetMembers returns all members of a Redis set (SMEMBERS operation)
+func (c *Client) SetMembers(ctx context.Context, key string) ([]string, error) {
+	return c.client.SMembers(ctx, key).Result()
+}
+
+// SetIsMember checks if a member exists in a Redis set (SISMEMBER operation)
+func (c *Client) SetIsMember(ctx context.Context, key string, member interface{}) (bool, error) {
+	return c.client.SIsMember(ctx, key, member).Result()
 }

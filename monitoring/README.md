@@ -2,10 +2,16 @@
 
 This directory contains configuration for the optional monitoring stack using Prometheus, Grafana, and various exporters.
 
+**Related Issues (Roadmap 5.0 - Phase 5.3):**
+- [#860 - Alerting Configuration](https://github.com/subculture-collective/clipper/issues/860)
+- [#858 - Grafana Dashboards](https://github.com/subculture-collective/clipper/issues/858)
+- [#805 - Observability Infrastructure](https://github.com/subculture-collective/clipper/issues/805)
+
 ## Components
 
 - **Prometheus**: Metrics collection and alerting
 - **Grafana**: Visualization and dashboards
+- **Metabase**: Business Intelligence and analytics dashboards
 - **Alertmanager**: Alert routing and management with SLO breach escalation
 - **Node Exporter**: System metrics (CPU, memory, disk)
 - **cAdvisor**: Container metrics
@@ -36,6 +42,10 @@ Clipper has defined SLOs for reliability and performance. See [SLO Documentation
 
 See [Alertmanager Setup Guide](./ALERTMANAGER_SETUP.md) for configuration details.
 
+**Testing Alerts:**
+- [Alert Testing in Staging](../docs/operations/alert-testing-staging.md) - Procedures for testing alerts before production
+- Test script: `./test-alerts.sh` - Automated testing tool for alert validation and routing tests
+
 ## Quick Start
 
 ### 1. Set Up Environment Variables
@@ -50,6 +60,11 @@ GRAFANA_PASSWORD=your_secure_password
 POSTGRES_USER=clipper
 POSTGRES_PASSWORD=your_db_password
 POSTGRES_DB=clipper
+
+# For Metabase (optional - only if using BI dashboards)
+METABASE_DB_NAME=metabase
+METABASE_DB_USER=metabase
+METABASE_DB_PASSWORD=your_secure_metabase_password
 ```
 
 ### 2. Start Monitoring Stack
@@ -68,6 +83,7 @@ docker-compose -f docker-compose.monitoring.yml ps
 - **Prometheus**: <http://localhost:9090>
 - **Alertmanager**: <http://localhost:9093>
 - **cAdvisor**: <http://localhost:8081>
+- **Metabase**: <http://localhost:13000> (BI dashboards - see [Metabase Setup](./metabase/README.md))
 
 ### 4. Configure Grafana
 
@@ -77,16 +93,25 @@ docker-compose -f docker-compose.monitoring.yml ps
 
 **Available Dashboards:**
 - **SLO Compliance Dashboard** ⭐ - Real-time SLO tracking, error budget, compliance status
+- **Background Jobs Monitoring** ⭐ - Job execution status, duration, queue sizes, failure rates
 - **System Health Dashboard** - CPU, memory, disk, network metrics
 - **API Performance Dashboard** - Request rate, latency, throughput, errors
-- **Database Dashboard** - Connections, query time, slow queries, cache hits
+- **Database Dashboard** - PostgreSQL connections, query time, slow queries, cache hits
+- **Redis Cache Dashboard** ⭐ - Cache hit rates, memory usage, evictions, operations
+- **Kubernetes Cluster Dashboard** ⭐ - Pod/node status, deployments, HPA, resource usage
+- **Resource Quotas Dashboard** - Namespace quotas, OOM events, CPU throttling
+- **PgBouncer Pool Dashboard** - Connection pool utilization, wait times, query rates
 - **User Experience Dashboard** - Page load times, error rates, active users
 - **Application Overview** - High-level SLO metrics and health
-- **Search Quality Metrics** - Semantic search performance
-- **Engagement Metrics** - User engagement and retention
+- **Search Quality Metrics** - Semantic search performance and quality tracking
+- **Engagement Metrics** - User engagement, retention, platform health
 - **Logging Dashboard** - Centralized logging and security events
 - **Semantic Search Observability** - Search service monitoring
 - **Webhook Monitoring** - Webhook delivery and health tracking
+- **Load Test Trends** - Performance testing results and trends
+- **Abuse Detection** - Content moderation and abuse patterns
+
+For complete dashboard documentation, see [dashboards/README.md](./dashboards/README.md).
 
 You can also import community dashboards:
 - Go to Dashboards > Import
@@ -94,6 +119,72 @@ You can also import community dashboards:
 - Import ID: 9628 (PostgreSQL)
 - Import ID: 11835 (Redis)
 - Import ID: 12708 (Docker Containers)
+
+## Business Intelligence with Metabase
+
+**Metabase** provides executive, product, and revenue dashboards for business analytics.
+
+### Quick Start with Metabase
+
+**Automated Setup (Recommended):**
+```bash
+cd monitoring
+./setup-metabase.sh
+```
+
+**Manual Setup:**
+
+1. **Create Metabase Database**:
+   ```bash
+   docker exec -it clipper-postgres psql -U clipper -d clipper_db
+   CREATE DATABASE metabase;
+   CREATE USER metabase WITH ENCRYPTED PASSWORD 'your_secure_password';
+   GRANT ALL PRIVILEGES ON DATABASE metabase TO metabase;
+   \q
+   ```
+
+2. **Start Metabase**:
+   ```bash
+   docker-compose -f docker-compose.monitoring.yml up -d metabase
+   ```
+
+3. **Access Metabase**: <http://localhost:13000>
+
+### Available Dashboards
+
+Metabase provides three main dashboards:
+
+**Executive Dashboard:**
+- DAU/WAU/MAU (Daily/Weekly/Monthly Active Users)
+- Total users trend
+- Premium subscribers trend
+- MRR (Monthly Recurring Revenue)
+- Churn rate
+
+**Product Dashboard:**
+- Submissions per day
+- Search queries per day
+- Engagement rate
+- Feature adoption (favorites, comments, voting)
+- Top creators and content by game
+
+**Revenue Dashboard:**
+- New subscriptions
+- Cancellations
+- Revenue by payment status
+- Customer Lifetime Value (LTV)
+- Revenue by cohort
+- Conversion rates (trial to paid)
+- ARPU (Average Revenue Per User)
+
+### Full Documentation
+
+See [Metabase Setup Guide](./metabase/README.md) for:
+- Detailed setup instructions
+- Pre-built SQL queries for all dashboards
+- Dashboard building guide
+- Performance optimization tips
+- Sharing and collaboration features
 
 ## Centralized Logging
 
@@ -180,6 +271,14 @@ Alert rules organized by priority and category:
 - Dead-letter queue items
 - High delivery latency
 - Subscription health degradation
+
+**Background Job Alerts:**
+- Job execution failures (>0.1/sec)
+- Critical failure rate (>50%)
+- Stale jobs (no success >2h or >24h)
+- High/critical duration (P95 >300s or >600s)
+- Queue growing or critical size
+- High item processing failure rate (>20%)
 
 **Security & Logging Alerts:**
 - High error log rate
@@ -419,6 +518,115 @@ curl -X POST http://localhost:9090/-/reload
 docker-compose -f docker-compose.monitoring.yml exec grafana \
   tar czf /var/lib/grafana/backup.tar.gz /var/lib/grafana/grafana.db
 ```
+
+## On-Call Rotation
+
+Clipper uses a structured on-call rotation to ensure 24/7 incident response coverage.
+
+**Key Resources:**
+- **On-Call Rotation Guide:** [docs/operations/on-call-rotation.md](../docs/operations/on-call-rotation.md)
+- **Quick Reference Card:** [docs/operations/on-call-quick-reference.md](../docs/operations/on-call-quick-reference.md)
+- **Alert Testing Procedures:** [docs/operations/alert-testing-staging.md](../docs/operations/alert-testing-staging.md)
+
+**On-Call Schedule:**
+- Rotation period: 1 week
+- Response times:
+  - P1 Critical: < 15 minutes
+  - P2 Warning: < 1 hour
+  - P3 Info: < 4 hours
+- Escalation: Auto-escalate per severity level
+- PagerDuty: Manages schedule and escalation policies
+
+**Before Your Shift:**
+- [ ] Review on-call rotation guide
+- [ ] Test PagerDuty notifications
+- [ ] Review recent incidents
+- [ ] Verify dashboard access
+- [ ] Read runbooks for common alerts
+
+**During Your Shift:**
+- Acknowledge alerts per SLA
+- Follow alert-specific runbooks
+- Update #incidents channel regularly
+- Escalate when needed
+- Document all actions
+
+**After Your Shift:**
+- Handoff to next on-call
+- File incident reports
+- Update runbooks with learnings
+
+See [On-Call Rotation Guide](../docs/operations/on-call-rotation.md) for complete procedures and responsibilities.
+
+## Background Job Monitoring
+
+Clipper uses background jobs (schedulers) for periodic maintenance tasks. All jobs are instrumented with Prometheus metrics for monitoring execution status, performance, and failures.
+
+### Available Jobs
+
+- **hot_score_refresh**: Updates hot scores for trending clips (every 5 minutes)
+- **trending_score_refresh**: Recalculates trending scores (every 60 minutes)  
+- **clip_sync**: Syncs clips from Twitch API (every 15 minutes)
+- **reputation_tasks**: Awards badges and updates user stats (every 6 hours)
+- **webhook_retry**: Retries failed webhook deliveries (every 1 minute)
+- **embedding_generation**: Generates embeddings for new clips (configurable)
+
+### Metrics
+
+All jobs expose standardized metrics:
+
+```
+job_execution_total{job_name, status}           # Total executions (success/failed)
+job_execution_duration_seconds{job_name}        # Duration histogram
+job_last_success_timestamp_seconds{job_name}    # Last successful run timestamp
+job_items_processed_total{job_name, status}     # Items processed (success/failed/skipped)
+job_queue_size{job_name}                        # Current queue size (if applicable)
+```
+
+### Dashboard
+
+Access the Background Jobs dashboard at:
+- **Grafana**: `http://localhost:3000/d/background-jobs`
+- **File**: `monitoring/dashboards/background-jobs.json`
+
+Key panels include:
+- Job execution status and success rates
+- Queue sizes and growth trends
+- Duration (P50/P95) by job
+- Time since last successful run
+- Items processed and failure rates
+
+### Alerts
+
+Background job alerts are configured in `monitoring/alerts.yml`:
+
+- **BackgroundJobFailing**: Job has failures (>5% failure rate, 10m)
+- **BackgroundJobCriticalFailureRate**: >50% failure rate
+- **BackgroundJobNotRunning**: No success for >2 hours (Note: may not detect failures in jobs with intervals > 2h)
+- **BackgroundJobCriticallyStale**: No success for >24 hours  
+- **BackgroundJobHighDuration**: P95 duration >300 seconds
+- **BackgroundJobCriticalDuration**: P95 duration >600 seconds
+- **BackgroundJobQueueGrowing**: Queue growing >50% over 10m
+- **BackgroundJobCriticalQueueSize**: Queue size >1000
+- **BackgroundJobHighItemFailureRate**: >20% item failure rate
+
+### Troubleshooting
+
+See the comprehensive runbook at:
+- [docs/operations/runbooks/background-jobs.md](../docs/operations/runbooks/background-jobs.md)
+
+Common issues:
+- **Job failing**: Check logs, verify database/Redis connectivity
+- **Stale job**: Restart backend pods, check for stuck processes
+- **High duration**: Optimize queries, add indexes, check external APIs
+- **Queue growing**: Scale horizontally, increase parallelism
+
+### Time to Detect
+
+Target metrics for background job monitoring:
+- **Detection**: < 5 minutes for failures
+- **Alerting**: Low noise, actionable alerts only
+- **Coverage**: All critical background jobs monitored
 
 ## Troubleshooting
 

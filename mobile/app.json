@@ -89,6 +89,13 @@
                     "color": "#0ea5e9",
                     "sounds": []
                 }
+            ],
+            [
+                "@sentry/react-native/expo",
+                {
+                    "organization": "subculture-collective",
+                    "project": "clipper-mobile"
+                }
             ]
         ],
         "experiments": {

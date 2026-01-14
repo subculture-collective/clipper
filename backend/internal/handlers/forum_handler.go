@@ -1161,18 +1161,18 @@ func (h *ForumHandler) HideLowQualityReplies(ctx context.Context) error {
 
 // ForumAnalytics represents analytics data for the forum
 type ForumAnalytics struct {
-	TotalThreads      int       `json:"total_threads"`
-	TotalReplies      int       `json:"total_replies"`
-	TotalUsers        int       `json:"total_users"`
-	PostsToday        int       `json:"posts_today"`
-	PostsThisWeek     int       `json:"posts_this_week"`
-	PostsThisMonth    int       `json:"posts_this_month"`
-	ActiveUsersToday  int       `json:"active_users_today"`
-	ActiveUsersWeek   int       `json:"active_users_week"`
-	TrendingTopics    []string  `json:"trending_topics"`
-	PopularThreads    []ForumThread `json:"popular_threads"`
-	TopContributors   []UserContribution `json:"top_contributors"`
-	LastUpdated       time.Time `json:"last_updated"`
+	TotalThreads     int                `json:"total_threads"`
+	TotalReplies     int                `json:"total_replies"`
+	TotalUsers       int                `json:"total_users"`
+	PostsToday       int                `json:"posts_today"`
+	PostsThisWeek    int                `json:"posts_this_week"`
+	PostsThisMonth   int                `json:"posts_this_month"`
+	ActiveUsersToday int                `json:"active_users_today"`
+	ActiveUsersWeek  int                `json:"active_users_week"`
+	TrendingTopics   []string           `json:"trending_topics"`
+	PopularThreads   []ForumThread      `json:"popular_threads"`
+	TopContributors  []UserContribution `json:"top_contributors"`
+	LastUpdated      time.Time          `json:"last_updated"`
 }
 
 // UserContribution represents a user's forum contributions
@@ -1188,10 +1188,10 @@ type UserContribution struct {
 // GET /api/v1/forum/analytics
 func (h *ForumHandler) GetForumAnalytics(c *gin.Context) {
 	ctx := c.Request.Context()
-	
+
 	var analytics ForumAnalytics
 	analytics.LastUpdated = time.Now()
-	
+
 	// Get total threads
 	err := h.db.QueryRow(ctx, `
 		SELECT COUNT(*) FROM forum_threads WHERE is_deleted = FALSE
@@ -1200,7 +1200,7 @@ func (h *ForumHandler) GetForumAnalytics(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get thread count"})
 		return
 	}
-	
+
 	// Get total replies
 	err = h.db.QueryRow(ctx, `
 		SELECT COUNT(*) FROM forum_replies WHERE is_deleted = FALSE
@@ -1209,7 +1209,7 @@ func (h *ForumHandler) GetForumAnalytics(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get reply count"})
 		return
 	}
-	
+
 	// Get total unique forum users
 	err = h.db.QueryRow(ctx, `
 		SELECT COUNT(DISTINCT user_id) FROM (
@@ -1222,7 +1222,7 @@ func (h *ForumHandler) GetForumAnalytics(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user count"})
 		return
 	}
-	
+
 	// Get posts today (threads + replies)
 	err = h.db.QueryRow(ctx, `
 		SELECT COUNT(*) FROM (
@@ -1237,7 +1237,7 @@ func (h *ForumHandler) GetForumAnalytics(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get today's posts"})
 		return
 	}
-	
+
 	// Get posts this week
 	err = h.db.QueryRow(ctx, `
 		SELECT COUNT(*) FROM (
@@ -1252,7 +1252,7 @@ func (h *ForumHandler) GetForumAnalytics(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get week's posts"})
 		return
 	}
-	
+
 	// Get posts this month
 	err = h.db.QueryRow(ctx, `
 		SELECT COUNT(*) FROM (
@@ -1267,7 +1267,7 @@ func (h *ForumHandler) GetForumAnalytics(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get month's posts"})
 		return
 	}
-	
+
 	// Get active users today
 	err = h.db.QueryRow(ctx, `
 		SELECT COUNT(DISTINCT user_id) FROM (
@@ -1282,7 +1282,7 @@ func (h *ForumHandler) GetForumAnalytics(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get active users today"})
 		return
 	}
-	
+
 	// Get active users this week
 	err = h.db.QueryRow(ctx, `
 		SELECT COUNT(DISTINCT user_id) FROM (
@@ -1297,7 +1297,7 @@ func (h *ForumHandler) GetForumAnalytics(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get active users this week"})
 		return
 	}
-	
+
 	// Get trending topics (most used tags in the last 7 days)
 	rows, err := h.db.Query(ctx, `
 		SELECT unnest(tags) as tag, COUNT(*) as count
@@ -1314,7 +1314,7 @@ func (h *ForumHandler) GetForumAnalytics(c *gin.Context) {
 		return
 	}
 	defer rows.Close()
-	
+
 	analytics.TrendingTopics = make([]string, 0)
 	for rows.Next() {
 		var topic string
@@ -1324,7 +1324,7 @@ func (h *ForumHandler) GetForumAnalytics(c *gin.Context) {
 		}
 		analytics.TrendingTopics = append(analytics.TrendingTopics, topic)
 	}
-	
+
 	// Get popular threads (most replies + views in last 30 days)
 	threadRows, err := h.db.Query(ctx, `
 		SELECT 
@@ -1345,7 +1345,7 @@ func (h *ForumHandler) GetForumAnalytics(c *gin.Context) {
 		return
 	}
 	defer threadRows.Close()
-	
+
 	analytics.PopularThreads = make([]ForumThread, 0)
 	for threadRows.Next() {
 		var thread ForumThread
@@ -1362,7 +1362,7 @@ func (h *ForumHandler) GetForumAnalytics(c *gin.Context) {
 		thread.GameName = gameName
 		analytics.PopularThreads = append(analytics.PopularThreads, thread)
 	}
-	
+
 	// Get top contributors (users with most activity in last 30 days)
 	contribRows, err := h.db.Query(ctx, `
 		SELECT 
@@ -1393,7 +1393,7 @@ func (h *ForumHandler) GetForumAnalytics(c *gin.Context) {
 		return
 	}
 	defer contribRows.Close()
-	
+
 	analytics.TopContributors = make([]UserContribution, 0)
 	for contribRows.Next() {
 		var contrib UserContribution
@@ -1402,7 +1402,7 @@ func (h *ForumHandler) GetForumAnalytics(c *gin.Context) {
 		}
 		analytics.TopContributors = append(analytics.TopContributors, contrib)
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    analytics,
@@ -1418,7 +1418,7 @@ func (h *ForumHandler) GetPopularDiscussions(c *gin.Context) {
 	if limit < 1 || limit > 100 {
 		limit = 20
 	}
-	
+
 	var intervalDays int
 	switch timeframe {
 	case "day":
@@ -1432,7 +1432,7 @@ func (h *ForumHandler) GetPopularDiscussions(c *gin.Context) {
 	default:
 		intervalDays = 7
 	}
-	
+
 	query := `
 		SELECT 
 			ft.id, ft.user_id, u.username, ft.title, ft.content,
@@ -1447,14 +1447,14 @@ func (h *ForumHandler) GetPopularDiscussions(c *gin.Context) {
 		ORDER BY (ft.reply_count * 3 + ft.view_count / 10) DESC
 		LIMIT $1
 	`
-	
+
 	rows, err := h.db.Query(ctx, query, limit, intervalDays)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get popular discussions"})
 		return
 	}
 	defer rows.Close()
-	
+
 	threads := make([]ForumThread, 0)
 	for rows.Next() {
 		var thread ForumThread
@@ -1471,10 +1471,10 @@ func (h *ForumHandler) GetPopularDiscussions(c *gin.Context) {
 		thread.GameName = gameName
 		threads = append(threads, thread)
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{
-		"success":   true,
-		"data":      threads,
+		"success": true,
+		"data":    threads,
 		"meta": gin.H{
 			"timeframe": timeframe,
 			"count":     len(threads),
@@ -1492,7 +1492,7 @@ func (h *ForumHandler) GetMostHelpfulReplies(c *gin.Context) {
 	if limit < 1 || limit > 100 {
 		limit = 20
 	}
-	
+
 	var intervalDays int
 	switch timeframe {
 	case "week":
@@ -1504,7 +1504,7 @@ func (h *ForumHandler) GetMostHelpfulReplies(c *gin.Context) {
 	default:
 		intervalDays = 30
 	}
-	
+
 	query := `
 		SELECT 
 			fr.id, fr.user_id, u.username, fr.thread_id, 
@@ -1523,14 +1523,14 @@ func (h *ForumHandler) GetMostHelpfulReplies(c *gin.Context) {
 		ORDER BY COALESCE(fvc.net_votes, 0) DESC, fr.created_at DESC
 		LIMIT $1
 	`
-	
+
 	rows, err := h.db.Query(ctx, query, limit, intervalDays)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get helpful replies"})
 		return
 	}
 	defer rows.Close()
-	
+
 	type HelpfulReply struct {
 		ForumReply
 		ThreadTitle string `json:"thread_title"`
@@ -1538,7 +1538,7 @@ func (h *ForumHandler) GetMostHelpfulReplies(c *gin.Context) {
 		Upvotes     int    `json:"upvotes"`
 		Downvotes   int    `json:"downvotes"`
 	}
-	
+
 	replies := make([]HelpfulReply, 0)
 	for rows.Next() {
 		var reply HelpfulReply
@@ -1553,7 +1553,7 @@ func (h *ForumHandler) GetMostHelpfulReplies(c *gin.Context) {
 		}
 		replies = append(replies, reply)
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    replies,

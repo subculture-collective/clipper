@@ -97,22 +97,14 @@ const mutation = useMutation({
 });
 ```
 
-### Client State (Zustand)
+### Client State
 
 For UI state:
-- Theme (dark/light)
 - Sidebar open/closed
 - Modal visibility
 - User preferences
 
-```tsx
-const useThemeStore = create<ThemeState>((set) => ({
-  theme: 'dark',
-  toggleTheme: () => set((state) => ({
-    theme: state.theme === 'dark' ? 'light' : 'dark'
-  }))
-}));
-```
+Applications can use React Context API or custom hooks for client-side state management as needed.
 
 ## Routing
 
@@ -193,12 +185,12 @@ const AuthContext = createContext<AuthState | null>(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState<User | null>(null);
-  
+
   useEffect(() => {
     // Fetch current user on mount
     api.getCurrentUser().then(setUser).catch(() => setUser(null));
   }, []);
-  
+
   return (
     <AuthContext.Provider value={{ user, setUser }}>
       {children}

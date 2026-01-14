@@ -52,7 +52,7 @@ export function HomePage() {
                 <ClipFeed
                     title='Home Feed'
                     description='Discover the best Twitch clips'
-                    defaultSort='hot'
+                    defaultSort='trending'
                     showSearch
                 />
             </Container>

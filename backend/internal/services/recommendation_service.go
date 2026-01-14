@@ -15,11 +15,17 @@ import (
 
 // RecommendationService handles recommendation logic
 type RecommendationService struct {
-	repo                *repository.RecommendationRepository
-	redisClient         *redis.Client
-	contentWeight       float64
-	collaborativeWeight float64
-	trendingWeight      float64
+	repo                 *repository.RecommendationRepository
+	redisClient          *redis.Client
+	contentWeight        float64
+	collaborativeWeight  float64
+	trendingWeight       float64
+	enableHybrid         bool
+	cacheTTLHours        int
+	trendingWindowDays   int
+	trendingMinScore     float64
+	popularityWindowDays int
+	popularityMinViews   int
 }
 
 // NewRecommendationService creates a new recommendation service
@@ -28,11 +34,46 @@ func NewRecommendationService(
 	redisClient *redis.Client,
 ) *RecommendationService {
 	return &RecommendationService{
-		repo:                repo,
-		redisClient:         redisClient,
-		contentWeight:       0.5,
-		collaborativeWeight: 0.3,
-		trendingWeight:      0.2,
+		repo:                 repo,
+		redisClient:          redisClient,
+		contentWeight:        0.5,
+		collaborativeWeight:  0.3,
+		trendingWeight:       0.2,
+		enableHybrid:         true,
+		cacheTTLHours:        24,
+		trendingWindowDays:   7,
+		trendingMinScore:     0.0,
+		popularityWindowDays: 30,
+		popularityMinViews:   100,
+	}
+}
+
+// NewRecommendationServiceWithConfig creates a new recommendation service with custom config
+func NewRecommendationServiceWithConfig(
+	repo *repository.RecommendationRepository,
+	redisClient *redis.Client,
+	contentWeight float64,
+	collaborativeWeight float64,
+	trendingWeight float64,
+	enableHybrid bool,
+	cacheTTLHours int,
+	trendingWindowDays int,
+	trendingMinScore float64,
+	popularityWindowDays int,
+	popularityMinViews int,
+) *RecommendationService {
+	return &RecommendationService{
+		repo:                 repo,
+		redisClient:          redisClient,
+		contentWeight:        contentWeight,
+		collaborativeWeight:  collaborativeWeight,
+		trendingWeight:       trendingWeight,
+		enableHybrid:         enableHybrid,
+		cacheTTLHours:        cacheTTLHours,
+		trendingWindowDays:   trendingWindowDays,
+		trendingMinScore:     trendingMinScore,
+		popularityWindowDays: popularityWindowDays,
+		popularityMinViews:   popularityMinViews,
 	}
 }
 
@@ -76,13 +117,51 @@ func (s *RecommendationService) GetRecommendations(
 	var recommendations []models.ClipRecommendation
 	isColdStart := !hasInteractions
 	diversityApplied := false
+	usedStrategy := algorithm
 
 	if isColdStart {
-		// Cold start: return trending clips
-		recommendations, err = s.getColdStartRecommendations(ctx, limit)
+		// Cold start: check if user has onboarding preferences
+		preferences, err := s.repo.GetUserPreferences(ctx, userID)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to get user preferences: %w", err)
 		}
+
+		// Record preference source for metrics
+		if preferences.ColdStartSource != nil {
+			RecordPreferenceSource(*preferences.ColdStartSource)
+		}
+
+		// If user completed onboarding, use content-based on preferences
+		// Check for any preference type (games, streamers, categories, or tags)
+		hasPreferences := len(preferences.FavoriteGames) > 0 ||
+			len(preferences.FollowedStreamers) > 0 ||
+			len(preferences.PreferredCategories) > 0 ||
+			len(preferences.PreferredTags) > 0
+
+		if preferences.OnboardingCompleted && hasPreferences {
+			recommendations, err = s.getContentBasedRecommendations(ctx, userID, limit)
+			if err != nil {
+				return nil, err
+			}
+			usedStrategy = "onboarding"
+		} else {
+			// Fall back to trending clips
+			recommendations, err = s.getColdStartRecommendations(ctx, limit)
+			if err != nil {
+				return nil, err
+			}
+			usedStrategy = "trending"
+		}
+
+		// Record cold start metrics
+		avgScore := 0.0
+		if len(recommendations) > 0 {
+			for _, rec := range recommendations {
+				avgScore += rec.Score
+			}
+			avgScore /= float64(len(recommendations))
+		}
+		RecordColdStartRecommendation(usedStrategy, len(recommendations), time.Since(startTime).Milliseconds(), avgScore)
 	} else {
 		// Generate recommendations based on algorithm
 		switch algorithm {
@@ -122,10 +201,11 @@ func (s *RecommendationService) GetRecommendations(
 		},
 	}
 
-	// Cache the response for 24 hours
+	// Cache the response
 	responseJSON, err := json.Marshal(response)
 	if err == nil {
-		s.redisClient.Set(ctx, cacheKey, responseJSON, 24*time.Hour)
+		cacheTTL := time.Duration(s.cacheTTLHours) * time.Hour
+		s.redisClient.Set(ctx, cacheKey, responseJSON, cacheTTL)
 	}
 
 	return response, nil
@@ -178,12 +258,38 @@ func (s *RecommendationService) getColdStartRecommendations(
 	ctx context.Context,
 	limit int,
 ) ([]models.ClipRecommendation, error) {
-	scores, err := s.repo.GetTrendingClips(ctx, nil, limit)
+	// Try trending clips first with configurable parameters
+	scores, err := s.repo.GetTrendingClips(ctx, nil, s.trendingWindowDays, s.trendingMinScore, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get trending clips: %w", err)
 	}
 
-	return s.buildRecommendations(ctx, scores, "trending", limit)
+	algorithm := "trending"
+	originalTrendingCount := len(scores)
+
+	// If not enough trending clips, supplement with popular clips
+	if len(scores) < limit {
+		RecordColdStartFallback("trending", "popularity")
+
+		popularScores, err := s.repo.GetPopularClips(
+			ctx,
+			nil,
+			s.popularityWindowDays,
+			s.popularityMinViews,
+			limit-len(scores),
+		)
+		if err == nil && len(popularScores) > 0 {
+			scores = append(scores, popularScores...)
+			// Update algorithm to reflect mixed strategy based on composition
+			if originalTrendingCount == 0 {
+				algorithm = "popularity"
+			} else if len(popularScores) > originalTrendingCount {
+				algorithm = "trending+popularity"
+			}
+		}
+	}
+
+	return s.buildRecommendations(ctx, scores, algorithm, limit)
 }
 
 // getHybridRecommendations generates hybrid recommendations combining multiple signals
@@ -229,7 +335,7 @@ func (s *RecommendationService) getScoresForHybrid(
 	case models.AlgorithmCollaborative:
 		return s.repo.GetCollaborativeRecommendations(ctx, userID, nil, limit)
 	case models.AlgorithmTrending:
-		return s.repo.GetTrendingClips(ctx, nil, limit)
+		return s.repo.GetTrendingClips(ctx, nil, s.trendingWindowDays, s.trendingMinScore, limit)
 	default:
 		return nil, fmt.Errorf("unknown algorithm: %s", algorithm)
 	}
@@ -451,16 +557,20 @@ func (s *RecommendationService) RecordInteraction(
 	}
 
 	// Invalidate cache for this user
-	pattern := fmt.Sprintf("recommendations:%s:*", interaction.UserID.String())
+	s.invalidateUserCache(ctx, interaction.UserID)
+
+	return nil
+}
+
+// invalidateUserCache invalidates all cached recommendations for a user
+func (s *RecommendationService) invalidateUserCache(ctx context.Context, userID uuid.UUID) {
+	pattern := fmt.Sprintf("recommendations:%s:*", userID.String())
 	iter := s.redisClient.Scan(ctx, 0, pattern, 100).Iterator()
 	for iter.Next(ctx) {
 		s.redisClient.Del(ctx, iter.Val())
 	}
-	if err := iter.Err(); err != nil {
-		return fmt.Errorf("failed to scan cache keys: %w", err)
-	}
-
-	return nil
+	// Ignore errors during cache invalidation as it's not critical
+	_ = iter.Err()
 }
 
 // GetUserPreferences retrieves user preferences
@@ -475,14 +585,22 @@ func (s *RecommendationService) UpdateUserPreferences(ctx context.Context, pref 
 	}
 
 	// Invalidate cache for this user
-	pattern := fmt.Sprintf("recommendations:%s:*", pref.UserID.String())
-	iter := s.redisClient.Scan(ctx, 0, pattern, 100).Iterator()
-	for iter.Next(ctx) {
-		s.redisClient.Del(ctx, iter.Val())
+	s.invalidateUserCache(ctx, pref.UserID)
+
+	return nil
+}
+
+// CompleteOnboarding saves initial onboarding preferences for a user
+func (s *RecommendationService) CompleteOnboarding(ctx context.Context, pref *models.UserPreference) error {
+	if err := s.repo.CompleteOnboarding(ctx, pref); err != nil {
+		return fmt.Errorf("failed to complete onboarding: %w", err)
 	}
-	if err := iter.Err(); err != nil {
-		return fmt.Errorf("failed to scan cache keys: %w", err)
-	}
+
+	// Record onboarding completion metric
+	RecordOnboardingCompleted()
+
+	// Invalidate cache for this user
+	s.invalidateUserCache(ctx, pref.UserID)
 
 	return nil
 }

@@ -18,10 +18,13 @@ export function ClipCard({ clip }: ClipCardProps) {
     const isAuthenticated = useIsAuthenticated();
     const voteMutation = useClipVote();
     const favoriteMutation = useClipFavorite();
+    const isVoting = voteMutation.isPending;
     const toast = useToast();
     const navigate = useNavigate();
 
     const handleVote = (voteType: 1 | -1) => {
+        // Avoid duplicate same-direction votes
+        if (isVoting || clip.user_vote === voteType) return;
         if (!isAuthenticated) {
             toast.info('Please log in to vote on clips');
             return;
@@ -75,25 +78,25 @@ export function ClipCard({ clip }: ClipCardProps) {
     const timestamp = formatTimestamp(clip.created_at);
 
     return (
-        <div className='bg-card border-border rounded-xl hover:shadow-lg transition-shadow border overflow-hidden lazy-render'>
+        <div className='bg-card border-border rounded-xl hover:shadow-lg transition-shadow border overflow-hidden lazy-render' data-testid='clip-card'>
             <div className='flex flex-col xs:flex-row gap-3 xs:gap-4 p-3 xs:p-4'>
                 {/* Vote sidebar - horizontal on mobile, vertical on larger screens */}
                 <div className='flex xs:flex-col items-center justify-center xs:justify-start xs:w-10 gap-3 xs:gap-2 order-2 xs:order-1 shrink-0'>
                     <button
                         onClick={() => handleVote(1)}
-                        disabled={!isAuthenticated}
+                        disabled={!isAuthenticated || isVoting}
                         className={cn(
                             'w-11 h-11 xs:w-10 xs:h-10 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center justify-center transition-colors touch-target',
                             clip.user_vote === 1 &&
-                                'text-orange-600 dark:text-orange-400',
-                            !isAuthenticated ?
+                                'text-purple-600 dark:text-purple-400',
+                            !isAuthenticated || isVoting ?
                                 'opacity-50 cursor-not-allowed hover:bg-transparent'
                             :   'cursor-pointer'
                         )}
                         aria-label={
                             isAuthenticated ? 'Upvote' : 'Log in to upvote'
                         }
-                        aria-disabled={!isAuthenticated}
+                        aria-disabled={!isAuthenticated || isVoting}
                         title={isAuthenticated ? 'Upvote' : 'Log in to vote'}
                     >
                         <svg
@@ -111,7 +114,7 @@ export function ClipCard({ clip }: ClipCardProps) {
 
                     <span
                         className={cn(
-                            'text-sm font-bold min-w-[2rem] text-center',
+                            'text-sm font-bold min-w-8 text-center',
                             voteColor
                         )}
                     >
@@ -120,19 +123,19 @@ export function ClipCard({ clip }: ClipCardProps) {
 
                     <button
                         onClick={() => handleVote(-1)}
-                        disabled={!isAuthenticated}
+                        disabled={!isAuthenticated || isVoting}
                         className={cn(
                             'w-11 h-11 xs:w-10 xs:h-10 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center justify-center transition-colors touch-target',
                             clip.user_vote === -1 &&
-                                'text-purple-600 dark:text-purple-400',
-                            !isAuthenticated ?
+                                'text-orange-600 dark:text-orange-400',
+                            !isAuthenticated || isVoting ?
                                 'opacity-50 cursor-not-allowed hover:bg-transparent'
                             :   'cursor-pointer'
                         )}
                         aria-label={
                             isAuthenticated ? 'Downvote' : 'Log in to downvote'
                         }
-                        aria-disabled={!isAuthenticated}
+                        aria-disabled={!isAuthenticated || isVoting}
                         title={isAuthenticated ? 'Downvote' : 'Log in to vote'}
                     >
                         <svg
@@ -162,17 +165,29 @@ export function ClipCard({ clip }: ClipCardProps) {
                     </Link>
                     {/* Metadata */}
                     <div className='text-muted-foreground flex flex-wrap items-center gap-1.5 xs:gap-2 mb-3 text-xs xs:text-sm leading-tight'>
-                        <span className='flex items-center gap-1'>
-                            Clipped by{' '}
-                            <a
-                                href={clip.twitch_clip_url}
-                                target='_blank'
-                                rel='noopener noreferrer'
+                        <span className='flex items-center gap-1 font-medium'>
+                            <Link
+                                to={`/broadcaster/${clip.broadcaster_id || clip.broadcaster_name}`}
                                 className='hover:text-foreground transition-colors cursor-pointer'
                             >
-                                {clip.creator_name}
-                            </a>
+                                {clip.broadcaster_name}
+                            </Link>
                         </span>
+
+                        {clip.game_name && (
+                            <>
+                                <span className='hidden xs:inline'>•</span>
+                                <span className='flex items-center gap-1'>
+                                    <Link
+                                        to={`/game/${clip.game_id}`}
+                                        className='hover:text-foreground transition-colors cursor-pointer'
+                                    >
+                                        {clip.game_name}
+                                    </Link>
+                                </span>
+                            </>
+                        )}
+
                         {clip.submitted_by && (
                             <>
                                 <span className='hidden xs:inline'>•</span>
@@ -191,24 +206,22 @@ export function ClipCard({ clip }: ClipCardProps) {
                             </>
                         )}
 
-                        <span className='hidden xs:inline'>•</span>
-
-                        {clip.game_name && (
+                        {clip.creator_id && clip.creator_id.trim() !== '' && clip.creator_name && (
                             <>
+                                <span className='hidden xs:inline'>•</span>
                                 <span className='flex items-center gap-1'>
-                                    <span className='hidden xs:inline'>
-                                        From
-                                    </span>
+                                    Clipped by{' '}
                                     <Link
-                                        to={`/game/${clip.game_id}`}
+                                        to={`/user/${clip.creator_id}`}
                                         className='hover:text-foreground transition-colors cursor-pointer'
                                     >
-                                        {clip.game_name}
+                                        {clip.creator_name}
                                     </Link>
                                 </span>
-                                <span className='hidden xs:inline'>•</span>
                             </>
                         )}
+
+                        <span className='hidden xs:inline'>•</span>
 
                         <span
                             className='truncate align-middle'

@@ -51,7 +51,7 @@ export function OptimizedImage({
   useEffect(() => {
     // For priority images, start loading immediately
     if (priority && imgRef.current?.complete) {
-      setIsLoaded(true);
+      queueMicrotask(() => setIsLoaded(true));
     }
   }, [priority]);
 

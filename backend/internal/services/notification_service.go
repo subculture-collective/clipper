@@ -610,7 +610,7 @@ func (s *NotificationService) NotifySubmissionApproved(
 ) error {
 	title := "Your clip submission was approved!"
 	message := fmt.Sprintf("\"%s\" is now live on clpr", clipTitle)
-	link := fmt.Sprintf("/clips/submissions")
+	link := "/clips/submissions"
 
 	contentType := "submission"
 	_, err := s.CreateNotification(
@@ -638,7 +638,7 @@ func (s *NotificationService) NotifySubmissionRejected(
 ) error {
 	title := "Your clip submission was not approved"
 	message := fmt.Sprintf("\"%s\" - Reason: %s", clipTitle, reason)
-	link := fmt.Sprintf("/clips/submissions")
+	link := "/clips/submissions"
 
 	contentType := "submission"
 	_, err := s.CreateNotification(

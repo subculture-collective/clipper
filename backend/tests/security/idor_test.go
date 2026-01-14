@@ -96,9 +96,9 @@ func TestIDORCommentUpdateAuthorization(t *testing.T) {
 				ResourceType: middleware.ResourceTypeComment,
 			}
 
-			hasAccess, err := middleware.CanAccessResource(authCtx, checker)
-			require.NoError(t, err, "Authorization check should not return error")
-			assert.Equal(t, tt.expectedAccess, hasAccess, tt.description)
+			result, err := middleware.CanAccessResource(authCtx, checker)
+			assert.NoError(t, err, "Authorization check should not return error")
+			assert.Equal(t, tt.expectedAccess, result.Allowed, tt.description)
 		})
 	}
 }
@@ -179,9 +179,9 @@ func TestIDORCommentDeleteAuthorization(t *testing.T) {
 				ResourceType: middleware.ResourceTypeComment,
 			}
 
-			hasAccess, err := middleware.CanAccessResource(authCtx, checker)
-			require.NoError(t, err, "Authorization check should not return error")
-			assert.Equal(t, tt.expectedAccess, hasAccess, tt.description)
+			result, err := middleware.CanAccessResource(authCtx, checker)
+			assert.NoError(t, err, "Authorization check should not return error")
+			assert.Equal(t, tt.expectedAccess, result.Allowed, tt.description)
 		})
 	}
 }
@@ -291,9 +291,9 @@ func TestIDORUserSettingsAccess(t *testing.T) {
 				ResourceType: middleware.ResourceTypeUser,
 			}
 
-			hasAccess, err := middleware.CanAccessResource(authCtx, checker)
-			require.NoError(t, err, "Authorization check should not return error")
-			assert.Equal(t, tt.expectedAccess, hasAccess, tt.description)
+			result, err := middleware.CanAccessResource(authCtx, checker)
+			assert.NoError(t, err, "Authorization check should not return error")
+			assert.Equal(t, tt.expectedAccess, result.Allowed, tt.description)
 		})
 	}
 }
@@ -390,9 +390,9 @@ func TestIDORClipOperations(t *testing.T) {
 				ResourceType: middleware.ResourceTypeClip,
 			}
 
-			hasAccess, err := middleware.CanAccessResource(authCtx, checker)
-			require.NoError(t, err, "Authorization check should not return error")
-			assert.Equal(t, tt.expectedAccess, hasAccess, tt.description)
+			result, err := middleware.CanAccessResource(authCtx, checker)
+			assert.NoError(t, err, "Authorization check should not return error")
+			assert.Equal(t, tt.expectedAccess, result.Allowed, tt.description)
 		})
 	}
 }
@@ -489,9 +489,9 @@ func TestIDORFavoriteOperations(t *testing.T) {
 				ResourceType: middleware.ResourceTypeFavorite,
 			}
 
-			hasAccess, err := middleware.CanAccessResource(authCtx, checker)
-			require.NoError(t, err, "Authorization check should not return error")
-			assert.Equal(t, tt.expectedAccess, hasAccess, tt.description)
+			result, err := middleware.CanAccessResource(authCtx, checker)
+			assert.NoError(t, err, "Authorization check should not return error")
+			assert.Equal(t, tt.expectedAccess, result.Allowed, tt.description)
 		})
 	}
 }
@@ -610,9 +610,9 @@ func TestIDORSubscriptionAccess(t *testing.T) {
 				ResourceType: middleware.ResourceTypeSubscription,
 			}
 
-			hasAccess, err := middleware.CanAccessResource(authCtx, checker)
+			result, err := middleware.CanAccessResource(authCtx, checker)
 			require.NoError(t, err, "Authorization check should not return error")
-			assert.Equal(t, tt.expectedAccess, hasAccess, tt.description)
+			assert.Equal(t, tt.expectedAccess, result.Allowed, tt.description)
 		})
 	}
 }

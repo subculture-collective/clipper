@@ -42,9 +42,12 @@ func (r *ClipRepository) Create(ctx context.Context, clip *models.Clip) error {
 			id, twitch_clip_id, twitch_clip_url, embed_url, title,
 			creator_name, creator_id, broadcaster_name, broadcaster_id,
 			game_id, game_name, language, thumbnail_url, duration,
-			view_count, created_at, imported_at
+			view_count, created_at, imported_at, vote_score, comment_count, favorite_count,
+			is_featured, is_nsfw, is_removed, is_hidden,
+			submitted_by_user_id, submitted_at
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17,
+			$18, $19, $20, $21, $22, $23, $24, $25, $26
 		)
 	`
 
@@ -53,7 +56,9 @@ func (r *ClipRepository) Create(ctx context.Context, clip *models.Clip) error {
 		clip.Title, clip.CreatorName, clip.CreatorID, clip.BroadcasterName,
 		clip.BroadcasterID, clip.GameID, clip.GameName, clip.Language,
 		clip.ThumbnailURL, clip.Duration, clip.ViewCount, clip.CreatedAt,
-		clip.ImportedAt,
+		clip.ImportedAt, clip.VoteScore, clip.CommentCount, clip.FavoriteCount,
+		clip.IsFeatured, clip.IsNSFW, clip.IsRemoved, clip.IsHidden,
+		clip.SubmittedByUserID, clip.SubmittedAt,
 	)
 
 	if err != nil {
@@ -355,6 +360,7 @@ type ClipFilters struct {
 	GameID            *string
 	BroadcasterID     *string
 	Tag               *string
+	ExcludeTags       []string // Exclude clips with any of these tag slugs
 	Search            *string
 	Language          *string // Language code (e.g., en, es, fr)
 	Timeframe         *string // hour, day, week, month, year, all
@@ -364,6 +370,7 @@ type ClipFilters struct {
 	Top10kStreamers   bool    // Filter clips to only top 10k streamers
 	ShowHidden        bool    // If true, include hidden clips (for owners/admins)
 	CreatorID         *string // Filter by creator ID (for creator dashboard)
+	SubmittedByUserID *string // Filter by submitted_by_user_id (for user profile submissions)
 	UserSubmittedOnly bool    // If true, only show clips with submitted_by_user_id IS NOT NULL
 	Cursor            *string // Cursor for cursor-based pagination (base64 encoded)
 }
@@ -465,6 +472,12 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 		argIndex++
 	}
 
+	if filters.SubmittedByUserID != nil {
+		whereClauses = append(whereClauses, fmt.Sprintf("c.submitted_by_user_id = %s", utils.SQLPlaceholder(argIndex)))
+		args = append(args, *filters.SubmittedByUserID)
+		argIndex++
+	}
+
 	if filters.Tag != nil {
 		whereClauses = append(whereClauses, fmt.Sprintf(`EXISTS (
 			SELECT 1 FROM clip_tags ct
@@ -472,6 +485,17 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 			WHERE ct.clip_id = c.id AND t.slug = %s
 		)`, utils.SQLPlaceholder(argIndex)))
 		args = append(args, *filters.Tag)
+		argIndex++
+	}
+
+	// Exclude clips with any of the specified tags
+	if len(filters.ExcludeTags) > 0 {
+		whereClauses = append(whereClauses, fmt.Sprintf(`NOT EXISTS (
+			SELECT 1 FROM clip_tags ct
+			JOIN tags t ON ct.tag_id = t.id
+			WHERE ct.clip_id = c.id AND t.slug = ANY(%s)
+		)`, utils.SQLPlaceholder(argIndex)))
+		args = append(args, filters.ExcludeTags)
 		argIndex++
 	}
 
@@ -483,7 +507,7 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 
 	if filters.Language != nil && *filters.Language != "" {
 		placeholder := utils.SQLPlaceholder(argIndex)
-		whereClauses = append(whereClauses, fmt.Sprintf("(c.language = %s OR c.language = split_part(%s, '-', 1) OR c.language IS NULL OR c.language = '')", placeholder, placeholder))
+		whereClauses = append(whereClauses, fmt.Sprintf("(c.language = %s OR c.language = split_part(%s, '-', 1))", placeholder, placeholder))
 		args = append(args, *filters.Language)
 		argIndex++
 	}
@@ -684,6 +708,9 @@ func (r *ClipRepository) ListScrapedClipsWithFilters(ctx context.Context, filter
 		argIndex++
 	}
 
+	// Note: SubmittedByUserID filter is intentionally not applied here since this method
+	// retrieves only scraped clips (submitted_by_user_id IS NULL). Use ListWithFilters instead.
+
 	if filters.Tag != nil {
 		whereClauses = append(whereClauses, fmt.Sprintf(`EXISTS (
 			SELECT 1 FROM clip_tags ct
@@ -691,6 +718,17 @@ func (r *ClipRepository) ListScrapedClipsWithFilters(ctx context.Context, filter
 			WHERE ct.clip_id = c.id AND t.slug = %s
 		)`, utils.SQLPlaceholder(argIndex)))
 		args = append(args, *filters.Tag)
+		argIndex++
+	}
+
+	// Exclude clips with any of the specified tags
+	if len(filters.ExcludeTags) > 0 {
+		whereClauses = append(whereClauses, fmt.Sprintf(`NOT EXISTS (
+			SELECT 1 FROM clip_tags ct
+			JOIN tags t ON ct.tag_id = t.id
+			WHERE ct.clip_id = c.id AND t.slug = ANY(%s)
+		)`, utils.SQLPlaceholder(argIndex)))
+		args = append(args, filters.ExcludeTags)
 		argIndex++
 	}
 
@@ -820,6 +858,24 @@ func (r *ClipRepository) IncrementViewCount(ctx context.Context, clipID uuid.UUI
 	return newViewCount, nil
 }
 
+// UpdateVoteScore increments the vote_score by the provided delta and returns the new score
+func (r *ClipRepository) UpdateVoteScore(ctx context.Context, clipID uuid.UUID, delta int64) (int64, error) {
+	query := `
+		UPDATE clips
+		SET vote_score = vote_score + $2
+		WHERE id = $1
+		RETURNING vote_score
+	`
+
+	var newScore int64
+	err := r.pool.QueryRow(ctx, query, clipID, delta).Scan(&newScore)
+	if err != nil {
+		return 0, fmt.Errorf("failed to update vote score: %w", err)
+	}
+
+	return newScore, nil
+}
+
 // Update updates a clip (for admin operations)
 func (r *ClipRepository) Update(ctx context.Context, clipID uuid.UUID, updates map[string]interface{}) error {
 	if len(updates) == 0 {
@@ -865,6 +921,30 @@ func (r *ClipRepository) SoftDelete(ctx context.Context, clipID uuid.UUID, reaso
 	_, err := r.pool.Exec(ctx, query, clipID, reason)
 	if err != nil {
 		return fmt.Errorf("failed to soft delete clip: %w", err)
+	}
+
+	return nil
+}
+
+// Delete removes a clip record permanently. Accepts either uuid.UUID or string identifiers.
+func (r *ClipRepository) Delete(ctx context.Context, clipID interface{}) error {
+	var id uuid.UUID
+
+	switch v := clipID.(type) {
+	case uuid.UUID:
+		id = v
+	case string:
+		parsed, err := uuid.Parse(v)
+		if err != nil {
+			return fmt.Errorf("invalid clip id: %w", err)
+		}
+		id = parsed
+	default:
+		return fmt.Errorf("unsupported clip id type %T", v)
+	}
+
+	if _, err := r.pool.Exec(ctx, "DELETE FROM clips WHERE id = $1", id); err != nil {
+		return fmt.Errorf("failed to delete clip: %w", err)
 	}
 
 	return nil
@@ -1341,7 +1421,7 @@ AND c.submitted_by_user_id NOT IN (SELECT blocked_user_id FROM blocked_users)
 func (r *ClipRepository) UpdateTrendingScores(ctx context.Context) (int64, error) {
 	query := `
 UPDATE clips
-SET 
+SET
 engagement_count = view_count + (vote_score * 2) + (comment_count * 3) + (favorite_count * 2),
 trending_score = calculate_trending_score(view_count, vote_score, comment_count, favorite_count, created_at),
 hot_score = trending_score,
@@ -1362,12 +1442,12 @@ WHERE is_removed = false AND is_hidden = false
 func (r *ClipRepository) UpdateTrendingScoresForTimeWindow(ctx context.Context, hours int) (int64, error) {
 	query := `
 UPDATE clips
-SET 
+SET
 engagement_count = view_count + (vote_score * 2) + (comment_count * 3) + (favorite_count * 2),
 trending_score = calculate_trending_score(view_count, vote_score, comment_count, favorite_count, created_at),
 hot_score = trending_score,
 popularity_index = view_count + (vote_score * 2) + (comment_count * 3) + (favorite_count * 2)
-WHERE is_removed = false 
+WHERE is_removed = false
 AND is_hidden = false
 AND created_at > NOW() - INTERVAL '1 hour' * $1
 `
@@ -1378,4 +1458,53 @@ AND created_at > NOW() - INTERVAL '1 hour' * $1
 	}
 
 	return result.RowsAffected(), nil
+}
+
+// GetClipsByIDs retrieves multiple clips by their IDs
+func (r *ClipRepository) GetClipsByIDs(ctx context.Context, clipIDs []uuid.UUID) ([]models.Clip, error) {
+	if len(clipIDs) == 0 {
+		return []models.Clip{}, nil
+	}
+
+	query := `
+SELECT
+id, twitch_clip_id, twitch_clip_url, embed_url, title,
+creator_name, creator_id, broadcaster_name, broadcaster_id,
+game_id, game_name, language, thumbnail_url, duration,
+view_count, created_at, imported_at, vote_score, comment_count,
+favorite_count, is_featured, is_nsfw, is_removed, removed_reason,
+is_hidden, submitted_by_user_id, submitted_at
+FROM clips
+WHERE id = ANY($1)
+AND is_removed = false
+`
+
+	rows, err := r.pool.Query(ctx, query, clipIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query clips: %w", err)
+	}
+	defer rows.Close()
+
+	var clips []models.Clip
+	for rows.Next() {
+		var clip models.Clip
+		err := rows.Scan(
+			&clip.ID, &clip.TwitchClipID, &clip.TwitchClipURL, &clip.EmbedURL, &clip.Title,
+			&clip.CreatorName, &clip.CreatorID, &clip.BroadcasterName, &clip.BroadcasterID,
+			&clip.GameID, &clip.GameName, &clip.Language, &clip.ThumbnailURL, &clip.Duration,
+			&clip.ViewCount, &clip.CreatedAt, &clip.ImportedAt, &clip.VoteScore, &clip.CommentCount,
+			&clip.FavoriteCount, &clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason,
+			&clip.IsHidden, &clip.SubmittedByUserID, &clip.SubmittedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan clip: %w", err)
+		}
+		clips = append(clips, clip)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows iteration error: %w", err)
+	}
+
+	return clips, nil
 }

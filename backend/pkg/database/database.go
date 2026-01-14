@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/exaring/otelpgx"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/subculture-collective/clipper/config"
 )
@@ -17,6 +18,11 @@ type DB struct {
 
 // NewDB creates a new database connection pool
 func NewDB(cfg *config.DatabaseConfig) (*DB, error) {
+	return NewDBWithTracing(cfg, false)
+}
+
+// NewDBWithTracing creates a new database connection pool with optional tracing
+func NewDBWithTracing(cfg *config.DatabaseConfig, enableTracing bool) (*DB, error) {
 	ctx := context.Background()
 
 	// Configure connection pool
@@ -32,6 +38,12 @@ func NewDB(cfg *config.DatabaseConfig) (*DB, error) {
 	poolConfig.MaxConnIdleTime = 30 * time.Minute          // Maximum idle time
 	poolConfig.HealthCheckPeriod = time.Minute             // Health check interval
 	poolConfig.ConnConfig.ConnectTimeout = 5 * time.Second // Connection timeout
+
+	// Add tracing if enabled
+	if enableTracing {
+		poolConfig.ConnConfig.Tracer = otelpgx.NewTracer()
+		log.Println("Database tracing enabled")
+	}
 
 	// Create connection pool
 	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)

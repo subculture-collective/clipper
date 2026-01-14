@@ -1,272 +1,142 @@
 # Feature Audit Issues Tracking
 
-> **Created**: 2024-12-24  
-> **Purpose**: Track GitHub issues for feature audit initiative  
+> **Created**: 2024-12-24
+> **Updated**: 2026-01-02
+> **Status**: ✅ **COMPLETE**
+> **Purpose**: Track GitHub issues for feature audit initiative
 > **Source**: [Feature Inventory](feature-inventory.md)
 
 ---
 
-## Overview
+## ✅ Completion Summary
 
-This document tracks the 25 feature audit issues that need to be created based on the comprehensive feature inventory. Each issue will ensure that a feature category is:
+**Issue creation is COMPLETE** - All gaps identified in the feature inventory have been addressed through **59 comprehensive Roadmap 5.0 issues** created across 5 phases.
+
+- **Target**: ~25 issues for feature audit gaps
+- **Delivered**: 59 comprehensive issues covering all gaps
+- **Master Tracker**: [#805 Roadmap 5.0 Master Tracker](https://github.com/subculture-collective/clipper/issues/805)
+- **Issue Creation Epic**: [#834 Feature Inventory Issue Creation](https://github.com/subculture-collective/clipper/issues/834)
+
+All issues ensure features are:
 - ✅ Fully implemented and working
-- ✅ Properly tested (unit + integration)
+- ✅ Properly tested (unit + integration + E2E)
 - ✅ Correctly typed (TypeScript/Go)
 - ✅ Well documented
 
 ---
 
-## Issue Status
+## Overview (Historical)
 
-| # | Feature Category | Priority | Status | Issue Link |
-|---|-----------------|----------|--------|------------|
-| 1 | Authentication & Authorization | P3 | 📋 Pending | TBD |
-| 2 | Clip CRUD Operations | P2 | 📋 Pending | TBD |
-| 3 | Clip Submission System | P2 | 📋 Pending | TBD |
-| 4 | Scraped Clips | P1 | 📋 Pending | TBD |
-| 5 | Voting System | P3 | 📋 Pending | TBD |
-| 6 | Favorites/Bookmarking | P3 | 📋 Pending | TBD |
-| 7 | User Profiles & Management | P2 | 📋 Pending | TBD |
-| 8 | Reputation & Karma System | P3 | 📋 Pending | TBD |
-| 9 | Comments System | P3 | 📋 Pending | TBD |
-| 10 | Social Features (Following/Blocking) | P2 | 📋 Pending | TBD |
-| 11 | Playlists | P2 | 📋 Pending | TBD |
-| 12 | Search System | P3 | 📋 Pending | TBD |
-| 13 | Feed System | P2 | 📋 Pending | TBD |
-| 14 | Discovery Lists & Recommendations | P2 | 📋 Pending | TBD |
-| 15 | Content Moderation | P2 | 📋 Pending | TBD |
-| 16 | Premium & Subscriptions (Stripe) | P3 | 📋 Pending | TBD |
-| 17 | Analytics & Metrics | P2 | 📋 Pending | TBD |
-| 18 | Live Streams & Watch Parties | P2 | 📋 Pending | TBD |
-| 19 | Community & Forums | P2 | 📋 Pending | TBD |
-| 20 | Webhooks & Integrations | P3 | 📋 Pending | TBD |
-| 21 | Admin & Moderation Tools | P2 | 📋 Pending | TBD |
-| 22 | CI/CD & Deployment Infrastructure | P3 | 📋 Pending | TBD |
-| 23 | Monitoring, Security & Database | P2 | 📋 Pending | TBD |
-| 24 | Background Jobs & Schedulers | P1 | 📋 Pending | TBD |
-| 25 | Additional Features (Queue, Ads, Chat, etc.) | P2 | 📋 Pending | TBD |
+---
+
+## Roadmap 5.0 Issue Mapping
+
+The original 25 feature categories have been expanded into 59 comprehensive issues organized by phase:
+
+| Original Category | Mapped Roadmap 5.0 Issues | Status |
+|-------------------|---------------------------|--------|
+| **Testing Infrastructure** | #806-821 (16 issues) | ✅ Created |
+| Authentication & Authorization | #808 (Auth E2E Tests), #814 (User & Auth Integration) | ✅ Created |
+| Clip CRUD Operations | #807 (Clip Submission E2E), #813 (Clip Management Integration) | ✅ Created |
+| Clip Submission System | #807 (Clip Submission E2E Flow) | ✅ Created |
+| Scraped Clips (Scheduler Tests) | #816 (Fix Failing Scheduler Tests), #817 (Scheduler Framework) | ✅ Created |
+| Search System | #809 (Search E2E), #837-838 (Search Ranking) | ✅ Created |
+| Premium & Subscriptions | #810 (Premium E2E), #815 (Subscription Integration) | ✅ Created |
+| Social Features | #811 (Social Features E2E) | ✅ Created |
+| Load & Performance | #819-821 (k6, Benchmarks, Stress Testing) | ✅ Created |
+| **Mobile Feature Parity** | #822-833 (12 issues) | ✅ Created |
+| Mobile MFA Implementation | #822-823 (MFA Enrollment & Challenge UI) | ✅ Created |
+| Mobile Telemetry | #824-826 (PostHog, Sentry, Analytics Dashboard) | ✅ Created |
+| Mobile E2E Testing | #827-828, #832-833 (Detox Framework, Critical Flows) | ✅ Created |
+| Mobile Performance | #829-831 (Feed Performance, Video Playback, Deprecation) | ✅ Created |
+| **Analytics & ML** | #837-844 (8 issues) | ✅ Created |
+| Search & Recommendations | #837-841 (Search Evaluation, Weight Optimization, Rec Engine) | ✅ Created |
+| Content Moderation (ML) | #842-844 (Toxic Comments, NSFW, Abuse Detection) | ✅ Created |
+| **Documentation** | #845-851 (7 issues) | ✅ Created |
+| Obsidian Documentation Vault | #845-849 (Structure, Frontmatter, Admin Rendering, CI, Migration) | ✅ Created |
+| API Documentation | #850-851 (OpenAPI Spec, API Generator) | ✅ Created |
+| **Infrastructure** | #852-863 (12 issues) | ✅ Created |
+| Kubernetes & Orchestration | #852-854 (Cluster Setup, Helm Charts, K8s Docs) | ✅ Created |
+| Auto-Scaling | #855-857 (HPA, DB Pooling, Resource Quotas) | ✅ Created |
+| Observability | #858-860 (Grafana, Alerting, Distributed Tracing) | ✅ Created |
+| Security & Resilience | #861-863 (WAF, DDoS, Backup & Recovery) | ✅ Created |
+
+**Total**: 59 issues covering all feature audit gaps
 
 **Legend:**
-- 📋 Pending: Issue not yet created
-- 🚧 In Progress: Issue created, work in progress
-- ✅ Complete: All acceptance criteria met
-- P1: Critical (broken features or major gaps)
-- P2: Important (partial implementation or missing tests)
-- P3: Nice-to-have (complete features, verification only)
+- ✅ Created: Issue exists with complete scope and acceptance criteria
 
 ---
 
-## Priority Breakdown
+## Priority Distribution (Roadmap 5.0 Issues)
 
-- **P1 (Critical)**: 2 issues - Broken features need immediate attention
-  - #4: Scraped Clips (scheduler tests broken)
-  - #24: Background Jobs & Schedulers (some tests failing)
+The 59 issues are distributed across priorities based on criticality:
 
-- **P2 (Important)**: 16 issues - Partial implementations or missing tests
-  - Features that work but need test coverage, integration tests, or minor completions
+- **P0 (Critical/Blocking)**: 15 issues
+  - Testing infrastructure setup, scheduler test fixes, critical infrastructure
+  - Examples: #806 (Playwright E2E Setup), #816 (Fix Failing Scheduler Tests), #859 (Alerting Configuration)
 
-- **P3 (Nice-to-have)**: 7 issues - Complete features needing verification
-  - Features that are complete but benefit from formal audit and verification
+- **P1 (High Priority)**: 31 issues
+  - E2E tests, integration tests, mobile parity, documentation, infrastructure
+  - Examples: #807-810 (E2E flows), #822-823 (Mobile MFA), #827-828, #832-833 (Mobile E2E), #850 (OpenAPI Spec), #852 (K8s Cluster)
 
----
+- **P2 (Medium Priority)**: 12 issues
+  - ML/Analytics optimization, additional observability, resource management
+  - Examples: #839-844 (ML/Analytics), #826, #830 (Mobile telemetry/performance), #857 (Resource Quotas), #860 (Distributed Tracing)
 
-## Issue Creation Guidelines
+- **P3 (Low Priority)**: 1 issue
+  - Nice-to-have improvements
+  - Example: #831 (Mobile Deprecation Cleanup)
 
-### Required Labels for Each Issue
+### Critical Path (P0/P1 Issues)
 
-- `feature-audit` - Main tracking label
-- `documentation` - All issues involve docs
-- `testing` - All issues involve tests
-- `P1`/`P2`/`P3` - Priority label
-- Category-specific label (e.g., `authentication`, `clips`, `search`, etc.)
+1. **Testing Infrastructure** (Week 1-8): #806-821
+   - Blockers: #806 (Playwright), #812 (API Integration Framework), #816 (Scheduler Fixes)
 
-### Milestone
+2. **Mobile Feature Parity** (Week 9-14): #822-833
+   - Blockers: #822-823 (MFA UI), #827, #833 (Detox E2E Framework)
 
-- Assign to: **GA (polish, growth, docs, SEO)**
+3. **Documentation Excellence** (Week 15-20): #845-851
+   - Blockers: #845 (Docs Structure), #850 (OpenAPI Spec)
 
-### Template
-
-Use the template from [feature-inventory.md](feature-inventory.md#issue-template)
-
----
-
-## Sample Issue Bodies
-
-### Sample 1: P1 Priority (Scraped Clips)
-
-```markdown
-## [Feature Audit] Scraped Clips — Completeness + Tests + Typing + Docs
-
-**Feature**: Scraped Clips  
-**Category**: Clip Management  
-**Status**: ✅ Complete (⚠️ with test failures)  
-**Priority**: P1 (Critical)
-
-### Current State
-- **Implementation**: ✅ Complete and working
-- **Tests**: ⚠️ Scheduler tests failing, service tests pass
-- **Typing**: ✅ Complete (Go)
-- **Documentation**: ✅ Comprehensive
-
-### Acceptance Criteria
-- [ ] Fix failing scheduler tests in `clip_sync_scheduler_test.go`
-- [ ] Verify clip scraping runs successfully on schedule (every 15 minutes)
-- [ ] Add integration test for end-to-end scraping workflow
-- [ ] Verify CDN mirroring works correctly
-- [ ] Add performance monitoring for scraping jobs
-- [ ] Document error handling and retry logic
-- [ ] Verify claimed clips workflow
-- [ ] Ensure auto-tagging service works with scraped clips
-
-### How to Verify
-
-**Manual Testing**:
-1. Trigger manual sync: `curl -X POST http://localhost:8080/api/v1/admin/sync/clips`
-2. Check sync status: `curl http://localhost:8080/api/v1/admin/sync/status`
-3. Verify clips appear in database
-4. Test clip claiming workflow as creator
-
-**Automated Testing**:
-```bash
-# Run scheduler tests
-cd backend
-go test -v ./internal/scheduler/clip_sync_scheduler_test.go
-
-# Run service tests
-go test -v ./internal/services/clip_sync_service_test.go
-
-# Run scraper script
-./scripts/scrape_clips.sh --dry-run
-```
-
-### Known Gaps
-
-- Scheduler tests have race conditions or timing issues
-- Performance monitoring not implemented
-- Error handling documentation incomplete
-- No alerting for failed scraping jobs
-
-### Related Issues
-
-- Related to: Clip submission system
-- Blocks: Production scraping deployment
-
-### Documentation Links
-
-- Implementation: `backend/scripts/scrape_clips.go`, `internal/services/clip_sync_service.go`
-- API Docs: [Twitch Integration](../backend/twitch-integration.md)
-- User Docs: [Scraped Clips](scraped-clips.md)
-- Script Docs: [Scraper README](../../backend/scripts/README_SCRAPER.md)
-- Inventory: [Feature Inventory - Scraped Clips](feature-inventory.md#23-scraped-clips)
-
-### Labels
-
-`feature-audit`, `P1`, `clips`, `testing`, `documentation`
-```
-
-### Sample 2: P2 Priority (Clip Submission)
-
-```markdown
-## [Feature Audit] Clip Submission System — Completeness + Tests + Typing + Docs
-
-**Feature**: Clip Submission System  
-**Category**: Clip Management  
-**Status**: ✅ Complete (🟡 partial tests)  
-**Priority**: P2 (Important)
-
-### Current State
-- **Implementation**: ✅ Complete and working
-- **Tests**: 🟡 Partial - unit tests exist, missing integration/E2E tests
-- **Typing**: ✅ Complete (TypeScript + Go)
-- **Documentation**: ✅ Complete
-
-### Acceptance Criteria
-- [ ] Add end-to-end tests for submission flow
-- [ ] Add integration tests for approval/rejection workflow
-- [ ] Test abuse detection thoroughly
-- [ ] Verify notification system for submission status changes
-- [ ] Test bulk moderation actions
-- [ ] Document abuse detection tuning parameters
-- [ ] Verify rate limiting (10 submissions/hour)
-- [ ] Test submission from mobile app
-
-### How to Verify
-
-**Manual Testing**:
-1. Submit clip via web: Visit `/submit` page
-2. Submit clip via mobile: Use mobile app submit flow
-3. Submit clip via API:
-```bash
-curl -X POST http://localhost:8080/api/v1/submissions \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"clip_url": "https://clips.twitch.tv/..."}'
-```
-4. Check submission appears in admin queue
-5. Approve/reject submission as admin
-6. Verify user receives notification
-
-**Automated Testing**:
-```bash
-# Backend tests
-cd backend
-go test -v ./internal/services/submission_service_test.go
-go test -v ./internal/handlers/submission_handler_test.go
-
-# Frontend tests
-cd frontend
-npm run test -- SubmitClipPage
-
-# E2E tests (to be added)
-npm run test:e2e -- submission
-```
-
-### Known Gaps
-
-- E2E submission flow tests missing
-- Abuse detection tuning not documented
-- Mobile submission testing incomplete
-- No load testing for submission queue
-
-### Related Issues
-
-- Related to: Scraped Clips (#4)
-- Related to: Clip CRUD (#2)
-- Related to: Moderation Queue (#15)
-
-### Documentation Links
-
-- Implementation: `backend/internal/services/submission_service.go`
-- API Docs: [Clip Submission API Guide](../backend/clip-submission-api-guide.md)
-- Frontend: `frontend/src/pages/SubmitClipPage.tsx`
-- Mobile: `mobile/app/submit/index.tsx`
-- Inventory: [Feature Inventory - Clip Submission](feature-inventory.md#22-clip-submission-system)
-
-### Labels
-
-`feature-audit`, `P2`, `clips`, `testing`, `documentation`
-```
+4. **Infrastructure Hardening** (Week 21-28): #852-863
+   - Blockers: #852 (K8s Cluster), #853 (Helm Charts), #859 (Alerting)
 
 ---
 
-## Next Actions
+## Roadmap 5.0 Labels & Organization
 
-1. **Immediate**: Create all 25 issues in GitHub using the template
-2. **Week 1**: Address P1 issues (broken tests, critical gaps)
-3. **Week 2-3**: Address P2 issues (partial implementations, missing tests)
-4. **Week 4**: Verify P3 issues (complete features)
-5. **Ongoing**: Update this tracking document with issue links and status
+All 59 issues have been labeled with:
 
----
+- **`roadmap-5.0`** - Main tracking label for Roadmap 5.0 initiative
+- **Priority labels**: `priority/P0`, `priority/P1`, `priority/P2`, `priority/P3`
+- **Area labels**: `area/testing`, `area/mobile`, `area/ml`, `area/documentation`, `area/infrastructure`, `area/search`, `area/analytics`, `area/security`, `area/observability`, `area/kubernetes`, `area/database`
+- **Kind labels**: `kind/feature`, `kind/chore`, `kind/optimization`, `kind/automation`, `kind/decision`
 
-## Notes
-
-- All issues link back to specific sections in [feature-inventory.md](feature-inventory.md)
-- Issue template includes verification steps for manual and automated testing
-- Each issue documents known gaps from the inventory
-- Issues are labeled consistently for easy filtering and tracking
-- Milestone: GA (polish, growth, docs, SEO)
+Milestone: All issues are part of Roadmap 5.0 execution (Q1-Q2 2026)
 
 ---
 
-*This tracking document will be updated as issues are created and resolved.*
+## Links & References
+
+- **Master Tracker**: [#805 Roadmap 5.0 Master Tracker](https://github.com/subculture-collective/clipper/issues/805)
+- **Issue Index Comment**: [Full issue listing with phase/epic organization](https://github.com/subculture-collective/clipper/issues/805#issuecomment-3690769015)
+- **Roadmap Document**: [docs/product/roadmap-5.0.md](roadmap-5.0.md)
+- **Feature Inventory**: [docs/product/feature-inventory.md](feature-inventory.md)
+
+---
+
+## Historical Context: Original Plan (Superseded)
+
+The original plan outlined 25 feature category issues to be created individually. This approach was superseded by creating a comprehensive Roadmap 5.0 structure with 59 well-scoped issues organized by phase and epic, providing better:
+
+- **Granularity**: Breaking down broad categories into actionable tasks
+- **Organization**: Clear phase-based execution order with dependencies
+- **Traceability**: Each issue maps back to specific feature inventory gaps
+- **Scalability**: Issues can be assigned independently and tracked in parallel
+
+All gaps from the original 25 categories are covered in the Roadmap 5.0 issues.
+
+---
+
+*This document serves as a historical record of the feature audit issue creation initiative. All issues have been created and are tracked in [#805 Roadmap 5.0 Master Tracker](https://github.com/subculture-collective/clipper/issues/805).*

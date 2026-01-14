@@ -4,6 +4,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -20,14 +21,18 @@ func TestClipRepository_ListWithFilters_Discussed(t *testing.T) {
 
 	pool := testutil.SetupTestDB(t)
 	defer testutil.CleanupTestDB(t, pool)
+	// Ensure a clean slate to avoid unique constraint collisions from prior runs
+	testutil.TruncateTables(t, pool, "clips", "top_streamers", "clip_tags", "favorites", "comments", "votes", "comment_votes")
 
 	repo := NewClipRepository(pool)
 	ctx := context.Background()
 
+	makeID := func(base string) string { return fmt.Sprintf("%s-%s", base, uuid.NewString()) }
+
 	// Create test clips with different comment counts
 	clip1 := &models.Clip{
 		ID:              uuid.New(),
-		TwitchClipID:    "test-clip-1",
+		TwitchClipID:    makeID("test-clip-1"),
 		TwitchClipURL:   "https://clips.twitch.tv/test1",
 		EmbedURL:        "https://clips.twitch.tv/embed?clip=test1",
 		Title:           "Test Clip 1 - Most Discussed",
@@ -41,7 +46,7 @@ func TestClipRepository_ListWithFilters_Discussed(t *testing.T) {
 
 	clip2 := &models.Clip{
 		ID:              uuid.New(),
-		TwitchClipID:    "test-clip-2",
+		TwitchClipID:    makeID("test-clip-2"),
 		TwitchClipURL:   "https://clips.twitch.tv/test2",
 		EmbedURL:        "https://clips.twitch.tv/embed?clip=test2",
 		Title:           "Test Clip 2 - Less Discussed",
@@ -55,7 +60,7 @@ func TestClipRepository_ListWithFilters_Discussed(t *testing.T) {
 
 	clip3 := &models.Clip{
 		ID:              uuid.New(),
-		TwitchClipID:    "test-clip-3",
+		TwitchClipID:    makeID("test-clip-3"),
 		TwitchClipURL:   "https://clips.twitch.tv/test3",
 		EmbedURL:        "https://clips.twitch.tv/embed?clip=test3",
 		Title:           "Test Clip 3 - No Discussion",
@@ -115,6 +120,8 @@ func TestClipRepository_TopStreamers(t *testing.T) {
 
 	pool := testutil.SetupTestDB(t)
 	defer testutil.CleanupTestDB(t, pool)
+	// Clean related tables before inserting fixtures
+	testutil.TruncateTables(t, pool, "clips", "top_streamers", "clip_tags")
 
 	repo := NewClipRepository(pool)
 	ctx := context.Background()
@@ -175,6 +182,8 @@ func TestClipRepository_ListWithFilters_Top10kStreamers(t *testing.T) {
 
 	pool := testutil.SetupTestDB(t)
 	defer testutil.CleanupTestDB(t, pool)
+	// Clean related tables before inserting fixtures
+	testutil.TruncateTables(t, pool, "clips", "top_streamers", "clip_tags")
 
 	repo := NewClipRepository(pool)
 	ctx := context.Background()
@@ -188,7 +197,7 @@ func TestClipRepository_ListWithFilters_Top10kStreamers(t *testing.T) {
 	// Create clips - one from top streamer, one from regular streamer
 	topClip := &models.Clip{
 		ID:              uuid.New(),
-		TwitchClipID:    "top-clip-1",
+		TwitchClipID:    fmt.Sprintf("top-clip-1-%s", uuid.NewString()),
 		TwitchClipURL:   "https://clips.twitch.tv/top1",
 		EmbedURL:        "https://clips.twitch.tv/embed?clip=top1",
 		Title:           "Clip from Top Streamer",
@@ -201,7 +210,7 @@ func TestClipRepository_ListWithFilters_Top10kStreamers(t *testing.T) {
 
 	regularClip := &models.Clip{
 		ID:              uuid.New(),
-		TwitchClipID:    "regular-clip-1",
+		TwitchClipID:    fmt.Sprintf("regular-clip-1-%s", uuid.NewString()),
 		TwitchClipURL:   "https://clips.twitch.tv/regular1",
 		EmbedURL:        "https://clips.twitch.tv/embed?clip=regular1",
 		Title:           "Clip from Regular Streamer",
@@ -266,7 +275,7 @@ func TestClipRepository_ListWithFilters_Language(t *testing.T) {
 	// Create test clips with different languages
 	englishClip := &models.Clip{
 		ID:              uuid.New(),
-		TwitchClipID:    "en-clip-1",
+		TwitchClipID:    fmt.Sprintf("en-clip-1-%s", uuid.NewString()),
 		TwitchClipURL:   "https://clips.twitch.tv/en1",
 		EmbedURL:        "https://clips.twitch.tv/embed?clip=en1",
 		Title:           "English Clip",
@@ -280,7 +289,7 @@ func TestClipRepository_ListWithFilters_Language(t *testing.T) {
 
 	spanishClip := &models.Clip{
 		ID:              uuid.New(),
-		TwitchClipID:    "es-clip-1",
+		TwitchClipID:    fmt.Sprintf("es-clip-1-%s", uuid.NewString()),
 		TwitchClipURL:   "https://clips.twitch.tv/es1",
 		EmbedURL:        "https://clips.twitch.tv/embed?clip=es1",
 		Title:           "Spanish Clip",
@@ -294,7 +303,7 @@ func TestClipRepository_ListWithFilters_Language(t *testing.T) {
 
 	frenchClip := &models.Clip{
 		ID:              uuid.New(),
-		TwitchClipID:    "fr-clip-1",
+		TwitchClipID:    fmt.Sprintf("fr-clip-1-%s", uuid.NewString()),
 		TwitchClipURL:   "https://clips.twitch.tv/fr1",
 		EmbedURL:        "https://clips.twitch.tv/embed?clip=fr1",
 		Title:           "French Clip",
@@ -351,5 +360,173 @@ func TestClipRepository_ListWithFilters_Language(t *testing.T) {
 
 	if len(clips) > 0 && clips[0].Language != nil && *clips[0].Language != "es" {
 		t.Errorf("Expected Spanish clip, got language: %s", *clips[0].Language)
+	}
+}
+
+func TestClipRepository_ListWithFilters_SubmittedByUserID(t *testing.T) {
+	// Skip if not in integration test mode
+	if testing.Short() {
+		t.Skip("Skipping integration test")
+	}
+
+	pool := testutil.SetupTestDB(t)
+	defer testutil.CleanupTestDB(t, pool)
+	// Ensure a clean slate
+	testutil.TruncateTables(t, pool, "clips", "users")
+
+	repo := NewClipRepository(pool)
+	ctx := context.Background()
+
+	// Create test users
+	user1ID := uuid.New()
+	user2ID := uuid.New()
+
+	// Helper function to create unique clip IDs
+	makeID := func(base string) string { return fmt.Sprintf("%s-%s", base, uuid.NewString()) }
+
+	// Create clips submitted by user1
+	clip1 := &models.Clip{
+		ID:                uuid.New(),
+		TwitchClipID:      makeID("test-clip-user1-1"),
+		TwitchClipURL:     "https://clips.twitch.tv/user1-1",
+		EmbedURL:          "https://clips.twitch.tv/embed?clip=user1-1",
+		Title:             "User 1 Clip 1",
+		CreatorName:       "creator1",
+		BroadcasterName:   "broadcaster1",
+		BroadcasterID:     testutil.StringPtr("12345"),
+		CreatedAt:         time.Now().Add(-1 * time.Hour),
+		ImportedAt:        time.Now(),
+		SubmittedByUserID: &user1ID,
+		SubmittedAt:       testutil.TimePtr(time.Now().Add(-1 * time.Hour)),
+	}
+
+	clip2 := &models.Clip{
+		ID:                uuid.New(),
+		TwitchClipID:      makeID("test-clip-user1-2"),
+		TwitchClipURL:     "https://clips.twitch.tv/user1-2",
+		EmbedURL:          "https://clips.twitch.tv/embed?clip=user1-2",
+		Title:             "User 1 Clip 2",
+		CreatorName:       "creator2",
+		BroadcasterName:   "broadcaster2",
+		BroadcasterID:     testutil.StringPtr("23456"),
+		CreatedAt:         time.Now().Add(-2 * time.Hour),
+		ImportedAt:        time.Now(),
+		SubmittedByUserID: &user1ID,
+		SubmittedAt:       testutil.TimePtr(time.Now().Add(-2 * time.Hour)),
+	}
+
+	// Create clip submitted by user2
+	clip3 := &models.Clip{
+		ID:                uuid.New(),
+		TwitchClipID:      makeID("test-clip-user2-1"),
+		TwitchClipURL:     "https://clips.twitch.tv/user2-1",
+		EmbedURL:          "https://clips.twitch.tv/embed?clip=user2-1",
+		Title:             "User 2 Clip 1",
+		CreatorName:       "creator3",
+		BroadcasterName:   "broadcaster3",
+		BroadcasterID:     testutil.StringPtr("34567"),
+		CreatedAt:         time.Now().Add(-3 * time.Hour),
+		ImportedAt:        time.Now(),
+		SubmittedByUserID: &user2ID,
+		SubmittedAt:       testutil.TimePtr(time.Now().Add(-3 * time.Hour)),
+	}
+
+	// Create clip with no submitter (scraped clip)
+	clip4 := &models.Clip{
+		ID:              uuid.New(),
+		TwitchClipID:    makeID("test-clip-scraped"),
+		TwitchClipURL:   "https://clips.twitch.tv/scraped",
+		EmbedURL:        "https://clips.twitch.tv/embed?clip=scraped",
+		Title:           "Scraped Clip",
+		CreatorName:     "creator4",
+		BroadcasterName: "broadcaster4",
+		BroadcasterID:   testutil.StringPtr("45678"),
+		CreatedAt:       time.Now().Add(-4 * time.Hour),
+		ImportedAt:      time.Now(),
+	}
+
+	// Insert clips
+	if err := repo.Create(ctx, clip1); err != nil {
+		t.Fatalf("Failed to create clip1: %v", err)
+	}
+	if err := repo.Create(ctx, clip2); err != nil {
+		t.Fatalf("Failed to create clip2: %v", err)
+	}
+	if err := repo.Create(ctx, clip3); err != nil {
+		t.Fatalf("Failed to create clip3: %v", err)
+	}
+	if err := repo.Create(ctx, clip4); err != nil {
+		t.Fatalf("Failed to create clip4: %v", err)
+	}
+
+	// Test filtering by user1's submissions
+	user1IDStr := user1ID.String()
+	filters := ClipFilters{
+		SubmittedByUserID: &user1IDStr,
+		Sort:              "new",
+	}
+
+	clips, total, err := repo.ListWithFilters(ctx, filters, 10, 0)
+	if err != nil {
+		t.Fatalf("Failed to list clips for user1: %v", err)
+	}
+
+	if total != 2 {
+		t.Errorf("Expected 2 clips submitted by user1, got %d", total)
+	}
+
+	if len(clips) != 2 {
+		t.Errorf("Expected 2 clips in result, got %d", len(clips))
+	}
+
+	// Verify all returned clips belong to user1
+	for _, clip := range clips {
+		if clip.SubmittedByUserID == nil {
+			t.Errorf("Clip %s has nil SubmittedByUserID", clip.ID)
+			continue
+		}
+		if *clip.SubmittedByUserID != user1ID {
+			t.Errorf("Clip %s submitted by %s, expected %s", clip.ID, *clip.SubmittedByUserID, user1ID)
+		}
+	}
+
+	// Test filtering by user2's submissions
+	user2IDStr := user2ID.String()
+	filters.SubmittedByUserID = &user2IDStr
+
+	clips, total, err = repo.ListWithFilters(ctx, filters, 10, 0)
+	if err != nil {
+		t.Fatalf("Failed to list clips for user2: %v", err)
+	}
+
+	if total != 1 {
+		t.Errorf("Expected 1 clip submitted by user2, got %d", total)
+	}
+
+	if len(clips) != 1 {
+		t.Errorf("Expected 1 clip in result, got %d", len(clips))
+	}
+
+	// Verify the clip belongs to user2
+	if len(clips) > 0 {
+		if clips[0].SubmittedByUserID == nil {
+			t.Errorf("Clip %s has nil SubmittedByUserID", clips[0].ID)
+		} else if *clips[0].SubmittedByUserID != user2ID {
+			t.Errorf("Clip %s submitted by %s, expected %s", clips[0].ID, *clips[0].SubmittedByUserID, user2ID)
+		}
+	}
+
+	// Test that scraped clips are not returned when filtering by user ID
+	nonExistentUserID := uuid.New()
+	nonExistentUserIDStr := nonExistentUserID.String()
+	filters.SubmittedByUserID = &nonExistentUserIDStr
+
+	clips, total, err = repo.ListWithFilters(ctx, filters, 10, 0)
+	if err != nil {
+		t.Fatalf("Failed to list clips for non-existent user: %v", err)
+	}
+
+	if total != 0 {
+		t.Errorf("Expected 0 clips for non-existent user, got %d", total)
 	}
 }

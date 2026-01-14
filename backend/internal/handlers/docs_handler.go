@@ -135,8 +135,8 @@ func (h *DocsHandler) searchDocuments(basePath, relativePath, query string) []Se
 	var results []SearchResult
 
 	for _, entry := range entries {
-		// Skip hidden files and archive
-		if strings.HasPrefix(entry.Name(), ".") || entry.Name() == "archive" {
+		// Skip hidden files, archive, and vault
+		if strings.HasPrefix(entry.Name(), ".") || entry.Name() == "archive" || entry.Name() == "vault" {
 			continue
 		}
 
@@ -241,8 +241,8 @@ func (h *DocsHandler) buildDocsTree(basePath, relativePath string) ([]*DocNode, 
 			continue
 		}
 
-		// Skip archive directory
-		if entry.Name() == "archive" {
+		// Skip archive and vault directories
+		if entry.Name() == "archive" || entry.Name() == "vault" {
 			continue
 		}
 

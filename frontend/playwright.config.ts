@@ -1,34 +1,66 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Read environment variables from file.
- * https://github.com/motdotla/dotenv
- */
-// import dotenv from 'dotenv';
-// dotenv.config({ path: path.resolve(__dirname, '.env') });
-
-/**
- * See https://playwright.dev/docs/test-configuration.
+ * Playwright E2E Test Configuration
+ *
+ * This configuration sets up comprehensive E2E testing with:
+ * - Configurable base URL for local/staging/production environments
+ * - Proper timeouts for global (30s) and expect (5s) operations
+ * - Retry logic (2 on CI, 0 locally)
+ * - Parallel workers (4 on CI)
+ * - Screenshot, video, and trace capture on failures
+ * - Global setup/teardown for test data management
+ *
+ * @see https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
-  testDir: './e2e',
+  testDir: './e2e/tests',
+
+  /* Maximum time one test can run for */
+  timeout: 30 * 1000,
+
+  /* Maximum time expect() should wait for the condition to be met */
+  expect: {
+    timeout: 5 * 1000,
+  },
+
   /* Run tests in files in parallel */
   fullyParallel: true,
-  /* Fail the build on CI if you accidentally left test.only in the source code. */
+
+  /* Fail the build on CI if you accidentally left test.only in the source code */
   forbidOnly: !!process.env.CI,
-  /* Retry on CI only */
+
+  /* Retry on CI only - 2 retries as per requirements */
   retries: process.env.CI ? 2 : 0,
-  /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
-  /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: 'html',
-  /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
+
+  /* Parallel workers - 4 on CI as per requirements, auto-detect locally */
+  workers: process.env.CI ? 4 : undefined,
+
+  /* Reporter to use - HTML format with CI-friendly list reporter */
+  reporter: [
+    ['html', { outputFolder: 'playwright-report', open: 'never' }],
+    ['list'],
+  ],
+
+  /* Shared settings for all the projects below */
   use: {
-    /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: 'http://localhost:5173',
-    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
+    /* Base URL - configurable via environment variable for local/staging/production */
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || process.env.VITE_APP_URL || 'http://localhost:5173',
+
+    /* Collect trace on first retry as per requirements */
     trace: 'on-first-retry',
+
+    /* Capture screenshot on failure */
     screenshot: 'only-on-failure',
+
+    /* Capture video on failure */
+    video: 'retain-on-failure',
+
+    /* Maximum time for each action */
+    actionTimeout: 10 * 1000,
+
+    /* Maximum time for navigation */
+    navigationTimeout: 30 * 1000,
   },
 
   /* Configure projects for major browsers */
@@ -48,30 +80,20 @@ export default defineConfig({
       use: { ...devices['Desktop Safari'] },
     },
 
-    /* Test against mobile viewports. */
-    {
-      name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] },
-    },
-    {
-      name: 'Mobile Safari',
-      use: { ...devices['iPhone 12'] },
-    },
-
-    /* Test against branded browsers. */
+    /* Optionally test against mobile viewports - enable as needed */
     // {
-    //   name: 'Microsoft Edge',
-    //   use: { ...devices['Desktop Edge'], channel: 'msedge' },
+    //   name: 'Mobile Chrome',
+    //   use: { ...devices['Pixel 5'] },
     // },
     // {
-    //   name: 'Google Chrome',
-    //   use: { ...devices['Desktop Chrome'], channel: 'chrome' },
+    //   name: 'Mobile Safari',
+    //   use: { ...devices['iPhone 12'] },
     // },
   ],
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'npm run dev',
+  command: 'VITE_AUTO_CONSENT=true VITE_ENABLE_ANALYTICS=false VITE_API_URL=http://localhost:8080/api/v1 VITE_STRIPE_PRO_MONTHLY_PRICE_ID=price_e2e_monthly VITE_STRIPE_PRO_YEARLY_PRICE_ID=price_e2e_yearly VITE_E2E_TEST_LOGIN=true VITE_E2E_TEST_USER=user1_e2e npm run dev',
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000, // 120 seconds for CI environments

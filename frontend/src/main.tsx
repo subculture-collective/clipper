@@ -1,12 +1,34 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { Buffer } from 'buffer'
 import './index.css'
 import './i18n' // Initialize i18n
 import App from './App.tsx'
 import { initSentry } from './lib/sentry'
 import ErrorBoundary from './components/ErrorBoundary'
 import { registerServiceWorker } from './lib/sw-register'
+
+// Polyfill Buffer for gray-matter
+globalThis.Buffer = Buffer;
+
+// Force dark mode - add 'dark' class to root element
+document.documentElement.classList.add('dark');
+
+// Add global error handler to catch any module errors
+window.addEventListener('error', (event) => {
+  console.error('Global error caught:', {
+    message: event.message,
+    filename: event.filename,
+    lineno: event.lineno,
+    colno: event.colno,
+    error: event.error?.stack,
+  })
+})
+
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('Unhandled promise rejection:', event.reason)
+})
 
 // Initialize Sentry before rendering the app
 try {

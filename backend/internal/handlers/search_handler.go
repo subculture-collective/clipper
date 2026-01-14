@@ -1,23 +1,40 @@
 package handlers
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/internal/services"
+	"github.com/subculture-collective/clipper/pkg/metrics"
 )
 
 // SearchHandler handles search-related requests
 type SearchHandler struct {
 	searchRepo          *repository.SearchRepository
-	openSearchService   *services.OpenSearchService
-	hybridSearchService *services.HybridSearchService
+	openSearchService   openSearchProvider
+	hybridSearchService hybridSearchProvider
 	authService         *services.AuthService
 	useOpenSearch       bool
 	useHybridSearch     bool
+}
+
+// openSearchProvider defines the subset of methods needed from the OpenSearch service.
+type openSearchProvider interface {
+	Search(ctx context.Context, req *models.SearchRequest) (*models.SearchResponse, error)
+	GetSuggestions(ctx context.Context, query string, limit int) ([]models.SearchSuggestion, error)
+}
+
+// hybridSearchProvider defines the interface required for hybrid search operations.
+type hybridSearchProvider interface {
+	Search(ctx context.Context, req *models.SearchRequest) (*models.SearchResponse, error)
+	SearchWithScores(ctx context.Context, req *models.SearchRequest) (*models.SearchResponseWithScores, error)
 }
 
 // NewSearchHandler creates a new SearchHandler with PostgreSQL FTS
@@ -41,6 +58,17 @@ func NewSearchHandlerWithOpenSearch(searchRepo *repository.SearchRepository, ope
 	}
 }
 
+// NewSearchHandlerWithOpenSearchProvider allows injecting a custom OpenSearch provider (useful for testing)
+func NewSearchHandlerWithOpenSearchProvider(searchRepo *repository.SearchRepository, provider openSearchProvider, authService *services.AuthService) *SearchHandler {
+	return &SearchHandler{
+		searchRepo:        searchRepo,
+		openSearchService: provider,
+		authService:       authService,
+		useOpenSearch:     provider != nil,
+		useHybridSearch:   false,
+	}
+}
+
 // NewSearchHandlerWithHybridSearch creates a new SearchHandler with hybrid BM25 + vector search
 func NewSearchHandlerWithHybridSearch(searchRepo *repository.SearchRepository, hybridSearchService *services.HybridSearchService, authService *services.AuthService) *SearchHandler {
 	return &SearchHandler{
@@ -52,23 +80,33 @@ func NewSearchHandlerWithHybridSearch(searchRepo *repository.SearchRepository, h
 	}
 }
 
+// NewSearchHandlerWithHybridProvider allows injecting a custom hybrid search provider (useful for testing)
+func NewSearchHandlerWithHybridProvider(searchRepo *repository.SearchRepository, hybridProvider hybridSearchProvider, authService *services.AuthService) *SearchHandler {
+	return &SearchHandler{
+		searchRepo:          searchRepo,
+		hybridSearchService: hybridProvider,
+		authService:         authService,
+		useOpenSearch:       false,
+		useHybridSearch:     hybridProvider != nil,
+	}
+}
 
 // parseIntQueryParam safely parses an integer query parameter with default value and bounds
 func parseIntQueryParam(c *gin.Context, key string, defaultValue, min, max int) int {
 	valueStr := c.Query(key)
 	if valueStr == "" {
-	return defaultValue
+		return defaultValue
 	}
-	
+
 	var value int
 	if _, err := fmt.Sscanf(valueStr, "%d", &value); err != nil {
-	return defaultValue
+		return defaultValue
 	}
-	
+
 	if value < min || value > max {
-	return defaultValue
+		return defaultValue
 	}
-	
+
 	return value
 }
 
@@ -96,23 +134,71 @@ func (h *SearchHandler) Search(c *gin.Context) {
 	// Perform search using hybrid search, OpenSearch, or PostgreSQL fallback
 	var results *models.SearchResponse
 	var err error
+	var usedFallback bool
+	var failoverReason string
+	var fallbackStartTime time.Time
 
 	if h.useHybridSearch && h.hybridSearchService != nil {
 		// Use hybrid BM25 + vector similarity search
+		// Note: Hybrid search does not have a fallback - it requires both OpenSearch and embeddings
 		results, err = h.hybridSearchService.Search(c.Request.Context(), &req)
+		if err != nil {
+			// Hybrid search failure - return 503 (no fallback available)
+			fmt.Printf("Hybrid search error: %v\n", err)
+			failoverReason = getFailoverReason(err)
+			// Track hybrid search unavailability separately (not a true failover since no fallback)
+			metrics.SearchQueriesTotal.WithLabelValues("hybrid", "unavailable").Inc()
+
+			c.Header("Retry-After", "60") // Suggest retry after 60 seconds
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"error": "Search service is temporarily unavailable. Please try again in about 1 minute.",
+			})
+			return
+		}
 	} else if h.useOpenSearch && h.openSearchService != nil {
 		// Use OpenSearch BM25 only
 		results, err = h.openSearchService.Search(c.Request.Context(), &req)
+		if err != nil {
+			// Fall back to PostgreSQL FTS
+			fmt.Printf("OpenSearch error, falling back to PostgreSQL: %v\n", err)
+			failoverReason = getFailoverReason(err)
+			usedFallback = true
+			fallbackStartTime = time.Now()
+
+			// Track failover event
+			metrics.SearchFallbackTotal.WithLabelValues(failoverReason).Inc()
+
+			results, err = h.searchRepo.Search(c.Request.Context(), &req)
+			if err != nil {
+				// PostgreSQL fallback also failed
+				fmt.Printf("PostgreSQL fallback error: %v\n", err)
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "Failed to perform search",
+				})
+				return
+			}
+
+			// Track fallback latency
+			fallbackDuration := time.Since(fallbackStartTime).Milliseconds()
+			metrics.SearchFallbackDuration.WithLabelValues(failoverReason).Observe(float64(fallbackDuration))
+		}
 	} else {
 		// Fall back to PostgreSQL FTS
 		results, err = h.searchRepo.Search(c.Request.Context(), &req)
+		if err != nil {
+			fmt.Printf("Search error: %v\n", err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Failed to perform search",
+			})
+			return
+		}
 	}
 
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to perform search",
-		})
-		return
+	// Add failover headers if fallback was used
+	if usedFallback {
+		c.Header("X-Search-Failover", "true")
+		c.Header("X-Search-Failover-Reason", failoverReason)
+		c.Header("X-Search-Failover-Service", "opensearch")
 	}
 
 	// Track search analytics (optional, get user ID if authenticated)
@@ -130,6 +216,33 @@ func (h *SearchHandler) Search(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, results)
+}
+
+// getFailoverReason determines the reason for search failover based on the error
+func getFailoverReason(err error) string {
+	if err == nil {
+		return "unknown"
+	}
+
+	errStr := err.Error()
+
+	// Check for timeout errors
+	if errors.Is(err, context.DeadlineExceeded) || strings.Contains(errStr, "timeout") || strings.Contains(errStr, "deadline exceeded") {
+		return "timeout"
+	}
+
+	// Check for 5xx errors
+	if strings.Contains(errStr, "503") || strings.Contains(errStr, "500") || strings.Contains(errStr, "502") || strings.Contains(errStr, "504") {
+		return "error"
+	}
+
+	// Check for connection errors
+	if strings.Contains(errStr, "connection refused") || strings.Contains(errStr, "connection reset") || strings.Contains(errStr, "no such host") {
+		return "error"
+	}
+
+	// Default to error for any other failures
+	return "error"
 }
 
 // validateAndSetDefaults validates search request parameters and sets defaults
@@ -170,19 +283,50 @@ func (h *SearchHandler) GetSuggestions(c *gin.Context) {
 
 	var suggestions []models.SearchSuggestion
 	var err error
+	var usedFallback bool
+	var failoverReason string
+	var fallbackStartTime time.Time
 
 	// Use OpenSearch or PostgreSQL fallback
 	if h.useOpenSearch && h.openSearchService != nil {
 		suggestions, err = h.openSearchService.GetSuggestions(c.Request.Context(), query, limit)
+		if err != nil {
+			// Fall back to PostgreSQL
+			fmt.Printf("OpenSearch suggestions error, falling back to PostgreSQL: %v\n", err)
+			failoverReason = getFailoverReason(err)
+			usedFallback = true
+			fallbackStartTime = time.Now()
+
+			// Track failover event
+			metrics.SearchFallbackTotal.WithLabelValues(failoverReason).Inc()
+
+			suggestions, err = h.searchRepo.GetSuggestions(c.Request.Context(), query, limit)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "Failed to get suggestions",
+				})
+				return
+			}
+
+			// Track fallback latency
+			fallbackDuration := time.Since(fallbackStartTime).Milliseconds()
+			metrics.SearchFallbackDuration.WithLabelValues(failoverReason).Observe(float64(fallbackDuration))
+		}
 	} else {
 		suggestions, err = h.searchRepo.GetSuggestions(c.Request.Context(), query, limit)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Failed to get suggestions",
+			})
+			return
+		}
 	}
 
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to get suggestions",
-		})
-		return
+	// Add failover headers if fallback was used
+	if usedFallback {
+		c.Header("X-Search-Failover", "true")
+		c.Header("X-Search-Failover-Reason", failoverReason)
+		c.Header("X-Search-Failover-Service", "opensearch")
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -251,19 +395,19 @@ func (h *SearchHandler) GetTrendingSearches(c *gin.Context) {
 
 	limit := parseIntQueryParam(c, "limit", 20, 1, 100)
 
-searches, err := h.searchRepo.GetTrendingSearches(c.Request.Context(), days, limit)
-if err != nil {
-c.JSON(http.StatusInternalServerError, gin.H{
-"error": "Failed to get trending searches",
-})
-return
-}
+	searches, err := h.searchRepo.GetTrendingSearches(c.Request.Context(), days, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to get trending searches",
+		})
+		return
+	}
 
-c.JSON(http.StatusOK, gin.H{
-"trending_searches": searches,
-"days":              days,
-"limit":             limit,
-})
+	c.JSON(http.StatusOK, gin.H{
+		"trending_searches": searches,
+		"days":              days,
+		"limit":             limit,
+	})
 }
 
 // GetFailedSearches returns searches that returned no results
@@ -273,89 +417,89 @@ func (h *SearchHandler) GetFailedSearches(c *gin.Context) {
 
 	limit := parseIntQueryParam(c, "limit", 20, 1, 100)
 
-searches, err := h.searchRepo.GetFailedSearches(c.Request.Context(), days, limit)
-if err != nil {
-c.JSON(http.StatusInternalServerError, gin.H{
-"error": "Failed to get failed searches",
-})
-return
-}
+	searches, err := h.searchRepo.GetFailedSearches(c.Request.Context(), days, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to get failed searches",
+		})
+		return
+	}
 
-c.JSON(http.StatusOK, gin.H{
-"failed_searches": searches,
-"days":            days,
-"limit":           limit,
-})
+	c.JSON(http.StatusOK, gin.H{
+		"failed_searches": searches,
+		"days":            days,
+		"limit":           limit,
+	})
 }
 
 // GetSearchHistory returns a user's recent search queries
 // GET /api/v1/search/history
 func (h *SearchHandler) GetSearchHistory(c *gin.Context) {
-// Get user from context (requires authentication)
-userVal, exists := c.Get("user")
-if !exists {
-c.JSON(http.StatusUnauthorized, gin.H{
-"error": "Authentication required",
-})
-return
-}
+	// Get user from context (requires authentication)
+	userVal, exists := c.Get("user")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Authentication required",
+		})
+		return
+	}
 
-user, ok := userVal.(*models.User)
-if !ok {
-c.JSON(http.StatusUnauthorized, gin.H{
-"error": "Invalid user context",
-})
-return
-}
+	user, ok := userVal.(*models.User)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Invalid user context",
+		})
+		return
+	}
 
 	limit := parseIntQueryParam(c, "limit", 20, 1, 100)
 
-history, err := h.searchRepo.GetUserSearchHistory(c.Request.Context(), user.ID, limit)
-if err != nil {
-c.JSON(http.StatusInternalServerError, gin.H{
-"error": "Failed to get search history",
-})
-return
-}
+	history, err := h.searchRepo.GetUserSearchHistory(c.Request.Context(), user.ID, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to get search history",
+		})
+		return
+	}
 
-c.JSON(http.StatusOK, gin.H{
-"search_history": history,
-"limit":          limit,
-})
+	c.JSON(http.StatusOK, gin.H{
+		"search_history": history,
+		"limit":          limit,
+	})
 }
 
 // GetSearchAnalytics returns overall search analytics (admin only)
 // GET /api/v1/search/analytics
 func (h *SearchHandler) GetSearchAnalytics(c *gin.Context) {
-// Check if user is admin (requires authentication and admin role)
-userVal, exists := c.Get("user")
-if !exists {
-c.JSON(http.StatusUnauthorized, gin.H{
-"error": "Authentication required",
-})
-return
-}
+	// Check if user is admin (requires authentication and admin role)
+	userVal, exists := c.Get("user")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Authentication required",
+		})
+		return
+	}
 
-user, ok := userVal.(*models.User)
-if !ok || user.Role != "admin" {
-c.JSON(http.StatusForbidden, gin.H{
-"error": "Admin access required",
-})
-return
-}
+	user, ok := userVal.(*models.User)
+	if !ok || user.Role != "admin" {
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": "Admin access required",
+		})
+		return
+	}
 
 	days := parseIntQueryParam(c, "days", 7, 1, 365)
 
-summary, err := h.searchRepo.GetSearchAnalyticsSummary(c.Request.Context(), days)
-if err != nil {
-c.JSON(http.StatusInternalServerError, gin.H{
-"error": "Failed to get search analytics",
-})
-return
-}
+	summary, err := h.searchRepo.GetSearchAnalyticsSummary(c.Request.Context(), days)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to get search analytics",
+		})
+		return
+	}
 
-c.JSON(http.StatusOK, gin.H{
-"analytics": summary,
-"days":      days,
-})
+	c.JSON(http.StatusOK, gin.H{
+		"analytics": summary,
+		"days":      days,
+	})
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { UserPlus, Shield, Edit, Eye, Trash2 } from 'lucide-react';
 import type { PlaylistCollaborator, AddCollaboratorRequest } from '@/types/playlist';
 
@@ -17,11 +17,7 @@ export function CollaboratorManager({ playlistId, isOwner, canManageCollaborator
     const [newCollaboratorPermission, setNewCollaboratorPermission] = useState<'view' | 'edit' | 'admin'>('edit');
     const [submitting, setSubmitting] = useState(false);
 
-    useEffect(() => {
-        fetchCollaborators();
-    }, [playlistId]);
-
-    const fetchCollaborators = async () => {
+    const fetchCollaborators = useCallback(async () => {
         try {
             setLoading(true);
             setError(null); // Clear any previous errors
@@ -46,7 +42,11 @@ export function CollaboratorManager({ playlistId, isOwner, canManageCollaborator
         } finally {
             setLoading(false);
         }
-    };
+    }, [playlistId]);
+
+    useEffect(() => {
+        fetchCollaborators();
+    }, [fetchCollaborators]);
 
     const addCollaborator = async () => {
         if (!newCollaboratorUserId.trim()) {
@@ -170,8 +170,8 @@ export function CollaboratorManager({ playlistId, isOwner, canManageCollaborator
                 <div>
                     <h3 className="text-lg font-bold text-white">Collaborators</h3>
                     <p className="text-sm text-zinc-400 mt-1">
-                        {collaborators.length === 0 
-                            ? 'No collaborators yet' 
+                        {collaborators.length === 0
+                            ? 'No collaborators yet'
                             : `${collaborators.length} collaborator${collaborators.length === 1 ? '' : 's'}`
                         }
                     </p>

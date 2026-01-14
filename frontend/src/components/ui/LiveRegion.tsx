@@ -26,19 +26,29 @@ export const LiveRegion: React.FC<LiveRegionProps> = ({
     priority = 'polite',
     clearAfter = 1000,
 }) => {
-    const [currentMessage, setCurrentMessage] = useState(message);
+    const [isCleared, setIsCleared] = useState(false);
+    const prevMessageRef = React.useRef(message);
 
     useEffect(() => {
-        setCurrentMessage(message);
+        // Only reset the cleared state if the message actually changed
+        if (prevMessageRef.current !== message) {
+            prevMessageRef.current = message;
+            // Defer the state update to avoid synchronous setState in effect
+            Promise.resolve().then(() => {
+                setIsCleared(false);
+            });
+        }
 
         if (message && clearAfter > 0) {
             const timer = setTimeout(() => {
-                setCurrentMessage('');
+                setIsCleared(true);
             }, clearAfter);
 
             return () => clearTimeout(timer);
         }
     }, [message, clearAfter]);
+
+    const displayMessage = isCleared ? '' : message;
 
     return (
         <div
@@ -47,7 +57,7 @@ export const LiveRegion: React.FC<LiveRegionProps> = ({
             aria-atomic='true'
             className='sr-only'
         >
-            {currentMessage}
+            {displayMessage}
         </div>
     );
 };

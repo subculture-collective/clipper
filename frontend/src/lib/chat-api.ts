@@ -214,6 +214,23 @@ export async function checkUserBan(
   return response.data;
 }
 
+// Get list of banned users in a channel
+export async function getChannelBans(
+  channelId: string,
+  page: number = 1,
+  limit: number = 50
+): Promise<{ bans: ChatBan[]; total: number; page: number; limit: number }> {
+  const response = await apiClient.get<{
+    bans: ChatBan[];
+    total: number;
+    page: number;
+    limit: number;
+  }>(`/chat/channels/${channelId}/bans`, {
+    params: { page, limit },
+  });
+  return response.data;
+}
+
 // Get current user's role in a channel
 export async function getCurrentUserRole(
   channelId: string
@@ -283,6 +300,47 @@ export async function deleteChannel(
 ): Promise<{ status: string }> {
   const response = await apiClient.delete<{ status: string }>(
     `/chat/channels/${channelId}`
+  );
+  return response.data;
+}
+
+// Sync bans from Twitch channel
+export interface SyncBansFromTwitchRequest {
+  channel_name: string;
+}
+
+export interface SyncBansFromTwitchResponse {
+  job_id: string;
+  status: string;
+  message?: string;
+}
+
+export interface SyncBansProgressResponse {
+  job_id: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  bans_added: number;
+  bans_existing: number;
+  total_processed: number;
+  error?: string;
+}
+
+export async function syncBansFromTwitch(
+  channelId: string,
+  request: SyncBansFromTwitchRequest
+): Promise<SyncBansFromTwitchResponse> {
+  const response = await apiClient.post<SyncBansFromTwitchResponse>(
+    `/chat/channels/${channelId}/sync-bans`,
+    request
+  );
+  return response.data;
+}
+
+export async function checkSyncBansProgress(
+  channelId: string,
+  jobId: string
+): Promise<SyncBansProgressResponse> {
+  const response = await apiClient.get<SyncBansProgressResponse>(
+    `/chat/channels/${channelId}/sync-bans/${jobId}`
   );
   return response.data;
 }

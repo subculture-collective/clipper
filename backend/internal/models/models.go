@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -9,7 +10,7 @@ import (
 // User represents a user in the system
 type User struct {
 	ID                   uuid.UUID  `json:"id" db:"id"`
-	TwitchID             string     `json:"twitch_id" db:"twitch_id"`
+	TwitchID             *string    `json:"twitch_id,omitempty" db:"twitch_id"`
 	Username             string     `json:"username" db:"username"`
 	DisplayName          string     `json:"display_name" db:"display_name"`
 	Email                *string    `json:"email,omitempty" db:"email"`
@@ -22,6 +23,11 @@ type User struct {
 	Role                 string     `json:"role" db:"role"`
 	AccountType          string     `json:"account_type" db:"account_type"`
 	AccountTypeUpdatedAt *time.Time `json:"account_type_updated_at,omitempty" db:"account_type_updated_at"`
+	// Moderator metadata fields
+	ModeratorScope      string       `json:"moderator_scope,omitempty" db:"moderator_scope"`
+	ModerationChannels  []uuid.UUID  `json:"moderation_channels,omitempty" db:"moderation_channels"`
+	ModerationStartedAt *time.Time   `json:"moderation_started_at,omitempty" db:"moderation_started_at"`
+	AccountStatus       string       `json:"account_status" db:"account_status"` // active, unclaimed, pending
 	IsBanned             bool       `json:"is_banned" db:"is_banned"`
 	DeviceToken          *string    `json:"device_token,omitempty" db:"device_token"`
 	DevicePlatform       *string    `json:"device_platform,omitempty" db:"device_platform"`
@@ -394,17 +400,18 @@ type SearchHistoryItem struct {
 
 // SearchAnalyticsSummary represents overall search analytics
 type SearchAnalyticsSummary struct {
-	TotalSearches         int     `json:"total_searches"`
-	UniqueUsers           int     `json:"unique_users"`
-	FailedSearches        int     `json:"failed_searches"`
-	AvgResultsPerSearch   int     `json:"avg_results_per_search"`
-	SuccessRate           float64 `json:"success_rate"`
+	TotalSearches       int     `json:"total_searches"`
+	UniqueUsers         int     `json:"unique_users"`
+	FailedSearches      int     `json:"failed_searches"`
+	AvgResultsPerSearch int     `json:"avg_results_per_search"`
+	SuccessRate         float64 `json:"success_rate"`
 }
 
 // ClipSubmission represents a user-submitted clip pending moderation
 type ClipSubmission struct {
 	ID                      uuid.UUID  `json:"id" db:"id"`
 	UserID                  uuid.UUID  `json:"user_id" db:"user_id"`
+	ClipID                  *uuid.UUID `json:"clip_id,omitempty" db:"clip_id"` // Set when submission is approved
 	TwitchClipID            string     `json:"twitch_clip_id" db:"twitch_clip_id"`
 	TwitchClipURL           string     `json:"twitch_clip_url" db:"twitch_clip_url"`
 	Title                   *string    `json:"title,omitempty" db:"title"`
@@ -451,11 +458,14 @@ type SubmissionStats struct {
 type ModerationAuditLog struct {
 	ID          uuid.UUID              `json:"id" db:"id"`
 	Action      string                 `json:"action" db:"action"`           // approve, reject, bulk_approve, bulk_reject
-	EntityType  string                 `json:"entity_type" db:"entity_type"` // clip_submission, clip, comment, user
+	EntityType  string                 `json:"entity_type" db:"entity_type"` // clip_submission, clip, comment, user, channel
 	EntityID    uuid.UUID              `json:"entity_id" db:"entity_id"`
 	ModeratorID uuid.UUID              `json:"moderator_id" db:"moderator_id"`
 	Reason      *string                `json:"reason,omitempty" db:"reason"`
 	Metadata    map[string]interface{} `json:"metadata,omitempty" db:"metadata"`
+	IPAddress   *string                `json:"ip_address,omitempty" db:"ip_address"`
+	UserAgent   *string                `json:"user_agent,omitempty" db:"user_agent"`
+	ChannelID   *uuid.UUID             `json:"channel_id,omitempty" db:"channel_id"`
 	CreatedAt   time.Time              `json:"created_at" db:"created_at"`
 }
 
@@ -678,6 +688,7 @@ const (
 	NotificationTypeInvoiceFinalized = "invoice_finalized"
 	// Export notification types
 	NotificationTypeExportCompleted = "export_completed"
+	NotificationTypeExportFailed    = "export_failed"
 	// Creator clip notification types
 	NotificationTypeClipComment       = "clip_comment"
 	NotificationTypeClipViewThreshold = "clip_view_threshold"
@@ -3190,13 +3201,16 @@ type FilterCounts struct {
 
 // UserPreference represents a user's content preferences
 type UserPreference struct {
-	UserID              uuid.UUID   `json:"user_id" db:"user_id"`
-	FavoriteGames       []string    `json:"favorite_games" db:"favorite_games"`
-	FollowedStreamers   []string    `json:"followed_streamers" db:"followed_streamers"`
-	PreferredCategories []string    `json:"preferred_categories" db:"preferred_categories"`
-	PreferredTags       []uuid.UUID `json:"preferred_tags" db:"preferred_tags"`
-	UpdatedAt           time.Time   `json:"updated_at" db:"updated_at"`
-	CreatedAt           time.Time   `json:"created_at" db:"created_at"`
+	UserID                uuid.UUID   `json:"user_id" db:"user_id"`
+	FavoriteGames         []string    `json:"favorite_games" db:"favorite_games"`
+	FollowedStreamers     []string    `json:"followed_streamers" db:"followed_streamers"`
+	PreferredCategories   []string    `json:"preferred_categories" db:"preferred_categories"`
+	PreferredTags         []uuid.UUID `json:"preferred_tags" db:"preferred_tags"`
+	OnboardingCompleted   bool        `json:"onboarding_completed" db:"onboarding_completed"`
+	OnboardingCompletedAt *time.Time  `json:"onboarding_completed_at,omitempty" db:"onboarding_completed_at"`
+	ColdStartSource       *string     `json:"cold_start_source,omitempty" db:"cold_start_source"` // 'onboarding', 'inferred', 'default'
+	UpdatedAt             time.Time   `json:"updated_at" db:"updated_at"`
+	CreatedAt             time.Time   `json:"created_at" db:"created_at"`
 }
 
 // UserClipInteraction represents a user's interaction with a clip
@@ -3264,6 +3278,24 @@ type UpdatePreferencesRequest struct {
 	FollowedStreamers   *[]string    `json:"followed_streamers,omitempty"`
 	PreferredCategories *[]string    `json:"preferred_categories,omitempty"`
 	PreferredTags       *[]uuid.UUID `json:"preferred_tags,omitempty"`
+}
+
+// OnboardingPreferencesRequest represents initial onboarding preferences
+// At least one preference type (games, streamers, categories, or tags) must be provided
+type OnboardingPreferencesRequest struct {
+	FavoriteGames       []string    `json:"favorite_games,omitempty" binding:"omitempty,max=10,dive,required"`
+	FollowedStreamers   []string    `json:"followed_streamers,omitempty" binding:"omitempty,max=10,dive,required"`
+	PreferredCategories []string    `json:"preferred_categories,omitempty" binding:"omitempty,max=5,dive,required"`
+	PreferredTags       []uuid.UUID `json:"preferred_tags,omitempty" binding:"omitempty,max=10"`
+}
+
+// Validate ensures at least one preference type is provided
+func (r *OnboardingPreferencesRequest) Validate() error {
+	if len(r.FavoriteGames) == 0 && len(r.FollowedStreamers) == 0 &&
+		len(r.PreferredCategories) == 0 && len(r.PreferredTags) == 0 {
+		return fmt.Errorf("at least one preference type must be provided")
+	}
+	return nil
 }
 
 // Interaction type constants
@@ -3694,12 +3726,15 @@ type SendReactionRequest struct {
 }
 
 // TwitchAuth represents Twitch OAuth authentication data
+// Note: This model is for internal use only. The TwitchAuthStatusResponse
+// is used for public API responses and excludes sensitive fields like tokens and scopes.
 type TwitchAuth struct {
 	UserID         uuid.UUID `json:"user_id" db:"user_id"`
 	TwitchUserID   string    `json:"twitch_user_id" db:"twitch_user_id"`
 	TwitchUsername string    `json:"twitch_username" db:"twitch_username"`
-	AccessToken    string    `json:"access_token" db:"access_token"`
-	RefreshToken   string    `json:"refresh_token" db:"refresh_token"`
+	AccessToken    string    `json:"access_token" db:"access_token"`   // Never expose in API responses
+	RefreshToken   string    `json:"refresh_token" db:"refresh_token"` // Never expose in API responses
+	Scopes         string    `json:"scopes" db:"scopes"`               // Space-separated list of granted scopes (internal use)
 	ExpiresAt      time.Time `json:"expires_at" db:"expires_at"`
 	CreatedAt      time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at" db:"updated_at"`

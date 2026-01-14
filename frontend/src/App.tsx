@@ -1,7 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { HelmetProvider } from '@dr.pogodin/react-helmet';
-import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { ConsentProvider } from './context/ConsentContext';
@@ -12,9 +11,6 @@ import { ConsentBanner } from './components/consent';
 
 // Lazy load page components for code splitting
 const HomePage = lazy(() => import('./pages/HomePage').then(m => ({ default: m.HomePage })));
-const NewFeedPage = lazy(() => import('./pages/NewFeedPage').then(m => ({ default: m.NewFeedPage })));
-const TopFeedPage = lazy(() => import('./pages/TopFeedPage').then(m => ({ default: m.TopFeedPage })));
-const RisingFeedPage = lazy(() => import('./pages/RisingFeedPage').then(m => ({ default: m.RisingFeedPage })));
 const DiscoveryPage = lazy(() => import('./pages/DiscoveryPage').then(m => ({ default: m.DiscoveryPage })));
 const DiscoveryListsPage = lazy(() => import('./pages/DiscoveryListsPage').then(m => ({ default: m.DiscoveryListsPage })));
 const DiscoveryListDetailPage = lazy(() => import('./pages/DiscoveryListDetailPage').then(m => ({ default: m.DiscoveryListDetailPage })));
@@ -26,7 +22,7 @@ const CategoryPage = lazy(() => import('./pages/CategoryPage').then(m => ({ defa
 const BroadcasterPage = lazy(() => import('./pages/BroadcasterPage').then(m => ({ default: m.BroadcasterPage })));
 const UserProfilePage = lazy(() => import('./pages/UserProfilePage').then(m => ({ default: m.UserProfilePage })));
 const TagPage = lazy(() => import('./pages/TagPage').then(m => ({ default: m.TagPage })));
-const SearchPage = lazy(() => import('./pages/SearchPage').then(m => ({ default: m.SearchPage })));
+import { SearchPage } from './pages/SearchPage';
 const AboutPage = lazy(() => import('./pages/AboutPage').then(m => ({ default: m.AboutPage })));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage').then(m => ({ default: m.PrivacyPage })));
 const TermsPage = lazy(() => import('./pages/TermsPage').then(m => ({ default: m.TermsPage })));
@@ -104,12 +100,11 @@ function App() {
   console.log('[App] Rendering...')
   return (
     <HelmetProvider>
-      <ThemeProvider>
-        <AuthProvider>
-          <ConsentProvider>
-            <ToastProvider>
-              <BrowserRouter>
-                <Suspense fallback={<LoadingFallback />}>
+      <AuthProvider>
+        <ConsentProvider>
+          <ToastProvider>
+            <BrowserRouter>
+              <Suspense fallback={<LoadingFallback />}>
                   <Routes>
                   <Route element={<AppLayout />}>
                     {/* Public Routes */}
@@ -119,9 +114,6 @@ function App() {
                     <Route path="/discover/lists/:id" element={<DiscoveryListDetailPage />} />
                     <Route path="/discover/scraped" element={<ScrapedClipsPage />} />
                     <Route path="/discover/live" element={<ProtectedRoute><LiveFeedPage /></ProtectedRoute>} />
-                    <Route path="/new" element={<NewFeedPage />} />
-                    <Route path="/top" element={<TopFeedPage />} />
-                    <Route path="/rising" element={<RisingFeedPage />} />
                     <Route path="/clip/:id" element={<ClipDetailPage />} />
                     <Route path="/game/:gameId" element={<GamePage />} />
                     <Route path="/category/:categorySlug" element={<CategoryPage />} />
@@ -504,7 +496,6 @@ function App() {
             </ToastProvider>
           </ConsentProvider>
         </AuthProvider>
-      </ThemeProvider>
     </HelmetProvider>
   );
 }

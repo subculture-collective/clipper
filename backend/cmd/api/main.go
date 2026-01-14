@@ -27,6 +27,7 @@ import (
 	opensearchpkg "github.com/subculture-collective/clipper/pkg/opensearch"
 	redispkg "github.com/subculture-collective/clipper/pkg/redis"
 	sentrypkg "github.com/subculture-collective/clipper/pkg/sentry"
+	telemetrypkg "github.com/subculture-collective/clipper/pkg/telemetry"
 	"github.com/subculture-collective/clipper/pkg/twitch"
 	"github.com/subculture-collective/clipper/pkg/utils"
 )
@@ -54,6 +55,27 @@ func main() {
 		defer sentrypkg.Close()
 	}
 
+	// Initialize OpenTelemetry
+	if initErr := telemetrypkg.Init(&telemetrypkg.Config{
+		Enabled:          cfg.Telemetry.Enabled,
+		ServiceName:      cfg.Telemetry.ServiceName,
+		ServiceVersion:   cfg.Telemetry.ServiceVersion,
+		OTLPEndpoint:     cfg.Telemetry.OTLPEndpoint,
+		Insecure:         cfg.Telemetry.Insecure,
+		TracesSampleRate: cfg.Telemetry.TracesSampleRate,
+		Environment:      cfg.Telemetry.Environment,
+	}); initErr != nil {
+		log.Printf("WARNING: Failed to initialize telemetry: %v", initErr)
+	} else if cfg.Telemetry.Enabled {
+		defer func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := telemetrypkg.Shutdown(ctx); err != nil {
+				log.Printf("WARNING: Failed to shutdown telemetry: %v", err)
+			}
+		}()
+	}
+
 	// Set Gin mode
 	gin.SetMode(cfg.Server.GinMode)
 
@@ -74,14 +96,14 @@ func main() {
 	}
 
 	// Initialize database connection pool
-	db, dbErr := database.NewDB(&cfg.Database)
+	db, dbErr := database.NewDBWithTracing(&cfg.Database, cfg.Telemetry.Enabled)
 	if dbErr != nil {
 		log.Fatalf("Failed to connect to database: %v", dbErr)
 	}
 	defer db.Close()
 
 	// Initialize Redis client
-	redisClient, redisErr := redispkg.NewClient(&cfg.Redis)
+	redisClient, redisErr := redispkg.NewClientWithTracing(&cfg.Redis, cfg.Telemetry.Enabled)
 	if redisErr != nil {
 		log.Fatalf("Failed to connect to Redis: %v", redisErr)
 	}
@@ -180,6 +202,8 @@ func main() {
 	streamFollowRepo := repository.NewStreamFollowRepository(db.Pool)
 	watchPartyRepo := repository.NewWatchPartyRepository(db.Pool)
 	twitchAuthRepo := repository.NewTwitchAuthRepository(db.Pool)
+	twitchBanRepo := repository.NewTwitchBanRepository(db.Pool)
+	applicationLogRepo := repository.NewApplicationLogRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -210,13 +234,48 @@ func main() {
 	}
 
 	notificationService := services.NewNotificationService(notificationRepo, userRepo, commentRepo, clipRepo, favoriteRepo, emailService)
-	commentService := services.NewCommentService(commentRepo, clipRepo, userRepo, notificationService)
+
+	// Initialize toxicity classifier
+	toxicityClassifier := services.NewToxicityClassifier(
+		cfg.Toxicity.APIKey,
+		cfg.Toxicity.APIURL,
+		cfg.Toxicity.Enabled,
+		cfg.Toxicity.Threshold,
+		db.Pool,
+	)
+
+	// Initialize NSFW detector
+	nsfwDetector := services.NewNSFWDetector(
+		cfg.NSFW.APIKey,
+		cfg.NSFW.APIURL,
+		cfg.NSFW.Enabled,
+		cfg.NSFW.Threshold,
+		cfg.NSFW.ScanThumbnails,
+		cfg.NSFW.AutoFlag,
+		cfg.NSFW.MaxLatencyMs,
+		cfg.NSFW.TimeoutSeconds,
+		db.Pool,
+	)
+
+	commentService := services.NewCommentService(commentRepo, clipRepo, userRepo, notificationService, toxicityClassifier)
 	clipService := services.NewClipService(clipRepo, voteRepo, favoriteRepo, userRepo, redisClient, auditLogRepo, notificationService)
 	autoTagService := services.NewAutoTagService(tagRepo)
 	reputationService := services.NewReputationService(reputationRepo, userRepo)
 	analyticsService := services.NewAnalyticsService(analyticsRepo, clipRepo)
 	engagementService := services.NewEngagementService(analyticsRepo, userRepo, clipRepo)
 	auditLogService := services.NewAuditLogService(auditLogRepo)
+
+	// Initialize account merge service
+	accountMergeService := services.NewAccountMergeService(
+		db.Pool,
+		userRepo,
+		auditLogRepo,
+		voteRepo,
+		favoriteRepo,
+		commentRepo,
+		clipRepo,
+		watchHistoryRepo,
+	)
 
 	// Initialize dunning service before subscription service
 	dunningService := services.NewDunningService(dunningRepo, subscriptionRepo, userRepo, emailService, auditLogService)
@@ -230,8 +289,11 @@ func main() {
 	// Initialize email monitoring and metrics service
 	emailMetricsService := services.NewEmailMetricsService(emailLogRepo)
 
+	// Initialize cache service
+	cacheService := services.NewCacheService(redisClient)
+
 	// Initialize feed service
-	feedService := services.NewFeedService(feedRepo, clipRepo, userRepo, broadcasterRepo)
+	feedService := services.NewFeedService(feedRepo, clipRepo, userRepo, broadcasterRepo, voteRepo, favoriteRepo)
 
 	// Initialize filter preset service
 	filterPresetService := services.NewFilterPresetService(filterPresetRepo)
@@ -239,17 +301,35 @@ func main() {
 	// Initialize community service
 	communityService := services.NewCommunityService(communityRepo, clipRepo, userRepo, notificationService)
 
+	// Initialize moderation service for ban management
+	moderationService := services.NewModerationService(db.Pool, communityRepo, userRepo, auditLogRepo)
+
 	// Initialize account type service
 	accountTypeService := services.NewAccountTypeService(userRepo, accountTypeConversionRepo, auditLogRepo, mfaService)
 
 	// Initialize recommendation service
-	recommendationService := services.NewRecommendationService(recommendationRepo, redisClient.GetClient())
+	recommendationService := services.NewRecommendationServiceWithConfig(
+		recommendationRepo,
+		redisClient.GetClient(),
+		cfg.Recommendations.ContentWeight,
+		cfg.Recommendations.CollaborativeWeight,
+		cfg.Recommendations.TrendingWeight,
+		cfg.Recommendations.EnableHybrid,
+		cfg.Recommendations.CacheTTLHours,
+		cfg.Recommendations.TrendingWindowDays,
+		cfg.Recommendations.TrendingMinScore,
+		cfg.Recommendations.PopularityWindowDays,
+		cfg.Recommendations.PopularityMinViews,
+	)
 
 	// Initialize playlist service
 	playlistService := services.NewPlaylistService(playlistRepo, clipRepo, cfg.Server.BaseURL)
 
 	// Initialize queue service
 	queueService := services.NewQueueService(queueRepo, clipRepo)
+
+	// Initialize clip extraction job service for FFmpeg processing
+	clipExtractionJobService := services.NewClipExtractionJobService(redisClient)
 
 	// Initialize watch party service and hub manager
 	watchPartyService := services.NewWatchPartyService(watchPartyRepo, playlistRepo, clipRepo, cfg.Server.BaseURL)
@@ -275,7 +355,7 @@ func main() {
 	}
 	// Default retention period is 7 days
 	exportRetentionDays := 7
-	exportService := services.NewExportService(exportRepo, emailService, exportDir, cfg.Server.BaseURL, exportRetentionDays)
+	exportService := services.NewExportService(exportRepo, userRepo, emailService, notificationService, exportDir, cfg.Server.BaseURL, exportRetentionDays)
 
 	// Initialize search and embedding services
 	var searchIndexerService *services.SearchIndexerService
@@ -326,8 +406,8 @@ func main() {
 	var liveStatusService *services.LiveStatusService
 	outboundWebhookService := services.NewOutboundWebhookService(outboundWebhookRepo)
 	if twitchClient != nil {
-		clipSyncService = services.NewClipSyncService(twitchClient, clipRepo, tagRepo, redisClient)
-		submissionService = services.NewSubmissionService(submissionRepo, clipRepo, userRepo, voteRepo, auditLogRepo, twitchClient, notificationService, redisClient, outboundWebhookService, cfg)
+		clipSyncService = services.NewClipSyncService(twitchClient, clipRepo, tagRepo, userRepo, redisClient)
+		submissionService = services.NewSubmissionService(submissionRepo, clipRepo, userRepo, voteRepo, auditLogRepo, twitchClient, notificationService, redisClient, outboundWebhookService, cacheService, cfg)
 		liveStatusService = services.NewLiveStatusService(broadcasterRepo, streamFollowRepo, twitchClient)
 		// Set notification service for live status notifications
 		liveStatusService.SetNotificationService(notificationService)
@@ -361,7 +441,7 @@ func main() {
 	engagementHandler := handlers.NewEngagementHandler(engagementService, authService)
 	auditLogHandler := handlers.NewAuditLogHandler(auditLogService)
 	subscriptionHandler := handlers.NewSubscriptionHandler(subscriptionService)
-	userHandler := handlers.NewUserHandler(clipRepo, voteRepo, commentRepo, userRepo, broadcasterRepo)
+	userHandler := handlers.NewUserHandler(clipRepo, voteRepo, commentRepo, userRepo, broadcasterRepo, accountMergeService)
 	adminUserHandler := handlers.NewAdminUserHandler(userRepo, auditLogRepo, authService)
 	userSettingsHandler := handlers.NewUserSettingsHandler(userSettingsService, authService)
 	consentHandler := handlers.NewConsentHandler(consentRepo)
@@ -377,7 +457,7 @@ func main() {
 	broadcasterHandler := handlers.NewBroadcasterHandler(broadcasterRepo, clipRepo, twitchClient, authService)
 	emailMetricsHandler := handlers.NewEmailMetricsHandler(emailMetricsService, emailLogRepo)
 	sendgridWebhookHandler := handlers.NewSendGridWebhookHandler(emailLogRepo, cfg.Email.SendGridWebhookPublicKey)
-	feedHandler := handlers.NewFeedHandler(feedService, authService)
+	feedHandler := handlers.NewFeedHandler(feedService, authService, voteRepo, favoriteRepo, userRepo)
 	filterPresetHandler := handlers.NewFilterPresetHandler(filterPresetService)
 	communityHandler := handlers.NewCommunityHandler(communityService, authService)
 	discoveryListHandler := handlers.NewDiscoveryListHandler(discoveryListRepo, analyticsRepo)
@@ -386,9 +466,10 @@ func main() {
 	accountTypeHandler := handlers.NewAccountTypeHandler(accountTypeService, authService)
 	verificationHandler := handlers.NewVerificationHandler(verificationRepo, notificationService, db.Pool)
 	chatHandler := handlers.NewChatHandler(db.Pool)
+	applicationLogHandler := handlers.NewApplicationLogHandler(applicationLogRepo)
 
 	// Initialize WebSocket server
-	wsServer := websocket.NewServer(db.Pool, redisClient.GetClient())
+	wsServer := websocket.NewServer(db.Pool, redisClient.GetClient(), &cfg.WebSocket)
 	websocketHandler := handlers.NewWebSocketHandler(db.Pool, wsServer)
 
 	recommendationHandler := handlers.NewRecommendationHandler(recommendationService, authService)
@@ -406,26 +487,39 @@ func main() {
 	if clipSyncService != nil {
 		clipSyncHandler = handlers.NewClipSyncHandler(clipSyncService, cfg)
 	}
-	if submissionService != nil {
-		submissionHandler = handlers.NewSubmissionHandler(submissionService)
-		// Create moderation handler using services from submission service
-		abuseDetector := submissionService.GetAbuseDetector()
-		moderationEventService := submissionService.GetModerationEventService()
-		if abuseDetector != nil && moderationEventService != nil {
-			moderationHandler = handlers.NewModerationHandler(moderationEventService, abuseDetector, db.Pool)
-		}
-	}
-
 	// Initialize forum handlers
 	forumHandler := handlers.NewForumHandler(db.Pool)
 	forumModerationHandler := handlers.NewForumModerationHandler(db.Pool)
 	if liveStatusService != nil {
 		liveStatusHandler = handlers.NewLiveStatusHandler(liveStatusService, authService)
 	}
+
+	// Initialize Twitch-related handlers and services
+	var twitchBanSyncService *services.TwitchBanSyncService
+	var twitchModerationService *services.TwitchModerationService
 	if twitchClient != nil {
-		streamHandler = handlers.NewStreamHandler(twitchClient, streamRepo, clipRepo, streamFollowRepo)
+		streamHandler = handlers.NewStreamHandler(twitchClient, streamRepo, clipRepo, streamFollowRepo, clipExtractionJobService)
 		twitchOAuthHandler = handlers.NewTwitchOAuthHandler(twitchAuthRepo)
+		twitchBanSyncService = services.NewTwitchBanSyncService(twitchClient, twitchAuthRepo, twitchBanRepo, userRepo)
+		twitchModerationService = services.NewTwitchModerationService(twitchClient, twitchAuthRepo, userRepo, auditLogRepo)
 	}
+
+	if submissionService != nil {
+		submissionHandler = handlers.NewSubmissionHandler(submissionService)
+		// Create moderation handler using services from submission service
+		abuseDetector := submissionService.GetAbuseDetector()
+		moderationEventService := submissionService.GetModerationEventService()
+		if abuseDetector != nil && moderationEventService != nil {
+			moderationHandler = handlers.NewModerationHandler(moderationEventService, moderationService, abuseDetector, toxicityClassifier, twitchBanSyncService, communityRepo, auditLogRepo, db.Pool)
+			// Set Twitch moderation service if available
+			if twitchModerationService != nil {
+				moderationHandler.SetTwitchModerationService(twitchModerationService)
+			}
+		}
+	}
+
+	// Initialize NSFW handler
+	nsfwHandler := handlers.NewNSFWHandler(nsfwDetector)
 
 	// Initialize router
 	r := gin.New()
@@ -433,6 +527,11 @@ func main() {
 	// Add custom middleware
 	// Request ID must come first to be available in other middleware
 	r.Use(requestid.New())
+
+	// Add OpenTelemetry middleware (if enabled)
+	if cfg.Telemetry.Enabled {
+		r.Use(middleware.TracingMiddleware(cfg.Telemetry.ServiceName))
+	}
 
 	// Add Sentry middleware for error tracking (if enabled)
 	if cfg.Sentry.Enabled {
@@ -593,6 +692,25 @@ func main() {
 		// Public config endpoint
 		v1.GET("/config", configHandler.GetPublicConfig)
 
+		// Application logs endpoint (with rate limiting)
+		// Rate limit: 100 requests/minute per endpoint per IP address
+		// Authenticated and anonymous users behind the same IP share this limit
+		logs := v1.Group("/logs")
+		{
+			// Public log submission endpoint with rate limiting
+			// Uses OptionalAuthMiddleware to allow both authenticated and anonymous logs
+			logs.POST("",
+				middleware.OptionalAuthMiddleware(authService),
+				middleware.RateLimitMiddleware(redisClient, 100, time.Minute),
+				applicationLogHandler.CreateLog)
+
+			// Admin-only log stats endpoint
+			logs.GET("/stats",
+				middleware.AuthMiddleware(authService),
+				middleware.RequireRole("admin"),
+				applicationLogHandler.GetLogStats)
+		}
+
 		// Auth routes
 		auth := v1.Group("/auth")
 		{
@@ -600,6 +718,9 @@ func main() {
 			auth.GET("/twitch", middleware.RateLimitMiddleware(redisClient, 30, time.Minute), authHandler.InitiateOAuth)
 			auth.GET("/twitch/callback", middleware.RateLimitMiddleware(redisClient, 50, time.Minute), authHandler.HandleCallback)
 			auth.POST("/twitch/callback", middleware.RateLimitMiddleware(redisClient, 50, time.Minute), authHandler.HandlePKCECallback)
+			if cfg.Server.GinMode != "release" {
+				auth.POST("/test-login", middleware.RateLimitMiddleware(redisClient, 30, time.Minute), authHandler.TestLogin)
+			}
 			auth.POST("/refresh", middleware.RateLimitMiddleware(redisClient, 50, time.Minute), authHandler.RefreshToken)
 			auth.POST("/logout", authHandler.Logout)
 
@@ -638,6 +759,9 @@ func main() {
 			clips.GET("", clipHandler.ListClips)
 			clips.GET("/:id", clipHandler.GetClip)
 			clips.GET("/:id/related", clipHandler.GetRelatedClips)
+
+			// Batch endpoint for media URLs (public, rate limited)
+			clips.POST("/batch-media", middleware.RateLimitMiddleware(redisClient, 60, time.Minute), clipHandler.BatchGetClipMedia)
 
 			// Clip tags (public)
 			clips.GET("/:id/tags", tagHandler.GetClipTags)
@@ -724,18 +848,18 @@ func main() {
 			search.GET("", middleware.RateLimitMiddleware(redisClient, 60, time.Minute), searchHandler.Search)
 			search.GET("/suggestions", middleware.RateLimitMiddleware(redisClient, 60, time.Minute), searchHandler.GetSuggestions)
 			search.GET("/scores", middleware.RateLimitMiddleware(redisClient, 60, time.Minute), searchHandler.SearchWithScores) // Hybrid search with similarity scores
-			
+
 			// Search analytics endpoints
 			search.GET("/trending", middleware.RateLimitMiddleware(redisClient, 30, time.Minute), searchHandler.GetTrendingSearches) // Popular searches (public)
-			search.GET("/history", middleware.AuthMiddleware(authService), searchHandler.GetSearchHistory)                            // User search history (authenticated)
-			
+			search.GET("/history", middleware.AuthMiddleware(authService), searchHandler.GetSearchHistory)                           // User search history (authenticated)
+
 			// Admin-only analytics endpoints
 			searchAdmin := search.Group("")
 			searchAdmin.Use(middleware.AuthMiddleware(authService))
 			searchAdmin.Use(middleware.RequireRole("admin"))
 			{
-				searchAdmin.GET("/failed", searchHandler.GetFailedSearches)       // Failed searches (admin only)
-				searchAdmin.GET("/analytics", searchHandler.GetSearchAnalytics)   // Search analytics summary (admin only)
+				searchAdmin.GET("/failed", searchHandler.GetFailedSearches)     // Failed searches (admin only)
+				searchAdmin.GET("/analytics", searchHandler.GetSearchAnalytics) // Search analytics summary (admin only)
 			}
 		}
 
@@ -768,6 +892,29 @@ func main() {
 			{
 				moderationAppeals.POST("/appeals", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 5, time.Hour), moderationHandler.CreateAppeal)
 				moderationAppeals.GET("/appeals", middleware.AuthMiddleware(authService), moderationHandler.GetUserAppeals)
+				// Twitch ban sync endpoint with rate limiting
+				moderationAppeals.POST("/sync-bans", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 5, time.Hour), moderationHandler.SyncBans)
+
+				// Ban management endpoints
+				moderationAppeals.GET("/bans", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 60, time.Minute), moderationHandler.GetBans)
+				moderationAppeals.POST("/ban", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), moderationHandler.CreateBan)
+				moderationAppeals.GET("/ban/:id", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 60, time.Minute), moderationHandler.GetBanDetails)
+				moderationAppeals.DELETE("/ban/:id", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), moderationHandler.RevokeBan)
+
+				// Twitch ban management endpoints (enforces Twitch-specific scope requirements)
+				moderationAppeals.POST("/twitch/ban", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), moderationHandler.TwitchBanUser)
+				moderationAppeals.DELETE("/twitch/ban", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), moderationHandler.TwitchUnbanUser)
+
+				// Moderator management endpoints
+				moderationAppeals.GET("/moderators", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 60, time.Minute), moderationHandler.ListModerators)
+				moderationAppeals.POST("/moderators", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), moderationHandler.AddModerator)
+				moderationAppeals.DELETE("/moderators/:id", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), moderationHandler.RemoveModerator)
+				moderationAppeals.PATCH("/moderators/:id", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), moderationHandler.UpdateModeratorPermissions)
+
+				// Audit log endpoints (requires moderator or admin role)
+				moderationAppeals.GET("/audit-logs", middleware.AuthMiddleware(authService), middleware.RequireRole("admin", "moderator"), middleware.RateLimitMiddleware(redisClient, 60, time.Minute), auditLogHandler.ListModerationAuditLogs)
+				moderationAppeals.GET("/audit-logs/export", middleware.AuthMiddleware(authService), middleware.RequireRole("admin", "moderator"), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), auditLogHandler.ExportModerationAuditLogs)
+				moderationAppeals.GET("/audit-logs/:id", middleware.AuthMiddleware(authService), middleware.RequireRole("admin", "moderator"), middleware.RateLimitMiddleware(redisClient, 60, time.Minute), auditLogHandler.GetModerationAuditLog)
 			}
 		}
 
@@ -776,7 +923,14 @@ func main() {
 		{
 			// Public user profile
 			users.GET("/by-username/:username", userHandler.GetUserByUsername)
+
+			// User autocomplete for mentions/suggestions - must be before /:id to avoid route conflicts
+			users.GET("/autocomplete", middleware.RateLimitMiddleware(redisClient, 100, time.Hour), userHandler.SearchUsersAutocomplete)
+
 			users.GET("/:id", middleware.OptionalAuthMiddleware(authService), userHandler.GetUserProfile)
+
+			// Account claiming for unclaimed profiles
+			users.POST("/claim-account", middleware.AuthMiddleware(authService), userHandler.ClaimAccount)
 
 			// Public reputation endpoints
 			users.GET("/:id/reputation", reputationHandler.GetUserReputation)
@@ -1031,6 +1185,9 @@ func main() {
 
 			// Update user preferences
 			recommendations.PUT("/preferences", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), recommendationHandler.UpdatePreferences)
+
+			// Complete onboarding flow
+			recommendations.POST("/onboarding", middleware.RateLimitMiddleware(redisClient, 5, time.Minute), recommendationHandler.CompleteOnboarding)
 
 			// Track view for recommendation engine
 			recommendations.POST("/track-view/:id", middleware.RateLimitMiddleware(redisClient, 200, time.Minute), recommendationHandler.TrackView)
@@ -1537,7 +1694,21 @@ func main() {
 					// Audit logs and analytics
 					moderation.GET("/audit", moderationHandler.GetModerationAuditLogs)
 					moderation.GET("/analytics", moderationHandler.GetModerationAnalytics)
+
+					// Toxicity classification metrics
+					moderation.GET("/toxicity/metrics", moderationHandler.GetToxicityMetrics)
 				}
+			}
+
+			// NSFW detection routes (admin only)
+			nsfw := admin.Group("/nsfw")
+			{
+				nsfw.POST("/detect", nsfwHandler.DetectImage)
+				nsfw.POST("/batch-detect", nsfwHandler.BatchDetect)
+				nsfw.GET("/metrics", nsfwHandler.GetMetrics)
+				nsfw.GET("/health", nsfwHandler.GetHealthCheck)
+				nsfw.GET("/config", nsfwHandler.GetConfig)
+				nsfw.POST("/scan-clips", nsfwHandler.ScanClipThumbnails)
 			}
 
 			// Creator verification management (admin only)

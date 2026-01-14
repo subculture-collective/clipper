@@ -1,8 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Container, Card, CardBody, SEO } from '../components';
+import { Container, Card, CardBody, SEO, DocHeader, DocTOC } from '../components';
+import { parseMarkdown, convertWikilinks, headingToId, extractTextFromChildren } from '../lib/markdown-utils';
+import type { ProcessedMarkdown } from '../lib/markdown-utils';
 import axios from 'axios';
 
 interface DocNode {
@@ -33,6 +35,7 @@ export function DocsPage() {
     const [searchParams] = useSearchParams();
     const [docs, setDocs] = useState<DocNode[]>([]);
     const [selectedDoc, setSelectedDoc] = useState<DocContent | null>(null);
+    const [processedDoc, setProcessedDoc] = useState<ProcessedMarkdown | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [viewingDoc, setViewingDoc] = useState(false);
@@ -43,7 +46,8 @@ export function DocsPage() {
     const fetchDocsList = useCallback(async () => {
         try {
             const response = await axios.get('/api/v1/docs');
-            setDocs(response.data.docs);
+            console.log('[DocsPage] API response:', response.data);
+            setDocs(response.data.docs || []);
             setLoading(false);
         } catch (err) {
             console.error('Failed to load documentation', err);
@@ -57,6 +61,14 @@ export function DocsPage() {
             setLoading(true);
             const response = await axios.get(`/api/v1/docs/${path}`);
             setSelectedDoc(response.data);
+
+            // Process markdown: parse frontmatter, remove doctoc, handle Dataview, generate TOC
+            const processed = parseMarkdown(response.data.content);
+
+            // Convert wikilinks to regular links
+            processed.content = convertWikilinks(processed.content);
+
+            setProcessedDoc(processed);
             setViewingDoc(true);
             setLoading(false);
             window.scrollTo(0, 0);
@@ -68,18 +80,23 @@ export function DocsPage() {
     }, []);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         fetchDocsList();
+    }, [fetchDocsList]);
 
+    useEffect(() => {
         // Check for doc parameter in URL
         const docParam = searchParams.get('doc');
         if (docParam) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             fetchDoc(docParam);
         }
-    }, [fetchDoc, fetchDocsList, searchParams]);
+    }, [searchParams, fetchDoc]);
 
     const handleBackToIndex = () => {
         setViewingDoc(false);
         setSelectedDoc(null);
+        setProcessedDoc(null);
         setSearchQuery('');
         setSearchResults([]);
     };
@@ -106,6 +123,10 @@ export function DocsPage() {
     };
 
     const renderDocTree = (nodes: DocNode[], level = 0) => {
+        if (!nodes || !Array.isArray(nodes)) {
+            return null;
+        }
+
         return (
             <div className={level > 0 ? 'ml-4' : ''}>
                 {nodes.map(node => (
@@ -140,7 +161,7 @@ export function DocsPage() {
     };
 
     // Custom components for markdown rendering
-    const markdownComponents = {
+    const markdownComponents = useMemo(() => ({
         // Style links
         a: ({
             href,
@@ -149,25 +170,12 @@ export function DocsPage() {
             href?: string;
             children?: React.ReactNode;
         }) => {
-            // Convert wikilinks [[page]] to clickable doc links
-            const wikiLinkMatch = href?.match(/^\[\[(.+)\]\]$/);
-            if (wikiLinkMatch) {
-                const docPath = wikiLinkMatch[1];
-                return (
-                    <button
-                        onClick={() => fetchDoc(docPath)}
-                        className='text-primary hover:underline'
-                    >
-                        {children}
-                    </button>
-                );
-            }
-
-            // Handle relative doc links
-            if (href?.endsWith('.md') && !href.startsWith('http')) {
+            // Handle relative doc links (wikilinks are already converted)
+            if (href && !href.startsWith('http') && !href.startsWith('#')) {
                 const cleanPath = href
                     .replace(/^\.\.\//, '')
-                    .replace(/\.md$/, '');
+                    .replace(/\.md$/, '')
+                    .replace(/^\//, '');
                 return (
                     <button
                         onClick={() => fetchDoc(cleanPath)}
@@ -221,16 +229,61 @@ export function DocsPage() {
                 </code>
             );
         },
-        // Style headings
-        h1: ({ children }: { children?: React.ReactNode }) => (
-            <h1 className='text-4xl font-bold mb-4 mt-6'>{children}</h1>
-        ),
-        h2: ({ children }: { children?: React.ReactNode }) => (
-            <h2 className='text-3xl font-semibold mb-3 mt-5'>{children}</h2>
-        ),
-        h3: ({ children }: { children?: React.ReactNode }) => (
-            <h3 className='text-2xl font-semibold mb-2 mt-4'>{children}</h3>
-        ),
+        // Style headings with IDs for TOC navigation
+        h1: ({ children }: { children?: React.ReactNode }) => {
+            const text = extractTextFromChildren(children);
+            const id = headingToId(text);
+            return (
+                <h1 id={id} className='text-4xl font-bold mb-4 mt-6'>
+                    {children}
+                </h1>
+            );
+        },
+        h2: ({ children }: { children?: React.ReactNode }) => {
+            const text = extractTextFromChildren(children);
+            const id = headingToId(text);
+            return (
+                <h2 id={id} className='text-3xl font-semibold mb-3 mt-5'>
+                    {children}
+                </h2>
+            );
+        },
+        h3: ({ children }: { children?: React.ReactNode }) => {
+            const text = extractTextFromChildren(children);
+            const id = headingToId(text);
+            return (
+                <h3 id={id} className='text-2xl font-semibold mb-2 mt-4'>
+                    {children}
+                </h3>
+            );
+        },
+        h4: ({ children }: { children?: React.ReactNode }) => {
+            const text = extractTextFromChildren(children);
+            const id = headingToId(text);
+            return (
+                <h4 id={id} className='text-xl font-semibold mb-2 mt-3'>
+                    {children}
+                </h4>
+            );
+        },
+        h5: ({ children }: { children?: React.ReactNode }) => {
+            const text = extractTextFromChildren(children);
+            const id = headingToId(text);
+            return (
+                <h5 id={id} className='text-lg font-semibold mb-2 mt-3'>
+                    {children}
+                </h5>
+            );
+        },
+        h6: ({ children }: { children?: React.ReactNode }) => {
+            const text = extractTextFromChildren(children);
+            const id = headingToId(text);
+            return (
+                <h6 id={id} className='text-base font-semibold mb-2 mt-3'>
+                    {children}
+                </h6>
+            );
+        },
         // Style lists
         ul: ({ children }: { children?: React.ReactNode }) => (
             <ul className='list-disc list-inside mb-4 space-y-1'>{children}</ul>
@@ -246,7 +299,7 @@ export function DocsPage() {
                 {children}
             </blockquote>
         ),
-    };
+    }), [fetchDoc]);
 
     if (loading && !viewingDoc) {
         return (
@@ -282,7 +335,7 @@ export function DocsPage() {
                 canonicalUrl='/docs'
             />
             <Container className='py-8 max-w-6xl'>
-                {viewingDoc && selectedDoc ? (
+                {viewingDoc && selectedDoc && processedDoc ? (
                     // Document viewer
                     <div>
                         <div className='flex justify-between items-center mb-4'>
@@ -305,11 +358,20 @@ export function DocsPage() {
                         </div>
                         <Card>
                             <CardBody className='prose prose-invert max-w-none'>
+                                {/* Render frontmatter as DocHeader */}
+                                <DocHeader frontmatter={processedDoc.frontmatter} />
+
+                                {/* Render TOC if available */}
+                                {processedDoc.toc.length > 0 && (
+                                    <DocTOC toc={processedDoc.toc} />
+                                )}
+
+                                {/* Render processed markdown content */}
                                 <ReactMarkdown
                                     remarkPlugins={[remarkGfm]}
                                     components={markdownComponents}
                                 >
-                                    {selectedDoc.content}
+                                    {processedDoc.content}
                                 </ReactMarkdown>
                             </CardBody>
                         </Card>

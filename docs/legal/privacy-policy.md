@@ -1,9 +1,9 @@
 # Privacy Policy
 
-**Last Updated:** December 11, 2025  
+**Last Updated:** December 11, 2025
 **Effective Date:** December 11, 2025
 
-<!-- 
+<!--
 LEGAL REVIEW CHECKLIST FOR ATTORNEY:
 [ ] Verify company legal entity name and address are correct
 [ ] Confirm Data Protection Officer (DPO) designation and contact info
@@ -53,9 +53,9 @@ Welcome to Clipper's Privacy Policy. This policy explains how Subculture Collect
 
 Clipper is a community-driven Twitch clip curation platform operated by Subculture Collective. Our service allows users to discover, organize, vote on, and share their favorite Twitch clips with the community.
 
-**Legal Entity:** Subculture Collective  
-**Service Name:** Clipper  
-**Website:** <https://clpr.tv>  
+**Legal Entity:** Subculture Collective
+**Service Name:** Clipper
+**Website:** <https://clpr.tv>
 **Contact Email:** <privacy@clpr.tv>
 
 ### 1.2 What This Policy Covers
@@ -349,6 +349,7 @@ We share information with trusted third-party service providers who process data
   - Purpose: Authenticate users, access Twitch clips and channel data
   - Location: United States
   - Privacy Policy: <https://www.twitch.tv/p/legal/privacy-notice/>
+  - **Twitch Compliance:** We use ONLY official Twitch APIs and embeds. We do NOT re-host, download, or proxy Twitch video content. All clip playback occurs through official Twitch embeds. See our [Twitch Compliance Documentation](/docs/compliance/) for full details.
 
 **Error Tracking:**
 - **Sentry** (error monitoring, crash reporting)
@@ -449,8 +450,8 @@ Where processing is based on consent, you have the right to withdraw consent at 
 
 You have the right to lodge a complaint with your local data protection authority (supervisory authority) if you believe we have violated your rights.
 
-**EU Supervisory Authorities:** <https://edpb.europa.eu/about-edpb/board/members_en>  
-**UK Information Commissioner's Office:** <https://ico.org.uk/>  
+**EU Supervisory Authorities:** <https://edpb.europa.eu/about-edpb/board/members_en>
+**UK Information Commissioner's Office:** <https://ico.org.uk/>
 **Swiss Federal Data Protection Authority:** <https://www.edoeb.admin.ch/>
 
 #### 7.1.9 Automated Decision-Making
@@ -504,8 +505,8 @@ You may designate an authorized agent to make CCPA requests on your behalf. The 
 
 To exercise any of the above rights, please:
 
-**Email us:** <privacy@clpr.tv>  
-**Subject line:** "Privacy Rights Request - [Your Name]"  
+**Email us:** <privacy@clpr.tv>
+**Subject line:** "Privacy Rights Request - [Your Name]"
 **Include:**
 - Your full name
 - Email address associated with your account
@@ -570,8 +571,8 @@ These cookies are necessary for the Service to function and cannot be disabled:
 - **Security cookies** (CSRF protection, fraud prevention)
 - **Load balancing cookies** (distribute requests across servers)
 
-**Duration:** Session or up to 30 days  
-**Purpose:** Enable core functionality  
+**Duration:** Session or up to 30 days
+**Purpose:** Enable core functionality
 **Legal Basis:** Contract performance, legitimate interest
 
 #### 8.2.2 Functional Cookies (Optional)
@@ -581,8 +582,8 @@ These cookies enhance functionality and remember your preferences:
 - **Feature cookies** (remember collapsed sections, sort orders)
 - **Playback cookies** (video player settings, volume)
 
-**Duration:** Up to 1 year  
-**Purpose:** Remember preferences, enhance user experience  
+**Duration:** Up to 1 year
+**Purpose:** Remember preferences, enhance user experience
 **Legal Basis:** Consent, legitimate interest
 
 #### 8.2.3 Analytics Cookies (Optional)
@@ -596,8 +597,8 @@ These cookies help us understand how users interact with the Service:
 - We do not currently use PostHog or Metabase in production, but may in the future
 - If implemented, you will be able to opt-out via cookie settings
 
-**Duration:** Up to 13 months  
-**Purpose:** Improve Service, understand user behavior  
+**Duration:** Up to 13 months
+**Purpose:** Improve Service, understand user behavior
 **Legal Basis:** Consent
 
 #### 8.2.4 Advertising Cookies (Not Currently Used)
@@ -872,11 +873,11 @@ If we transfer your data to other countries outside the EEA, UK, or Switzerland,
 
 ### 11.6 EU Representative
 
-**[If required based on GDPR Article 27]**  
+**[If required based on GDPR Article 27]**
 We have appointed an EU representative to act on our behalf for GDPR compliance:
 
-**EU Representative:** [TO BE DETERMINED - Required if processing EU residents' data at scale]  
-**Address:** [EU ADDRESS]  
+**EU Representative:** [TO BE DETERMINED - Required if processing EU residents' data at scale]
+**Address:** [EU ADDRESS]
 **Email:** [EU_REP_EMAIL]
 
 **Note for Attorney:** EU representative is required if:
@@ -891,8 +892,8 @@ If not required, remove this section.
 
 We have appointed a Data Protection Officer to oversee our data protection practices:
 
-**Data Protection Officer:** [TO BE DETERMINED - Required if processing at large scale or sensitive data]  
-**Email:** <dpo@clpr.tv>  
+**Data Protection Officer:** [TO BE DETERMINED - Required if processing at large scale or sensitive data]
+**Email:** <dpo@clpr.tv>
 **Responsibilities:**
 - Monitor GDPR compliance
 - Advise on data protection obligations
@@ -912,7 +913,7 @@ If not required, this section can be optional (but recommended).
 
 Clipper is not intended for children under the age of 13. We do not knowingly collect personal information from children under 13.
 
-**Age Restriction:** 13+  
+**Age Restriction:** 13+
 **Compliance:** COPPA (Children's Online Privacy Protection Act)
 
 ### 12.2 Age Gate Enforcement
@@ -1021,24 +1022,24 @@ If you do not agree with the updated Privacy Policy:
 
 For questions, concerns, or requests regarding this Privacy Policy or our data practices:
 
-**Email:** <privacy@clpr.tv>  
-**Subject line:** "Privacy Inquiry - [Brief Description]"  
+**Email:** <privacy@clpr.tv>
+**Subject line:** "Privacy Inquiry - [Brief Description]"
 **Response time:** Within 5 business days
 
 ### 14.2 Data Subject Rights Requests
 
 To exercise your GDPR or CCPA rights (access, deletion, portability, etc.):
 
-**Email:** <privacy@clpr.tv>  
-**Subject line:** "Data Rights Request - [Specific Right]"  
-**Include:** Full name, email address, account username, specific request details  
+**Email:** <privacy@clpr.tv>
+**Subject line:** "Data Rights Request - [Specific Right]"
+**Include:** Full name, email address, account username, specific request details
 **Response time:** Within 30 days (GDPR) or 45 days (CCPA)
 
 ### 14.3 Data Protection Officer (DPO)
 
 For GDPR-related matters:
 
-**Email:** <dpo@clpr.tv>  
+**Email:** <dpo@clpr.tv>
 **Role:** Oversee GDPR compliance, handle complaints, liaise with supervisory authorities
 
 ### 14.4 EU Representative
@@ -1047,14 +1048,14 @@ For GDPR-related matters:
 
 For EU residents to contact our EU representative:
 
-**Email:** [EU_REP_EMAIL]  
+**Email:** [EU_REP_EMAIL]
 **Address:** [EU_ADDRESS]
 
 ### 14.5 Mailing Address
 
-**Subculture Collective (Clipper)**  
-[STREET ADDRESS]  
-[CITY, STATE, ZIP CODE]  
+**Subculture Collective (Clipper)**
+[STREET ADDRESS]
+[CITY, STATE, ZIP CODE]
 [COUNTRY]
 
 **Note for Attorney:** Please verify and insert actual business address.
@@ -1063,7 +1064,7 @@ For EU residents to contact our EU representative:
 
 For general support inquiries (not privacy-related):
 
-**Email:** <support@clpr.tv>  
+**Email:** <support@clpr.tv>
 **Help Center:** <https://clpr.tv/help>
 
 ---
@@ -1292,7 +1293,7 @@ This checklist is for internal use and attorney review:
 
 **Attorney Review Required Before Publication**
 
-**Estimated Attorney Review Time:** 2-4 hours  
+**Estimated Attorney Review Time:** 2-4 hours
 **Budget:** $800-$1,500
 
 **Key Items for Attorney Review:**

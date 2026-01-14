@@ -54,6 +54,7 @@ logs/
 # Temporary files
 tmp/
 temp/
+.tmp/
 
 # Build outputs
 dist/
@@ -65,6 +66,8 @@ build/
 coverage/
 coverage.out
 coverage.html
+coverage-integration.out
+coverage-integration.html
 *.coverprofile
 
 # Test artifacts
@@ -74,3 +77,11 @@ test-results/
 
 # k6 test results
 summary.json
+docs/.obsidian/plugins
+
+# Playwright
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+coverage.html

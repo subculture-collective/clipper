@@ -188,9 +188,63 @@ When adding new K6 test scenarios:
 ## Related Documentation
 
 - [Load Test README](../../backend/tests/load/README.md) - K6 test documentation
+- [Stress & Soak Testing Guide](../../backend/tests/load/STRESS_SOAK_GUIDE.md) - Stress and endurance testing
+- [Quick Reference](../../backend/tests/load/STRESS_SOAK_QUICK_REFERENCE.md) - Quick commands and tips
 - [Load Test CI Workflow](../../.github/workflows/load-tests.yml) - CI configuration
 - [Performance Summary](../../backend/tests/load/PERFORMANCE_SUMMARY.md) - Performance targets
 - [Grafana Documentation](https://grafana.com/docs/) - Grafana user guide
+
+## Stress & Soak Testing
+
+### Stress Test Monitoring
+
+When running stress tests, monitor for:
+
+**Phases to Watch:**
+- Baseline (50 VUs) - Normal performance
+- Stress (200 VUs) - Beyond capacity
+- Peak (400 VUs) - Maximum stress
+- Recovery (150 VUs) - System recovery
+
+**Key Metrics:**
+- Error rate increases during stress phases
+- Response time degradation patterns
+- Resource exhaustion events (429, 503, 504)
+- Recovery speed after load reduction
+
+**Dashboard Panels:**
+- Response Time Trends - Look for spikes during peak
+- Error Rate by Scenario - Should recover after stress
+- Virtual Users - Track phase transitions
+- Throughput - May drop during peak stress
+
+### Soak Test Monitoring
+
+For 24-hour soak tests, monitor for:
+
+**Long-term Trends:**
+- Memory usage (should remain flat)
+- Response time stability (should not degrade)
+- Error rate consistency (should stay low)
+- Goroutine count (should not grow)
+
+**Warning Signs:**
+- Gradual memory growth (leak)
+- Response times trending upward
+- Error rate slowly climbing
+- Connection pool exhaustion
+
+**Dashboard Usage:**
+- Set time range to full test duration
+- Look for upward trends over hours
+- Compare first hour vs. last hour metrics
+- Check for periodic degradation patterns
+
+**Alerting Recommendations:**
+- Memory growth >20% over 6 hours
+- Response time p95 increase >50%
+- Error rate >1% sustained
+- Goroutine count increase >50%
 
 ## Future Enhancements
 

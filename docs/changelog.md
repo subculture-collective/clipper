@@ -23,6 +23,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Web Application Firewall (WAF) Documentation** - Comprehensive documentation of existing security protections:
+  - Backend rate limiting (Redis-backed, tier-aware, 10-100 req/hour)
+  - Abuse detection with automatic IP banning (1000 req/hour threshold)
+  - CSRF protection (token-based)
+  - Input validation (SQLi, XSS, path traversal prevention)
+  - Configuration guidance for external Caddy container
+  - Testing and monitoring procedures
+  - Troubleshooting guides
+  - Related to Roadmap 5.0 Phase 5.4
 - **Reddit-Style Nested Comment Threading** - Complete nested comment system with:
   - Up to 10 levels of nesting for in-depth conversations
   - Collapse/expand functionality at all depths

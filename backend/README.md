@@ -37,6 +37,7 @@ backend/
 │   └── README.md    # Migration documentation
 ├── docs/            # Documentation
 │   ├── authentication.md      # Auth documentation
+│   ├── FFMPEG_JOB_QUEUE.md    # FFmpeg job queue system
 │   └── TWITCH_INTEGRATION.md  # Twitch API docs
 ├── go.mod           # Go module dependencies
 └── go.sum           # Dependency checksums
@@ -325,6 +326,39 @@ See `.env.example` for all available configuration options:
 - **Server**: Port, Gin mode
 - **Database**: Host, port, credentials, database name
 - **Redis**: Host, port, password
+- **JWT**: Private/public keys for authentication
+- **Twitch**: OAuth credentials
+- **Stripe**: Payment integration
+- **Email**: SendGrid integration
+- **OpenSearch**: Search service connection
+- **Feature Flags**: Toggle features on/off
+- **Rate Limiting**: Request limits per tier
+- **Recommendations**: Algorithm tuning parameters (see below)
+
+### Recommendation Configuration
+
+Fine-tune the hybrid recommendation algorithm:
+
+```bash
+# Hybrid algorithm weights (should sum to ~1.0)
+REC_CONTENT_WEIGHT=0.5          # Content-based filtering weight (default: 0.5)
+REC_COLLABORATIVE_WEIGHT=0.3    # Collaborative filtering weight (default: 0.3)
+REC_TRENDING_WEIGHT=0.2         # Trending signal weight (default: 0.2)
+
+# Collaborative filtering parameters
+REC_CF_FACTORS=50               # Latent factors (default: 50)
+REC_CF_REGULARIZATION=0.01      # L2 regularization (default: 0.01)
+REC_CF_LEARNING_RATE=0.01       # SGD learning rate (default: 0.01)
+REC_CF_ITERATIONS=20            # Training iterations (default: 20)
+
+# General settings
+REC_ENABLE_HYBRID=true          # Enable hybrid recommendations (default: true)
+REC_CACHE_TTL_HOURS=24          # Cache TTL in hours (default: 24)
+```
+
+For optimization guidance, see `../docs/CF-OPTIMIZATION-RESULTS.md`.
+
+- **Redis**: Host, port, password
 - **JWT**: Secret key, token expiration
 - **Twitch API**: Client ID, secret, redirect URI
 - **CORS**: Allowed origins
@@ -417,10 +451,43 @@ go build -o bin/scrape_clips ./scripts/scrape_clips.go
 6. ✅ ~~Integrate Twitch API for clip fetching~~
 7. ✅ ~~Implement clip sync service with scheduler~~
 8. ✅ ~~Create targeted clip scraping script~~
-9. Add more business logic in services layer
-10. Create HTTP handlers for remaining API endpoints
-11. Add comprehensive tests for all components
-12. Add monitoring and metrics
+9. ✅ ~~Add search evaluation framework~~
+10. ✅ ~~Add recommendation evaluation framework~~
+11. Add more business logic in services layer
+12. Create HTTP handlers for remaining API endpoints
+13. Add comprehensive tests for all components
+14. Add monitoring and metrics
+
+## Algorithm Evaluation
+
+The backend includes evaluation frameworks for assessing the quality of search and recommendation algorithms:
+
+### Search Evaluation
+- **Metrics**: nDCG, MRR, Precision@k, Recall@k
+- **Dataset**: `testdata/search_evaluation_dataset.yaml`
+- **CLI tool**: `cmd/evaluate-search`
+- **Makefile**: `make evaluate-search` or `make evaluate-search-json`
+
+### Recommendation Evaluation
+- **Metrics**: Precision@k, Recall@k, nDCG, Diversity, Serendipity, Cold-start performance
+- **Dataset**: `testdata/recommendation_evaluation_dataset.yaml`
+- **CLI tools**: 
+  - `cmd/evaluate-recommendations` - Run evaluations
+  - `cmd/grid-search-recommendations` - Parameter optimization
+- **Makefile**: 
+  - `make evaluate-recommendations` or `make evaluate-recommendations-json`
+  - `make grid-search-recommendations` or `make grid-search-recommendations-full`
+- **Documentation**: 
+  - `../docs/RECOMMENDATION-EVALUATION.md` - Evaluation framework
+  - `../docs/CF-OPTIMIZATION-RESULTS.md` - Optimization results and A/B test plan
+- **CI**: Runs nightly via GitHub Actions (`.github/workflows/recommendation-evaluation.yml`)
+- **Configuration**: See environment variables section for tuning parameters
+
+Both frameworks support:
+- Automated testing via CI/CD
+- Baseline measurement tracking
+- Target/threshold monitoring
+- JSON output for analysis and trend tracking
 
 ## Resources
 
@@ -432,4 +499,5 @@ go build -o bin/scrape_clips ./scripts/scrape_clips.go
 - [Database Schema Documentation](../docs/DATABASE-SCHEMA.md)
 - [Authentication Documentation](docs/authentication.md)
 - [Twitch API Integration Documentation](docs/TWITCH_INTEGRATION.md)
+- [FFmpeg Job Queue Documentation](docs/FFMPEG_JOB_QUEUE.md)
 - [Twitch API Reference](https://dev.twitch.tv/docs/api/)

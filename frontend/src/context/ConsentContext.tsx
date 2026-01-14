@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { initGoogleAnalytics, disableGoogleAnalytics, enableGoogleAnalytics } from '../lib/google-analytics';
 import { initPostHog, disablePostHog, enablePostHog } from '../lib/posthog-analytics';
@@ -181,35 +182,45 @@ async function loadConsentFromBackend(): Promise<ConsentPreferences | null> {
  */
 export function ConsentProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  const [consent, setConsent] = useState<ConsentPreferences>(DEFAULT_CONSENT);
-  const [hasConsented, setHasConsented] = useState(false);
-  const [doNotTrack, setDoNotTrack] = useState(false);
-  const [showConsentBanner, setShowConsentBanner] = useState(false);
+  const initialDoNotTrack = detectDoNotTrack();
+  const storedConsent = loadStoredConsent();
+  const autoConsent = (import.meta as Record<string, unknown>)?.env?.VITE_AUTO_CONSENT === 'true';
+  const nowISO = new Date().toISOString();
+  // eslint-disable-next-line react-hooks/purity
+  const currentTime = Date.now();
+  const oneYearISO = new Date(currentTime + 365 * 24 * 60 * 60 * 1000).toISOString();
 
-  // Initialize consent state on mount
+  const bootstrapConsent: ConsentPreferences | null = storedConsent
+    ? storedConsent
+    : autoConsent
+      ? {
+          ...DEFAULT_CONSENT,
+          functional: true,
+          updatedAt: nowISO,
+          expiresAt: oneYearISO,
+        }
+      : null;
+
+  const [consent, setConsent] = useState<ConsentPreferences>(
+    bootstrapConsent ?? DEFAULT_CONSENT,
+  );
+  const [hasConsented, setHasConsented] = useState<boolean>(
+    !!bootstrapConsent,
+  );
+  const doNotTrack = initialDoNotTrack;
+  const [showConsentBanner, setShowConsentBanner] = useState<boolean>(
+    !bootstrapConsent,
+  );
+
+  // Initialize analytics if consent already stored and DNT disabled
   useEffect(() => {
-    const dnt = detectDoNotTrack();
-    setDoNotTrack(dnt);
-
-    const storedConsent = loadStoredConsent();
-    if (storedConsent) {
-      setConsent(storedConsent);
-      setHasConsented(true);
-      setShowConsentBanner(false);
-
-      // Initialize analytics if user has consented and DNT is not enabled
-      if (storedConsent.analytics && !dnt) {
-        initGoogleAnalytics();
-        initPostHog();
-        configureAnalytics({ enabled: true });
-        enableUnifiedAnalytics();
-      }
-    } else {
-      // No stored consent - show banner
-      // If DNT is enabled, we default to privacy-preserving settings
-      setShowConsentBanner(true);
+    if (hasConsented && consent.analytics && !doNotTrack) {
+      initGoogleAnalytics();
+      initPostHog();
+      configureAnalytics({ enabled: true });
+      enableUnifiedAnalytics();
     }
-  }, []);
+  }, [hasConsented, consent.analytics, doNotTrack]);
 
   // Load consent from backend for logged-in users
   useEffect(() => {
@@ -218,18 +229,20 @@ export function ConsentProvider({ children }: { children: React.ReactNode }) {
     loadConsentFromBackend().then((backendConsent) => {
       if (backendConsent && !isConsentExpired(backendConsent)) {
         // Backend consent exists and is valid - use it
-        setConsent(backendConsent);
-        setHasConsented(true);
-        setShowConsentBanner(false);
-        saveConsent(backendConsent); // Sync to local storage
+        queueMicrotask(() => {
+          setConsent(backendConsent);
+          setHasConsented(true);
+          setShowConsentBanner(false);
+          saveConsent(backendConsent); // Sync to local storage
 
-        // Initialize analytics if consented
-        if (backendConsent.analytics && !doNotTrack) {
-          initGoogleAnalytics();
-          initPostHog();
-          configureAnalytics({ enabled: true });
-          enableUnifiedAnalytics();
-        }
+          // Initialize analytics if consented
+          if (backendConsent.analytics && !doNotTrack) {
+            initGoogleAnalytics();
+            initPostHog();
+            configureAnalytics({ enabled: true });
+            enableUnifiedAnalytics();
+          }
+        });
       }
     });
   }, [user, doNotTrack]);

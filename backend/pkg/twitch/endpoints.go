@@ -533,3 +533,475 @@ func (c *Client) GetStreamStatusByUsername(ctx context.Context, username string)
 
 	return stream, user, nil
 }
+
+// GetBannedUsers fetches banned users for a specific broadcaster channel with user token
+// Requires user access token with moderator:read:banned_users scope
+func (c *Client) GetBannedUsers(ctx context.Context, broadcasterID string, userAccessToken string, first int, after string) (*BannedUsersResponse, error) {
+	if broadcasterID == "" {
+		return nil, &APIError{
+			StatusCode: 400,
+			Message:    "broadcaster_id is required",
+		}
+	}
+	if userAccessToken == "" {
+		return nil, &AuthError{
+			Message: "user access token is required for moderation endpoints",
+		}
+	}
+
+	params := url.Values{}
+	params.Set("broadcaster_id", broadcasterID)
+
+	if first > 0 {
+		if first > 100 {
+			first = 100
+		}
+		params.Set("first", fmt.Sprintf("%d", first))
+	}
+	if after != "" {
+		params.Set("after", after)
+	}
+
+	// Build URL
+	reqURL := baseURL + "/moderation/banned"
+	if len(params) > 0 {
+		reqURL += "?" + params.Encode()
+	}
+
+	// For user-authenticated endpoints, we need to use the user's token
+	req, err := http.NewRequestWithContext(ctx, "GET", reqURL, http.NoBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+userAccessToken)
+	req.Header.Set("Client-Id", c.clientID)
+
+	logger := utils.GetLogger()
+	logger.Debug("Twitch API request (user token)", map[string]interface{}{
+		"method":   "GET",
+		"endpoint": "/moderation/banned",
+	})
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch banned users: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
+		return nil, &APIError{
+			StatusCode: resp.StatusCode,
+			Message:    fmt.Sprintf("banned users request failed: %s", string(body)),
+		}
+	}
+
+	var bannedUsersResp BannedUsersResponse
+	if err := json.NewDecoder(resp.Body).Decode(&bannedUsersResp); err != nil {
+		return nil, fmt.Errorf("failed to decode banned users response: %w", err)
+	}
+
+	logger.Debug("Fetched banned users", map[string]interface{}{
+		"count":          len(bannedUsersResp.Data),
+		"broadcaster_id": broadcasterID,
+	})
+	return &bannedUsersResp, nil
+}
+
+// BanUser bans a user from a broadcaster's channel with retry logic and per-channel rate limiting
+// Requires user access token with moderator:manage:banned_users or channel:manage:banned_users scope
+// broadcasterID: The ID of the broadcaster whose channel the user is being banned from
+// moderatorID: The ID of the user or moderator issuing the ban (must match the token owner)
+// userAccessToken: User access token with appropriate scopes
+// request: Ban request containing user_id, optional duration, and optional reason
+func (c *Client) BanUser(ctx context.Context, broadcasterID string, moderatorID string, userAccessToken string, request *BanUserRequest) (*BanUserResponse, error) {
+	if broadcasterID == "" {
+		return nil, &APIError{
+			StatusCode: 400,
+			Message:    "broadcaster_id is required",
+		}
+	}
+	if moderatorID == "" {
+		return nil, &APIError{
+			StatusCode: 400,
+			Message:    "moderator_id is required",
+		}
+	}
+	if userAccessToken == "" {
+		return nil, &AuthError{
+			Message: "user access token is required for ban endpoints",
+		}
+	}
+	if request == nil || request.UserID == "" {
+		return nil, &APIError{
+			StatusCode: 400,
+			Message:    "user_id is required in request body",
+		}
+	}
+
+	// Apply per-channel rate limiting
+	if err := c.channelRateLimiter.Wait(ctx, broadcasterID); err != nil {
+		return nil, &RateLimitError{
+			Message:    "channel rate limit wait cancelled",
+			RetryAfter: 60,
+			Err:        err,
+		}
+	}
+
+	params := url.Values{}
+	params.Set("broadcaster_id", broadcasterID)
+	params.Set("moderator_id", moderatorID)
+
+	// Build URL
+	reqURL := baseURL + "/moderation/bans?" + params.Encode()
+
+	// Prepare request body
+	bodyData := map[string]interface{}{
+		"data": request,
+	}
+	jsonBody, err := json.Marshal(bodyData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal ban request: %w", err)
+	}
+
+	logger := utils.GetLogger()
+	logger.Info("Twitch ban user request", map[string]interface{}{
+		"broadcaster_id": broadcasterID,
+		"moderator_id":   moderatorID,
+		"target_user_id": request.UserID,
+	})
+
+	// Retry logic with jittered backoff
+	maxRetries := 3
+	baseDelay := time.Second
+	maxDelay := 10 * time.Second
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		req, reqErr := http.NewRequestWithContext(ctx, "POST", reqURL, strings.NewReader(string(jsonBody)))
+		if reqErr != nil {
+			return nil, fmt.Errorf("failed to create request: %w", reqErr)
+		}
+
+		req.Header.Set("Authorization", "Bearer "+userAccessToken)
+		req.Header.Set("Client-Id", c.clientID)
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			// Network error, retry with backoff
+			if attempt < maxRetries-1 {
+				delay := jitteredBackoff(attempt, baseDelay, maxDelay)
+				logger.Warn("Ban request failed, retrying", map[string]interface{}{
+					"attempt": attempt + 1,
+					"max":     maxRetries,
+					"delay":   delay.String(),
+					"error":   err.Error(),
+				})
+				time.Sleep(delay)
+				continue
+			}
+			return nil, fmt.Errorf("failed to ban user after %d attempts: %w", maxRetries, err)
+		}
+
+		// Extract request ID from response headers
+		requestID := resp.Header.Get("Twitch-Request-Id")
+		if requestID == "" {
+			requestID = resp.Header.Get("X-Request-Id")
+		}
+
+		// Read response body for error details
+		body, readErr := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		resp.Body.Close()
+		
+		if readErr != nil {
+			logger.Warn("Failed to read ban response body", map[string]interface{}{
+				"error":      readErr.Error(),
+				"request_id": requestID,
+			})
+			// Use a fallback error message for parsing
+			body = []byte(fmt.Sprintf("failed to read response body: %v", readErr))
+		}
+
+		logger.Debug("Ban request response", map[string]interface{}{
+			"status_code": resp.StatusCode,
+			"request_id":  requestID,
+			"attempt":     attempt + 1,
+		})
+
+		// Handle success
+		if resp.StatusCode == http.StatusOK {
+			var banResp BanUserResponse
+			if err := json.Unmarshal(body, &banResp); err != nil {
+				return nil, fmt.Errorf("failed to decode ban response: %w", err)
+			}
+
+			logger.Info("Successfully banned user on Twitch", map[string]interface{}{
+				"broadcaster_id": broadcasterID,
+				"user_id":        request.UserID,
+				"request_id":     requestID,
+			})
+
+			return &banResp, nil
+		}
+
+		// Handle 429 rate limit - retry with backoff (check before 4xx to avoid being caught by 4xx block)
+		if resp.StatusCode == http.StatusTooManyRequests {
+			if attempt < maxRetries-1 {
+				delay := jitteredBackoff(attempt, baseDelay, maxDelay)
+				logger.Warn("Ban request rate limited, retrying", map[string]interface{}{
+					"attempt":    attempt + 1,
+					"max":        maxRetries,
+					"delay":      delay.String(),
+					"request_id": requestID,
+				})
+				time.Sleep(delay)
+				continue
+			}
+			
+			modErr := ParseModerationError(resp.StatusCode, string(body), requestID)
+			return nil, modErr
+		}
+
+		// Handle 4xx errors - don't retry (excluding 429 which is handled above)
+		if resp.StatusCode >= 400 && resp.StatusCode < 500 {
+			modErr := ParseModerationError(resp.StatusCode, string(body), requestID)
+			
+			logger.Error("Ban request failed with client error", nil, map[string]interface{}{
+				"status_code": resp.StatusCode,
+				"error_code":  modErr.Code,
+				"message":     modErr.Message,
+				"request_id":  requestID,
+			})
+			
+			return nil, modErr
+		}
+
+		// Handle 5xx errors - retry with backoff
+		if resp.StatusCode >= 500 {
+			if attempt < maxRetries-1 {
+				delay := jitteredBackoff(attempt, baseDelay, maxDelay)
+				logger.Warn("Ban request failed with server error, retrying", map[string]interface{}{
+					"attempt":     attempt + 1,
+					"max":         maxRetries,
+					"delay":       delay.String(),
+					"status_code": resp.StatusCode,
+					"request_id":  requestID,
+				})
+				time.Sleep(delay)
+				continue
+			}
+			
+			modErr := ParseModerationError(resp.StatusCode, string(body), requestID)
+			logger.Error("Ban request failed after retries", nil, map[string]interface{}{
+				"attempts":   maxRetries,
+				"request_id": requestID,
+			})
+			return nil, modErr
+		}
+
+		// Unexpected status code
+		modErr := ParseModerationError(resp.StatusCode, string(body), requestID)
+		logger.Error("Ban request failed with unexpected status", nil, map[string]interface{}{
+			"status_code": resp.StatusCode,
+			"request_id":  requestID,
+		})
+		return nil, modErr
+	}
+
+	return nil, &ModerationError{
+		Code:    ModerationErrorCodeUnknown,
+		Message: "ban request failed after all retries",
+	}
+}
+
+// UnbanUser unbans a user from a broadcaster's channel with retry logic and per-channel rate limiting
+// Requires user access token with moderator:manage:banned_users or channel:manage:banned_users scope
+// broadcasterID: The ID of the broadcaster whose channel the user is being unbanned from
+// moderatorID: The ID of the user or moderator issuing the unban (must match the token owner)
+// userID: The ID of the user to unban
+// userAccessToken: User access token with appropriate scopes
+func (c *Client) UnbanUser(ctx context.Context, broadcasterID string, moderatorID string, userID string, userAccessToken string) error {
+	if broadcasterID == "" {
+		return &APIError{
+			StatusCode: 400,
+			Message:    "broadcaster_id is required",
+		}
+	}
+	if moderatorID == "" {
+		return &APIError{
+			StatusCode: 400,
+			Message:    "moderator_id is required",
+		}
+	}
+	if userID == "" {
+		return &APIError{
+			StatusCode: 400,
+			Message:    "user_id is required",
+		}
+	}
+	if userAccessToken == "" {
+		return &AuthError{
+			Message: "user access token is required for unban endpoints",
+		}
+	}
+
+	// Apply per-channel rate limiting
+	if err := c.channelRateLimiter.Wait(ctx, broadcasterID); err != nil {
+		return &RateLimitError{
+			Message:    "channel rate limit wait cancelled",
+			RetryAfter: 60,
+			Err:        err,
+		}
+	}
+
+	params := url.Values{}
+	params.Set("broadcaster_id", broadcasterID)
+	params.Set("moderator_id", moderatorID)
+	params.Set("user_id", userID)
+
+	// Build URL
+	reqURL := baseURL + "/moderation/bans?" + params.Encode()
+
+	logger := utils.GetLogger()
+	logger.Info("Twitch unban user request", map[string]interface{}{
+		"broadcaster_id": broadcasterID,
+		"moderator_id":   moderatorID,
+		"user_id":        userID,
+	})
+
+	// Retry logic with jittered backoff
+	maxRetries := 3
+	baseDelay := time.Second
+	maxDelay := 10 * time.Second
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		req, reqErr := http.NewRequestWithContext(ctx, "DELETE", reqURL, http.NoBody)
+		if reqErr != nil {
+			return fmt.Errorf("failed to create request: %w", reqErr)
+		}
+
+		req.Header.Set("Authorization", "Bearer "+userAccessToken)
+		req.Header.Set("Client-Id", c.clientID)
+
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			// Network error, retry with backoff
+			if attempt < maxRetries-1 {
+				delay := jitteredBackoff(attempt, baseDelay, maxDelay)
+				logger.Warn("Unban request failed, retrying", map[string]interface{}{
+					"attempt": attempt + 1,
+					"max":     maxRetries,
+					"delay":   delay.String(),
+					"error":   err.Error(),
+				})
+				time.Sleep(delay)
+				continue
+			}
+			return fmt.Errorf("failed to unban user after %d attempts: %w", maxRetries, err)
+		}
+
+		// Extract request ID from response headers
+		requestID := resp.Header.Get("Twitch-Request-Id")
+		if requestID == "" {
+			requestID = resp.Header.Get("X-Request-Id")
+		}
+
+		// Read response body for error details
+		body, readErr := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		resp.Body.Close()
+		
+		if readErr != nil {
+			logger.Warn("Failed to read unban response body", map[string]interface{}{
+				"error":      readErr.Error(),
+				"request_id": requestID,
+			})
+			// Use a fallback error message for parsing
+			body = []byte(fmt.Sprintf("failed to read response body: %v", readErr))
+		}
+
+		logger.Debug("Unban request response", map[string]interface{}{
+			"status_code": resp.StatusCode,
+			"request_id":  requestID,
+			"attempt":     attempt + 1,
+		})
+
+		// Handle success (204 No Content or 200 OK)
+		if resp.StatusCode == http.StatusNoContent || resp.StatusCode == http.StatusOK {
+			logger.Info("Successfully unbanned user on Twitch", map[string]interface{}{
+				"broadcaster_id": broadcasterID,
+				"user_id":        userID,
+				"request_id":     requestID,
+			})
+			return nil
+		}
+
+		// Handle 429 rate limit - retry with backoff (check before 4xx to avoid being caught by 4xx block)
+		if resp.StatusCode == http.StatusTooManyRequests {
+			if attempt < maxRetries-1 {
+				delay := jitteredBackoff(attempt, baseDelay, maxDelay)
+				logger.Warn("Unban request rate limited, retrying", map[string]interface{}{
+					"attempt":    attempt + 1,
+					"max":        maxRetries,
+					"delay":      delay.String(),
+					"request_id": requestID,
+				})
+				time.Sleep(delay)
+				continue
+			}
+			
+			modErr := ParseModerationError(resp.StatusCode, string(body), requestID)
+			return modErr
+		}
+
+		// Handle 4xx errors - don't retry (excluding 429 which is handled above)
+		if resp.StatusCode >= 400 && resp.StatusCode < 500 {
+			modErr := ParseModerationError(resp.StatusCode, string(body), requestID)
+			
+			logger.Error("Unban request failed with client error", nil, map[string]interface{}{
+				"status_code": resp.StatusCode,
+				"error_code":  modErr.Code,
+				"message":     modErr.Message,
+				"request_id":  requestID,
+			})
+			
+			return modErr
+		}
+
+		// Handle 5xx errors - retry with backoff
+		if resp.StatusCode >= 500 {
+			if attempt < maxRetries-1 {
+				delay := jitteredBackoff(attempt, baseDelay, maxDelay)
+				logger.Warn("Unban request failed with server error, retrying", map[string]interface{}{
+					"attempt":     attempt + 1,
+					"max":         maxRetries,
+					"delay":       delay.String(),
+					"status_code": resp.StatusCode,
+					"request_id":  requestID,
+				})
+				time.Sleep(delay)
+				continue
+			}
+			
+			modErr := ParseModerationError(resp.StatusCode, string(body), requestID)
+			logger.Error("Unban request failed after retries", nil, map[string]interface{}{
+				"attempts":   maxRetries,
+				"request_id": requestID,
+			})
+			return modErr
+		}
+
+		// Unexpected status code
+		modErr := ParseModerationError(resp.StatusCode, string(body), requestID)
+		logger.Error("Unban request failed with unexpected status", nil, map[string]interface{}{
+			"status_code": resp.StatusCode,
+			"request_id":  requestID,
+		})
+		return modErr
+	}
+
+	return &ModerationError{
+		Code:    ModerationErrorCodeUnknown,
+		Message: "unban request failed after all retries",
+	}
+}

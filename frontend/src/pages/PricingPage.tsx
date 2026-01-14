@@ -41,7 +41,7 @@ export default function PricingPage() {
         trackPricingPageView({
             userId: user?.id,
         });
-    }, [user?.id]);
+    }, [user]);
 
     const handleBillingPeriodChange = (period: 'monthly' | 'yearly') => {
         trackEvent(PremiumEvents.PRICING_TIER_CLICKED, {

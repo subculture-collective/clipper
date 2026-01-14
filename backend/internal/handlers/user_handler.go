@@ -9,15 +9,17 @@ import (
 	"github.com/google/uuid"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
+	"github.com/subculture-collective/clipper/internal/services"
 )
 
 // UserHandler handles user-related HTTP requests
 type UserHandler struct {
-	clipRepo        *repository.ClipRepository
-	voteRepo        *repository.VoteRepository
-	commentRepo     *repository.CommentRepository
-	userRepo        *repository.UserRepository
-	broadcasterRepo *repository.BroadcasterRepository
+	clipRepo            *repository.ClipRepository
+	voteRepo            *repository.VoteRepository
+	commentRepo         *repository.CommentRepository
+	userRepo            *repository.UserRepository
+	broadcasterRepo     *repository.BroadcasterRepository
+	accountMergeService *services.AccountMergeService
 }
 
 // NewUserHandler creates a new user handler
@@ -27,13 +29,15 @@ func NewUserHandler(
 	commentRepo *repository.CommentRepository,
 	userRepo *repository.UserRepository,
 	broadcasterRepo *repository.BroadcasterRepository,
+	accountMergeService *services.AccountMergeService,
 ) *UserHandler {
 	return &UserHandler{
-		clipRepo:        clipRepo,
-		voteRepo:        voteRepo,
-		commentRepo:     commentRepo,
-		userRepo:        userRepo,
-		broadcasterRepo: broadcasterRepo,
+		clipRepo:            clipRepo,
+		voteRepo:            voteRepo,
+		commentRepo:         commentRepo,
+		userRepo:            userRepo,
+		broadcasterRepo:     broadcasterRepo,
+		accountMergeService: accountMergeService,
 	}
 }
 
@@ -93,6 +97,60 @@ func (h *UserHandler) GetUserByUsername(c *gin.Context) {
 			"role":         user.Role,
 			"created_at":   user.CreatedAt,
 		},
+	})
+}
+
+// SearchUsersAutocomplete searches users by username for autocomplete/mention suggestions
+// GET /api/v1/users/autocomplete?q=username_prefix
+func (h *UserHandler) SearchUsersAutocomplete(c *gin.Context) {
+	query := c.Query("q")
+	if query == "" {
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"data":    []gin.H{},
+		})
+		return
+	}
+	
+	// Validate query length to prevent performance issues
+	if len(query) > 50 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "query parameter must be 50 characters or less",
+		})
+		return
+	}
+
+	// Parse limit with default of 10 and max of 20
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	if limit < 1 {
+		limit = 10
+	} else if limit > 20 {
+		limit = 20
+	}
+
+	users, err := h.userRepo.SearchUsersForAutocomplete(c.Request.Context(), query, limit)
+	if err != nil {
+		log.Printf("Failed to search users for autocomplete: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to search users"})
+		return
+	}
+
+	// Format response with only necessary fields for autocomplete
+	suggestions := make([]gin.H, 0, len(users))
+	for _, user := range users {
+		suggestions = append(suggestions, gin.H{
+			"id":           user.ID,
+			"username":     user.Username,
+			"display_name": user.DisplayName,
+			"avatar_url":   user.AvatarURL,
+			"is_verified":  user.IsVerified,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    suggestions,
 	})
 }
 
@@ -374,10 +432,10 @@ func (h *UserHandler) GetUserClips(c *gin.Context) {
 		}
 	}
 
-	// TODO: Add filter for submitted_by_user_id to ClipFilters
-	// For now, return all clips (this endpoint needs proper implementation)
+	// Build filters with submitted_by_user_id
 	filters := repository.ClipFilters{
-		ShowHidden: currentUserID != nil, // Show hidden clips if authenticated
+		SubmittedByUserID: &userIDStr,
+		ShowHidden:        currentUserID != nil, // Show hidden clips if authenticated
 	}
 
 	clips, total, err := h.clipRepo.ListWithFilters(c.Request.Context(), filters, limit, offset)
@@ -829,5 +887,123 @@ func (h *UserHandler) GetFollowedBroadcasters(c *gin.Context) {
 			"offset": offset,
 			"total":  total,
 		},
+	})
+}
+
+// ClaimAccountRequest represents the request to claim an unclaimed account
+type ClaimAccountRequest struct {
+	TwitchID string `json:"twitch_id" binding:"required"`
+}
+
+// ClaimAccount allows a user to claim an unclaimed profile
+// POST /api/v1/users/claim-account
+func (h *UserHandler) ClaimAccount(c *gin.Context) {
+	// Get authenticated user
+	userIDValue, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
+		return
+	}
+	authenticatedUserID := userIDValue.(uuid.UUID)
+
+	// Parse request
+	var req ClaimAccountRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+		return
+	}
+
+	// Get authenticated user
+	authenticatedUser, err := h.userRepo.GetByID(c.Request.Context(), authenticatedUserID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve user"})
+		return
+	}
+
+	// Verify the authenticated user's Twitch ID matches the claim request
+	if authenticatedUser.TwitchID == nil || *authenticatedUser.TwitchID != req.TwitchID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "you can only claim accounts matching your Twitch ID"})
+		return
+	}
+
+	// Find the unclaimed account
+	unclaimedUser, err := h.userRepo.GetByTwitchID(c.Request.Context(), req.TwitchID)
+	if err != nil {
+		if err == repository.ErrUserNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "no unclaimed account found for this Twitch ID"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to find unclaimed account"})
+		return
+	}
+
+	// Verify the account is unclaimed
+	if unclaimedUser.AccountStatus != "unclaimed" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "this account is not unclaimed"})
+		return
+	}
+
+	// Prevent claiming if the authenticated user already has an active account
+	if authenticatedUser.AccountStatus == "active" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "you already have an active account"})
+		return
+	}
+
+	// Transfer data from unclaimed account to authenticated user
+	// Update the authenticated user with data from the unclaimed account
+	if err := h.userRepo.UpdateDisplayName(c.Request.Context(), authenticatedUserID, unclaimedUser.DisplayName); err != nil {
+		log.Printf("Warning: failed to update display name during claim: %v", err)
+	}
+
+	// Update account status to active
+	if err := h.userRepo.UpdateAccountStatus(c.Request.Context(), authenticatedUserID, "active"); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to activate account"})
+		return
+	}
+
+	// Perform account merge: transfer all data from unclaimed to authenticated account
+	if h.accountMergeService != nil {
+		mergeResult, err := h.accountMergeService.MergeAccounts(c.Request.Context(), unclaimedUser.ID, authenticatedUserID)
+		if err != nil {
+			log.Printf("Error: account merge failed: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to merge account data"})
+			return
+		}
+
+		log.Printf("Account merge completed: clips=%d, votes=%d, favorites=%d, comments=%d, follows=%d, watch_history=%d, duplicates_skipped=%d",
+			mergeResult.ClipsMerged,
+			mergeResult.VotesMerged,
+			mergeResult.FavoritesMerged,
+			mergeResult.CommentsMerged,
+			mergeResult.FollowsMerged,
+			mergeResult.WatchHistoryMerged,
+			mergeResult.DuplicatesSkipped,
+		)
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"message": "account claimed successfully",
+			"merge_stats": gin.H{
+				"clips_merged":         mergeResult.ClipsMerged,
+				"votes_merged":         mergeResult.VotesMerged,
+				"favorites_merged":     mergeResult.FavoritesMerged,
+				"comments_merged":      mergeResult.CommentsMerged,
+				"follows_merged":       mergeResult.FollowsMerged,
+				"watch_history_merged": mergeResult.WatchHistoryMerged,
+				"duplicates_skipped":   mergeResult.DuplicatesSkipped,
+			},
+		})
+		return
+	}
+
+	// Fallback if merge service is not available
+	// Just mark the unclaimed account status as pending to prevent reuse
+	if err := h.userRepo.UpdateAccountStatus(c.Request.Context(), unclaimedUser.ID, "pending"); err != nil {
+		log.Printf("Warning: failed to mark unclaimed account as pending: %v", err)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "account claimed successfully",
 	})
 }

@@ -11,6 +11,7 @@ import {
     exchangeCodeForTokens,
     getCurrentUser,
 } from '../../services/auth';
+import { getMFAStatus } from '../../services/mfa';
 
 export default function LoginScreen() {
     const router = useRouter();
@@ -26,11 +27,43 @@ export default function LoginScreen() {
             // Step 2: Exchange code for tokens via backend
             await exchangeCodeForTokens(code, state, codeVerifier);
 
-            // Step 3: Get user info (tokens are now in cookies managed by backend)
+            // Step 3: Check if MFA is required
+            try {
+                const mfaStatus = await getMFAStatus();
+                
+                if (mfaStatus.enabled) {
+                    // MFA is enabled, navigate to challenge screen
+                    router.replace('/auth/mfa-challenge');
+                    return;
+                }
+                
+                // If MFA is required but not enabled (admin/moderator in grace period),
+                // the backend will enforce this on protected endpoints
+            } catch (mfaError) {
+                // Log the error for debugging
+                console.error('Failed to check MFA status:', mfaError);
+                
+                // If MFA check fails and the error suggests MFA is required,
+                // navigate to challenge screen to be safe
+                if (mfaError instanceof Error) {
+                    const errorMsg = mfaError.message.toLowerCase();
+                    if (errorMsg.includes('mfa') || errorMsg.includes('authentication required')) {
+                        console.warn('MFA may be required, navigating to challenge screen');
+                        router.replace('/auth/mfa-challenge');
+                        return;
+                    }
+                }
+                
+                // For other errors (network issues, etc.), log but continue
+                // The backend will enforce MFA on protected endpoints if needed
+                console.warn('Could not verify MFA status, continuing with login');
+            }
+
+            // Step 4: Get user info (tokens are now in cookies managed by backend)
             const user = await getCurrentUser();
             setUser(user);
 
-            // Step 4: Navigate to the main app
+            // Step 5: Navigate to the main app
             router.replace('/(tabs)');
         } catch (error) {
             console.error('Login error:', error);

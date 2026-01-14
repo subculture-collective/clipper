@@ -110,8 +110,9 @@ func (h *DMCAHandler) GetUserStrikes(c *gin.Context) {
 
 	// Allow if viewing own strikes or if admin
 	authUID := authenticatedUserID.(uuid.UUID)
-	role, _ := c.Get("role")
-	isAdmin := role == "admin" || role == "moderator"
+	roleVal, _ := c.Get("user_role")
+	roleStr, _ := roleVal.(string)
+	isAdmin := roleStr == "admin" || roleStr == "moderator"
 
 	if userID != authUID && !isAdmin {
 		c.JSON(http.StatusForbidden, gin.H{"error": "You can only view your own DMCA strikes"})

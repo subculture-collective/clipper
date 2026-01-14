@@ -31,7 +31,7 @@ export function useWatchHistory({
   const [hasProgress, setHasProgress] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [lastRecordedTimestamp, setLastRecordedTimestamp] = useState(0);
-  const sessionId = useMemo(() => generateSessionId(), [clipId]); // Regenerate when clipId changes
+  const sessionId = useMemo(() => generateSessionId(), []);
 
   // Fetch resume position on mount
   useEffect(() => {

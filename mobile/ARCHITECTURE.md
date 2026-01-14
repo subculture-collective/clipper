@@ -1,5 +1,15 @@
 # Component Architecture Visualization
 
+## Development Guidelines
+
+### Touch Interaction & Pointer Events
+For proper handling of touch interactions in React Native 0.81+, see **[docs/POINTER_EVENTS_GUIDE.md](./docs/POINTER_EVENTS_GUIDE.md)**. 
+
+**Key Points:**
+- ✅ Use `pointerEvents` in the `style` prop: `style={{ pointerEvents: 'none' }}`
+- ❌ Never use `pointerEvents` as a direct prop (deprecated)
+- ESLint can enforce this automatically once a pointerEvents rule is added (e.g., via `eslint-plugin-react-native`)
+
 ## Component Hierarchy
 
 ```
@@ -414,3 +424,288 @@ This architecture provides:
 ✅ Easy to test components
 ✅ Maintainable structure
 ✅ Scalable design
+
+## MFA Enrollment Flow Architecture
+
+### Overview
+
+The MFA enrollment flow allows users to enable two-factor authentication on their accounts. It supports multiple enrollment methods including QR code scanning, manual secret entry, and email verification fallback.
+
+### Component Structure
+
+```
+app/auth/mfa-enroll.tsx (Main Enrollment Orchestrator)
+│
+├── State Management
+│   ├── currentStep: 'intro' | 'scan' | 'manual' | 'email-verify' | 'verify' | 'backup-codes'
+│   ├── enrollmentData: EnrollMFAResponse | null
+│   ├── manualSecret: string
+│   ├── verificationCode: string
+│   ├── trustDevice: boolean
+│   ├── isLoading: boolean
+│   ├── error: string | null
+│   ├── hasPermission: boolean | null
+│   ├── isScanning: boolean
+│   └── backupCodesViewed: boolean
+│
+├── Enrollment Steps
+│   ├── intro → Overview and requirements
+│   ├── scan → QR code scanner (expo-barcode-scanner)
+│   ├── manual → Manual secret key entry
+│   ├── email-verify → Email OTP fallback
+│   ├── verify → TOTP code verification
+│   └── backup-codes → Display and save backup codes
+│
+└── Navigation Flow
+    ├── Start → intro
+    ├── intro → scan (Get Started)
+    ├── scan → manual (Enter Code Manually)
+    ├── scan → email-verify (Verify via Email)
+    ├── manual → verify (Continue)
+    ├── email-verify → manual (After email verification)
+    ├── verify → backup-codes (After successful verification)
+    └── backup-codes → Settings (Complete)
+```
+
+### Data Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                          USER ACTIONS                            │
+└─────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                       ENROLLMENT STEPS                           │
+│  Intro → QR Scan / Manual / Email → Verify → Backup Codes      │
+└─────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                        SERVICE LAYER                             │
+│  services/mfa.ts                                                 │
+│  - startEnrollment()                                             │
+│  - verifyEnrollment(code)                                        │
+└─────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                         API LAYER                                │
+│  POST /auth/mfa/enroll                                           │
+│  POST /auth/mfa/verify-enrollment                                │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Enrollment Methods
+
+#### 1. QR Code Display
+
+- Server generates QR code containing TOTP secret
+- App displays QR code from `enrollmentData.qr_code_url` (data URL)
+- User scans displayed QR code with their authenticator app (Google Authenticator, Authy, etc.)
+- User enters TOTP code from authenticator app to verify enrollment
+- No camera permissions required - QR code is shown, not scanned by the app
+- Gracefully handles missing QR code data
+- Falls back to manual or email verification
+
+#### 2. Manual Secret Entry
+
+- Displays Base32-encoded secret from server
+- Provides copy-to-clipboard functionality
+- Validates Base32 format before proceeding
+- Shows helpful tips for authenticator app setup
+- Confirms user has entered secret correctly
+
+#### 3. Email Verification Fallback
+
+- Alternative when camera unavailable or user preference
+- Sends verification email (placeholder in current implementation)
+- Provides clear instructions and confirmation
+- Seamlessly transitions to manual setup after verification
+
+### Security Features
+
+#### TOTP Secret Handling
+
+- Server generates TOTP secret during enrollment
+- Secret transmitted once via HTTPS
+- Never stored in insecure local storage
+- Displayed only during manual entry step
+- User enters secret in authenticator app
+
+#### Backup Codes
+
+- 10 single-use backup codes generated server-side
+- Displayed once during enrollment
+- Copy and share functionality provided
+- User must confirm codes have been saved
+- Warning about permanent loss of access
+
+#### Device Trust
+
+- Optional "Trust This Device" toggle
+- 30-day trusted device period
+- Reduces MFA prompts on trusted devices
+- Server-side trust management
+- Can be revoked from settings
+
+### Integration Points
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                    External Dependencies                      │
+└──────────────────────────────────────────────────────────────┘
+
+┌─────────────────┐
+│ expo-clipboard  │ Copy backup codes
+└────────┬────────┘ • System clipboard
+         │          • Share sheet integration
+         ▼
+┌─────────────────┐
+│  expo-haptics   │ Tactile feedback
+└────────┬────────┘ • Success/error haptics
+         │          • Interaction feedback
+         ▼
+┌─────────────────┐
+│  Settings       │ Navigation entry point
+│  Screen         │ • Shows MFA status
+└─────────────────┘ • Links to enrollment
+```
+
+### Error Handling
+
+The enrollment flow handles various error scenarios:
+
+1. **Missing QR Code Data**
+   - Show error message if QR code URL unavailable
+   - Offer alternative methods (manual, email)
+   - Maintain enrollment state
+
+2. **Invalid Verification Code**
+   - Inline error message
+   - Allow immediate retry
+   - Clear input on retry
+
+3. **Manual Entry Mismatch**
+   - Validate entered secret matches server secret
+   - Clear error message about mismatch
+   - Allow user to retry
+
+4. **Network Errors**
+   - Display user-friendly error
+   - Offer retry functionality
+   - Maintain enrollment state
+
+### Accessibility
+
+The enrollment flow implements comprehensive accessibility:
+
+- **Screen Reader Support**
+  - Descriptive labels for all interactive elements
+  - Proper role assignment (button, switch, textbox)
+  - Context-aware hints
+  - State announcements (disabled, busy, checked)
+
+- **Keyboard Navigation**
+  - Logical tab order
+  - Auto-focus on critical inputs
+  - Clear focus indicators
+
+- **Visual Accessibility**
+  - High contrast colors
+  - Large tap targets (minimum 44x44 points)
+  - Clear visual feedback
+  - Dynamic type support
+
+- **Backup Code Accessibility**
+  - Character-by-character reading
+  - Numbered code announcement
+  - Copy/share alternatives
+
+### Testing Strategy
+
+#### Manual Testing Checklist
+
+**iOS Testing:**
+- [ ] QR scanning with Face ID device
+- [ ] QR scanning with Touch ID device
+- [ ] Manual entry flow
+- [ ] Email verification fallback
+- [ ] Backup codes copy/share
+- [ ] Device trust toggle
+- [ ] VoiceOver navigation
+- [ ] Dynamic type scaling
+
+**Android Testing:**
+- [ ] QR scanning with fingerprint
+- [ ] QR scanning with face unlock
+- [ ] Manual entry flow
+- [ ] Email verification fallback
+- [ ] Backup codes copy/share
+- [ ] Device trust toggle
+- [ ] TalkBack navigation
+- [ ] Font scaling
+
+**Cross-Platform:**
+- [ ] Camera permission handling
+- [ ] Network error scenarios
+- [ ] Invalid code handling
+- [ ] Back navigation
+- [ ] State persistence
+
+### Dependencies
+
+```json
+{
+  "expo-clipboard": "^8.0.8",
+  "expo-haptics": "^15.0.7",
+  "expo-local-authentication": "~15.0.0"
+}
+```
+
+### API Contract
+
+#### Start Enrollment
+```typescript
+POST /api/v1/auth/mfa/enroll
+
+Response: {
+  secret: string,        // Base32 TOTP secret
+  qr_code_url: string,   // Data URL for QR code
+  backup_codes: string[] // 10 single-use codes
+}
+```
+
+#### Verify Enrollment
+```typescript
+POST /api/v1/auth/mfa/verify-enrollment
+
+Body: {
+  code: string // 6-digit TOTP code
+}
+
+Response: {
+  message: string
+}
+```
+
+### Future Enhancements
+
+Potential improvements for future iterations:
+
+- WebAuthn/FIDO2 support for passwordless authentication
+- Push notification challenges
+- Biometric-only mode (policy dependent)
+- Auto-fill from SMS/email (iOS autofill)
+- Adaptive MFA based on risk score
+- Multiple authenticator app support
+- QR code regeneration
+- Progressive enrollment (partial completion state)
+
+### Related Documentation
+
+- Backend MFA Service: `/backend/internal/services/mfa_service.go`
+- Backend MFA Handler: `/backend/internal/handlers/mfa_handler.go`
+- MFA Challenge Implementation: `mobile/MFA_CHALLENGE_IMPLEMENTATION.md`
+- MFA Admin Guide: `docs/MFA_ADMIN_GUIDE.md`
+- OTPAuth URI Parser: `mobile/lib/otpauth.ts`

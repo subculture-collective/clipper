@@ -5,6 +5,8 @@ import (
 	"log"
 	"sync"
 	"time"
+
+	"github.com/subculture-collective/clipper/pkg/metrics"
 )
 
 // ClipRepositoryInterface defines the interface required by the hot score scheduler
@@ -62,15 +64,23 @@ func (s *HotScoreScheduler) Stop() {
 
 // refreshHotScores executes a hot score refresh operation
 func (s *HotScoreScheduler) refreshHotScores(ctx context.Context) {
+	jobName := "hot_score_refresh"
 	log.Println("Starting scheduled hot score refresh...")
 	startTime := time.Now()
 
 	err := s.clipRepo.RefreshHotScores(ctx)
+	duration := time.Since(startTime)
+
+	// Record metrics
+	metrics.JobExecutionDuration.WithLabelValues(jobName).Observe(duration.Seconds())
+
 	if err != nil {
 		log.Printf("Hot score refresh failed: %v", err)
+		metrics.JobExecutionTotal.WithLabelValues(jobName, "failed").Inc()
 		return
 	}
 
-	duration := time.Since(startTime)
+	metrics.JobExecutionTotal.WithLabelValues(jobName, "success").Inc()
+	metrics.JobLastSuccessTimestamp.WithLabelValues(jobName).Set(float64(time.Now().Unix()))
 	log.Printf("Hot score refresh completed in %v", duration)
 }

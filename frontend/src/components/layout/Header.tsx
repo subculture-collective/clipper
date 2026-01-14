@@ -47,27 +47,28 @@ export function Header() {
                         </div>
                     </Link>
 
-                    {/* Desktop Navigation */}
+                    {/* Navigation (desktop visible by default; expose for E2E/mobile) */}
                     <nav
-                        className='hidden md:flex items-center gap-1'
+                        className='flex flex-wrap items-center gap-1 md:flex-nowrap'
                         aria-label='Main navigation'
+                        data-testid='main-nav'
                     >
                         <Link to='/'>
                             <Button variant='ghost' size='sm'>
                                 {t('nav.hot')}
                             </Button>
                         </Link>
-                        <Link to='/new'>
+                        <Link to='/?sort=new'>
                             <Button variant='ghost' size='sm'>
                                 {t('nav.new')}
                             </Button>
                         </Link>
-                        <Link to='/top'>
+                        <Link to='/?sort=top'>
                             <Button variant='ghost' size='sm'>
                                 {t('nav.top')}
                             </Button>
                         </Link>
-                        <Link to='/rising'>
+                        <Link to='/?sort=rising'>
                             <Button variant='ghost' size='sm'>
                                 {t('nav.rising')}
                             </Button>
@@ -172,7 +173,7 @@ export function Header() {
                                 <UserMenu />
                             </div>
                         :   <Link to='/login' className='hidden md:block'>
-                                <Button variant='primary' size='sm'>
+                                <Button variant='primary' size='sm' data-testid='login-button' aria-label='Login'>
                                     {t('nav.login')}
                                 </Button>
                             </Link>
@@ -188,6 +189,7 @@ export function Header() {
                                 mobileMenuOpen ? 'Close menu' : 'Open menu'
                             }
                             aria-expanded={mobileMenuOpen}
+                            data-testid='mobile-menu-toggle'
                         >
                             {mobileMenuOpen ? '✕' : '☰'}
                         </Button>
@@ -210,12 +212,13 @@ export function Header() {
                                     variant='ghost'
                                     size='sm'
                                     className='w-full justify-start'
+                                    data-testid='mobile-nav-home'
                                 >
                                     {t('nav.hot')}
                                 </Button>
                             </Link>
                             <Link
-                                to='/new'
+                                to='/?sort=new'
                                 onClick={() => setMobileMenuOpen(false)}
                             >
                                 <Button
@@ -227,7 +230,7 @@ export function Header() {
                                 </Button>
                             </Link>
                             <Link
-                                to='/top'
+                                to='/?sort=top'
                                 onClick={() => setMobileMenuOpen(false)}
                             >
                                 <Button
@@ -239,7 +242,7 @@ export function Header() {
                                 </Button>
                             </Link>
                             <Link
-                                to='/rising'
+                                to='/?sort=rising'
                                 onClick={() => setMobileMenuOpen(false)}
                             >
                                 <Button
@@ -248,18 +251,6 @@ export function Header() {
                                     className='w-full justify-start'
                                 >
                                     {t('nav.rising')}
-                                </Button>
-                            </Link>
-                            <Link
-                                to='/discover/scraped'
-                                onClick={() => setMobileMenuOpen(false)}
-                            >
-                                <Button
-                                    variant='ghost'
-                                    size='sm'
-                                    className='w-full justify-start'
-                                >
-                                    🔍 {t('nav.discover')}
                                 </Button>
                             </Link>
                             {isAuthenticated && (
@@ -417,6 +408,8 @@ export function Header() {
                                     variant='primary'
                                     size='sm'
                                     className='w-full'
+                                    data-testid='login-button'
+                                    aria-label='Login'
                                 >
                                     {t('nav.login')}
                                 </Button>

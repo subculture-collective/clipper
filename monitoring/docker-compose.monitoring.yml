@@ -192,6 +192,30 @@ services:
         networks:
             - monitoring
 
+    # Jaeger - Distributed Tracing
+    jaeger:
+        image: jaegertracing/all-in-one:1.62
+        container_name: clipper-jaeger
+        restart: unless-stopped
+        environment:
+            - COLLECTOR_OTLP_ENABLED=true
+            - SPAN_STORAGE_TYPE=badger
+            - BADGER_EPHEMERAL=false
+            - BADGER_DIRECTORY_VALUE=/badger/data
+            - BADGER_DIRECTORY_KEY=/badger/key
+            - BADGER_TTL=720h
+        volumes:
+            - jaeger_data:/badger
+        ports:
+            - '16686:16686'  # Jaeger UI
+            - '14268:14268'  # Jaeger collector HTTP
+            - '4317:4317'    # OTLP gRPC
+            - '4318:4318'    # OTLP HTTP
+        networks:
+            - clipper-network
+            - monitoring
+            - web
+
     # Vault Agent to render secrets for monitoring (e.g., postgres exporter)
     vault-agent-monitoring:
         image: hashicorp/vault:1.17.5
@@ -221,6 +245,29 @@ services:
             - monitoring
             - clipper-network
 
+    # Metabase - Business Intelligence and Analytics Dashboards
+    metabase:
+        image: metabase/metabase:latest
+        container_name: clipper-metabase
+        restart: unless-stopped
+        environment:
+            - MB_DB_TYPE=postgres
+            - MB_DB_DBNAME=${METABASE_DB_NAME:-metabase}
+            - MB_DB_PORT=5432
+            - MB_DB_USER=${METABASE_DB_USER:-metabase}
+            - MB_DB_PASS=${METABASE_DB_PASSWORD:-changeme}
+            - MB_DB_HOST=postgres
+            - MB_JETTY_HOST=0.0.0.0
+            - MB_JETTY_PORT=3000
+            - JAVA_TIMEZONE=UTC
+        volumes:
+            - metabase_data:/metabase-data
+        ports:
+            - '13000:3000'
+        networks:
+            - clipper-network
+            - web
+
 volumes:
     prometheus_data:
         driver: local
@@ -231,6 +278,10 @@ volumes:
     loki_data:
         driver: local
     vault_agent_data:
+        driver: local
+    metabase_data:
+        driver: local
+    jaeger_data:
         driver: local
 
 networks:

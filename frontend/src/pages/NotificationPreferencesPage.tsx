@@ -25,7 +25,9 @@ export function NotificationPreferencesPage() {
   // Update form data when preferences load
   useEffect(() => {
     if (preferences) {
-      setFormData(preferences);
+      queueMicrotask(() => {
+        setFormData(preferences);
+      });
     }
   }, [preferences]);
 
@@ -426,7 +428,7 @@ export function NotificationPreferencesPage() {
               >
                 {isResetting ? 'Resetting...' : 'Reset to Defaults'}
               </Button>
-              
+
               <div className="flex gap-3">
                 <Link to="/notifications">
                   <Button variant="ghost">Cancel</Button>

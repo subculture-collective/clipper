@@ -13,8 +13,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { getClip } from '../../services/clips';
-import { useEvent } from 'expo';
-import { VideoView, useVideoPlayer } from 'expo-video';
+import EnhancedVideoPlayer from '../../components/EnhancedVideoPlayer';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const VIDEO_HEIGHT = SCREEN_WIDTH * (9 / 16);
@@ -27,13 +26,6 @@ export default function ClipDetailScreen() {
         queryKey: ['clip', id],
         queryFn: () => getClip(String(id)),
         enabled: !!id,
-    });
-
-    const player = useVideoPlayer(clip?.embed_url ?? '', player => {
-        player.loop = false;
-    });
-    const { isPlaying } = useEvent(player, 'playingChange', {
-        isPlaying: player.playing,
     });
 
     if (isLoading) {
@@ -67,11 +59,15 @@ export default function ClipDetailScreen() {
                     backgroundColor: '#111827',
                 }}
             >
-                <VideoView
-                    player={player}
-                    style={{ width: '100%', height: '100%' }}
+                <EnhancedVideoPlayer
+                    videoUrl={clip.embed_url || ''}
+                    videoId={clip.id}
+                    videoTitle={clip.title}
+                    allowsPictureInPicture={true}
+                    allowsBackgroundPlayback={false}
                     contentFit='contain'
-                    allowsPictureInPicture
+                    autoPlay={true}
+                    style={{ width: '100%', height: '100%' }}
                 />
             </View>
 

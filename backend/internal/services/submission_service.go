@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/subculture-collective/clipper/internal/utils"
 	redispkg "github.com/subculture-collective/clipper/pkg/redis"
 	"github.com/subculture-collective/clipper/pkg/twitch"
+	pkgutils "github.com/subculture-collective/clipper/pkg/utils"
 )
 
 // SubmissionService handles clip submission business logic
@@ -29,7 +31,14 @@ type SubmissionService struct {
 	abuseDetector       *SubmissionAbuseDetector
 	moderationEvents    *ModerationEventService
 	webhookService      *OutboundWebhookService
+	cacheService        *CacheService
 	cfg                 *config.Config
+	logger              *pkgutils.StructuredLogger
+
+	// Test fixture controls
+	testFixturesEnabled      bool
+	bypassRateLimits         bool
+	allowDuplicateSubmission bool
 }
 
 // NewSubmissionService creates a new SubmissionService
@@ -43,10 +52,14 @@ func NewSubmissionService(
 	notificationService *NotificationService,
 	redisClient *redispkg.Client,
 	webhookService *OutboundWebhookService,
+	cacheService *CacheService,
 	cfg *config.Config,
 ) *SubmissionService {
 	var abuseDetector *SubmissionAbuseDetector
 	var moderationEvents *ModerationEventService
+	testFixturesEnabled := strings.EqualFold(cfg.Server.Environment, "test") || cfg.Server.GinMode != "release" || strings.EqualFold(os.Getenv("ENABLE_TEST_FIXTURES"), "true") || strings.EqualFold(os.Getenv("E2E_TEST_MODE"), "true")
+	bypassRateLimits := testFixturesEnabled && strings.EqualFold(os.Getenv("SUBMISSION_BYPASS_RATE_LIMIT"), "true")
+	allowDuplicateSubmission := testFixturesEnabled && strings.EqualFold(os.Getenv("SUBMISSION_ALLOW_DUPLICATES"), "true")
 
 	if redisClient != nil {
 		abuseDetector = NewSubmissionAbuseDetector(redisClient)
@@ -54,18 +67,23 @@ func NewSubmissionService(
 	}
 
 	return &SubmissionService{
-		submissionRepo:      submissionRepo,
-		clipRepo:            clipRepo,
-		userRepo:            userRepo,
-		voteRepo:            voteRepo,
-		auditLogRepo:        auditLogRepo,
-		twitchClient:        twitchClient,
-		redisClient:         redisClient,
-		notificationService: notificationService,
-		abuseDetector:       abuseDetector,
-		moderationEvents:    moderationEvents,
-		webhookService:      webhookService,
-		cfg:                 cfg,
+		submissionRepo:           submissionRepo,
+		clipRepo:                 clipRepo,
+		userRepo:                 userRepo,
+		voteRepo:                 voteRepo,
+		auditLogRepo:             auditLogRepo,
+		twitchClient:             twitchClient,
+		redisClient:              redisClient,
+		notificationService:      notificationService,
+		abuseDetector:            abuseDetector,
+		moderationEvents:         moderationEvents,
+		webhookService:           webhookService,
+		cacheService:             cacheService,
+		cfg:                      cfg,
+		logger:                   pkgutils.GetLogger(),
+		testFixturesEnabled:      testFixturesEnabled,
+		bypassRateLimits:         bypassRateLimits,
+		allowDuplicateSubmission: allowDuplicateSubmission,
 	}
 }
 
@@ -273,7 +291,9 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 	}
 
 	// Check rate limits (5 per hour, 20 per day) — admins are bypassed inside checkRateLimits
-	if err := s.checkRateLimits(ctx, userID); err != nil {
+	if s.bypassRateLimits {
+		log.Printf("SubmissionService: bypassing rate limits for test fixtures")
+	} else if err := s.checkRateLimits(ctx, userID); err != nil {
 		// Emit rate limit event
 		if s.moderationEvents != nil {
 			metadata := map[string]interface{}{
@@ -468,9 +488,13 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 		submission.ReviewedAt = &submission.CreatedAt
 
 		// Create clip immediately
-		if err := s.createClipFromSubmission(ctx, submission); err != nil {
+		clipID, err := s.createClipFromSubmission(ctx, submission)
+		if err != nil {
 			return nil, fmt.Errorf("failed to create clip: %w", err)
 		}
+
+		// Store clip ID
+		submission.ClipID = &clipID
 
 		// Award karma
 		if err := s.awardKarma(ctx, userID, 10); err != nil {
@@ -821,6 +845,11 @@ func (s *SubmissionService) checkClipExistence(ctx context.Context, twitchClipID
 
 // checkDuplicates checks if clip already exists or was submitted
 func (s *SubmissionService) checkDuplicates(ctx context.Context, twitchClipID string, userID uuid.UUID, ip string) error {
+	if s.allowDuplicateSubmission {
+		log.Printf("SubmissionService: allowing duplicate submissions (test fixtures enabled)")
+		return nil
+	}
+
 	// Check if clip already exists in clips table
 	exists, err := s.clipRepo.ExistsByTwitchClipID(ctx, twitchClipID)
 	if err != nil {
@@ -911,6 +940,57 @@ func (s *SubmissionService) checkDuplicates(ctx context.Context, twitchClipID st
 // fetchClipFromTwitch fetches clip metadata from Twitch API
 func (s *SubmissionService) fetchClipFromTwitch(ctx context.Context, clipID string) (*twitch.Clip, error) {
 	if s.twitchClient == nil {
+		if s.testFixturesEnabled {
+			// Try to hydrate from existing clip fixtures in the database
+			if clip, err := s.clipRepo.GetByTwitchClipID(ctx, clipID); err == nil {
+				broadcasterID := ""
+				if clip.BroadcasterID != nil {
+					broadcasterID = *clip.BroadcasterID
+				}
+
+				creatorID := ""
+				if clip.CreatorID != nil {
+					creatorID = *clip.CreatorID
+				}
+
+				gameID := ""
+				if clip.GameID != nil {
+					gameID = *clip.GameID
+				}
+
+				language := ""
+				if clip.Language != nil {
+					language = *clip.Language
+				}
+
+				thumbnailURL := ""
+				if clip.ThumbnailURL != nil {
+					thumbnailURL = *clip.ThumbnailURL
+				}
+
+				duration := 0.0
+				if clip.Duration != nil {
+					duration = *clip.Duration
+				}
+
+				return &twitch.Clip{
+					ID:              clip.TwitchClipID,
+					URL:             clip.TwitchClipURL,
+					EmbedURL:        clip.EmbedURL,
+					BroadcasterID:   broadcasterID,
+					BroadcasterName: clip.BroadcasterName,
+					CreatorID:       creatorID,
+					CreatorName:     clip.CreatorName,
+					GameID:          gameID,
+					Language:        language,
+					Title:           clip.Title,
+					ViewCount:       clip.ViewCount,
+					CreatedAt:       clip.CreatedAt,
+					ThumbnailURL:    thumbnailURL,
+					Duration:        duration,
+				}, nil
+			}
+		}
 		return nil, fmt.Errorf("Twitch API is not configured")
 	}
 
@@ -988,7 +1068,7 @@ func (s *SubmissionService) shouldAutoApprove(user *models.User) bool {
 }
 
 // createClipFromSubmission creates a clip in the main clips table
-func (s *SubmissionService) createClipFromSubmission(ctx context.Context, submission *models.ClipSubmission) error {
+func (s *SubmissionService) createClipFromSubmission(ctx context.Context, submission *models.ClipSubmission) (uuid.UUID, error) {
 	emptyStr := ""
 	title := utils.StringOrDefault(submission.CustomTitle, submission.Title)
 	creatorName := utils.StringOrDefault(submission.CreatorName, &emptyStr)
@@ -1021,7 +1101,7 @@ func (s *SubmissionService) createClipFromSubmission(ctx context.Context, submis
 
 	// Create the clip
 	if err := s.clipRepo.Create(ctx, clip); err != nil {
-		return err
+		return uuid.Nil, err
 	}
 
 	// Auto-upvote: Create an upvote from the submitter
@@ -1029,11 +1109,26 @@ func (s *SubmissionService) createClipFromSubmission(ctx context.Context, submis
 	if s.voteRepo != nil {
 		if err := s.voteRepo.UpsertVote(ctx, submission.UserID, clip.ID, 1); err != nil {
 			// Log error but don't fail the clip creation
-			fmt.Printf("Warning: failed to auto-upvote clip for user %s: %v\n", submission.UserID, err)
+			s.logger.Warn("Failed to auto-upvote clip for user", map[string]interface{}{
+				"user_id": submission.UserID,
+				"clip_id": clip.ID,
+				"error":   err.Error(),
+			})
 		}
 	}
 
-	return nil
+	// Invalidate feed caches so the new clip appears immediately
+	if s.cacheService != nil {
+		if err := s.cacheService.InvalidateOnNewClip(ctx, clip); err != nil {
+			// Log error but don't fail the clip creation
+			s.logger.Warn("Failed to invalidate feed caches for clip", map[string]interface{}{
+				"clip_id": clip.ID,
+				"error":   err.Error(),
+			})
+		}
+	}
+
+	return clip.ID, nil
 }
 
 // awardKarma awards karma points to a user
@@ -1070,13 +1165,19 @@ func (s *SubmissionService) ApproveSubmission(ctx context.Context, submissionID,
 	}
 
 	// Create clip
-	if err := s.createClipFromSubmission(ctx, submission); err != nil {
+	clipID, err := s.createClipFromSubmission(ctx, submission)
+	if err != nil {
 		return fmt.Errorf("failed to create clip: %w", err)
 	}
 
-	// Update submission status
+	// Update submission status and clip ID
 	if err := s.submissionRepo.UpdateStatus(ctx, submissionID, "approved", reviewerID, nil); err != nil {
 		return fmt.Errorf("failed to update submission status: %w", err)
+	}
+
+	// Update submission with clip ID
+	if err := s.submissionRepo.UpdateClipID(ctx, submissionID, clipID); err != nil {
+		return fmt.Errorf("failed to update submission clip ID: %w", err)
 	}
 
 	// Create audit log
@@ -1220,7 +1321,7 @@ func (s *SubmissionService) BulkApproveSubmissions(ctx context.Context, submissi
 
 	// Create clips for all submissions
 	for _, submission := range submissions {
-		if err := s.createClipFromSubmission(ctx, submission); err != nil {
+		if _, err := s.createClipFromSubmission(ctx, submission); err != nil {
 			return fmt.Errorf("failed to create clip for submission %s: %w", submission.ID, err)
 		}
 	}

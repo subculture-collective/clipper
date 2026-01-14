@@ -16,6 +16,7 @@ Complete guide to deploying and operating Clipper in production environments.
 
 ## Quick Links
 
+- [[kubernetes|Kubernetes Deployment]] - Complete K8s deployment guide
 - [[docker|Docker Deployment]] - Container-based deployment
 - [[ci_cd|CI/CD Pipeline]] - Continuous integration and deployment
 - [[infra|Infrastructure]] - Cloud infrastructure and architecture
@@ -32,10 +33,11 @@ SORT title ASC
 
 ## Getting Started
 
-1. Start with [[docker|Docker Deployment]] to understand our containerization strategy
-2. Learn about [[ci_cd|CI/CD Pipeline]] for automated deployments
-3. Review [[infra|Infrastructure]] for production architecture
-4. Keep [[runbook|Operations Runbook]] handy for common tasks
+1. Start with [[kubernetes|Kubernetes Deployment]] for production-ready deployment
+2. Or start with [[docker|Docker Deployment]] to understand our containerization strategy
+3. Learn about [[ci_cd|CI/CD Pipeline]] for automated deployments
+4. Review [[infra|Infrastructure]] for production architecture
+5. Keep [[runbook|Operations Runbook]] handy for common tasks
 
 ## Deployment Workflow
 
@@ -53,6 +55,8 @@ graph LR
 
 ### Deployment Guides
 
+
+- [[kubernetes|Kubernetes Deployment]] - End-to-end production deployment
 - [[docker|Docker Deployment]] - Multi-stage builds and containerization
 - [[ci_cd|CI/CD Pipeline]] - GitHub Actions workflows
 - [[infra|Infrastructure]] - Kubernetes, databases, and scaling

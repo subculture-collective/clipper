@@ -17,6 +17,16 @@ on:
           - auth
           - submit
           - mixed
+          - rate-limiting
+          - stress-lite
+          - soak-short
+          - benchmarks-all
+          - benchmarks-with-profiling
+          - moderation-ban-sync
+          - moderation-audit-logs
+          - moderation-permissions
+          - moderation-stress
+          - moderation-all
   schedule:
     # Run nightly at 2 AM UTC
     - cron: '0 2 * * *'
@@ -102,6 +112,13 @@ jobs:
         run: |
           echo "::add-mask::postgresql://clipper:clipper_password@localhost:5432/clipper_load_test?sslmode=disable"
           PGPASSWORD=clipper_password psql -h localhost -U clipper -d clipper_load_test -f backend/migrations/seed_load_test.sql
+          
+          # Seed moderation performance test data if running moderation tests
+          TEST_TYPE="${{ github.event.inputs.test_type || 'all' }}"
+          if [[ "$TEST_TYPE" == *"moderation"* ]] || [[ "$TEST_TYPE" == "all" ]]; then
+            echo "Seeding moderation performance test data..."
+            PGPASSWORD=clipper_password psql -h localhost -U clipper -d clipper_load_test -f backend/migrations/seed_moderation_perf_test.sql
+          fi
 
       - name: Build backend
         run: |
@@ -200,6 +217,86 @@ jobs:
                   backend/tests/load/scenarios/mixed_behavior.js \
                   | tee backend/tests/load/reports/output_mixed_${TIMESTAMP}.txt
                 ;;
+              rate-limiting)
+                # Generate test JWT token for rate limiting tests
+                AUTH_TOKEN=$(cd backend && go run cmd/api/main.go --generate-test-token 2>/dev/null || echo "")
+                if [ -z "$AUTH_TOKEN" ]; then
+                  echo "Warning: Could not generate test token. Rate limiting tests may be limited."
+                fi
+                k6 run --out json=backend/tests/load/reports/results_rate_limiting_${TIMESTAMP}.json \
+                  -e AUTH_TOKEN="$AUTH_TOKEN" \
+                  backend/tests/load/scenarios/rate_limiting.js \
+                  | tee backend/tests/load/reports/output_rate_limiting_${TIMESTAMP}.txt
+                ;;
+              stress-lite)
+                k6 run --out json=backend/tests/load/reports/results_stress_${TIMESTAMP}.json \
+                  -e DURATION_MULTIPLIER=0.25 \
+                  backend/tests/load/scenarios/stress.js \
+                  | tee backend/tests/load/reports/output_stress_${TIMESTAMP}.txt
+                ;;
+              soak-short)
+                k6 run --out json=backend/tests/load/reports/results_soak_${TIMESTAMP}.json \
+                  -e DURATION_HOURS=1 \
+                  backend/tests/load/scenarios/soak.js \
+                  | tee backend/tests/load/reports/output_soak_${TIMESTAMP}.txt
+                ;;
+              benchmarks-all)
+                echo "Running all endpoint benchmarks..."
+                cd backend/tests/load
+                ./run_all_benchmarks.sh ./reports/benchmarks_${TIMESTAMP}
+                ;;
+              benchmarks-with-profiling)
+                echo "Running benchmarks with query profiling..."
+                # Enable pg_stat_statements
+                PGPASSWORD=clipper_password psql -h localhost -U clipper -d clipper_load_test \
+                  -c "CREATE EXTENSION IF NOT EXISTS pg_stat_statements;" || true
+                # Run benchmarks with profiling
+                cd backend/tests/load
+                for script in scenarios/benchmarks/*.js; do
+                  endpoint=$(basename "$script" .js)
+                  echo "Profiling endpoint: $endpoint"
+                  ./profile_queries.sh "$endpoint" 60 || true
+                done
+                ;;
+              moderation-ban-sync)
+                echo "Running moderation ban sync performance test..."
+                k6 run --out json=backend/tests/load/reports/results_moderation_ban_sync_${TIMESTAMP}.json \
+                  backend/tests/load/scenarios/moderation_ban_sync.js \
+                  | tee backend/tests/load/reports/output_moderation_ban_sync_${TIMESTAMP}.txt
+                ;;
+              moderation-audit-logs)
+                echo "Running moderation audit log query performance test..."
+                k6 run --out json=backend/tests/load/reports/results_moderation_audit_logs_${TIMESTAMP}.json \
+                  backend/tests/load/scenarios/moderation_audit_logs.js \
+                  | tee backend/tests/load/reports/output_moderation_audit_logs_${TIMESTAMP}.txt
+                ;;
+              moderation-permissions)
+                echo "Running moderation permission check performance test..."
+                k6 run --out json=backend/tests/load/reports/results_moderation_permissions_${TIMESTAMP}.json \
+                  backend/tests/load/scenarios/moderation_permissions.js \
+                  | tee backend/tests/load/reports/output_moderation_permissions_${TIMESTAMP}.txt
+                ;;
+              moderation-stress)
+                echo "Running moderation stress test..."
+                k6 run --out json=backend/tests/load/reports/results_moderation_stress_${TIMESTAMP}.json \
+                  backend/tests/load/scenarios/moderation_stress.js \
+                  | tee backend/tests/load/reports/output_moderation_stress_${TIMESTAMP}.txt
+                ;;
+              moderation-all)
+                echo "Running all moderation performance tests..."
+                k6 run --out json=backend/tests/load/reports/results_moderation_ban_sync_${TIMESTAMP}.json \
+                  backend/tests/load/scenarios/moderation_ban_sync.js \
+                  | tee backend/tests/load/reports/output_moderation_ban_sync_${TIMESTAMP}.txt
+                k6 run --out json=backend/tests/load/reports/results_moderation_audit_logs_${TIMESTAMP}.json \
+                  backend/tests/load/scenarios/moderation_audit_logs.js \
+                  | tee backend/tests/load/reports/output_moderation_audit_logs_${TIMESTAMP}.txt
+                k6 run --out json=backend/tests/load/reports/results_moderation_permissions_${TIMESTAMP}.json \
+                  backend/tests/load/scenarios/moderation_permissions.js \
+                  | tee backend/tests/load/reports/output_moderation_permissions_${TIMESTAMP}.txt
+                k6 run --out json=backend/tests/load/reports/results_moderation_stress_${TIMESTAMP}.json \
+                  backend/tests/load/scenarios/moderation_stress.js \
+                  | tee backend/tests/load/reports/output_moderation_stress_${TIMESTAMP}.txt
+                ;;
             esac
           fi
 
@@ -240,6 +337,7 @@ jobs:
           path: |
             backend/tests/load/reports/*.md
             backend/tests/load/reports/*.txt
+            backend/tests/load/reports/*.html
           retention-days: 90
 
       - name: Upload load test metrics (JSON)
@@ -249,3 +347,13 @@ jobs:
           name: load-test-metrics-${{ github.run_number }}
           path: backend/tests/load/reports/*.json
           retention-days: 90
+
+      - name: Upload baselines
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: load-test-baselines-${{ github.run_number }}
+          path: backend/tests/load/baselines/**/*.json
+          # Baseline JSON files are versioned in git and kept permanently in the repository.
+          # This retention period applies only to the uploaded CI artifact, not to the baselines in git.
+          retention-days: 365

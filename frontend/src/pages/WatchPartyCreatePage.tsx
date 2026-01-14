@@ -7,13 +7,22 @@ import { createWatchParty } from '../lib/watch-party-api';
 import { useToast } from '../context/ToastContext';
 import { Users, Lock, Globe, UserPlus } from 'lucide-react';
 
+type WatchPartyVisibility = 'public' | 'friends' | 'invite';
+
+type WatchPartyFormData = {
+  title: string;
+  visibility: WatchPartyVisibility;
+  password: string;
+  max_participants: number;
+};
+
 export function WatchPartyCreatePage() {
   const navigate = useNavigate();
   const { showToast } = useToast();
-  
-  const [formData, setFormData] = useState({
+
+  const [formData, setFormData] = useState<WatchPartyFormData>({
     title: '',
-    visibility: 'public' as 'public' | 'friends' | 'invite',
+    visibility: 'public',
     password: '',
     max_participants: 100,
   });
@@ -21,7 +30,7 @@ export function WatchPartyCreatePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.title.trim()) {
       showToast('Please enter a party title', 'error');
       return;
@@ -35,7 +44,7 @@ export function WatchPartyCreatePage() {
         password: formData.password || undefined,
         max_participants: formData.max_participants,
       });
-      
+
       showToast('Watch party created!', 'success');
       navigate(`/watch-parties/${party.id}`);
     } catch (err) {
@@ -92,7 +101,7 @@ export function WatchPartyCreatePage() {
                     name="visibility"
                     value="public"
                     checked={formData.visibility === 'public'}
-                    onChange={(e) => setFormData({ ...formData, visibility: e.target.value as any })}
+                    onChange={(e) => setFormData({ ...formData, visibility: e.target.value as WatchPartyVisibility })}
                     className="mt-1"
                   />
                   <div className="flex-1">
@@ -110,7 +119,7 @@ export function WatchPartyCreatePage() {
                     name="visibility"
                     value="friends"
                     checked={formData.visibility === 'friends'}
-                    onChange={(e) => setFormData({ ...formData, visibility: e.target.value as any })}
+                    onChange={(e) => setFormData({ ...formData, visibility: e.target.value as WatchPartyVisibility })}
                     className="mt-1"
                   />
                   <div className="flex-1">
@@ -128,7 +137,7 @@ export function WatchPartyCreatePage() {
                     name="visibility"
                     value="invite"
                     checked={formData.visibility === 'invite'}
-                    onChange={(e) => setFormData({ ...formData, visibility: e.target.value as any })}
+                    onChange={(e) => setFormData({ ...formData, visibility: e.target.value as WatchPartyVisibility })}
                     className="mt-1"
                   />
                   <div className="flex-1">

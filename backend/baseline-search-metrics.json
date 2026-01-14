@@ -1,0 +1,38 @@
+{
+  "timestamp": "2025-12-30T14:34:59Z",
+  "configuration": {
+    "bm25_weight": 0.7,
+    "vector_weight": 0.3,
+    "title_boost": 3,
+    "creator_boost": 2,
+    "game_boost": 1,
+    "engagement_boost": 0.1,
+    "recency_boost": 0.5,
+    "description": "Current production configuration (baseline)"
+  },
+  "metrics": {
+    "mean_ndcg_at_5": 0.8299419701649223,
+    "mean_ndcg_at_10": 0.8299419701649223,
+    "mean_mrr": 0.8294117647058824,
+    "mean_precision_at_5": 0.4501960784313719,
+    "mean_precision_at_10": 0.22509803921568594,
+    "mean_precision_at_20": 0.11254901960784297,
+    "mean_recall_at_5": 0.8287581699346405,
+    "mean_recall_at_10": 0.8287581699346405,
+    "mean_recall_at_20": 0.8287581699346405,
+    "query_count": 510
+  },
+  "status": {
+    "mrr": "pass",
+    "ndcg_at_10": "pass",
+    "ndcg_at_5": "pass",
+    "precision_at_10": "critical",
+    "precision_at_20": "critical",
+    "precision_at_5": "critical",
+    "recall_at_10": "pass",
+    "recall_at_20": "warning",
+    "recall_at_5": "pass"
+  },
+  "query_count": 510,
+  "notes": "Baseline capture for hybrid search weight optimization"
+}

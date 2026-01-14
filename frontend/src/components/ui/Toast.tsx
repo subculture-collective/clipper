@@ -24,10 +24,17 @@ export interface ToastProps {
 }
 
 const variantClasses = {
-  success: 'bg-success-600 text-white dark:bg-success-700',
-  warning: 'bg-warning-600 text-white dark:bg-warning-700',
-  error: 'bg-error-600 text-white dark:bg-error-700',
-  info: 'bg-info-600 text-white dark:bg-info-700',
+  success: 'text-white',
+  warning: 'text-white',
+  error: 'text-white',
+  info: 'text-white',
+};
+
+const variantStyles = {
+  success: { backgroundColor: '#16a34a', borderColor: '#15803d' },
+  warning: { backgroundColor: '#d97706', borderColor: '#b45309' },
+  error: { backgroundColor: '#dc2626', borderColor: '#b91c1c' },
+  info: { backgroundColor: '#2563eb', borderColor: '#1d4ed8' },
 };
 
 const defaultIcons = {
@@ -74,11 +81,15 @@ export const Toast: React.FC<ToastProps> = ({
   return (
     <div
       className={cn(
-        'flex items-center gap-3 rounded-lg px-4 py-3 shadow-lg min-w-[300px] max-w-md',
-        'animate-in slide-in-from-top-5 fade-in',
+        'flex items-center gap-3 rounded-lg px-4 py-3 shadow-lg min-w-[300px] max-w-md border',
+        'transition-all duration-200',
         variantClasses[variant]
       )}
       role="alert"
+      style={{
+        ...variantStyles[variant],
+        opacity: 1,
+      }}
     >
       <div className="flex-shrink-0">
         {defaultIcons[variant]}

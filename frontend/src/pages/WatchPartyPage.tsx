@@ -7,7 +7,7 @@ import { useWatchPartyWebSocket } from '../hooks/useWatchPartyWebSocket';
 import { getWatchParty, getWatchPartyParticipants, leaveWatchParty, endWatchParty, kickParticipant } from '../lib/watch-party-api';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../context/ToastContext';
-import type { WatchParty, WatchPartyMessage, WatchPartyReaction, ReactionAnimation } from '../types/watchParty';
+import type { WatchParty, WatchPartyMessage, ReactionAnimation, WatchPartyParticipant } from '../types/watchParty';
 import { Users, Settings, LogOut, StopCircle, UserMinus } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 
@@ -16,14 +16,14 @@ export function WatchPartyPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { showToast } = useToast();
-  
+
   const [party, setParty] = useState<WatchParty | null>(null);
   const [messages, setMessages] = useState<WatchPartyMessage[]>([]);
   const [reactions, setReactions] = useState<ReactionAnimation[]>([]);
-  const [participants, setParticipants] = useState<any[]>([]);
+  const [participants, setParticipants] = useState<WatchPartyParticipant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // WebSocket connection
   const {
     sendChatMessage,
@@ -42,14 +42,14 @@ export function WatchPartyPage() {
           current_position_seconds: event.position,
         } : null);
       }
-      
+
       // Handle participant events
       if (event.type === 'participant-joined' && event.participant) {
         setParticipants((prev) => {
           // Check if participant already exists
           const exists = prev.some(p => p.user_id === event.participant?.user_id);
           if (exists) return prev;
-          
+
           // Add new participant
           return [...prev, {
             id: event.participant.user_id || '',
@@ -67,7 +67,7 @@ export function WatchPartyPage() {
           }];
         });
       }
-      
+
       if (event.type === 'participant-left' && event.user_id) {
         setParticipants((prev) => prev.filter(p => p.user_id !== event.user_id));
       }
@@ -85,7 +85,7 @@ export function WatchPartyPage() {
         timestamp: Date.now(),
       };
       setReactions((prev) => [...prev, animation]);
-      
+
       // Remove animation after 3 seconds
       setTimeout(() => {
         setReactions((prev) => prev.filter((r) => r.id !== animation.id));
@@ -126,7 +126,7 @@ export function WatchPartyPage() {
 
   const handleLeaveParty = async () => {
     if (!id) return;
-    
+
     try {
       await leaveWatchParty(id);
       showToast('Left watch party', 'success');
@@ -139,11 +139,11 @@ export function WatchPartyPage() {
 
   const handleEndParty = async () => {
     if (!id || !party || party.host_user_id !== user?.id) return;
-    
+
     if (!confirm('Are you sure you want to end this watch party?')) {
       return;
     }
-    
+
     try {
       await endWatchParty(id);
       showToast('Watch party ended', 'success');
@@ -156,11 +156,11 @@ export function WatchPartyPage() {
 
   const handleKickParticipant = async (userId: string) => {
     if (!id || !party || party.host_user_id !== user?.id) return;
-    
+
     if (!confirm('Are you sure you want to kick this participant?')) {
       return;
     }
-    
+
     try {
       await kickParticipant(id, userId);
       showToast('Participant kicked', 'success');
@@ -244,7 +244,7 @@ export function WatchPartyPage() {
                 </div>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-2">
               {isHost && (
                 <>
@@ -291,11 +291,11 @@ export function WatchPartyPage() {
                     <p className="text-xs mt-2">Clip ID: {party.current_clip_id}</p>
                   )}
                 </div>
-                
+
                 {/* Reaction overlay */}
                 <ReactionOverlay reactions={reactions} />
               </div>
-              
+
               {/* Reaction buttons */}
               <div className="mt-4 flex gap-2 flex-wrap">
                 {['👍', '😂', '❤️', '🔥', '👏', '😮'].map((emoji) => (
