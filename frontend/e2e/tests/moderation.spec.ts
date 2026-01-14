@@ -510,17 +510,24 @@ test.describe('Moderation E2E', () => {
       // Search for user
       const searchInput = page.locator('#user-search');
       await searchInput.fill('newmoderator');
+      
+      // Wait for suggestions to appear
+      await page.waitForTimeout(500); // Give time for debounce and API call
 
-      // Select user from suggestions or fill directly
-      const userOption = page.getByText('newmoderator').first();
-      if (await userOption.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await userOption.click();
-      }
+      // Select user from suggestions
+      const userSuggestionsList = page.locator('#user-suggestions');
+      await expect(userSuggestionsList).toBeVisible({ timeout: 5000 });
+      
+      const userOption = page.locator('#user-suggestions button:has-text("newmoderator")').first();
+      await userOption.click();
+      
+      // Wait for user to be selected
+      await page.waitForTimeout(300);
 
-      // Submit form
-      const submitButton = page
-        .getByRole('button', { name: /add|create|submit/i })
-        .filter({ hasNotText: /cancel/i });
+      // Submit form - find the button within the modal
+      const addModal = page.locator('[role="dialog"]').first();
+      const submitButton = addModal.locator('button:has-text("Add Moderator")').last();
+      await expect(submitButton).toBeEnabled({ timeout: 5000 });
       await submitButton.click();
 
       // Wait for success message
