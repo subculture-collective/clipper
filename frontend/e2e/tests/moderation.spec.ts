@@ -140,7 +140,7 @@ async function setupModerationMocks(page: Page) {
       });
     }
 
-    // Moderator management endpoints
+    // Moderator management endpoints (use /moderation/moderators matching backend API)
     if (pathname === '/moderation/moderators' && method === 'GET') {
       if (!currentUser || currentUser.role !== 'admin') {
         return respond(route, 403, { error: 'Forbidden: Admin access required' });
