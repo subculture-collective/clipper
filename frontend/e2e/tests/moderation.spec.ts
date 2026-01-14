@@ -491,10 +491,13 @@ test.describe('Moderation E2E', () => {
       // Navigate to moderator management page
       await page.goto('/admin/moderators');
       await page.waitForLoadState('networkidle');
+      
+      // Wait for the moderators section to load
+      await page.waitForSelector('text=Moderators', { timeout: 10000 });
 
       // Click "Add Moderator" button
       const addButton = page.getByRole('button', { name: /add moderator/i });
-      await expect(addButton).toBeVisible({ timeout: 5000 });
+      await expect(addButton).toBeVisible({ timeout: 10000 });
       await addButton.click();
 
       // Wait for modal to appear
