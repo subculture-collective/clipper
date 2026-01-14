@@ -116,13 +116,37 @@ async function setupModerationMocks(page: Page) {
       return respond(route, 200, { success: true });
     }
 
-    // Moderator management endpoints
-    if (pathname === '/admin/moderators' && method === 'GET') {
+    // User autocomplete endpoint
+    if (pathname === '/users/autocomplete' && method === 'GET') {
+      const query = url.searchParams.get('q') || '';
+      if (!query) {
+        return respond(route, 200, { success: true, data: [] });
+      }
+
+      const matchingUsers = Array.from(users.values())
+        .filter((u) => u.username.toLowerCase().includes(query.toLowerCase()))
+        .slice(0, 10)
+        .map((u) => ({
+          id: u.id,
+          username: u.username,
+          display_name: u.display_name || u.username,
+          avatar_url: '',
+          is_verified: false,
+        }));
+
+      return respond(route, 200, {
+        success: true,
+        data: matchingUsers,
+      });
+    }
+
+    // Moderator management endpoints (use /moderation/moderators matching backend API)
+    if (pathname === '/moderation/moderators' && method === 'GET') {
       if (!currentUser || currentUser.role !== 'admin') {
         return respond(route, 403, { error: 'Forbidden: Admin access required' });
       }
 
-      const channelId = url.searchParams.get('channel_id');
+      const channelId = url.searchParams.get('channelId');
       const moderatorsList = Array.from(moderators.values())
         .filter((m) => !channelId || m.channel_id === channelId)
         .map((m) => ({
@@ -137,36 +161,36 @@ async function setupModerationMocks(page: Page) {
       });
     }
 
-    if (pathname === '/admin/moderators' && method === 'POST') {
+    if (pathname === '/moderation/moderators' && method === 'POST') {
       if (!currentUser || currentUser.role !== 'admin') {
         return respond(route, 403, { error: 'Forbidden: Admin access required' });
       }
 
       const body = (request.postDataJSON?.() || {}) as {
-        user_id?: string;
-        channel_id?: string;
+        userId?: string;
+        channelId?: string;
         role?: 'moderator' | 'admin';
       };
 
-      if (!body.user_id || !body.channel_id) {
-        return respond(route, 400, { error: 'user_id and channel_id are required' });
+      if (!body.userId || !body.channelId) {
+        return respond(route, 400, { error: 'userId and channelId are required' });
       }
 
       const moderator: MockModerator = {
         id: `moderator-${moderatorCounter++}`,
-        user_id: body.user_id,
-        channel_id: body.channel_id,
+        user_id: body.userId,
+        channel_id: body.channelId,
         role: body.role || 'moderator',
         permissions: ['manage_bans', 'view_audit_logs'],
         created_at: new Date().toISOString(),
         created_by: currentUser.id,
-        user: users.get(body.user_id),
+        user: users.get(body.userId),
       };
 
       moderators.set(moderator.id, moderator);
 
       // Update user role
-      const user = users.get(body.user_id);
+      const user = users.get(body.userId);
       if (user) {
         user.role = body.role || 'moderator';
         users.set(user.id, user);
@@ -174,8 +198,8 @@ async function setupModerationMocks(page: Page) {
 
       // Create audit log
       createAuditLog('create_moderator', 'moderator', moderator.id, currentUser.id, {
-        user_id: body.user_id,
-        channel_id: body.channel_id,
+        user_id: body.userId,
+        channel_id: body.channelId,
         role: moderator.role,
       });
 
@@ -186,7 +210,7 @@ async function setupModerationMocks(page: Page) {
       });
     }
 
-    const removeModerator = pathname.match(/^\/admin\/moderators\/([^/]+)$/);
+    const removeModerator = pathname.match(/^\/moderation\/moderators\/([^/]+)$/);
     if (removeModerator && method === 'DELETE') {
       if (!currentUser || currentUser.role !== 'admin') {
         return respond(route, 403, { error: 'Forbidden: Admin access required' });
@@ -467,10 +491,13 @@ test.describe('Moderation E2E', () => {
       // Navigate to moderator management page
       await page.goto('/admin/moderators');
       await page.waitForLoadState('networkidle');
+      
+      // Wait for the moderators section to load
+      await page.waitForSelector('text=Moderators', { timeout: 10000 });
 
-      // Click "Add Moderator" button
-      const addButton = page.getByRole('button', { name: /add moderator/i });
-      await expect(addButton).toBeVisible({ timeout: 5000 });
+      // Click "Add Moderator" button - wait for it to be ready
+      const addButton = page.locator('button:has-text("Add Moderator")');
+      await expect(addButton).toBeVisible({ timeout: 10000 });
       await addButton.click();
 
       // Wait for modal to appear
@@ -478,19 +505,20 @@ test.describe('Moderation E2E', () => {
       await expect(modal.first()).toBeVisible({ timeout: 5000 });
 
       // Search for user
-      const searchInput = page.getByPlaceholder(/search.*user/i).or(page.getByLabel(/user/i));
+      const searchInput = page.locator('#user-search');
       await searchInput.fill('newmoderator');
 
-      // Select user from suggestions or fill directly
-      const userOption = page.getByText('newmoderator').first();
-      if (await userOption.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await userOption.click();
-      }
+      // Wait for suggestions to appear by checking the suggestions list becomes visible
+      const userSuggestionsList = page.locator('#user-suggestions');
+      await expect(userSuggestionsList).toBeVisible({ timeout: 5000 });
+      
+      const userOption = page.locator('#user-suggestions button:has-text("newmoderator")').first();
+      await userOption.click();
 
-      // Submit form
-      const submitButton = page
-        .getByRole('button', { name: /add|create|submit/i })
-        .filter({ hasNotText: /cancel/i });
+      // Submit form - find the button within the modal and wait for it to be enabled
+      const addModal = page.locator('[role="dialog"]').first();
+      const submitButton = addModal.locator('button:has-text("Add Moderator")').last();
+      await expect(submitButton).toBeEnabled({ timeout: 5000 });
       await submitButton.click();
 
       // Wait for success message
