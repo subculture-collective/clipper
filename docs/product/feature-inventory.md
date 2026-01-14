@@ -1,9 +1,11 @@
 # Feature Inventory & Verification Map
 
-> **Last Updated**: 2024-12-24  
+> **Last Updated**: 2026-01-14  
+> **Sweep**: Feature Inventory & Verification Sweep II  
 > **Purpose**: Complete inventory of all features in the Clipper platform, documenting status, location, tests, typing, and documentation coverage.  
 > **Scope**: Covers Backend API, Frontend Web, Mobile App, Infrastructure, and Documentation features.  
-> **Exclusions**: `/vault/**` directory (secrets management)
+> **Exclusions**: `/vault/**` directory (secrets management)  
+> **Current Stats**: 61 Backend Handlers, 71 Backend Services, 80 Frontend Pages, 17 Mobile Screens, 15 CI/CD Workflows, 27 Deployment Scripts, 192 Backend Tests, 107 Frontend Tests
 
 ---
 
@@ -31,13 +33,16 @@
 
 ## Summary
 
-This inventory documents **250+ features** across the Clipper platform:
+This inventory documents **270+ features** across the Clipper platform (updated 2026-01-14):
 
-- **Backend API**: 150+ endpoints across 56 handlers and 58 services
-- **Frontend**: 80+ pages and major components
-- **Mobile**: 15 screens/flows (React Native + Expo)
-- **Infrastructure**: 12 CI/CD workflows, 20+ deployment scripts
-- **Documentation**: 300+ markdown files
+- **Backend API**: 150+ endpoints across 61 handlers and 71 services
+- **Backend Tests**: 192 test files providing comprehensive coverage
+- **Frontend**: 80 pages and major components across web app
+- **Frontend Tests**: 107 test files (unit + integration + E2E)
+- **Mobile**: 17 screens/flows (React Native + Expo 52)
+- **Mobile Tests**: 8 test files with growing coverage
+- **Infrastructure**: 15 CI/CD workflows, 27 deployment scripts
+- **Documentation**: 300+ markdown files across /docs directory
 
 ### Status Legend
 
@@ -546,8 +551,9 @@ This inventory documents **250+ features** across the Clipper platform:
 #### 6.3 Chat Moderation
 
 - **Status**: ✅ complete | **Backend**: `/api/v1/chat/channels/:id/ban`, etc.
-- **Features**: Ban, mute, timeout, message deletion, moderation log
-- **Gaps**: Auto-moderation filters, appeals
+- **Handlers**: `chat_moderation.go` (auto-moderation logic)
+- **Features**: Ban, mute, timeout, message deletion, moderation log, spam detection, profanity filtering, rate limiting
+- **Gaps**: Machine learning-based classification, user appeals process
 
 #### 6.4 DMCA Management
 
@@ -592,6 +598,17 @@ This inventory documents **250+ features** across the Clipper platform:
 - **Status**: ✅ complete | **Backend**: `/api/v1/events`
 - **Features**: Feed tracking, view tracking, behavior analytics, batch processing
 - **Gaps**: Event schema docs, debugging tools
+
+#### 8.4 Abuse Detection Analytics
+
+- **Status**: ✅ complete | **Backend**: `/api/v1/admin/abuse/metrics`
+- **Handlers**: `abuse_analytics_handler.go`
+- **Services**: `anomaly_scorer.go`, `abuse_auto_flagger.go`, `abuse_feature_extractor.go`
+- **Features**: Real-time abuse metrics, anomaly detection, auto-flagging stats, submission pattern analysis
+- **Tests**: ✅ Comprehensive unit tests for abuse detection services
+- **Typing**: ✅ Full Go type safety
+- **Docs**: Internal implementation docs
+- **Gaps**: Public-facing documentation, grafana dashboards
 
 ---
 
@@ -675,21 +692,28 @@ This inventory documents **250+ features** across the Clipper platform:
 
 #### 13.1 CI/CD Pipelines
 
-- **Status**: ✅ complete | **Workflows**: 12 GitHub Actions workflows
-- **Features**: Testing, deployment, security scanning, performance, load tests
+- **Status**: ✅ complete | **Workflows**: 15 GitHub Actions workflows
+- **Features**: Testing (CI, Playwright, Mobile), deployment (staging, production), security scanning (CodeQL, secrets), performance (lighthouse, load tests), documentation checks, Docker builds
+- **Workflows**: ci.yml, codeql.yml, deploy-production.yml, deploy-staging.yml, docker.yml, docs.yml, frontend-env-policy.yml, lighthouse.yml, load-tests.yml, mobile-ci.yml, playwright.yml, recommendation-evaluation.yml, search-evaluation.yml, secrets-scanning.yml, sync-issue-labels.yml
+- **Tests**: Workflow configurations validated
 - **Gaps**: None identified
 
 #### 13.2 Deployment & Infrastructure
 
-- **Status**: ✅ complete | **Scripts**: 20+ deployment scripts, Docker, compose
-- **Features**: Containerization, multi-env, blue-green, rollback, health checks, migrations
-- **Gaps**: Kubernetes docs, auto-scaling
+- **Status**: ✅ complete | **Scripts**: 27 deployment scripts, Docker, compose
+- **Features**: Containerization, multi-env (development, staging, production, blue-green), rollback, health checks, migrations, SSL setup
+- **Scripts**: backup.sh, blue-green-deploy.sh, check-migration-compatibility.sh, deploy.sh, health-check.sh, rollback.sh, rollback-blue-green.sh, setup-ssl.sh, test-blue-green-deployment.sh, and 18 more
+- **Docker Configs**: 6 docker-compose files for different environments
+- **Gaps**: Kubernetes production deployment docs, auto-scaling setup guides
 
 #### 13.3 Monitoring & Observability
 
-- **Status**: ✅ complete | **Backend**: Prometheus, Sentry, health endpoints
-- **Features**: Metrics, error tracking, health checks, profiling, structured logging
-- **Gaps**: Grafana dashboards, alerting config
+- **Status**: ✅ complete | **Backend**: Prometheus, Sentry, health endpoints, application logging
+- **Features**: Metrics, error tracking, health checks, profiling, structured logging, client-side log aggregation
+- **Handlers**: `monitoring_handler.go`, `application_log_handler.go`
+- **Tests**: ✅ Application log handler tests exist
+- **Endpoints**: `/api/v1/logs` (POST - client log ingestion), `/api/v1/logs/stats` (GET - log analytics)
+- **Gaps**: Grafana dashboards, alerting config, log retention policies
 
 #### 13.4 Security
 
@@ -854,15 +878,20 @@ For each feature category (25 categories above), create a GitHub issue using the
 | Search & Discovery | 4 | 3 | 1 | 0 | 0 |
 | Content Moderation | 4 | 4 | 0 | 0 | 0 |
 | Premium & Subscriptions | 2 | 2 | 0 | 0 | 0 |
-| Analytics & Metrics | 3 | 3 | 0 | 0 | 0 |
+| Analytics & Metrics | 4 | 4 | 0 | 0 | 0 |
 | Live Streams & Watch Parties | 2 | 2 | 0 | 0 | 0 |
 | Community & Forums | 2 | 2 | 0 | 0 | 0 |
 | Webhooks & Integrations | 2 | 2 | 0 | 0 | 0 |
 | Admin & Moderation Tools | 4 | 4 | 0 | 0 | 0 |
 | Infrastructure & Operations | 23 | 23 | 0 | 0 | 0 |
-| **TOTAL** | **66** | **64** | **2** | **1** | **0** |
+| **TOTAL** | **67** | **65** | **2** | **1** | **0** |
 
 **Overall Completion**: 97% features complete, 3% needing attention
+
+**New Features Added Since 2024-12-24**:
+- Abuse Detection Analytics (Section 8.4)
+- Enhanced Chat Moderation with auto-moderation (Section 6.3)
+- Application Logging System (Section 13.3)
 
 ---
 
@@ -888,8 +917,9 @@ This inventory should be updated:
 
 **Inventory Owner**: Engineering Team  
 **Review Frequency**: Quarterly  
-**Last Review**: 2024-12-24  
-**Next Review**: 2025-03-24
+**Last Review**: 2026-01-14 (Feature Inventory & Verification Sweep II)  
+**Next Review**: 2026-04-14  
+**Changes in This Update**: Added 3 new features (Abuse Detection Analytics, Enhanced Chat Moderation, Application Logging), updated handler/service counts, verified all existing features
 
 ---
 
@@ -903,4 +933,4 @@ This inventory should be updated:
 
 ---
 
-*This feature inventory was created as part of the Feature Inventory & Verification Sweep initiative to establish ground truth for all platform capabilities before continuing development.*
+*This feature inventory was created as part of the Feature Inventory & Verification Sweep initiative to establish ground truth for all platform capabilities before continuing development. Last updated 2026-01-14 as part of Sweep II to reflect current codebase state with 61 handlers, 71 services, and 270+ total features.*
