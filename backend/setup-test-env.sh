@@ -44,11 +44,32 @@ export TEST_DATABASE_USER="${TEST_DATABASE_USER:-clipper}"
 export TEST_DATABASE_PASSWORD="${TEST_DATABASE_PASSWORD:-clipper_password}"
 export TEST_DATABASE_NAME="${TEST_DATABASE_NAME:-clipper_test}"
 
+# Compose a full connection URL for tests that consume TEST_DATABASE_URL directly
+export TEST_DATABASE_URL="postgres://${TEST_DATABASE_USER}:${TEST_DATABASE_PASSWORD}@${TEST_DATABASE_HOST}:${TEST_DATABASE_PORT}/${TEST_DATABASE_NAME}?sslmode=disable"
+
 # Redis test configuration
 export TEST_REDIS_HOST="${TEST_REDIS_HOST:-localhost}"
 export TEST_REDIS_PORT="${TEST_REDIS_PORT:-6380}"
 
 echo -e "${GREEN}✓ Test database configured${NC}"
+
+# If previous test runs left migrations dirty, clean them up so migrations can proceed
+# This avoids failures like "Dirty database version X. Fix and force version." during test-setup
+DB_URL="postgresql://${TEST_DATABASE_USER}:${TEST_DATABASE_PASSWORD}@${TEST_DATABASE_HOST}:${TEST_DATABASE_PORT}/${TEST_DATABASE_NAME}?sslmode=disable"
+# Try to detect schema_migrations state; tolerate failures if table doesn't exist yet
+if command -v psql >/dev/null 2>&1; then
+  DIRTY_STATE=$(PGPASSWORD=${TEST_DATABASE_PASSWORD} psql "${DB_URL}" -t -c "SELECT dirty FROM schema_migrations" 2>/dev/null | tr -d '[:space:]') || true
+  CURRENT_VERSION=$(PGPASSWORD=${TEST_DATABASE_PASSWORD} psql "${DB_URL}" -t -c "SELECT version FROM schema_migrations" 2>/dev/null | tr -d '[:space:]') || true
+  if [ "${DIRTY_STATE}" = "t" ] || [ "${DIRTY_STATE}" = "true" ]; then
+    echo -e "${YELLOW}Detected dirty migration state (version=${CURRENT_VERSION}). Forcing to version ${CURRENT_VERSION}...${NC}"
+    if command -v migrate >/dev/null 2>&1; then
+      migrate -path migrations -database "${DB_URL}" force "${CURRENT_VERSION}" || true
+      echo -e "${GREEN}✓ Forced migration version to ${CURRENT_VERSION}${NC}"
+    else
+      echo -e "${YELLOW}Warning: 'migrate' CLI not found; cannot force version automatically.${NC}"
+    fi
+  fi
+fi
 
 # JWT secrets for testing
 if [ -z "$JWT_SECRET" ]; then
@@ -92,6 +113,7 @@ TEST_DATABASE_PORT=${TEST_DATABASE_PORT}
 TEST_DATABASE_USER=${TEST_DATABASE_USER}
 TEST_DATABASE_PASSWORD=${TEST_DATABASE_PASSWORD}
 TEST_DATABASE_NAME=${TEST_DATABASE_NAME}
+TEST_DATABASE_URL=${TEST_DATABASE_URL}
 
 # Redis Configuration
 TEST_REDIS_HOST=${TEST_REDIS_HOST}

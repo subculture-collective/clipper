@@ -559,7 +559,7 @@ func (r *DiscoveryListRepository) GetUserFollowedLists(ctx context.Context, user
 		LEFT JOIN discovery_list_clips dlc ON dl.id = dlc.list_id
 		LEFT JOIN discovery_list_follows dlf2 ON dl.id = dlf2.list_id
 		WHERE dlf.user_id = $1 AND dl.is_active = true
-		GROUP BY dl.id
+		GROUP BY dl.id, dlf.followed_at
 		ORDER BY dlf.followed_at DESC
 		LIMIT $2 OFFSET $3
 	`

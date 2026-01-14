@@ -13,7 +13,7 @@ import { seedTestData, cleanupTestData, testUsers, testClips, testChannels } fro
 export async function globalSetup() {
   console.log('\n🎭 E2E Test Suite - Global Setup Starting\n');
 
-  const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173';
+  const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:5173';
   const apiUrl = baseUrl.replace('3000', '8080').replace('5173', '8080');
 
   try {
@@ -54,7 +54,7 @@ export async function globalSetup() {
 export async function globalTeardown() {
   console.log('\n🎭 E2E Test Suite - Global Teardown Starting\n');
 
-  const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173';
+  const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:5173';
 
   try {
     await cleanupTestData(baseUrl);
@@ -75,7 +75,7 @@ export const test = baseTest.extend<{
   testChannels: typeof testChannels;
 }>({
   seedData: async ({ page }, provide) => {
-    const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173';
+    const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:5173';
 
     // Seed test data before each test
     await seedTestData(page, baseUrl);

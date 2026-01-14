@@ -31,29 +31,29 @@ type TwitchModerationService interface {
 
 // ModerationHandler handles moderation operations
 type ModerationHandler struct {
-	moderationEventService *services.ModerationEventService
-	moderationService      *services.ModerationService
-	abuseDetector          *services.SubmissionAbuseDetector
-	toxicityClassifier     *services.ToxicityClassifier
-	twitchBanSyncService   *services.TwitchBanSyncService
+	moderationEventService  *services.ModerationEventService
+	moderationService       *services.ModerationService
+	abuseDetector           *services.SubmissionAbuseDetector
+	toxicityClassifier      *services.ToxicityClassifier
+	twitchBanSyncService    *services.TwitchBanSyncService
 	twitchModerationService TwitchModerationService
-	communityRepo          *repository.CommunityRepository
-	auditLogRepo           *repository.AuditLogRepository
-	db                     *pgxpool.Pool
+	communityRepo           *repository.CommunityRepository
+	auditLogRepo            *repository.AuditLogRepository
+	db                      *pgxpool.Pool
 }
 
 // NewModerationHandler creates a new ModerationHandler
 func NewModerationHandler(moderationEventService *services.ModerationEventService, moderationService *services.ModerationService, abuseDetector *services.SubmissionAbuseDetector, toxicityClassifier *services.ToxicityClassifier, twitchBanSyncService *services.TwitchBanSyncService, communityRepo *repository.CommunityRepository, auditLogRepo *repository.AuditLogRepository, db *pgxpool.Pool) *ModerationHandler {
 	return &ModerationHandler{
-		moderationEventService: moderationEventService,
-		moderationService:      moderationService,
-		abuseDetector:          abuseDetector,
-		toxicityClassifier:     toxicityClassifier,
-		twitchBanSyncService:   twitchBanSyncService,
+		moderationEventService:  moderationEventService,
+		moderationService:       moderationService,
+		abuseDetector:           abuseDetector,
+		toxicityClassifier:      toxicityClassifier,
+		twitchBanSyncService:    twitchBanSyncService,
 		twitchModerationService: nil, // Will be set separately if configured
-		communityRepo:          communityRepo,
-		auditLogRepo:           auditLogRepo,
-		db:                     db,
+		communityRepo:           communityRepo,
+		auditLogRepo:            auditLogRepo,
+		db:                      db,
 	}
 }
 

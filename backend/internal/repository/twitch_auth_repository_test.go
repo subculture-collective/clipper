@@ -18,7 +18,7 @@ func setupTwitchAuthTestDB(t *testing.T) (*pgxpool.Pool, func()) {
 	// Build connection string from environment or defaults
 	connString := os.Getenv("TEST_DATABASE_URL")
 	if connString == "" {
-		connString = "postgres://clipper:clipper_password@localhost:5436/clipper_db?sslmode=disable"
+		connString = "postgres://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable"
 	}
 
 	pool, err := pgxpool.New(context.Background(), connString)
@@ -50,6 +50,7 @@ func insertTestUser(t *testing.T, pool *pgxpool.Pool, userID uuid.UUID) {
 	_, err := pool.Exec(ctx, `
 		INSERT INTO users (id, twitch_id, username, display_name, role, account_type)
 		VALUES ($1, $2, $3, $4, $5, $6)
+		ON CONFLICT (id) DO NOTHING
 	`, userID, fmt.Sprintf("twitch_%s", prefix), fmt.Sprintf("user_%s", prefix), fmt.Sprintf("Test User %s", prefix), "user", "member")
 	if err != nil {
 		t.Fatalf("Failed to insert test user: %v", err)

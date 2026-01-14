@@ -24,15 +24,15 @@ type User struct {
 	AccountType          string     `json:"account_type" db:"account_type"`
 	AccountTypeUpdatedAt *time.Time `json:"account_type_updated_at,omitempty" db:"account_type_updated_at"`
 	// Moderator metadata fields
-	ModeratorScope      string       `json:"moderator_scope,omitempty" db:"moderator_scope"`
-	ModerationChannels  []uuid.UUID  `json:"moderation_channels,omitempty" db:"moderation_channels"`
-	ModerationStartedAt *time.Time   `json:"moderation_started_at,omitempty" db:"moderation_started_at"`
+	ModeratorScope      string      `json:"moderator_scope,omitempty" db:"moderator_scope"`
+	ModerationChannels  []uuid.UUID `json:"moderation_channels,omitempty" db:"moderation_channels"`
+	ModerationStartedAt *time.Time  `json:"moderation_started_at,omitempty" db:"moderation_started_at"`
 	AccountStatus       string       `json:"account_status" db:"account_status"` // active, unclaimed, pending
-	IsBanned             bool       `json:"is_banned" db:"is_banned"`
-	DeviceToken          *string    `json:"device_token,omitempty" db:"device_token"`
-	DevicePlatform       *string    `json:"device_platform,omitempty" db:"device_platform"`
-	FollowerCount        int        `json:"follower_count" db:"follower_count"`
-	FollowingCount       int        `json:"following_count" db:"following_count"`
+	IsBanned            bool        `json:"is_banned" db:"is_banned"`
+	DeviceToken         *string     `json:"device_token,omitempty" db:"device_token"`
+	DevicePlatform      *string     `json:"device_platform,omitempty" db:"device_platform"`
+	FollowerCount       int         `json:"follower_count" db:"follower_count"`
+	FollowingCount      int         `json:"following_count" db:"following_count"`
 	// DMCA-related fields
 	DMCAStrikesCount   int        `json:"dmca_strikes_count" db:"dmca_strikes_count"`
 	DMCASuspendedUntil *time.Time `json:"dmca_suspended_until,omitempty" db:"dmca_suspended_until"`

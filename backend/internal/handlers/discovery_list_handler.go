@@ -16,12 +16,12 @@ import (
 
 // DiscoveryListHandler handles discovery list-related requests
 type DiscoveryListHandler struct {
-	repo          *repository.DiscoveryListRepository
+	repo          repository.DiscoveryListRepositoryInterface
 	analyticsRepo *repository.AnalyticsRepository
 }
 
 // NewDiscoveryListHandler creates a new handler instance
-func NewDiscoveryListHandler(repo *repository.DiscoveryListRepository, analyticsRepo *repository.AnalyticsRepository) *DiscoveryListHandler {
+func NewDiscoveryListHandler(repo repository.DiscoveryListRepositoryInterface, analyticsRepo *repository.AnalyticsRepository) *DiscoveryListHandler {
 	return &DiscoveryListHandler{
 		repo:          repo,
 		analyticsRepo: analyticsRepo,

@@ -111,7 +111,7 @@ func (h *UserHandler) SearchUsersAutocomplete(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Validate query length to prevent performance issues
 	if len(query) > 50 {
 		c.JSON(http.StatusBadRequest, gin.H{

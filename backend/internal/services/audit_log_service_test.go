@@ -696,4 +696,3 @@ func TestAuditLogService_GetAuditLogByID_NotFound(t *testing.T) {
 
 	mockRepo.AssertExpectations(t)
 }
-

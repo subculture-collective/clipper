@@ -148,37 +148,37 @@ func TestChannelRateLimiter_ConcurrentAccess(t *testing.T) {
 func TestChannelRateLimiter_CleanupInactive(t *testing.T) {
 	crl := NewChannelRateLimiter(100)
 	ctx := context.Background()
-	
+
 	// Create limiters for multiple channels
 	channel1 := "channel1"
 	channel2 := "channel2"
 	channel3 := "channel3"
-	
+
 	// Access all channels (each uses 1 token)
 	_ = crl.Wait(ctx, channel1)
 	_ = crl.Wait(ctx, channel2)
 	_ = crl.Wait(ctx, channel3)
-	
+
 	// Wait a bit, then access only channel1 (uses another token)
 	time.Sleep(100 * time.Millisecond)
 	_ = crl.Wait(ctx, channel1)
-	
+
 	// Cleanup channels inactive for more than 50ms
 	// channel1 was just accessed, so should remain
 	// channel2 and channel3 should be removed
 	removed := crl.CleanupInactive(50 * time.Millisecond)
-	
+
 	if removed != 2 {
 		t.Errorf("expected 2 limiters removed, got %d", removed)
 	}
-	
+
 	// Verify channel1 still exists and has used 2 tokens
 	// Note: getLimiter is called in Available which updates lastAccessed,
 	// so we check that it has 98 tokens (100 - 2 from Wait calls)
 	if available := crl.Available(channel1); available != 98 {
 		t.Errorf("expected channel1 to have 98 tokens (used 2), got %d", available)
 	}
-	
+
 	// channel2 and channel3 should have been recreated with full tokens
 	if available := crl.Available(channel2); available != 100 {
 		t.Errorf("expected channel2 to be recreated with 100 tokens, got %d", available)

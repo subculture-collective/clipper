@@ -26,6 +26,7 @@ func TestDiscoveryListRepository_CreateList(t *testing.T) {
 
 	// Create a test user for created_by
 	userID := uuid.New()
+	insertTestUser(t, pool, userID)
 
 	// Test creating a discovery list
 	list, err := repo.CreateList(ctx, "Test List", "test-list", "A test discovery list", false, userID)
@@ -69,6 +70,7 @@ func TestDiscoveryListRepository_GetDiscoveryList(t *testing.T) {
 	ctx := context.Background()
 
 	userID := uuid.New()
+	insertTestUser(t, pool, userID)
 
 	// Create a test list
 	list, err := repo.CreateList(ctx, "Test List", "test-list", "Test description", false, userID)
@@ -116,6 +118,7 @@ func TestDiscoveryListRepository_UpdateList(t *testing.T) {
 	ctx := context.Background()
 
 	userID := uuid.New()
+	insertTestUser(t, pool, userID)
 
 	// Create a test list
 	list, err := repo.CreateList(ctx, "Test List", "test-list", "Test description", false, userID)
@@ -169,6 +172,7 @@ func TestDiscoveryListRepository_DeleteList(t *testing.T) {
 	ctx := context.Background()
 
 	userID := uuid.New()
+	insertTestUser(t, pool, userID)
 
 	// Create a test list
 	list, err := repo.CreateList(ctx, "Test List", "test-list", "Test description", false, userID)
@@ -209,6 +213,7 @@ func TestDiscoveryListRepository_AddAndRemoveClip(t *testing.T) {
 	ctx := context.Background()
 
 	userID := uuid.New()
+	insertTestUser(t, pool, userID)
 
 	// Create a test list
 	list, err := repo.CreateList(ctx, "Test List", "test-list", "Test description", false, userID)
@@ -285,6 +290,7 @@ func TestDiscoveryListRepository_GetListClips(t *testing.T) {
 	ctx := context.Background()
 
 	userID := uuid.New()
+	insertTestUser(t, pool, userID)
 
 	// Create a test list
 	list, err := repo.CreateList(ctx, "Test List", "test-list", "Test description", false, userID)
@@ -357,7 +363,9 @@ func TestDiscoveryListRepository_FollowAndUnfollow(t *testing.T) {
 	ctx := context.Background()
 
 	userID := uuid.New()
+	insertTestUser(t, pool, userID)
 	followerID := uuid.New()
+	insertTestUser(t, pool, followerID)
 
 	// Create a test list
 	list, err := repo.CreateList(ctx, "Test List", "test-list", "Test description", false, userID)
@@ -421,7 +429,9 @@ func TestDiscoveryListRepository_BookmarkAndUnbookmark(t *testing.T) {
 	ctx := context.Background()
 
 	userID := uuid.New()
+	insertTestUser(t, pool, userID)
 	bookmarkerID := uuid.New()
+	insertTestUser(t, pool, bookmarkerID)
 
 	// Create a test list
 	list, err := repo.CreateList(ctx, "Test List", "test-list", "Test description", false, userID)
@@ -486,6 +496,7 @@ func TestDiscoveryListRepository_ReorderClips(t *testing.T) {
 	ctx := context.Background()
 
 	userID := uuid.New()
+	insertTestUser(t, pool, userID)
 
 	// Create a test list
 	list, err := repo.CreateList(ctx, "Test List", "test-list", "Test description", false, userID)
@@ -559,6 +570,7 @@ func TestDiscoveryListRepository_ListDiscoveryLists(t *testing.T) {
 	ctx := context.Background()
 
 	userID := uuid.New()
+	insertTestUser(t, pool, userID)
 
 	// Create test lists
 	_, err := repo.CreateList(ctx, "Featured List 1", "featured-1", "Featured", true, userID)
@@ -616,7 +628,9 @@ func TestDiscoveryListRepository_GetUserFollowedLists(t *testing.T) {
 	ctx := context.Background()
 
 	userID := uuid.New()
+	insertTestUser(t, pool, userID)
 	followerID := uuid.New()
+	insertTestUser(t, pool, followerID)
 
 	// Create test lists
 	list1, err := repo.CreateList(ctx, "List 1", "list-1", "Description", false, userID)
