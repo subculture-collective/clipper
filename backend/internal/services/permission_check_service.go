@@ -104,8 +104,8 @@ func (s *PermissionCheckService) CanBan(ctx context.Context, actor *models.User,
 			"ALREADY_BANNED",
 			"user is already banned from this channel",
 			map[string]interface{}{
-				"channel_id":      channelID.String(),
-				"target_user_id":  targetUserID.String(),
+				"channel_id":     channelID.String(),
+				"target_user_id": targetUserID.String(),
 			},
 		)
 	}
@@ -264,21 +264,22 @@ func (s *PermissionCheckService) ValidateModeratorScope(ctx context.Context, act
 		}
 
 		// Cache the moderation channels for future checks
+		// Cache the moderation channels for future checks
 		s.cache.SetJSON(ctx, cacheKey, actor.ModerationChannels, TTLUserScope)
 
 		// Validate each requested channel is in the moderator's scope
 		unauthorized := s.findUnauthorizedChannels(channelIDs, actor.ModerationChannels)
 		if len(unauthorized) > 0 {
-			return NewPermissionDenied(
-				"SCOPE_VIOLATION",
-				"moderator does not have access to all specified channels",
-				map[string]interface{}{
-					"user_id":               actor.ID.String(),
-					"unauthorized_channels": unauthorized,
-					"requested_channels":    channelIDs,
-					"authorized_channels":   actor.ModerationChannels,
-				},
-			)
+				return NewPermissionDenied(
+					"SCOPE_VIOLATION",
+					"moderator does not have access to all specified channels",
+					map[string]interface{}{
+						"user_id":               actor.ID.String(),
+						"unauthorized_channels": unauthorized,
+						"requested_channels":    channelIDs,
+						"authorized_channels":   actor.ModerationChannels,
+					},
+				)
 		}
 		return nil
 	}

@@ -379,7 +379,9 @@ func TestClipRepository_ListWithFilters_SubmittedByUserID(t *testing.T) {
 
 	// Create test users
 	user1ID := uuid.New()
+	insertTestUser(t, pool, user1ID)
 	user2ID := uuid.New()
+	insertTestUser(t, pool, user2ID)
 
 	// Helper function to create unique clip IDs
 	makeID := func(base string) string { return fmt.Sprintf("%s-%s", base, uuid.NewString()) }

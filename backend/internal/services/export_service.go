@@ -366,10 +366,10 @@ func (s *ExportService) sendExportCompletedNotifications(
 	// Log success if at least one notification was sent
 	if inAppNotificationCreated || emailSent {
 		logFields := map[string]interface{}{
-			"export_id":         req.ID.String(),
-			"user_id":           req.UserID.String(),
-			"in_app_created":    inAppNotificationCreated,
-			"email_sent":        emailSent,
+			"export_id":      req.ID.String(),
+			"user_id":        req.UserID.String(),
+			"in_app_created": inAppNotificationCreated,
+			"email_sent":     emailSent,
 		}
 		if emailSent && user.Email != nil {
 			logFields["email"] = *user.Email

@@ -763,20 +763,22 @@ func (s *AccountMergeService) createMergeAuditLog(ctx context.Context, tx pgx.Tx
 
 	query := `
 		INSERT INTO moderation_audit_logs (
-			id, action, entity_type, entity_id, moderator_id, metadata, created_at
+			id, action, entity_type, entity_id, moderator_id, actor_id, metadata, created_at
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, NOW()
+			$1, $2, $3, $4, $5, $6, $7, NOW()
 		)
 	`
 
-	// Note: moderator_id is set to toUserID because the user themselves initiated this merge
-	// by claiming their account. This represents a self-service action.
+	// Note: Both moderator_id and actor_id are set to toUserID for backward compatibility
+	// during the migration period. The user themselves initiated this merge by claiming
+	// their account. This represents a self-service action.
 	_, err = tx.Exec(ctx, query,
 		uuid.New(),
 		"account_merged",
 		"user",
 		toUserID,
-		toUserID, // User performed their own account merge
+		toUserID, // moderator_id (old column, kept for backward compatibility)
+		toUserID, // actor_id (new column)
 		metadataJSON,
 	)
 

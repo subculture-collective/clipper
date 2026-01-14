@@ -11,17 +11,17 @@ import (
 
 // TwitchBan represents a ban record in the database
 type TwitchBan struct {
-	ID             uuid.UUID  `db:"id"`
-	ChannelID      uuid.UUID  `db:"channel_id"`
-	BannedUserID   uuid.UUID  `db:"banned_user_id"`
-	Reason         *string    `db:"reason"`
-	BannedAt       time.Time  `db:"banned_at"`
-	ExpiresAt      *time.Time `db:"expires_at"`
-	SyncedFromTwitch bool     `db:"synced_from_twitch"`
-	TwitchBanID    *string    `db:"twitch_ban_id"`
-	LastSyncedAt   *time.Time `db:"last_synced_at"`
-	CreatedAt      time.Time  `db:"created_at"`
-	UpdatedAt      time.Time  `db:"updated_at"`
+	ID               uuid.UUID  `db:"id"`
+	ChannelID        uuid.UUID  `db:"channel_id"`
+	BannedUserID     uuid.UUID  `db:"banned_user_id"`
+	Reason           *string    `db:"reason"`
+	BannedAt         time.Time  `db:"banned_at"`
+	ExpiresAt        *time.Time `db:"expires_at"`
+	SyncedFromTwitch bool       `db:"synced_from_twitch"`
+	TwitchBanID      *string    `db:"twitch_ban_id"`
+	LastSyncedAt     *time.Time `db:"last_synced_at"`
+	CreatedAt        time.Time  `db:"created_at"`
+	UpdatedAt        time.Time  `db:"updated_at"`
 }
 
 // TwitchBanRepository handles Twitch ban data persistence

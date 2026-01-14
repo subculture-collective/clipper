@@ -93,8 +93,8 @@ func createTestClip(t *testing.T, db *database.DB, userID uuid.UUID) uuid.UUID {
 	query := `
 		INSERT INTO clips (
 			id, twitch_clip_id, twitch_clip_url, embed_url, title,
-			creator_name, broadcaster_name, submitted_by_user_id, submitted_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+			creator_name, broadcaster_name, submitted_by_user_id, submitted_at, created_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
 	`
 
 	_, err := db.Pool.Exec(context.Background(), query,
@@ -849,11 +849,12 @@ func TestAccountMergeService_SubscriptionTransfer(t *testing.T) {
 		unclaimedUser := createTestUser(t, db, fmt.Sprintf("unclaimed_%d", time.Now().UnixNano()), "unclaimed")
 		authUser := createTestUser(t, db, fmt.Sprintf("authenticated_%d", time.Now().UnixNano()), "active")
 
-		// Create active subscription for unclaimed user
+		// Create active subscription for unclaimed user with unique IDs
+		timestamp := time.Now().UnixNano()
 		_, err := db.Pool.Exec(ctx, `
-			INSERT INTO subscriptions (id, user_id, stripe_subscription_id, status, current_period_start, current_period_end)
-			VALUES ($1, $2, 'sub_test123', 'active', NOW(), NOW() + INTERVAL '1 month')
-		`, uuid.New(), unclaimedUser.ID)
+			INSERT INTO subscriptions (id, user_id, stripe_customer_id, stripe_subscription_id, status, current_period_start, current_period_end)
+			VALUES ($1, $2, $3, $4, 'active', NOW(), NOW() + INTERVAL '1 month')
+		`, uuid.New(), unclaimedUser.ID, fmt.Sprintf("cus_test_%d", timestamp), fmt.Sprintf("sub_test_%d", timestamp))
 		require.NoError(t, err)
 
 		// Perform merge
@@ -882,11 +883,12 @@ func TestAccountMergeService_SubscriptionTransfer(t *testing.T) {
 		unclaimedUser := createTestUser(t, db, fmt.Sprintf("unclaimed_%d", time.Now().UnixNano()), "unclaimed")
 		authUser := createTestUser(t, db, fmt.Sprintf("authenticated_%d", time.Now().UnixNano()), "active")
 
-		// Create canceled subscription for unclaimed user
+		// Create canceled subscription for unclaimed user with unique IDs
+		timestamp := time.Now().UnixNano()
 		_, err := db.Pool.Exec(ctx, `
-			INSERT INTO subscriptions (id, user_id, stripe_subscription_id, status, current_period_start, current_period_end)
-			VALUES ($1, $2, 'sub_test456', 'canceled', NOW(), NOW() + INTERVAL '1 month')
-		`, uuid.New(), unclaimedUser.ID)
+			INSERT INTO subscriptions (id, user_id, stripe_customer_id, stripe_subscription_id, status, current_period_start, current_period_end)
+			VALUES ($1, $2, $3, $4, 'canceled', NOW(), NOW() + INTERVAL '1 month')
+		`, uuid.New(), unclaimedUser.ID, fmt.Sprintf("cus_test_%d", timestamp), fmt.Sprintf("sub_test_%d", timestamp))
 		require.NoError(t, err)
 
 		// Perform merge

@@ -17,11 +17,11 @@ import (
 
 // Sentinel errors for Twitch moderation operations
 var (
-	ErrTwitchNotAuthenticated    = errors.New("user not authenticated with Twitch")
-	ErrTwitchScopeInsufficient   = errors.New("insufficient Twitch scopes for this action")
-	ErrTwitchNotBroadcaster      = errors.New("user is not the broadcaster for this channel")
-	ErrTwitchNotModerator        = errors.New("user is not a Twitch moderator for this channel")
-	ErrSiteModeratorsReadOnly    = errors.New("site moderators cannot perform Twitch ban actions - Twitch channel moderator status required")
+	ErrTwitchNotAuthenticated  = errors.New("user not authenticated with Twitch")
+	ErrTwitchScopeInsufficient = errors.New("insufficient Twitch scopes for this action")
+	ErrTwitchNotBroadcaster    = errors.New("user is not the broadcaster for this channel")
+	ErrTwitchNotModerator      = errors.New("user is not a Twitch moderator for this channel")
+	ErrSiteModeratorsReadOnly  = errors.New("site moderators cannot perform Twitch ban actions - Twitch channel moderator status required")
 )
 
 // TwitchAuthRepository defines the interface for Twitch auth operations
@@ -66,6 +66,7 @@ func NewTwitchModerationService(
 // - User must be either:
 //   - The broadcaster for the channel (twitchUserID == broadcasterID), OR
 //   - A Twitch-recognized moderator for that channel
+//
 // - Site moderators are blocked (they have Clipper permissions but not Twitch permissions)
 func (s *TwitchModerationService) ValidateTwitchBanScope(ctx context.Context, userID uuid.UUID, broadcasterID string) (*models.TwitchAuth, error) {
 	// Get user to check if they're a site moderator
@@ -121,7 +122,7 @@ func (s *TwitchModerationService) ValidateTwitchBanScope(ctx context.Context, us
 	// For now, we enforce that only the broadcaster can ban (stricter than Twitch)
 	// Future enhancement: Call Twitch API to verify moderator status
 	// GET https://api.twitch.tv/helix/moderation/moderators?broadcaster_id={broadcaster_id}&user_id={user_id}
-	
+
 	// For P0 implementation, only broadcasters can use Twitch ban actions
 	return nil, ErrTwitchNotBroadcaster
 }
@@ -134,17 +135,17 @@ func (s *TwitchModerationService) BanUserOnTwitch(ctx context.Context, moderator
 	action := "ban"
 	var statusCode int
 	var banErr error
-	
+
 	// Create a separate context for audit logging so it can complete even if the request context is cancelled
 	auditCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	
+
 	// Ensure metrics and audit logs are emitted regardless of outcome
 	defer func() {
 		s.recordBanMetrics(action, startTime, statusCode, banErr)
 		s.createBanAuditLog(auditCtx, action, moderatorUserID, broadcasterID, targetUserID, reason, duration, statusCode, banErr)
 	}()
-	
+
 	// Validate scope and get auth
 	auth, err := s.ValidateTwitchBanScope(ctx, moderatorUserID, broadcasterID)
 	if err != nil {
@@ -172,7 +173,7 @@ func (s *TwitchModerationService) BanUserOnTwitch(ctx context.Context, moderator
 		}
 		return fmt.Errorf("failed to ban user on Twitch: %w", err)
 	}
-	
+
 	statusCode = 200
 	return nil
 }
@@ -185,17 +186,17 @@ func (s *TwitchModerationService) UnbanUserOnTwitch(ctx context.Context, moderat
 	action := "unban"
 	var statusCode int
 	var unbanErr error
-	
+
 	// Create a separate context for audit logging so it can complete even if the request context is cancelled
 	auditCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	
+
 	// Ensure metrics and audit logs are emitted regardless of outcome
 	defer func() {
 		s.recordBanMetrics(action, startTime, statusCode, unbanErr)
 		s.createBanAuditLog(auditCtx, action, moderatorUserID, broadcasterID, targetUserID, nil, nil, statusCode, unbanErr)
 	}()
-	
+
 	// Validate scope and get auth
 	auth, err := s.ValidateTwitchBanScope(ctx, moderatorUserID, broadcasterID)
 	if err != nil {
@@ -216,7 +217,7 @@ func (s *TwitchModerationService) UnbanUserOnTwitch(ctx context.Context, moderat
 		}
 		return fmt.Errorf("failed to unban user on Twitch: %w", err)
 	}
-	
+
 	statusCode = 200
 	return nil
 }
@@ -238,17 +239,17 @@ func categorizeError(err error) string {
 	if errors.Is(err, ErrSiteModeratorsReadOnly) {
 		return "site_moderator_readonly"
 	}
-	
+
 	var rateLimitErr *twitch.RateLimitError
 	if errors.As(err, &rateLimitErr) {
 		return "rate_limited"
 	}
-	
+
 	var modErr *twitch.ModerationError
 	if errors.As(err, &modErr) {
 		return string(modErr.Code)
 	}
-	
+
 	var apiErr *twitch.APIError
 	if errors.As(err, &apiErr) {
 		if apiErr.StatusCode >= 500 {
@@ -258,7 +259,7 @@ func categorizeError(err error) string {
 			return "client_error"
 		}
 	}
-	
+
 	return "unknown"
 }
 
@@ -268,12 +269,12 @@ func extractStatusCode(err error) int {
 	if errors.As(err, &apiErr) {
 		return apiErr.StatusCode
 	}
-	
+
 	var modErr *twitch.ModerationError
 	if errors.As(err, &modErr) {
 		return modErr.StatusCode
 	}
-	
+
 	return 0
 }
 
@@ -281,15 +282,15 @@ func extractStatusCode(err error) int {
 func (s *TwitchModerationService) recordBanMetrics(action string, startTime time.Time, statusCode int, err error) {
 	// Record latency
 	metrics.TwitchBanActionDuration.WithLabelValues(action).Observe(time.Since(startTime).Seconds())
-	
+
 	// Determine status and error code for metrics
 	status := "success"
 	errorCode := "none"
-	
+
 	if err != nil {
 		status = "failed"
 		errorCode = categorizeError(err)
-		
+
 		// Track specific error types
 		if errors.Is(err, ErrTwitchScopeInsufficient) {
 			metrics.TwitchBanPermissionErrors.WithLabelValues(action, "insufficient_scope").Inc()
@@ -300,7 +301,7 @@ func (s *TwitchModerationService) recordBanMetrics(action string, startTime time
 		} else if errors.Is(err, ErrSiteModeratorsReadOnly) {
 			metrics.TwitchBanPermissionErrors.WithLabelValues(action, "site_moderator_readonly").Inc()
 		}
-		
+
 		// Track rate limits - check both RateLimitError and ModerationError types
 		var rateLimitErr *twitch.RateLimitError
 		if errors.As(err, &rateLimitErr) {
@@ -312,16 +313,16 @@ func (s *TwitchModerationService) recordBanMetrics(action string, startTime time
 				metrics.TwitchBanRateLimitHits.WithLabelValues(action).Inc()
 			}
 		}
-		
+
 		// Track server errors
 		if statusCode >= 500 {
 			metrics.TwitchBanServerErrors.WithLabelValues(action, strconv.Itoa(statusCode)).Inc()
 		}
 	}
-	
+
 	// Record total action count
 	metrics.TwitchBanActionTotal.WithLabelValues(action, status, errorCode).Inc()
-	
+
 	// Record HTTP status
 	if statusCode > 0 {
 		statusClass := fmt.Sprintf("%dxx", statusCode/100)
@@ -333,7 +334,7 @@ func (s *TwitchModerationService) recordBanMetrics(action string, startTime time
 func (s *TwitchModerationService) createBanAuditLog(ctx context.Context, action string, moderatorUserID uuid.UUID, broadcasterID string, targetUserID string, reason *string, duration *int, statusCode int, err error) {
 	// Build action name for audit log
 	auditAction := "twitch_" + action
-	
+
 	// Create audit metadata
 	auditMetadata := map[string]interface{}{
 		"action":         auditAction,
@@ -341,7 +342,7 @@ func (s *TwitchModerationService) createBanAuditLog(ctx context.Context, action 
 		"target_user_id": targetUserID,
 		"success":        err == nil,
 	}
-	
+
 	if reason != nil {
 		auditMetadata["reason"] = *reason
 	}
@@ -355,7 +356,7 @@ func (s *TwitchModerationService) createBanAuditLog(ctx context.Context, action 
 		auditMetadata["error"] = err.Error()
 		auditMetadata["error_code"] = categorizeError(err)
 	}
-	
+
 	// Create audit log entry
 	// IMPORTANT DESIGN NOTE: EntityID uses moderatorUserID instead of targetUserID
 	// This is due to a schema limitation - entity_id requires UUID but Twitch user IDs are strings.
@@ -369,7 +370,7 @@ func (s *TwitchModerationService) createBanAuditLog(ctx context.Context, action 
 		Reason:      reason,
 		Metadata:    auditMetadata,
 	}
-	
+
 	// Attempt to create audit log, but don't fail the operation if it fails
 	if auditErr := s.auditLogRepo.Create(ctx, auditLog); auditErr != nil {
 		// Log audit failures for visibility into the observability layer itself

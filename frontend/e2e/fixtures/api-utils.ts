@@ -9,7 +9,7 @@ import { Page, APIRequestContext, expect } from '@playwright/test';
  * Get the API URL from the test environment
  */
 export function getApiUrl(baseUrl?: string): string {
-  const url = baseUrl || process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173';
+  const url = baseUrl || process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:5173';
   return url
     .replace(/\/$/, '')
     .replace('5173', '8080')

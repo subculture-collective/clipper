@@ -713,7 +713,7 @@ func (c *Client) BanUser(ctx context.Context, broadcasterID string, moderatorID 
 		// Read response body for error details
 		body, readErr := io.ReadAll(io.LimitReader(resp.Body, 4096))
 		resp.Body.Close()
-		
+
 		if readErr != nil {
 			logger.Warn("Failed to read ban response body", map[string]interface{}{
 				"error":      readErr.Error(),
@@ -758,7 +758,7 @@ func (c *Client) BanUser(ctx context.Context, broadcasterID string, moderatorID 
 				time.Sleep(delay)
 				continue
 			}
-			
+
 			modErr := ParseModerationError(resp.StatusCode, string(body), requestID)
 			return nil, modErr
 		}
@@ -766,14 +766,14 @@ func (c *Client) BanUser(ctx context.Context, broadcasterID string, moderatorID 
 		// Handle 4xx errors - don't retry (excluding 429 which is handled above)
 		if resp.StatusCode >= 400 && resp.StatusCode < 500 {
 			modErr := ParseModerationError(resp.StatusCode, string(body), requestID)
-			
+
 			logger.Error("Ban request failed with client error", nil, map[string]interface{}{
 				"status_code": resp.StatusCode,
 				"error_code":  modErr.Code,
 				"message":     modErr.Message,
 				"request_id":  requestID,
 			})
-			
+
 			return nil, modErr
 		}
 
@@ -791,7 +791,7 @@ func (c *Client) BanUser(ctx context.Context, broadcasterID string, moderatorID 
 				time.Sleep(delay)
 				continue
 			}
-			
+
 			modErr := ParseModerationError(resp.StatusCode, string(body), requestID)
 			logger.Error("Ban request failed after retries", nil, map[string]interface{}{
 				"attempts":   maxRetries,
@@ -910,7 +910,7 @@ func (c *Client) UnbanUser(ctx context.Context, broadcasterID string, moderatorI
 		// Read response body for error details
 		body, readErr := io.ReadAll(io.LimitReader(resp.Body, 4096))
 		resp.Body.Close()
-		
+
 		if readErr != nil {
 			logger.Warn("Failed to read unban response body", map[string]interface{}{
 				"error":      readErr.Error(),
@@ -949,7 +949,7 @@ func (c *Client) UnbanUser(ctx context.Context, broadcasterID string, moderatorI
 				time.Sleep(delay)
 				continue
 			}
-			
+
 			modErr := ParseModerationError(resp.StatusCode, string(body), requestID)
 			return modErr
 		}
@@ -957,14 +957,14 @@ func (c *Client) UnbanUser(ctx context.Context, broadcasterID string, moderatorI
 		// Handle 4xx errors - don't retry (excluding 429 which is handled above)
 		if resp.StatusCode >= 400 && resp.StatusCode < 500 {
 			modErr := ParseModerationError(resp.StatusCode, string(body), requestID)
-			
+
 			logger.Error("Unban request failed with client error", nil, map[string]interface{}{
 				"status_code": resp.StatusCode,
 				"error_code":  modErr.Code,
 				"message":     modErr.Message,
 				"request_id":  requestID,
 			})
-			
+
 			return modErr
 		}
 
@@ -982,7 +982,7 @@ func (c *Client) UnbanUser(ctx context.Context, broadcasterID string, moderatorI
 				time.Sleep(delay)
 				continue
 			}
-			
+
 			modErr := ParseModerationError(resp.StatusCode, string(body), requestID)
 			logger.Error("Unban request failed after retries", nil, map[string]interface{}{
 				"attempts":   maxRetries,

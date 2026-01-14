@@ -208,7 +208,7 @@ func createTestCommunity(t *testing.T, tc *testutil.TestConfig, ownerID uuid.UUI
 	slug := "test-community-" + uuid.New().String()[:8]
 	community := &models.Community{
 		ID:        uuid.New(),
-		Name:      "Test Community",
+		Name:      "Test Community " + slug,
 		Slug:      slug,
 		OwnerID:   ownerID,
 		IsPublic:  true,

@@ -114,10 +114,10 @@ func TestUserModeratorFieldsJSONMarshaling(t *testing.T) {
 	channelID2 := uuid.New()
 
 	tests := []struct {
-		name     string
-		user     User
-		checkFn  func(*testing.T, []byte)
-		desc     string
+		name    string
+		user    User
+		checkFn func(*testing.T, []byte)
+		desc    string
 	}{
 		{
 			name: "site moderator JSON marshaling",
