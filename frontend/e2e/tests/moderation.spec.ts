@@ -494,9 +494,12 @@ test.describe('Moderation E2E', () => {
       
       // Wait for the moderators section to load
       await page.waitForSelector('text=Moderators', { timeout: 10000 });
+      
+      // Wait a bit for any animations or loading to complete
+      await page.waitForTimeout(1000);
 
-      // Click "Add Moderator" button
-      const addButton = page.getByRole('button', { name: /add moderator/i });
+      // Click "Add Moderator" button - try multiple selector strategies
+      const addButton = page.locator('button:has-text("Add Moderator")');
       await expect(addButton).toBeVisible({ timeout: 10000 });
       await addButton.click();
 
@@ -505,7 +508,7 @@ test.describe('Moderation E2E', () => {
       await expect(modal.first()).toBeVisible({ timeout: 5000 });
 
       // Search for user
-      const searchInput = page.getByPlaceholder(/search.*user/i).or(page.getByLabel(/user/i));
+      const searchInput = page.locator('#user-search');
       await searchInput.fill('newmoderator');
 
       // Select user from suggestions or fill directly
