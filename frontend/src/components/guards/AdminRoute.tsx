@@ -23,9 +23,8 @@ export function AdminRoute({ children }: AdminRouteProps) {
   if (!isModeratorOrAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-error-500 mb-4">403</h1>
-          <p className="text-xl text-muted-foreground">Access Denied</p>
+        <div className="text-center" data-testid="access-denied">
+          <h1 className="text-4xl font-bold text-error-500 mb-4">403 - Access Denied</h1>
           <p className="text-muted-foreground mt-2">
             You don't have permission to access this page.
           </p>

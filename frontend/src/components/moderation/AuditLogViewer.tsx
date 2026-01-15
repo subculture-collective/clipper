@@ -180,7 +180,6 @@ export function AuditLogViewer() {
         <div className="space-y-6">
             {/* Header */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <h2 className="text-2xl font-bold text-gray-900">Audit Logs</h2>
                 <div className="flex gap-2">
                     <button
                         onClick={loadLogs}

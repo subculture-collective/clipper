@@ -52,6 +52,8 @@ const AdminModerationQueuePage = lazy(() => import('./pages/admin/AdminModeratio
 const AdminVerificationQueuePage = lazy(() => import('./pages/admin/AdminVerificationQueuePage').then(m => ({ default: m.AdminVerificationQueuePage })));
 const AdminModerationAnalyticsPage = lazy(() => import('./pages/admin/AdminModerationAnalyticsPage'));
 const AdminModeratorsPage = lazy(() => import('./pages/admin/AdminModeratorsPage').then(m => ({ default: m.AdminModeratorsPage })));
+const AdminBansPage = lazy(() => import('./pages/admin/AdminBansPage').then(m => ({ default: m.AdminBansPage })));
+const AdminAuditLogsPage = lazy(() => import('./pages/admin/AdminAuditLogsPage').then(m => ({ default: m.AdminAuditLogsPage })));
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage').then(m => ({ default: m.NotificationsPage })));
 const NotificationPreferencesPage = lazy(() => import('./pages/NotificationPreferencesPage').then(m => ({ default: m.NotificationPreferencesPage })));
@@ -450,6 +452,22 @@ function App() {
                       element={
                         <AdminRoute>
                           <AdminModeratorsPage />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/bans"
+                      element={
+                        <AdminRoute>
+                          <AdminBansPage />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/audit-logs"
+                      element={
+                        <AdminRoute>
+                          <AdminAuditLogsPage />
                         </AdminRoute>
                       }
                     />

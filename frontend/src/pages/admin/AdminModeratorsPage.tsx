@@ -1,5 +1,6 @@
 import { Container } from '../../components';
 import { ModeratorManager } from '../../components/moderation';
+import { useAuth } from '../../context/AuthContext';
 
 /**
  * Admin page for managing site moderators
@@ -10,8 +11,13 @@ import { ModeratorManager } from '../../components/moderation';
  * - Remove moderators
  * - Update moderator permissions
  * - Send invitation emails to new moderators
+ * 
+ * Moderators can view but not manage:
+ * - Only admins can add/remove moderators
  */
 export function AdminModeratorsPage() {
+    const { isAdmin } = useAuth();
+    
     return (
         <Container className='py-4 xs:py-6 md:py-8'>
             <div className="mb-6">
@@ -25,7 +31,7 @@ export function AdminModeratorsPage() {
 
             <ModeratorManager 
                 channelId="site"
-                canManage={true}
+                canManage={isAdmin}
             />
         </Container>
     );
