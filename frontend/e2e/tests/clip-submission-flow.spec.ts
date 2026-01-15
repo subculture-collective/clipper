@@ -194,7 +194,15 @@ async function setupClipSubmissionApiMocks(page: Page): Promise<ClipSubmissionMo
       const userSubs = listByUser(userId);
 
       if (userSubs.length >= 10) {
-        return respond(route, 429, { error: 'Rate limit exceeded: 10 submissions per hour' });
+        // Return proper rate limit error structure matching RateLimitErrorResponse
+        const now = Math.floor(Date.now() / 1000);
+        const FORTY_SEVEN_MINUTES = 47 * 60; // 2820 seconds
+        return respond(route, 429, {
+          error: 'rate_limit_exceeded',
+          limit: 10,
+          window: 3600, // 1 hour in seconds
+          retry_after: now + FORTY_SEVEN_MINUTES
+        });
       }
 
       const duplicate = userSubs.find(s => s.twitch_clip_url === clip_url);
