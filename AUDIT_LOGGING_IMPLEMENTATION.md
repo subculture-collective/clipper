@@ -10,7 +10,7 @@ All acceptance criteria have been met through existing implementation.
 ## Acceptance Criteria Verification
 
 ### ✅ Audit log entries created for all actions
-**Implementation**: `backend/internal/services/twitch_moderation_service.go:333-386`
+**Implementation**: `backend/internal/services/twitch_moderation_service.go:334-386`
 
 The `createBanAuditLog` method is called via `defer` in both:
 - `BanUserOnTwitch` (line 146)
@@ -52,15 +52,15 @@ auditMetadata := map[string]interface{}{
 ```
 
 ### ✅ Entries searchable and filterable
-**Implementation**: `backend/internal/repository/audit_log_repository.go:82-214`
+**Implementation**: `backend/internal/repository/audit_log_repository.go:82-137`
 
 The `List` method supports filtering by:
-- Action type (line 96-100)
-- Moderator ID (line 90-94)
-- Entity ID/Target (line 108-112)
-- Channel ID (line 114-118)
-- Date range (line 120-130)
-- Search term in reason field (line 132-136)
+- Action type (lines 96-100)
+- Moderator ID (lines 90-94)
+- Entity ID/Target (lines 108-112)
+- Channel ID (lines 114-118)
+- Date range (lines 120-130)
+- Search term in reason field (lines 132-136)
 
 ### ✅ Logs accessible from audit log viewer
 **Implementation**: `backend/internal/handlers/audit_log_handler.go`
@@ -98,6 +98,10 @@ Audit logs are write-once, read-many.
 
 ### ✅ E2E test passing on all 3 browsers
 **Implementation**: `frontend/e2e/tests/twitch-ban-actions.spec.ts:795-854`
+
+The complete 'Audit Logging' test suite includes:
+1. Test for ban action audit log (lines 796-830)
+2. Test for unban action audit log (lines 832-853)
 
 Tests verify:
 1. Ban action creates audit log with correct action type (`twitch_ban_user`)
@@ -145,7 +149,7 @@ Table: `moderation_audit_logs`
 - `id` (UUID, primary key)
 - `action` (text) - e.g., "twitch_ban_user", "twitch_unban_user"
 - `entity_type` (text) - "twitch_user"
-- `entity_id` (UUID) - Moderator ID (schema limitation for Twitch string IDs)
+- `entity_id` (UUID) - **Schema limitation workaround**: Contains moderator ID instead of target user
 - `moderator_id` (UUID) - Actor performing the action
 - `actor_id` (UUID) - Same as moderator_id
 - `reason` (text, nullable)
@@ -155,7 +159,10 @@ Table: `moderation_audit_logs`
 - `channel_id` (UUID, nullable)
 - `created_at` (timestamp)
 
-**Note**: Due to schema constraints requiring UUID for `entity_id`, the actual Twitch target user ID (string) is stored in `metadata.target_user_id`.
+**Important Schema Limitation**: The `entity_id` field is defined as UUID in the schema, but Twitch user IDs are strings. As a workaround, the implementation stores the moderator's UUID in `entity_id` (since that's available as a UUID) and stores the actual target Twitch user ID (string) in `metadata.target_user_id`. This means:
+- Queries for "actions against user X" must filter on `metadata.target_user_id`, not `entity_id`
+- The `entity_id` field does not represent the entity being acted upon (the target user) but rather the actor (moderator)
+- Full traceability is maintained through the metadata field
 
 ## Integration Points
 
