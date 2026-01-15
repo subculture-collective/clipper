@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button, Modal, ModalFooter, Alert, Input, TextArea } from '../ui';
 import {
     banUserOnTwitch,
@@ -39,6 +39,18 @@ export interface TwitchModerationActionsProps {
      * Callback when action completes successfully
      */
     onSuccess?: () => void;
+    /**
+     * Disable trigger buttons when another modal is open
+     */
+    disableTriggers?: boolean;
+    /**
+     * Callback when a modal opens
+     */
+    onModalOpen?: () => void;
+    /**
+     * Callback when a modal closes
+     */
+    onModalClose?: () => void;
 }
 
 /**
@@ -103,6 +115,9 @@ export function TwitchModerationActions({
     isBroadcaster = false,
     isTwitchModerator = false,
     onSuccess,
+    disableTriggers = false,
+    onModalOpen,
+    onModalClose,
 }: TwitchModerationActionsProps) {
     const { user } = useAuth();
     const toast = useToast();
@@ -110,6 +125,15 @@ export function TwitchModerationActions({
     const [showUnbanModal, setShowUnbanModal] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [actionAlert, setActionAlert] = useState<{
+        type: 'success' | 'error';
+        message: string;
+    } | null>(null);
+
+    const resolvedIsBroadcaster =
+        isBroadcaster || Boolean(user?.is_broadcaster);
+    const resolvedIsTwitchModerator =
+        isTwitchModerator || Boolean(user?.is_twitch_moderator);
 
     // Ban form state
     const [reason, setReason] = useState('');
@@ -119,12 +143,31 @@ export function TwitchModerationActions({
 
     // Permission check
     const canPerformTwitchActions = canUserPerformTwitchActions(
-        isBroadcaster,
-        isTwitchModerator
+        resolvedIsBroadcaster,
+        resolvedIsTwitchModerator
     );
 
-    // Don't render if user doesn't have permissions
+    // Hide triggers when a modal is open or parent disables them
+    const triggersHidden = disableTriggers || showBanModal || showUnbanModal;
+
+    // Notify parent when all modals close
+    useEffect(() => {
+        if (!showBanModal && !showUnbanModal) {
+            onModalClose?.();
+        }
+    }, [showBanModal, showUnbanModal, onModalClose]);
+
+    // Show read-only notice for site moderators without Twitch permissions
     if (!canPerformTwitchActions) {
+        if (user?.role === 'moderator') {
+            return (
+                <Alert role='alert' variant='warning' className='mb-2'>
+                    Site moderators cannot perform Twitch actions. Only the
+                    channel broadcaster or Twitch-recognized moderators can ban
+                    or unban users on Twitch.
+                </Alert>
+            );
+        }
         return null;
     }
 
@@ -158,24 +201,28 @@ export function TwitchModerationActions({
             });
 
             setShowBanModal(false);
+            onModalClose?.();
             setReason('');
             setIsPermanent(true);
             setDuration('600');
 
             setCustomDuration(false);
 
-            // Show success toast
-            toast.success(
-                isPermanent
-                    ? `${username || 'User'} has been permanently banned on Twitch`
-                    : `${username || 'User'} has been timed out on Twitch`
-            );
+            const successText = isPermanent
+                ? `${username || 'User'} has been permanently banned on Twitch`
+                : `${username || 'User'} has been timed out on Twitch`;
+
+            // Show success toast and inline alert for E2E visibility
+            toast.success(successText);
+            setActionAlert({ type: 'success', message: successText });
 
             if (onSuccess) {
                 onSuccess();
             }
         } catch (err) {
-            setError(handleModerationError(err));
+            const message = handleModerationError(err);
+            setError(message);
+            setActionAlert({ type: 'error', message });
         } finally {
             setLoading(false);
         }
@@ -194,16 +241,22 @@ export function TwitchModerationActions({
             });
 
             setShowUnbanModal(false);
+            onModalClose?.();
 
-
-            // Show success toast
-            toast.success(`${username || 'User'} has been unbanned on Twitch`);
+            const successText = `${
+                username || 'User'
+            } has been unbanned on Twitch`;
+            // Show success toast and inline alert for E2E visibility
+            toast.success(successText);
+            setActionAlert({ type: 'success', message: successText });
 
             if (onSuccess) {
                 onSuccess();
             }
         } catch (err) {
-            setError(handleModerationError(err));
+            const message = handleModerationError(err);
+            setError(message);
+            setActionAlert({ type: 'error', message });
         } finally {
             setLoading(false);
         }
@@ -219,33 +272,50 @@ export function TwitchModerationActions({
 
     return (
         <>
-            {!isBanned ? (
-                <Button
-                    variant='danger'
-                    size='sm'
-                    leftIcon={<Ban className='h-4 w-4' />}
-                    onClick={() => {
-                        resetBanForm();
-                        setShowBanModal(true);
-                    }}
-                    aria-label={`Ban ${username || 'user'} on Twitch`}
+            {actionAlert && (
+                <Alert
+                    role='alert'
+                    variant={
+                        actionAlert.type === 'success' ? 'success' : 'error'
+                    }
+                    className='mb-2'
+                    data-testid={`twitch-action-${actionAlert.type}-alert`}
                 >
-                    Ban on Twitch
-                </Button>
-            ) : (
-                <Button
-                    variant='secondary'
-                    size='sm'
-                    leftIcon={<ShieldCheck className='h-4 w-4' />}
-                    onClick={() => {
-                        setError(null);
-                        setShowUnbanModal(true);
-                    }}
-                    aria-label={`Unban ${username || 'user'} on Twitch`}
-                >
-                    Unban on Twitch
-                </Button>
+                    {actionAlert.message}
+                </Alert>
             )}
+            {!triggersHidden &&
+                (!isBanned ? (
+                    <Button
+                        variant='danger'
+                        size='sm'
+                        leftIcon={<Ban className='h-4 w-4' />}
+                        onClick={() => {
+                            resetBanForm();
+                            setActionAlert(null);
+                            setShowBanModal(true);
+                            onModalOpen?.();
+                        }}
+                        aria-label={`Ban ${username || 'user'} on Twitch`}
+                    >
+                        Ban on Twitch
+                    </Button>
+                ) : (
+                    <Button
+                        variant='secondary'
+                        size='sm'
+                        leftIcon={<ShieldCheck className='h-4 w-4' />}
+                        onClick={() => {
+                            setError(null);
+                            setActionAlert(null);
+                            setShowUnbanModal(true);
+                            onModalOpen?.();
+                        }}
+                        aria-label={`Unban ${username || 'user'} on Twitch`}
+                    >
+                        Unban on Twitch
+                    </Button>
+                ))}
 
             {/* Ban Modal */}
             <Modal
@@ -254,6 +324,7 @@ export function TwitchModerationActions({
                     if (!loading) {
                         setShowBanModal(false);
                         resetBanForm();
+                        onModalClose?.();
                     }
                 }}
                 title='Ban User on Twitch'
@@ -339,7 +410,8 @@ export function TwitchModerationActions({
                                                 }}
                                                 disabled={loading}
                                                 className={`px-3 py-2 text-sm border rounded-md transition-colors ${
-                                                    duration === '3600' && !customDuration
+                                                    duration === '3600' &&
+                                                    !customDuration
                                                         ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
                                                         : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
                                                 }`}
@@ -354,7 +426,8 @@ export function TwitchModerationActions({
                                                 }}
                                                 disabled={loading}
                                                 className={`px-3 py-2 text-sm border rounded-md transition-colors ${
-                                                    duration === '86400' && !customDuration
+                                                    duration === '86400' &&
+                                                    !customDuration
                                                         ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
                                                         : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
                                                 }`}
@@ -369,7 +442,8 @@ export function TwitchModerationActions({
                                                 }}
                                                 disabled={loading}
                                                 className={`px-3 py-2 text-sm border rounded-md transition-colors ${
-                                                    duration === '604800' && !customDuration
+                                                    duration === '604800' &&
+                                                    !customDuration
                                                         ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
                                                         : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
                                                 }`}
@@ -384,7 +458,8 @@ export function TwitchModerationActions({
                                                 }}
                                                 disabled={loading}
                                                 className={`px-3 py-2 text-sm border rounded-md transition-colors ${
-                                                    duration === '1209600' && !customDuration
+                                                    duration === '1209600' &&
+                                                    !customDuration
                                                         ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
                                                         : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
                                                 }`}
@@ -425,13 +500,16 @@ export function TwitchModerationActions({
                                                         max='1209600'
                                                         value={duration}
                                                         onChange={e =>
-                                                            setDuration(e.target.value)
+                                                            setDuration(
+                                                                e.target.value
+                                                            )
                                                         }
                                                         disabled={loading}
                                                         placeholder='Enter seconds'
                                                     />
                                                     <p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
-                                                        Max: 1,209,600 seconds (14 days)
+                                                        Max: 1,209,600 seconds
+                                                        (14 days)
                                                     </p>
                                                 </div>
                                             )}
@@ -483,6 +561,7 @@ export function TwitchModerationActions({
                                     parseInt(duration, 10) <= 0 ||
                                     parseInt(duration, 10) > 1209600))
                         }
+                        data-testid='confirm-ban-action-button'
                     >
                         {isPermanent ? 'Ban User' : 'Timeout User'}
                     </Button>
@@ -496,6 +575,7 @@ export function TwitchModerationActions({
                     if (!loading) {
                         setShowUnbanModal(false);
                         setError(null);
+                        onModalClose?.();
                     }
                 }}
                 title='Unban User on Twitch'
@@ -531,6 +611,7 @@ export function TwitchModerationActions({
                         onClick={handleUnban}
                         loading={loading}
                         disabled={loading}
+                        data-testid='confirm-unban-button'
                     >
                         Unban User
                     </Button>

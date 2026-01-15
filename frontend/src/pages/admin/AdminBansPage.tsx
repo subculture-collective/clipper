@@ -4,13 +4,13 @@ import { BanListViewer, SyncBansModal } from '../../components/moderation';
 
 /**
  * Admin page for managing bans
- * 
+ *
  * This page allows moderators and admins to:
  * - View all active and expired bans
  * - Sync bans from Twitch
  * - Revoke bans
  * - Filter and search bans
- * 
+ *
  * Permission Requirements:
  * - Must be a moderator or admin (enforced by AdminRoute)
  */
@@ -21,39 +21,40 @@ export function AdminBansPage() {
     const handleSyncSuccess = () => {
         setShowSyncModal(false);
         // Trigger a refresh of the ban list
-        setRefreshKey((prev) => prev + 1);
+        setRefreshKey(prev => prev + 1);
     };
 
     return (
-        <Container className="py-4 xs:py-6 md:py-8">
-            <div className="mb-6">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <Container className='py-4 xs:py-6 md:py-8'>
+            <div className='mb-6'>
+                <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
                     <div>
-                        <h1 className="text-2xl xs:text-3xl font-bold mb-2">Ban Management</h1>
-                        <p className="text-muted-foreground">
-                            View and manage bans across the platform. Sync bans from Twitch channels.
+                        <h1 className='text-2xl xs:text-3xl font-bold mb-2'>
+                            Ban Management
+                        </h1>
+                        <p className='text-muted-foreground'>
+                            View and manage bans across the platform. Sync bans
+                            from Twitch channels.
                         </p>
                     </div>
                     <Button
                         onClick={() => setShowSyncModal(true)}
-                        variant="primary"
-                        className="self-start sm:self-auto"
+                        variant='primary'
+                        className='self-start sm:self-auto'
+                        hidden={showSyncModal}
+                        aria-hidden={showSyncModal}
                     >
                         Sync Bans
                     </Button>
                 </div>
             </div>
 
-            <BanListViewer
-                key={refreshKey}
-                channelId="site"
-                canManage={true}
-            />
+            <BanListViewer key={refreshKey} channelId='all' canManage={true} />
 
             <SyncBansModal
                 open={showSyncModal}
                 onClose={() => setShowSyncModal(false)}
-                channelId="site"
+                channelId='channel-1'
                 onSuccess={handleSyncSuccess}
             />
         </Container>
