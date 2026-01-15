@@ -269,7 +269,7 @@ async function setupModerationMocks(page: Page) {
       }
 
       const channelId = channelBansMatch[1];
-      const page = parseInt(url.searchParams.get('page') || '1', 10);
+      const pageNum = parseInt(url.searchParams.get('page') || '1', 10);
       const limit = parseInt(url.searchParams.get('limit') || '50', 10);
       
       const bansList = Array.from(bans.values())
@@ -279,7 +279,7 @@ async function setupModerationMocks(page: Page) {
       return respond(route, 200, {
         bans: bansList,
         total: bansList.length,
-        page,
+        page: pageNum,
         limit,
       });
     }
@@ -340,6 +340,8 @@ async function setupModerationMocks(page: Page) {
 
       return respond(route, 200, {
         job_id: jobId,
+        status: 'pending',
+        message: 'Ban sync job created.',
       });
     }
 
