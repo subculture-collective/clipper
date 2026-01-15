@@ -61,8 +61,8 @@ func TestClipExtractionJobService_GetPendingJobsCount_NilRedis(t *testing.T) {
 func TestClipExtractionJobService_Integration(t *testing.T) {
 	// Skip if Redis is not available
 	cfg := &config.RedisConfig{
-		Host:     "localhost",
-		Port:     "6379",
+		Host:     getTestEnv("TEST_REDIS_HOST", "localhost"),
+		Port:     getTestEnv("TEST_REDIS_PORT", "6380"),
 		Password: "",
 		DB:       1, // Use test DB
 	}
@@ -195,8 +195,8 @@ func TestClipExtractionJobService_Integration(t *testing.T) {
 func TestClipExtractionJobService_ConcurrentEnqueue(t *testing.T) {
 	// Skip if Redis is not available
 	cfg := &config.RedisConfig{
-		Host:     "localhost",
-		Port:     "6379",
+		Host:     getTestEnv("TEST_REDIS_HOST", "localhost"),
+		Port:     getTestEnv("TEST_REDIS_PORT", "6380"),
 		Password: "",
 		DB:       1, // Use test DB
 	}

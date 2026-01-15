@@ -99,12 +99,16 @@ describe('BanListViewer', () => {
             render(<BanListViewer channelId={mockChannelId} />);
 
             await waitFor(() => {
-                expect(screen.getByLabelText('Export bans to CSV')).toBeInTheDocument();
+                expect(
+                    screen.getByLabelText('Export bans to CSV')
+                ).toBeInTheDocument();
             });
         });
 
         it('does not show Revoke button when canManage is false', async () => {
-            render(<BanListViewer channelId={mockChannelId} canManage={false} />);
+            render(
+                <BanListViewer channelId={mockChannelId} canManage={false} />
+            );
 
             await waitFor(() => {
                 expect(screen.getByText('spammer123')).toBeInTheDocument();
@@ -114,7 +118,9 @@ describe('BanListViewer', () => {
         });
 
         it('shows Revoke button when canManage is true', async () => {
-            render(<BanListViewer channelId={mockChannelId} canManage={true} />);
+            render(
+                <BanListViewer channelId={mockChannelId} canManage={true} />
+            );
 
             await waitFor(() => {
                 expect(screen.getByText('spammer123')).toBeInTheDocument();
@@ -139,7 +145,9 @@ describe('BanListViewer', () => {
 
             await waitFor(() => {
                 expect(screen.getByText('spammer123')).toBeInTheDocument();
-                expect(screen.queryByText('harasser456')).not.toBeInTheDocument();
+                expect(
+                    screen.queryByText('harasser456')
+                ).not.toBeInTheDocument();
             });
         });
 
@@ -155,7 +163,9 @@ describe('BanListViewer', () => {
 
             await waitFor(() => {
                 expect(screen.getByText('spammer123')).toBeInTheDocument();
-                expect(screen.queryByText('harasser456')).not.toBeInTheDocument();
+                expect(
+                    screen.queryByText('harasser456')
+                ).not.toBeInTheDocument();
             });
         });
 
@@ -201,7 +211,9 @@ describe('BanListViewer', () => {
                 expect(screen.getByText('spammer123')).toBeInTheDocument();
             });
 
-            const usernameHeader = screen.getByRole('columnheader', { name: /User/ });
+            const usernameHeader = screen.getByRole('columnheader', {
+                name: /User/,
+            });
             await userEvent.click(usernameHeader);
 
             // Check that sort indicator is shown
@@ -215,7 +227,9 @@ describe('BanListViewer', () => {
                 expect(screen.getByText('spammer123')).toBeInTheDocument();
             });
 
-            const usernameHeader = screen.getByRole('columnheader', { name: /User/ });
+            const usernameHeader = screen.getByRole('columnheader', {
+                name: /User/,
+            });
             await userEvent.click(usernameHeader);
 
             expect(usernameHeader.textContent).toContain('↓');
@@ -234,7 +248,9 @@ describe('BanListViewer', () => {
                 expect(screen.getByText('spammer123')).toBeInTheDocument();
             });
 
-            expect(screen.queryByLabelText('Pagination')).not.toBeInTheDocument();
+            expect(
+                screen.queryByLabelText('Pagination')
+            ).not.toBeInTheDocument();
         });
 
         it('shows pagination when there are multiple pages', async () => {
@@ -273,14 +289,20 @@ describe('BanListViewer', () => {
 
             // Verify API was called with page 2
             await waitFor(() => {
-                expect(chatApi.getChannelBans).toHaveBeenCalledWith(mockChannelId, 2, 50);
+                expect(chatApi.getChannelBans).toHaveBeenCalledWith(
+                    mockChannelId,
+                    2,
+                    50
+                );
             });
         });
     });
 
     describe('Revoke Ban', () => {
         it('opens revoke confirmation modal when revoke is clicked', async () => {
-            render(<BanListViewer channelId={mockChannelId} canManage={true} />);
+            render(
+                <BanListViewer channelId={mockChannelId} canManage={true} />
+            );
 
             await waitFor(() => {
                 expect(screen.getByText('spammer123')).toBeInTheDocument();
@@ -290,11 +312,15 @@ describe('BanListViewer', () => {
             await userEvent.click(revokeButtons[0]);
 
             expect(screen.getByRole('dialog')).toBeInTheDocument();
-            expect(screen.getByText(/Are you sure you want to revoke the ban for/)).toBeInTheDocument();
+            expect(
+                screen.getByText(/Are you sure you want to revoke the ban for/)
+            ).toBeInTheDocument();
         });
 
         it('closes revoke modal when cancel is clicked', async () => {
-            render(<BanListViewer channelId={mockChannelId} canManage={true} />);
+            render(
+                <BanListViewer channelId={mockChannelId} canManage={true} />
+            );
 
             await waitFor(() => {
                 expect(screen.getByText('spammer123')).toBeInTheDocument();
@@ -310,7 +336,9 @@ describe('BanListViewer', () => {
             await userEvent.click(cancelButton);
 
             await waitFor(() => {
-                expect(screen.queryByText('Revoke Ban')).not.toBeInTheDocument();
+                expect(
+                    screen.queryByText('Revoke Ban')
+                ).not.toBeInTheDocument();
             });
         });
 
@@ -319,7 +347,9 @@ describe('BanListViewer', () => {
                 status: 'unbanned',
             });
 
-            render(<BanListViewer channelId={mockChannelId} canManage={true} />);
+            render(
+                <BanListViewer channelId={mockChannelId} canManage={true} />
+            );
 
             await waitFor(() => {
                 expect(screen.getByText('spammer123')).toBeInTheDocument();
@@ -331,12 +361,14 @@ describe('BanListViewer', () => {
             await userEvent.click(revokeButtons[0]);
 
             // Confirm revocation
-            const confirmButton = screen.getByRole('button', { name: 'Revoke Ban' });
+            const confirmButton = screen.getByRole('button', {
+                name: 'Revoke Ban',
+            });
             await userEvent.click(confirmButton);
 
-            // Verify unbanUser was called with correct user (harasser456 -> user-2)
+            // Verify unbanUser was called with correct ban ID (harasser456 -> ban-2)
             await waitFor(() => {
-                expect(chatApi.unbanUser).toHaveBeenCalledWith(mockChannelId, 'user-2');
+                expect(chatApi.unbanUser).toHaveBeenCalledWith('ban-2');
             });
 
             // Verify list was reloaded
@@ -350,7 +382,9 @@ describe('BanListViewer', () => {
                 new Error('Failed to revoke ban')
             );
 
-            render(<BanListViewer channelId={mockChannelId} canManage={true} />);
+            render(
+                <BanListViewer channelId={mockChannelId} canManage={true} />
+            );
 
             await waitFor(() => {
                 expect(screen.getByText('spammer123')).toBeInTheDocument();
@@ -361,12 +395,16 @@ describe('BanListViewer', () => {
             await userEvent.click(revokeButtons[0]);
 
             // Confirm revocation
-            const confirmButton = screen.getByRole('button', { name: 'Revoke Ban' });
+            const confirmButton = screen.getByRole('button', {
+                name: 'Revoke Ban',
+            });
             await userEvent.click(confirmButton);
 
             // Verify error is displayed and modal is closed
             await waitFor(() => {
-                expect(screen.getByText('Failed to revoke ban')).toBeInTheDocument();
+                expect(
+                    screen.getByText('Failed to revoke ban')
+                ).toBeInTheDocument();
                 expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
             });
         });
@@ -412,7 +450,9 @@ describe('BanListViewer', () => {
             render(<BanListViewer channelId={mockChannelId} />);
 
             await waitFor(() => {
-                expect(screen.getByText('Failed to load bans')).toBeInTheDocument();
+                expect(
+                    screen.getByText('Failed to load bans')
+                ).toBeInTheDocument();
             });
 
             expect(screen.getByText('Retry')).toBeInTheDocument();
@@ -426,7 +466,9 @@ describe('BanListViewer', () => {
             render(<BanListViewer channelId={mockChannelId} />);
 
             await waitFor(() => {
-                expect(screen.getByText('Failed to load bans')).toBeInTheDocument();
+                expect(
+                    screen.getByText('Failed to load bans')
+                ).toBeInTheDocument();
             });
 
             // Mock successful response for retry
@@ -496,13 +538,17 @@ describe('BanListViewer', () => {
 
     describe('Accessibility', () => {
         it('has proper ARIA labels on interactive elements', async () => {
-            render(<BanListViewer channelId={mockChannelId} canManage={true} />);
+            render(
+                <BanListViewer channelId={mockChannelId} canManage={true} />
+            );
 
             await waitFor(() => {
                 expect(screen.getByText('spammer123')).toBeInTheDocument();
             });
 
-            expect(screen.getByLabelText('Export bans to CSV')).toBeInTheDocument();
+            expect(
+                screen.getByLabelText('Export bans to CSV')
+            ).toBeInTheDocument();
             expect(screen.getByLabelText('User')).toBeInTheDocument();
             expect(screen.getByLabelText('Reason')).toBeInTheDocument();
             expect(screen.getByLabelText('Status')).toBeInTheDocument();
