@@ -36,7 +36,7 @@ export const CommentForm: React.FC<CommentFormProps> = ({
   const toast = useToast();
 
   const isPending = isCreating || isUpdating;
-  const maxLength = 10000;
+  const maxLength = 5000;
   const isEmpty = content.trim().length === 0;
 
   // Generate default placeholder based on context
