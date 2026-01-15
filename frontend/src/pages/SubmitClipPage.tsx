@@ -246,7 +246,7 @@ export function SubmitClipPage() {
         const clipID = extractClipIDFromURL(formData.clip_url);
         
         // Clear duplicate error when URL changes or is empty
-        if (!clipID || !formData.clip_url) {
+        if (!clipID) {
             setDuplicateError(null);
             return;
         }
@@ -266,7 +266,7 @@ export function SubmitClipPage() {
                     setDuplicateError({
                         message: 'This clip has already been submitted to the database.',
                         clipId: resp.clip?.id,
-                        clipSlug: (resp.clip as any)?.twitch_clip_id, // Use twitch_clip_id as slug
+                        clipSlug: resp.clip?.twitch_clip_id,
                     });
                 } else {
                     setDuplicateError(null);
