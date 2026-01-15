@@ -29,7 +29,7 @@ describe('DuplicateClipError', () => {
 
     const link = screen.getByRole('link', { name: /view existing clip/i });
     expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute('href', '/clips/test-clip-123');
+    expect(link).toHaveAttribute('href', '/clip/test-clip-123');
   });
 
   it('renders with clip link when clipId is provided', () => {
@@ -44,7 +44,7 @@ describe('DuplicateClipError', () => {
 
     const link = screen.getByRole('link', { name: /view existing clip/i });
     expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute('href', '/clips/abc-123');
+    expect(link).toHaveAttribute('href', '/clip/abc-123');
   });
 
   it('prefers clipSlug over clipId when both provided', () => {
@@ -59,7 +59,7 @@ describe('DuplicateClipError', () => {
     );
 
     const link = screen.getByRole('link', { name: /view existing clip/i });
-    expect(link).toHaveAttribute('href', '/clips/test-clip-slug');
+    expect(link).toHaveAttribute('href', '/clip/test-clip-slug');
   });
 
   it('does not render clip link when neither clipId nor clipSlug provided', () => {

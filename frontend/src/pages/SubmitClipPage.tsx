@@ -131,7 +131,8 @@ export function SubmitClipPage() {
         isAuthenticated &&
         user &&
         (!karmaRequirementEnabled || user.karma_points >= karmaRequired) &&
-        !rateLimitError;
+        !rateLimitError &&
+        !duplicateError;
     const karmaNeeded =
         user ? Math.max(0, karmaRequired - user.karma_points) : karmaRequired;
 
@@ -240,20 +241,40 @@ export function SubmitClipPage() {
     };
 
     // Auto-set NSFW if clip already marked (best effort) when URL changes
+    // Also check for duplicates and show error proactively
     useEffect(() => {
         const clipID = extractClipIDFromURL(formData.clip_url);
-        if (!clipID) return;
+        
+        // Clear duplicate error when URL is empty or invalid
+        if (!clipID) {
+            setDuplicateError(null);
+            return;
+        }
 
         let isActive = true;
         checkClipStatus(clipID)
             .then(resp => {
                 if (!isActive) return;
+                
+                // Auto-set NSFW if clip already marked
                 if (resp?.clip?.is_nsfw) {
                     setFormData(prev => ({ ...prev, is_nsfw: true }));
+                }
+                
+                // Check if clip already exists (duplicate detection)
+                if (resp?.exists && !resp?.can_be_claimed) {
+                    setDuplicateError({
+                        message: 'This clip has already been submitted to the database.',
+                        clipId: resp.clip?.id,
+                        clipSlug: resp.clip?.twitch_clip_id,
+                    });
+                } else {
+                    setDuplicateError(null);
                 }
             })
             .catch(() => {
                 // ignore; optional helper
+                setDuplicateError(null);
             });
 
         return () => {
