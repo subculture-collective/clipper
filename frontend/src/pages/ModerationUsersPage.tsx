@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Container, Card, CardHeader, CardBody, Button, Input } from '../components';
-import { Search, Ban, ShieldCheck } from 'lucide-react';
+import { Search, Ban } from 'lucide-react';
 import { TwitchModerationActions } from '../components/moderation/TwitchModerationActions';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
@@ -53,10 +53,8 @@ export function ModerationUsersPage() {
     queryClient.invalidateQueries({ queryKey: ['moderation-users'] });
   };
 
-  // Determine if current user is broadcaster or Twitch moderator
-  const isBroadcaster = (targetUser: User) => {
-    return currentUser?.twitch_id === targetUser.twitch_id;
-  };
+  // Check if current user is a broadcaster (has a Twitch account)
+  const isBroadcaster = Boolean(currentUser?.twitch_id);
 
   // For now, we'll assume false for Twitch moderator status
   // In a real implementation, this would come from the backend
@@ -161,11 +159,11 @@ export function ModerationUsersPage() {
                     <div className="flex items-center gap-2">
                       {user.twitch_id && currentUser?.twitch_id && (
                         <TwitchModerationActions
-                          broadcasterID={currentUser.twitch_id}
+                          broadcasterID={user.twitch_id}
                           userID={user.twitch_id}
                           username={user.username}
                           isBanned={user.is_banned_on_twitch}
-                          isBroadcaster={isBroadcaster(user)}
+                          isBroadcaster={isBroadcaster}
                           isTwitchModerator={isTwitchModerator}
                           onSuccess={handleActionSuccess}
                         />

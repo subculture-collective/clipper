@@ -397,7 +397,7 @@ export function TwitchModerationActions({
                                                 type='button'
                                                 onClick={() => {
                                                     setCustomDuration(true);
-                                                    setDuration('');
+                                                    setDuration('600');
                                                 }}
                                                 disabled={loading}
                                                 className={`w-full px-3 py-2 text-sm border rounded-md transition-colors text-left ${
