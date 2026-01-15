@@ -509,8 +509,11 @@ test.describe('Clip Submission E2E Flow', () => {
         tags: ['duplicate'],
       });
 
-      // Then: duplicate error shown
-      await submitClipPage.expectDuplicateError();
+      // Then: duplicate error shown with link to existing clip
+      await submitClipPage.expectDuplicateErrorWithLink();
+      
+      // And: submit button is disabled
+      await expect(await submitClipPage.isSubmitButtonDisabled()).toBeTruthy();
     });
   });
 
