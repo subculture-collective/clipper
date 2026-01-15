@@ -24,7 +24,6 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
     banReason,
 }) => {
     const [sort, setSort] = React.useState<CommentSortOption>('best');
-    const [showCommentForm, setShowCommentForm] = React.useState(false);
     const isAuthenticated = useIsAuthenticated();
 
     const {
@@ -114,22 +113,16 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
                             Log In
                         </Button>
                     </div>
-                ) : showCommentForm ? (
+                ) : !isBanned ? (
                     <CommentForm
                         clipId={clipId}
-                        onCancel={() => setShowCommentForm(false)}
-                        onSuccess={() => setShowCommentForm(false)}
+                        onSuccess={() => {
+                            // Form is always visible for authenticated users
+                            // No need to hide it after success
+                        }}
                         placeholder='What are your thoughts?'
                     />
-                ) : (
-                    <Button
-                        onClick={() => setShowCommentForm(true)}
-                        fullWidth
-                        disabled={isBanned}
-                    >
-                        Add Comment
-                    </Button>
-                )}
+                ) : null}
             </div>
 
             {/* Loading state */}
@@ -146,16 +139,6 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
                     <p className='text-muted-foreground mb-4'>
                         Be the first to comment!
                     </p>
-                    {isAuthenticated && (
-                        <Button
-                            onClick={() => setShowCommentForm(true)}
-                            variant='primary'
-                            size='lg'
-                            disabled={isBanned}
-                        >
-                            Add Comment
-                        </Button>
-                    )}
                 </div>
             ) : (
                 <>
