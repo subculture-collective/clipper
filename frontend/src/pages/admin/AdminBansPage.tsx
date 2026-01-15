@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Container, Button } from '../../components';
 import { BanListViewer, SyncBansModal } from '../../components/moderation';
-import { useAuth } from '../../context/AuthContext';
 
 /**
  * Admin page for managing bans
@@ -9,14 +8,13 @@ import { useAuth } from '../../context/AuthContext';
  * This page allows moderators and admins to:
  * - View all active and expired bans
  * - Sync bans from Twitch
- * - Revoke bans (if permitted)
+ * - Revoke bans
  * - Filter and search bans
  * 
  * Permission Requirements:
  * - Must be a moderator or admin (enforced by AdminRoute)
  */
 export function AdminBansPage() {
-    const { isModeratorOrAdmin } = useAuth();
     const [showSyncModal, setShowSyncModal] = useState(false);
     const [refreshKey, setRefreshKey] = useState(0);
 
@@ -36,22 +34,20 @@ export function AdminBansPage() {
                             View and manage bans across the platform. Sync bans from Twitch channels.
                         </p>
                     </div>
-                    {isModeratorOrAdmin && (
-                        <Button
-                            onClick={() => setShowSyncModal(true)}
-                            variant="primary"
-                            className="self-start sm:self-auto"
-                        >
-                            Sync Bans
-                        </Button>
-                    )}
+                    <Button
+                        onClick={() => setShowSyncModal(true)}
+                        variant="primary"
+                        className="self-start sm:self-auto"
+                    >
+                        Sync Bans
+                    </Button>
                 </div>
             </div>
 
             <BanListViewer
                 key={refreshKey}
                 channelId="site"
-                canManage={isModeratorOrAdmin}
+                canManage={true}
             />
 
             <SyncBansModal
