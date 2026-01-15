@@ -163,7 +163,8 @@ async function setupClipSubmissionApiMocks(page: Page): Promise<ClipSubmissionMo
         can_be_claimed: !existing,
         clip: existing
           ? {
-              id: existing.twitch_clip_id,
+              id: existing.id, // submission ID used for navigation to the clip detail page (which accepts submission ID or twitch_clip_id)
+              twitch_clip_id: existing.twitch_clip_id,
               is_nsfw: existing.is_nsfw,
               url: existing.twitch_clip_url,
               title: existing.title,
@@ -207,7 +208,13 @@ async function setupClipSubmissionApiMocks(page: Page): Promise<ClipSubmissionMo
 
       const duplicate = userSubs.find(s => s.twitch_clip_url === clip_url);
       if (duplicate) {
-        return respond(route, 400, { error: 'Clip has already been submitted' });
+        return respond(route, 400, { 
+          error: 'Clip has already been submitted',
+          clip: {
+            id: duplicate.id,
+            slug: duplicate.twitch_clip_id,
+          },
+        });
       }
 
       if (!clip_url || !clip_url.includes('twitch.tv')) {
@@ -504,8 +511,11 @@ test.describe('Clip Submission E2E Flow', () => {
         tags: ['duplicate'],
       });
 
-      // Then: duplicate error shown
-      await submitClipPage.expectDuplicateError();
+      // Then: duplicate error shown with link to existing clip
+      await submitClipPage.expectDuplicateErrorWithLink();
+      
+      // And: submit button is disabled
+      await expect(await submitClipPage.isSubmitButtonDisabled()).toBeTruthy();
     });
   });
 

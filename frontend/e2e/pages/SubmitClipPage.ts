@@ -148,6 +148,16 @@ export class SubmitClipPage extends BasePage {
   }
 
   /**
+   * Verify that a duplicate error is shown with link to existing clip
+   */
+  async expectDuplicateErrorWithLink(): Promise<void> {
+    await this.expectDuplicateError();
+    // Verify the link to the existing clip is present
+    const link = this.page.getByRole('link', { name: /view.*existing clip/i });
+    await expect(link).toBeVisible();
+  }
+
+  /**
    * Verify that an invalid URL error is shown
    */
   async expectInvalidUrlError(): Promise<void> {
