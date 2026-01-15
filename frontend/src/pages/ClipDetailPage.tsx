@@ -220,7 +220,7 @@ export function ClipDetailPage() {
                         {isBanned && (
                             <div
                                 role='alert'
-                                className='mb-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800'
+                                className='mb-3 rounded-lg border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800 p-3 text-sm text-red-800 dark:text-red-300'
                             >
                                 You are banned and cannot interact with clips
                                 {banReason ? `: ${banReason}` : ''}.
