@@ -77,6 +77,7 @@ const WatchHistoryPage = lazy(() => import('./pages/WatchHistoryPage').then(m =>
 const StreamPage = lazy(() => import('./pages/StreamPage').then(m => ({ default: m.StreamPage })));
 const ForumModerationPage = lazy(() => import('./pages/admin/ForumModerationPage').then(m => ({ default: m.ForumModerationPage })));
 const ModerationLogPage = lazy(() => import('./pages/admin/ModerationLogPage').then(m => ({ default: m.ModerationLogPage })));
+const ModerationUsersPage = lazy(() => import('./pages/ModerationUsersPage').then(m => ({ default: m.ModerationUsersPage })));
 const ChatPage = lazy(() => import('./pages/ChatPage').then(m => ({ default: m.ChatPage })));
 const ChannelSettingsPage = lazy(() => import('./pages/ChannelSettingsPage').then(m => ({ default: m.ChannelSettingsPage })));
 const ForumIndex = lazy(() => import('./pages/forum/ForumIndex').then(m => ({ default: m.ForumIndex })));
@@ -509,6 +510,16 @@ function App() {
                         <AdminRoute>
                           <ModerationLogPage />
                         </AdminRoute>
+                      }
+                    />
+
+                    {/* Moderation Routes (require moderator or admin role) */}
+                    <Route
+                      path="/moderation/users"
+                      element={
+                        <ProtectedRoute>
+                          <ModerationUsersPage />
+                        </ProtectedRoute>
                       }
                     />
 
