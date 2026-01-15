@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { CommentSection } from './CommentSection';
 import * as commentApi from '@/lib/comment-api';
+import { useIsAuthenticated } from '@/hooks';
 import type { Comment, CommentFeedResponse } from '@/types/comment';
 
 // Mock the API and auth hooks
@@ -68,6 +69,8 @@ const renderWithClient = (ui: React.ReactElement) => {
 describe('CommentSection', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset useIsAuthenticated to default unauthenticated state
+    vi.mocked(useIsAuthenticated).mockReturnValue(false);
   });
 
   describe('Loading and error states', () => {
@@ -299,7 +302,6 @@ describe('CommentSection', () => {
 
     it('should show comment form when authenticated', async () => {
       // Mock authenticated state
-      const { useIsAuthenticated } = await import('@/hooks');
       vi.mocked(useIsAuthenticated).mockReturnValue(true);
 
       const mockResponse: CommentFeedResponse = {
@@ -321,7 +323,6 @@ describe('CommentSection', () => {
 
     it('should not show form when user is banned', async () => {
       // Mock authenticated state
-      const { useIsAuthenticated } = await import('@/hooks');
       vi.mocked(useIsAuthenticated).mockReturnValue(true);
 
       const mockResponse: CommentFeedResponse = {
