@@ -149,9 +149,13 @@ export const test = base.extend<CustomFixtures>({
    * SearchPage fixture
    * Automatically initialized for each test
    */
-  searchPage: async ({ page }, use) => {
+  searchPage: async ({ page }, use, testInfo) => {
+    // Detect if we're in a failover test suite
+    const isFailoverTest = testInfo.title.includes('Failover Mode') || 
+                          testInfo.titlePath.some(t => t.includes('Failover Mode'));
+    
     // Enable lightweight search API mocks to stabilize e2e when backend is unavailable
-    await enableSearchMocks(page);
+    await enableSearchMocks(page, isFailoverTest);
     const searchPage = new SearchPage(page);
     await use(searchPage);
   },
@@ -354,7 +358,7 @@ export { expect } from '@playwright/test';
 // ---------------------------------------------------------------
 // Local helpers: mock search API routes for e2e stability
 // ---------------------------------------------------------------
-async function enableSearchMocks(page: Page) {
+async function enableSearchMocks(page: Page, isFailoverMode: boolean = false) {
   // Allow opt-out via env flag if needed
   const disable = process.env.PLAYWRIGHT_DISABLE_SEARCH_MOCKS === '1';
   if (disable) return;
@@ -390,6 +394,19 @@ async function enableSearchMocks(page: Page) {
     const type = request.resourceType();
     if (type === 'document') {
       return route.fallback();
+    }
+
+    // In failover mode, return 503 Service Unavailable to trigger error handling
+    if (isFailoverMode) {
+      await route.fulfill({
+        status: 503,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          error: 'Service Temporarily Unavailable',
+          message: 'Search service is currently experiencing issues. Please try again later.',
+        }),
+      });
+      return;
     }
 
     const url = new URL(request.url());
