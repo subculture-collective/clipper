@@ -109,6 +109,7 @@ export function SubmitClipPage() {
     const [tagQueryLoading, setTagQueryLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [urlError, setUrlError] = useState<string | null>(null);
     const [rateLimitError, setRateLimitError] =
         useState<RateLimitErrorResponse | null>(null);
     const [duplicateError, setDuplicateError] = useState<{
@@ -349,6 +350,21 @@ export function SubmitClipPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Validate URL format before submission using URL constructor
+        if (formData.clip_url) {
+            try {
+                const url = new URL(formData.clip_url);
+                if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+                    setUrlError('Invalid URL format - please enter a valid URL');
+                    return;
+                }
+            } catch {
+                setUrlError('Invalid URL format - please enter a valid URL');
+                return;
+            }
+        }
+        setUrlError(null);
 
         if (!canSubmit) {
             if (karmaRequirementEnabled) {
@@ -612,7 +628,7 @@ export function SubmitClipPage() {
                 )}
 
                 <Card className='p-6 mb-8'>
-                    <form onSubmit={handleSubmit}>
+                    <form onSubmit={handleSubmit} noValidate>
                         <div className='space-y-6'>
                             {/* Clip URL Input */}
                             <div>
@@ -625,18 +641,41 @@ export function SubmitClipPage() {
                                 </label>
                                 <Input
                                     id='clip_url'
+                                    name='url'
                                     type='url'
                                     value={formData.clip_url}
-                                    onChange={e =>
+                                    onChange={e => {
                                         setFormData({
                                             ...formData,
                                             clip_url: e.target.value,
-                                        })
-                                    }
+                                        });
+                                        // Clear URL error when user types
+                                        if (urlError) setUrlError(null);
+                                    }}
+                                    onBlur={e => {
+                                        // Validate URL on blur for better UX
+                                        if (e.target.value) {
+                                            try {
+                                                const url = new URL(e.target.value);
+                                                if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+                                                    setUrlError('Invalid URL format - please enter a valid URL');
+                                                } else {
+                                                    setUrlError(null);
+                                                }
+                                            } catch {
+                                                setUrlError('Invalid URL format - please enter a valid URL');
+                                            }
+                                        }
+                                    }}
                                     placeholder='https://clips.twitch.tv/...'
                                     required
                                     disabled={!canSubmit}
                                 />
+                                {urlError && (
+                                    <p className='text-xs text-red-500 mt-1'>
+                                        {urlError}
+                                    </p>
+                                )}
                                 <p className='text-xs text-muted-foreground mt-1'>
                                     Paste the full URL of a Twitch clip
                                 </p>
