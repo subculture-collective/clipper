@@ -625,6 +625,7 @@ export function SubmitClipPage() {
                                 </label>
                                 <Input
                                     id='clip_url'
+                                    name='url'
                                     type='url'
                                     value={formData.clip_url}
                                     onChange={e =>

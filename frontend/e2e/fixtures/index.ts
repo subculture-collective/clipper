@@ -170,21 +170,134 @@ export const test = base.extend<CustomFixtures>({
    * 3. And save the state for reuse
    */
   authenticatedPage: async ({ page }, use) => {
-    // Attempt to login
-    // In production, you'd load from storageState file
-    // For now, we'll just provide the page as-is
+    // Mock authenticated user with sufficient karma for submissions
+    const mockUser = {
+      id: 'mock-auth-user-123',
+      twitch_id: 'twitch-auth-123',
+      username: 'authenticateduser',
+      display_name: 'Authenticated User',
+      avatar_url: 'https://placehold.co/96',
+      karma_points: 150, // Enough karma for submission
+      role: 'user',
+      is_banned: false,
+      is_premium: false,
+      is_verified: false,
+      created_at: new Date().toISOString(),
+    };
 
-    // Check if already authenticated
-    const isAuth = await isAuthenticated(page);
+    // Set up route mocks BEFORE any navigation
+    // Mock auth/me endpoint to return authenticated user
+    // Note: The API returns the user object directly, not wrapped in a response
+    await page.route('**/api/v1/auth/me', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(mockUser),
+      });
+    });
 
-    if (!isAuth) {
-      // Try to login (this might fail if OAuth isn't mocked)
-      try {
-        await login(page);
-      } catch (error) {
-        console.warn('Could not authenticate page:', error);
+    // Mock auth/refresh endpoint
+    // Note: The API returns tokens, but for this test we just need it to not fail
+    await page.route('**/api/v1/auth/refresh', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          access_token: 'mock-access-token',
+          refresh_token: 'mock-refresh-token',
+        }),
+      });
+    });
+
+    // Mock config endpoint for karma requirements
+    await page.route('**/api/v1/config/public', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          karma: {
+            initial_karma_points: 100,
+            submission_karma_required: 100,
+            require_karma_for_submission: true,
+          },
+        }),
+      });
+    });
+
+    // Mock user submissions endpoint (match both with and without query params)
+    await page.route('**/api/v1/submissions**', async (route) => {
+      const url = route.request().url();
+      const method = route.request().method();
+      
+      // Handle GET requests to list submissions
+      if (method === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            data: [],
+            meta: {
+              page: 1,
+              limit: 5,
+              total: 0,
+              total_pages: 0,
+            },
+          }),
+        });
+      } else {
+        // Let POST requests fall through to the social mocks
+        await route.fallback();
       }
-    }
+    });
+
+    // Mock clip status check endpoint
+    await page.route('**/api/v1/submissions/check/**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          exists: false,
+          can_be_claimed: true,
+        }),
+      });
+    });
+
+    // Mock clip metadata endpoint
+    await page.route('**/api/v1/submissions/metadata**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            clip_id: 'mock-clip-123',
+            title: 'Mock Clip Title',
+            streamer_name: 'MockStreamer',
+            broadcaster_name: 'MockStreamer',
+            game_name: 'Mock Game',
+            game: 'Mock Game',
+            view_count: 100,
+            created_at: new Date().toISOString(),
+            thumbnail_url: 'https://placehold.co/640x360',
+            duration: 30,
+            url: 'https://clips.twitch.tv/mock-clip-123',
+          },
+        }),
+      });
+    });
+
+    // Mock tag search endpoint
+    await page.route('**/api/v1/tags/search**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          tags: [],
+        }),
+      });
+    });
 
     await use(page);
   },
