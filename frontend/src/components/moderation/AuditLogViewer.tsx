@@ -208,7 +208,7 @@ export function AuditLogViewer() {
                     <Filter className="h-4 w-4" />
                     <span>Filters</span>
                 </div>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                     <div>
                         <label
                             htmlFor="action-filter"
@@ -257,6 +257,24 @@ export function AuditLogViewer() {
                     </div>
                     <div>
                         <label
+                            htmlFor="target-filter"
+                            className="mb-1 block text-sm font-medium text-gray-700"
+                        >
+                            Target (User ID)
+                        </label>
+                        <input
+                            id="target-filter"
+                            type="text"
+                            value={filters.target}
+                            onChange={(e) =>
+                                setFilters({ ...filters, target: e.target.value, offset: 0 })
+                            }
+                            placeholder="Filter by target ID..."
+                            className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                    </div>
+                    <div>
+                        <label
                             htmlFor="start-date-filter"
                             className="mb-1 block text-sm font-medium text-gray-700"
                         >
@@ -293,7 +311,7 @@ export function AuditLogViewer() {
                             className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                         />
                     </div>
-                    <div className="md:col-span-2 lg:col-span-3">
+                    <div className="md:col-span-2 lg:col-span-2 xl:col-span-4">
                         <label
                             htmlFor="search-filter"
                             className="mb-1 block text-sm font-medium text-gray-700"

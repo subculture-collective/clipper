@@ -133,6 +133,7 @@ describe('AuditLogViewer', () => {
             await waitFor(() => {
                 expect(screen.getByLabelText('Action')).toBeInTheDocument();
                 expect(screen.getByLabelText('Actor (User ID)')).toBeInTheDocument();
+                expect(screen.getByLabelText('Target (User ID)')).toBeInTheDocument();
                 expect(screen.getByLabelText('Start Date')).toBeInTheDocument();
                 expect(screen.getByLabelText('End Date')).toBeInTheDocument();
                 expect(screen.getByLabelText('Search (Reason)')).toBeInTheDocument();
@@ -154,6 +155,24 @@ describe('AuditLogViewer', () => {
             await waitFor(() => {
                 expect(moderationApi.getAuditLogs).toHaveBeenCalledWith(
                     expect.objectContaining({ action: 'ban', offset: 0 })
+                );
+            });
+        });
+
+        it('applies target filter', async () => {
+            const user = userEvent.setup();
+            render(<AuditLogViewer />);
+
+            await waitFor(() => {
+                expect(screen.getByLabelText('Target (User ID)')).toBeInTheDocument();
+            });
+
+            const targetInput = screen.getByLabelText('Target (User ID)');
+            await user.type(targetInput, 'target-123');
+
+            await waitFor(() => {
+                expect(moderationApi.getAuditLogs).toHaveBeenCalledWith(
+                    expect.objectContaining({ target: 'target-123', offset: 0 })
                 );
             });
         });
