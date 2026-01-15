@@ -226,7 +226,6 @@ export const test = base.extend<CustomFixtures>({
 
     // Mock user submissions endpoint (match both with and without query params)
     await page.route('**/api/v1/submissions**', async (route) => {
-      const url = route.request().url();
       const method = route.request().method();
       
       // Handle GET requests to list submissions

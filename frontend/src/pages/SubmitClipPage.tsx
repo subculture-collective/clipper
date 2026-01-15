@@ -351,10 +351,18 @@ export function SubmitClipPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Validate URL format before submission
-        if (formData.clip_url && !formData.clip_url.match(/^https?:\/\/.+/)) {
-            setUrlError('Invalid URL format - please enter a valid URL');
-            return;
+        // Validate URL format before submission using URL constructor
+        if (formData.clip_url) {
+            try {
+                const url = new URL(formData.clip_url);
+                if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+                    setUrlError('Invalid URL format - please enter a valid URL');
+                    return;
+                }
+            } catch {
+                setUrlError('Invalid URL format - please enter a valid URL');
+                return;
+            }
         }
         setUrlError(null);
 
@@ -620,7 +628,7 @@ export function SubmitClipPage() {
                 )}
 
                 <Card className='p-6 mb-8'>
-                    <form onSubmit={handleSubmit}>
+                    <form onSubmit={handleSubmit} noValidate>
                         <div className='space-y-6'>
                             {/* Clip URL Input */}
                             <div>
@@ -634,7 +642,7 @@ export function SubmitClipPage() {
                                 <Input
                                     id='clip_url'
                                     name='url'
-                                    type='text'
+                                    type='url'
                                     value={formData.clip_url}
                                     onChange={e => {
                                         setFormData({
@@ -643,6 +651,21 @@ export function SubmitClipPage() {
                                         });
                                         // Clear URL error when user types
                                         if (urlError) setUrlError(null);
+                                    }}
+                                    onBlur={e => {
+                                        // Validate URL on blur for better UX
+                                        if (e.target.value) {
+                                            try {
+                                                const url = new URL(e.target.value);
+                                                if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+                                                    setUrlError('Invalid URL format - please enter a valid URL');
+                                                } else {
+                                                    setUrlError(null);
+                                                }
+                                            } catch {
+                                                setUrlError('Invalid URL format - please enter a valid URL');
+                                            }
+                                        }
                                     }}
                                     placeholder='https://clips.twitch.tv/...'
                                     required
