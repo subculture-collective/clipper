@@ -16,8 +16,8 @@ import (
 func TestDistributedRateLimiter(t *testing.T) {
 	// Skip if Redis is not available
 	cfg := &config.RedisConfig{
-		Host:     "localhost",
-		Port:     "6379",
+		Host:     getTestEnv("TEST_REDIS_HOST", "localhost"),
+		Port:     getTestEnv("TEST_REDIS_PORT", "6380"),
 		Password: "",
 		DB:       1, // Use test DB
 	}
@@ -209,8 +209,8 @@ func TestInMemoryRateLimiterAdapter(t *testing.T) {
 // BenchmarkDistributedRateLimiter benchmarks the rate limiter performance
 func BenchmarkDistributedRateLimiter(b *testing.B) {
 	cfg := &config.RedisConfig{
-		Host:     "localhost",
-		Port:     "6379",
+		Host:     getTestEnv("TEST_REDIS_HOST", "localhost"),
+		Port:     getTestEnv("TEST_REDIS_PORT", "6380"),
 		Password: "",
 		DB:       1,
 	}

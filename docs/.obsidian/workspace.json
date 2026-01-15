@@ -11,14 +11,10 @@
             "id": "e0ec848f240719d6",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "product/FEATURE_INVENTORY_COMPLETION_SUMMARY.md",
-                "mode": "source",
-                "source": false
-              },
+              "type": "empty",
+              "state": {},
               "icon": "lucide-file",
-              "title": "FEATURE_INVENTORY_COMPLETION_SUMMARY"
+              "title": "New tab"
             }
           }
         ]
@@ -171,8 +167,8 @@
             "state": {
               "type": "calendar",
               "state": {},
-              "icon": "calendar-with-checkmark",
-              "title": "Calendar"
+              "icon": "lucide-ghost",
+              "title": "calendar"
             }
           }
         ],
@@ -190,11 +186,7 @@
       "daily-notes:Open today's daily note": false,
       "templates:Insert template": false,
       "command-palette:Open command palette": false,
-      "bases:Create new base": false,
-      "table-editor-obsidian:Advanced Tables Toolbar": false,
-      "obsidian-git:Open Git source control": false,
-      "omnisearch:Omnisearch": false,
-      "homepage:Open homepage": false
+      "bases:Create new base": false
     }
   },
   "active": "e0ec848f240719d6",

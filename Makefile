@@ -83,7 +83,7 @@ test: ## Run all tests (unit by default; set INTEGRATION=1 and/or E2E=1 to expan
 			cd backend && \
 			set -a && source .env.test && set +a && \
 			PORT=8080 \
-			GIN_MODE=release \
+			GIN_MODE=debug \
 			BASE_URL=http://127.0.0.1:5173 \
 			DB_HOST=localhost \
 			DB_PORT=5437 \
