@@ -116,10 +116,6 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
                 ) : !isBanned ? (
                     <CommentForm
                         clipId={clipId}
-                        onSuccess={() => {
-                            // Form is always visible for authenticated users
-                            // No need to hide it after success
-                        }}
                         placeholder='What are your thoughts?'
                     />
                 ) : null}
