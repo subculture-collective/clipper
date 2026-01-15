@@ -29,10 +29,10 @@ defer func() {
 **Implementation**: `backend/internal/services/twitch_moderation_service.go:339-358`
 
 Audit logs include:
-- Action type (`twitch_ban` or `twitch_unban`)
+- Action type: **"twitch_ban"** or **"twitch_unban"** (constructed at line 336 as "twitch_" + action)
 - Moderator/Actor ID
 - Broadcaster ID (channel)
-- Target Twitch user ID
+- Target Twitch user ID (stored in `metadata.target_user_id`)
 - Reason (optional)
 - Duration (for timeouts)
 - Timestamp (via repository)
@@ -103,27 +103,24 @@ The complete 'Audit Logging' test suite includes:
 1. Test for ban action audit log (lines 796-830)
 2. Test for unban action audit log (lines 832-853)
 
+**Important Note:** These E2E tests use **mocked data** via `setupTwitchModerationMocks` and do not test the actual backend audit log implementation. The mock system creates audit logs with different action names and field names than the real backend:
+
+**Mock Implementation (E2E Tests):**
+- Mock action types: `twitch_ban_user`, `twitch_unban_user` (lines 192, 284)
+- Mock field: `details.user_id` for target user
+
+**Actual Backend Implementation:**
+- Real action types: `twitch_ban`, `twitch_unban` (line 336: "twitch_" + action)
+- Real field: `metadata.target_user_id` for target user (line 342)
+
 Tests verify:
-1. Ban action creates audit log with correct action type (`twitch_ban_user`)
-2. Unban action creates audit log with correct action type (`twitch_unban_user`)
-3. Actor ID is correctly recorded
-4. Details contain target user ID and reason
+1. Ban action creates audit log in mock with action type `twitch_ban_user`
+2. Unban action creates audit log in mock with action type `twitch_unban_user`
+3. Actor ID is correctly recorded in mock
+4. Mock details contain target user ID and reason
 5. Tests run on chromium, firefox, and webkit
 
-**Test structure**:
-```typescript
-test('creates audit log for ban action', async ({ page }) => {
-    // Perform ban action
-    await page.request.post('/api/v1/moderation/twitch/ban', { ... });
-    
-    // Verify audit log
-    const logs = mocks.getAuditLogs();
-    const banLog = logs.find((log) => log.action === 'twitch_ban_user');
-    expect(banLog).toBeDefined();
-    expect(banLog?.actor_id).toBe('broadcaster-1');
-    expect(banLog?.details?.user_id).toBe('99999');
-});
-```
+**Limitation:** These tests validate the mock behavior, not the actual audit log API implementation. Integration tests would be needed to verify the real backend creates audit logs correctly.
 
 ## Architecture
 
@@ -147,13 +144,13 @@ Frontend Audit Log Viewer
 ### Database Schema
 Table: `moderation_audit_logs`
 - `id` (UUID, primary key)
-- `action` (text) - e.g., "twitch_ban_user", "twitch_unban_user"
+- `action` (text) - e.g., **"twitch_ban"**, **"twitch_unban"** (backend creates these by concatenating "twitch_" + action)
 - `entity_type` (text) - "twitch_user"
 - `entity_id` (UUID) - **Schema limitation workaround**: Contains moderator ID instead of target user
 - `moderator_id` (UUID) - Actor performing the action
 - `actor_id` (UUID) - Same as moderator_id
 - `reason` (text, nullable)
-- `metadata` (jsonb) - Full details including target Twitch user ID
+- `metadata` (jsonb) - Full details including target Twitch user ID (stored as `target_user_id`)
 - `ip_address` (text, nullable)
 - `user_agent` (text, nullable)
 - `channel_id` (UUID, nullable)
