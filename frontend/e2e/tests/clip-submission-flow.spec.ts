@@ -163,7 +163,8 @@ async function setupClipSubmissionApiMocks(page: Page): Promise<ClipSubmissionMo
         can_be_claimed: !existing,
         clip: existing
           ? {
-              id: existing.twitch_clip_id,
+              id: existing.id, // submission ID for linking
+              twitch_clip_id: existing.twitch_clip_id,
               is_nsfw: existing.is_nsfw,
               url: existing.twitch_clip_url,
               title: existing.title,
@@ -207,7 +208,11 @@ async function setupClipSubmissionApiMocks(page: Page): Promise<ClipSubmissionMo
 
       const duplicate = userSubs.find(s => s.twitch_clip_url === clip_url);
       if (duplicate) {
-        return respond(route, 400, { error: 'Clip has already been submitted' });
+        return respond(route, 400, { 
+          error: 'Clip has already been submitted',
+          clip_id: duplicate.id,
+          clip_slug: duplicate.twitch_clip_id,
+        });
       }
 
       if (!clip_url || !clip_url.includes('twitch.tv')) {

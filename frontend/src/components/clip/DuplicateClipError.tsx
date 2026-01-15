@@ -33,7 +33,7 @@ export function DuplicateClipError({
   onDismiss,
 }: DuplicateClipErrorProps) {
   // Determine the link to the existing clip
-  const existingClipUrl = clipSlug ? `/clips/${clipSlug}` : clipId ? `/clips/${clipId}` : null;
+  const existingClipUrl = clipSlug ? `/clip/${clipSlug}` : clipId ? `/clip/${clipId}` : null;
 
   return (
     <Alert
