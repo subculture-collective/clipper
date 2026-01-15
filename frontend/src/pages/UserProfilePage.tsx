@@ -224,6 +224,31 @@ export function UserProfilePage() {
                                         {userData.bio}
                                     </p>
                                 )}
+                                {userData.is_banned && (
+                                    <div
+                                        role='alert'
+                                        className='mb-4 rounded-lg border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800 p-3'
+                                    >
+                                        <div className='flex items-start gap-2'>
+                                            <span className='text-red-600 dark:text-red-400 font-semibold text-sm'>
+                                                ⚠️ This user is banned
+                                            </span>
+                                        </div>
+                                        {userData.ban_reason && (
+                                            <p className='text-red-700 dark:text-red-300 text-sm mt-1'>
+                                                Reason: {userData.ban_reason}
+                                            </p>
+                                        )}
+                                        {userData.banned_until && (
+                                            <p className='text-red-600 dark:text-red-400 text-xs mt-1'>
+                                                Until:{' '}
+                                                {new Date(
+                                                    userData.banned_until
+                                                ).toLocaleString()}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
                                 <div className='flex gap-6 text-sm'>
                                     <div>
                                         <span className='font-semibold'>

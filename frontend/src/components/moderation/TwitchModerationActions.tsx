@@ -9,6 +9,7 @@ import { getErrorMessage } from '../../lib/error-utils';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { Ban, ShieldCheck } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 
 export interface TwitchModerationActionsProps {
     /**
@@ -121,6 +122,7 @@ export function TwitchModerationActions({
 }: TwitchModerationActionsProps) {
     const { user } = useAuth();
     const toast = useToast();
+    const queryClient = useQueryClient();
     const [showBanModal, setShowBanModal] = useState(false);
     const [showUnbanModal, setShowUnbanModal] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -216,6 +218,11 @@ export function TwitchModerationActions({
             toast.success(successText);
             setActionAlert({ type: 'success', message: successText });
 
+            // Invalidate relevant queries to update UI
+            queryClient.invalidateQueries({ queryKey: ['user'] });
+            queryClient.invalidateQueries({ queryKey: ['banStatus'] });
+            queryClient.invalidateQueries({ queryKey: ['user-profile-by-username'] });
+
             if (onSuccess) {
                 onSuccess();
             }
@@ -249,6 +256,11 @@ export function TwitchModerationActions({
             // Show success toast and inline alert for E2E visibility
             toast.success(successText);
             setActionAlert({ type: 'success', message: successText });
+
+            // Invalidate relevant queries to update UI
+            queryClient.invalidateQueries({ queryKey: ['user'] });
+            queryClient.invalidateQueries({ queryKey: ['banStatus'] });
+            queryClient.invalidateQueries({ queryKey: ['user-profile-by-username'] });
 
             if (onSuccess) {
                 onSuccess();
