@@ -163,7 +163,7 @@ async function setupClipSubmissionApiMocks(page: Page): Promise<ClipSubmissionMo
         can_be_claimed: !existing,
         clip: existing
           ? {
-              id: existing.id, // submission ID for linking
+              id: existing.id, // submission ID used for navigation to the clip detail page (which accepts submission ID or twitch_clip_id)
               twitch_clip_id: existing.twitch_clip_id,
               is_nsfw: existing.is_nsfw,
               url: existing.twitch_clip_url,
@@ -210,8 +210,10 @@ async function setupClipSubmissionApiMocks(page: Page): Promise<ClipSubmissionMo
       if (duplicate) {
         return respond(route, 400, { 
           error: 'Clip has already been submitted',
-          clip_id: duplicate.id,
-          clip_slug: duplicate.twitch_clip_id,
+          clip: {
+            id: duplicate.id,
+            slug: duplicate.twitch_clip_id,
+          },
         });
       }
 

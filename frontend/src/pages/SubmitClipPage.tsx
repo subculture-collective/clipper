@@ -245,7 +245,7 @@ export function SubmitClipPage() {
     useEffect(() => {
         const clipID = extractClipIDFromURL(formData.clip_url);
         
-        // Clear duplicate error when URL changes or is empty
+        // Clear duplicate error when URL is empty or invalid
         if (!clipID) {
             setDuplicateError(null);
             return;
