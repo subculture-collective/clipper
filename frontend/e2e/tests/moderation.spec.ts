@@ -330,6 +330,11 @@ async function setupModerationMocks(page: Page) {
         return respond(route, 400, { error: 'channel_name is required' });
       }
 
+      // Simulate validation error for invalid channel names (for testing)
+      if (body.channel_name.match(/[^a-zA-Z0-9_]/)) {
+        return respond(route, 400, { error: 'Invalid Twitch channel name' });
+      }
+
       const jobId = `job-${Date.now()}`;
 
       // Create audit log
@@ -844,19 +849,6 @@ test.describe('Moderation E2E', () => {
 
     test('error handling for invalid Twitch channel', async ({ page }) => {
       const mocks = await setupModerationMocks(page);
-
-      // Override sync endpoint to return error
-      await page.route('**/api/chat/channels/*/sync-bans', async (route) => {
-        if (route.request().method() === 'POST') {
-          await route.fulfill({
-            status: 400,
-            contentType: 'application/json',
-            body: JSON.stringify({ error: 'Invalid Twitch channel name' }),
-          });
-        } else {
-          await route.fallback();
-        }
-      });
 
       // Set current user as moderator
       const moderatorUser: MockUser = {
