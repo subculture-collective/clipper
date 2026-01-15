@@ -51,6 +51,9 @@ const ModerationQueuePage = lazy(() => import('./pages/admin/ModerationQueuePage
 const AdminModerationQueuePage = lazy(() => import('./pages/admin/AdminModerationQueuePage').then(m => ({ default: m.AdminModerationQueuePage })));
 const AdminVerificationQueuePage = lazy(() => import('./pages/admin/AdminVerificationQueuePage').then(m => ({ default: m.AdminVerificationQueuePage })));
 const AdminModerationAnalyticsPage = lazy(() => import('./pages/admin/AdminModerationAnalyticsPage'));
+const AdminModeratorsPage = lazy(() => import('./pages/admin/AdminModeratorsPage').then(m => ({ default: m.AdminModeratorsPage })));
+const AdminBansPage = lazy(() => import('./pages/admin/AdminBansPage').then(m => ({ default: m.AdminBansPage })));
+const AdminAuditLogsPage = lazy(() => import('./pages/admin/AdminAuditLogsPage').then(m => ({ default: m.AdminAuditLogsPage })));
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage').then(m => ({ default: m.NotificationsPage })));
 const NotificationPreferencesPage = lazy(() => import('./pages/NotificationPreferencesPage').then(m => ({ default: m.NotificationPreferencesPage })));
@@ -74,6 +77,7 @@ const WatchHistoryPage = lazy(() => import('./pages/WatchHistoryPage').then(m =>
 const StreamPage = lazy(() => import('./pages/StreamPage').then(m => ({ default: m.StreamPage })));
 const ForumModerationPage = lazy(() => import('./pages/admin/ForumModerationPage').then(m => ({ default: m.ForumModerationPage })));
 const ModerationLogPage = lazy(() => import('./pages/admin/ModerationLogPage').then(m => ({ default: m.ModerationLogPage })));
+const ModerationUsersPage = lazy(() => import('./pages/ModerationUsersPage').then(m => ({ default: m.ModerationUsersPage })));
 const ChatPage = lazy(() => import('./pages/ChatPage').then(m => ({ default: m.ChatPage })));
 const ChannelSettingsPage = lazy(() => import('./pages/ChannelSettingsPage').then(m => ({ default: m.ChannelSettingsPage })));
 const ForumIndex = lazy(() => import('./pages/forum/ForumIndex').then(m => ({ default: m.ForumIndex })));
@@ -445,6 +449,30 @@ function App() {
                       }
                     />
                     <Route
+                      path="/admin/moderators"
+                      element={
+                        <AdminRoute>
+                          <AdminModeratorsPage />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/bans"
+                      element={
+                        <AdminRoute>
+                          <AdminBansPage />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/audit-logs"
+                      element={
+                        <AdminRoute>
+                          <AdminAuditLogsPage />
+                        </AdminRoute>
+                      }
+                    />
+                    <Route
                       path="/admin/verification"
                       element={
                         <AdminRoute>
@@ -482,6 +510,16 @@ function App() {
                         <AdminRoute>
                           <ModerationLogPage />
                         </AdminRoute>
+                      }
+                    />
+
+                    {/* Moderation Routes (require moderator or admin role) */}
+                    <Route
+                      path="/moderation/users"
+                      element={
+                        <ProtectedRoute>
+                          <ModerationUsersPage />
+                        </ProtectedRoute>
                       }
                     />
 

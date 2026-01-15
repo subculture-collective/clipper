@@ -7,6 +7,7 @@ import {
 } from '../../lib/moderation-api';
 import { getErrorMessage } from '../../lib/error-utils';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { Ban, ShieldCheck } from 'lucide-react';
 
 export interface TwitchModerationActionsProps {
@@ -104,6 +105,7 @@ export function TwitchModerationActions({
     onSuccess,
 }: TwitchModerationActionsProps) {
     const { user } = useAuth();
+    const toast = useToast();
     const [showBanModal, setShowBanModal] = useState(false);
     const [showUnbanModal, setShowUnbanModal] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -113,6 +115,7 @@ export function TwitchModerationActions({
     const [reason, setReason] = useState('');
     const [isPermanent, setIsPermanent] = useState(true);
     const [duration, setDuration] = useState('600'); // Default 10 minutes in seconds
+    const [customDuration, setCustomDuration] = useState(false);
 
     // Permission check
     const canPerformTwitchActions = canUserPerformTwitchActions(
@@ -159,6 +162,15 @@ export function TwitchModerationActions({
             setIsPermanent(true);
             setDuration('600');
 
+            setCustomDuration(false);
+
+            // Show success toast
+            toast.success(
+                isPermanent
+                    ? `${username || 'User'} has been permanently banned on Twitch`
+                    : `${username || 'User'} has been timed out on Twitch`
+            );
+
             if (onSuccess) {
                 onSuccess();
             }
@@ -183,6 +195,10 @@ export function TwitchModerationActions({
 
             setShowUnbanModal(false);
 
+
+            // Show success toast
+            toast.success(`${username || 'User'} has been unbanned on Twitch`);
+
             if (onSuccess) {
                 onSuccess();
             }
@@ -197,6 +213,7 @@ export function TwitchModerationActions({
         setReason('');
         setIsPermanent(true);
         setDuration('600');
+        setCustomDuration(false);
         setError(null);
     };
 
@@ -309,23 +326,117 @@ export function TwitchModerationActions({
                                         htmlFor='duration'
                                         className='mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300'
                                     >
-                                        Duration (seconds)
+                                        Duration
                                     </label>
-                                    <Input
-                                        id='duration'
-                                        type='number'
-                                        min='1'
-                                        max='1209600'
-                                        value={duration}
-                                        onChange={e =>
-                                            setDuration(e.target.value)
-                                        }
-                                        disabled={loading}
-                                        placeholder='600'
-                                    />
-                                    <p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
-                                        Max: 1,209,600 seconds (14 days)
-                                    </p>
+                                    <div className='space-y-3'>
+                                        {/* Preset duration buttons */}
+                                        <div className='grid grid-cols-2 gap-2'>
+                                            <button
+                                                type='button'
+                                                onClick={() => {
+                                                    setDuration('3600');
+                                                    setCustomDuration(false);
+                                                }}
+                                                disabled={loading}
+                                                className={`px-3 py-2 text-sm border rounded-md transition-colors ${
+                                                    duration === '3600' && !customDuration
+                                                        ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
+                                                        : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                                }`}
+                                            >
+                                                1 hour
+                                            </button>
+                                            <button
+                                                type='button'
+                                                onClick={() => {
+                                                    setDuration('86400');
+                                                    setCustomDuration(false);
+                                                }}
+                                                disabled={loading}
+                                                className={`px-3 py-2 text-sm border rounded-md transition-colors ${
+                                                    duration === '86400' && !customDuration
+                                                        ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
+                                                        : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                                }`}
+                                            >
+                                                24 hours
+                                            </button>
+                                            <button
+                                                type='button'
+                                                onClick={() => {
+                                                    setDuration('604800');
+                                                    setCustomDuration(false);
+                                                }}
+                                                disabled={loading}
+                                                className={`px-3 py-2 text-sm border rounded-md transition-colors ${
+                                                    duration === '604800' && !customDuration
+                                                        ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
+                                                        : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                                }`}
+                                            >
+                                                7 days
+                                            </button>
+                                            <button
+                                                type='button'
+                                                onClick={() => {
+                                                    setDuration('1209600');
+                                                    setCustomDuration(false);
+                                                }}
+                                                disabled={loading}
+                                                className={`px-3 py-2 text-sm border rounded-md transition-colors ${
+                                                    duration === '1209600' && !customDuration
+                                                        ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
+                                                        : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                                }`}
+                                            >
+                                                14 days
+                                            </button>
+                                        </div>
+
+                                        {/* Custom duration input */}
+                                        <div>
+                                            <button
+                                                type='button'
+                                                onClick={() => {
+                                                    setCustomDuration(true);
+                                                    setDuration('600');
+                                                }}
+                                                disabled={loading}
+                                                className={`w-full px-3 py-2 text-sm border rounded-md transition-colors text-left ${
+                                                    customDuration
+                                                        ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
+                                                        : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                                }`}
+                                            >
+                                                Custom duration
+                                            </button>
+                                            {customDuration && (
+                                                <div className='mt-2'>
+                                                    <label
+                                                        htmlFor='custom-duration'
+                                                        className='block text-xs text-gray-600 dark:text-gray-400 mb-1'
+                                                    >
+                                                        Duration (seconds)
+                                                    </label>
+                                                    <Input
+                                                        id='custom-duration'
+                                                        type='number'
+                                                        min='1'
+                                                        max='1209600'
+                                                        value={duration}
+                                                        onChange={e =>
+                                                            setDuration(e.target.value)
+                                                        }
+                                                        disabled={loading}
+                                                        placeholder='Enter seconds'
+                                                    />
+                                                    <p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
+                                                        Max: 1,209,600 seconds (14 days)
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             )}
 
