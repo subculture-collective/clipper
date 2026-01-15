@@ -37,25 +37,6 @@ export function ClipDetailPage() {
     const shareText = clip
         ? `${clip.title} - Clipped from ${clip.broadcaster_name}'s stream`
         : '';
-    // Show ban message if user is banned (before clip loading checks)
-    if (isBanned) {
-        return (
-            <>
-                <SEO title='Banned' noindex />
-                <Container className='py-8'>
-                    <div className='rounded-lg border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800 p-6 my-8'>
-                        <h2 className='text-lg font-bold text-red-800 dark:text-red-400 mb-2'>
-                            You are banned
-                        </h2>
-                        <p className='text-red-700 dark:text-red-300'>
-                            You are banned and cannot interact with clips
-                            {banReason ? `: ${banReason}` : ''}.
-                        </p>
-                    </div>
-                </Container>
-            </>
-        );
-    }
     const handleNativeShare = async () => {
         const clipUrl = `${window.location.origin}/clip/${clip?.id}`;
         await share({
