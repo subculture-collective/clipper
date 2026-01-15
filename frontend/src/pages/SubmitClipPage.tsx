@@ -109,6 +109,7 @@ export function SubmitClipPage() {
     const [tagQueryLoading, setTagQueryLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [urlError, setUrlError] = useState<string | null>(null);
     const [rateLimitError, setRateLimitError] =
         useState<RateLimitErrorResponse | null>(null);
     const [duplicateError, setDuplicateError] = useState<{
@@ -349,6 +350,13 @@ export function SubmitClipPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Validate URL format before submission
+        if (formData.clip_url && !formData.clip_url.match(/^https?:\/\/.+/)) {
+            setUrlError('Invalid URL format - please enter a valid URL');
+            return;
+        }
+        setUrlError(null);
 
         if (!canSubmit) {
             if (karmaRequirementEnabled) {
@@ -626,18 +634,25 @@ export function SubmitClipPage() {
                                 <Input
                                     id='clip_url'
                                     name='url'
-                                    type='url'
+                                    type='text'
                                     value={formData.clip_url}
-                                    onChange={e =>
+                                    onChange={e => {
                                         setFormData({
                                             ...formData,
                                             clip_url: e.target.value,
-                                        })
-                                    }
+                                        });
+                                        // Clear URL error when user types
+                                        if (urlError) setUrlError(null);
+                                    }}
                                     placeholder='https://clips.twitch.tv/...'
                                     required
                                     disabled={!canSubmit}
                                 />
+                                {urlError && (
+                                    <p className='text-xs text-red-500 mt-1'>
+                                        {urlError}
+                                    </p>
+                                )}
                                 <p className='text-xs text-muted-foreground mt-1'>
                                     Paste the full URL of a Twitch clip
                                 </p>
