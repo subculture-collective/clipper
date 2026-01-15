@@ -59,6 +59,9 @@ type MockModerator = {
   user?: MockUser;
 };
 
+// Twitch channel name validation regex - allows only alphanumeric and underscores
+const VALID_TWITCH_CHANNEL_NAME = /^[a-zA-Z0-9_]+$/;
+
 /**
  * Setup moderation API mocks
  */
@@ -331,7 +334,7 @@ async function setupModerationMocks(page: Page) {
       }
 
       // Simulate validation error for invalid channel names (for testing)
-      if (body.channel_name.match(/[^a-zA-Z0-9_]/)) {
+      if (!VALID_TWITCH_CHANNEL_NAME.test(body.channel_name)) {
         return respond(route, 400, { error: 'Invalid Twitch channel name' });
       }
 
