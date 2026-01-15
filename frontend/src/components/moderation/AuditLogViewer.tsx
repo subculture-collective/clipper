@@ -141,6 +141,9 @@ export function AuditLogViewer() {
             case 'reject':
             case 'rejected':
                 return <XCircle className={iconClass} />;
+            case 'sync':
+            case 'sync_bans':
+                return <RefreshCw className={iconClass} />;
             default:
                 return <Shield className={iconClass} />;
         }
@@ -164,6 +167,9 @@ export function AuditLogViewer() {
             case 'warn':
             case 'warning_issued':
                 return 'bg-orange-100 text-orange-800';
+            case 'sync':
+            case 'sync_bans':
+                return 'bg-blue-100 text-blue-800';
             default:
                 return 'bg-blue-100 text-blue-800';
         }
@@ -231,6 +237,7 @@ export function AuditLogViewer() {
                             <option value="warn">Warning</option>
                             <option value="approve">Approve</option>
                             <option value="reject">Reject</option>
+                            <option value="sync">Sync</option>
                             <option value="user_banned">User Banned</option>
                             <option value="user_unbanned">User Unbanned</option>
                             <option value="clip_approved">Clip Approved</option>
