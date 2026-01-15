@@ -777,12 +777,11 @@ test.describe('Moderation E2E', () => {
       const confirmButton = modal.getByRole('button', { name: /confirm.*sync/i });
       await confirmButton.click();
 
-      // Wait for success message or progress indicator
+      // Wait for success message or progress indicator (inside modal)
       await expect(
-        page
+        modal
           .locator('[role="alert"]')
           .filter({ hasText: /success|synced|completed/i })
-          .or(page.getByText(/synced|completed/i))
       ).toBeVisible({ timeout: 10000 });
 
       // Verify audit log was created
@@ -895,9 +894,9 @@ test.describe('Moderation E2E', () => {
         const confirmButton = modal.getByRole('button', { name: /confirm.*sync/i });
         await confirmButton.click();
 
-        // Verify error message is displayed
+        // Verify error message is displayed (inside modal)
         await expect(
-          page.locator('[role="alert"]').filter({ hasText: /error|invalid|failed/i })
+          modal.locator('[role="alert"]').filter({ hasText: /error|invalid|failed/i })
         ).toBeVisible({ timeout: 5000 });
       }
     });
