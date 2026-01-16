@@ -334,13 +334,18 @@ export function BanListViewer({
             const banIdsArray = Array.from(selectedBanIds);
             
             // Execute unbans sequentially to avoid overwhelming the server
-            const results = await Promise.allSettled(
-                banIdsArray.map(banId => unbanUser(banId))
-            );
-
-            // Check results
-            const successful = results.filter(r => r.status === 'fulfilled').length;
-            const failed = results.filter(r => r.status === 'rejected').length;
+            let successful = 0;
+            let failed = 0;
+            
+            for (const banId of banIdsArray) {
+                try {
+                    await unbanUser(banId);
+                    successful++;
+                } catch (error) {
+                    console.error(`Failed to unban ${banId}:`, error);
+                    failed++;
+                }
+            }
 
             setBulkActionModalOpen(false);
             setSelectedBanIds(new Set());
