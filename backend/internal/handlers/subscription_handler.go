@@ -231,3 +231,133 @@ func (h *SubscriptionHandler) ChangeSubscriptionPlan(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Subscription plan changed successfully"})
 }
+
+// CancelSubscription cancels the user's subscription
+// @Summary Cancel subscription
+// @Description Cancels the authenticated user's subscription (immediate or at period end)
+// @Tags subscriptions
+// @Accept json
+// @Produce json
+// @Param request body models.CancelSubscriptionRequest true "Cancel subscription request"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/v1/subscriptions/cancel [post]
+func (h *SubscriptionHandler) CancelSubscription(c *gin.Context) {
+	// Get authenticated user from context
+	user, exists := c.Get("user")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	currentUser, ok := user.(*models.User)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user information"})
+		return
+	}
+
+	// Parse request
+	var req models.CancelSubscriptionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	// Cancel subscription
+	if err := h.subscriptionService.CancelSubscription(c.Request.Context(), currentUser, req.Immediate); err != nil {
+		log.Printf("Failed to cancel subscription: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	message := "Subscription will be canceled at the end of the billing period"
+	if req.Immediate {
+		message = "Subscription canceled immediately"
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": message})
+}
+
+// ReactivateSubscription reactivates a subscription scheduled for cancellation
+// @Summary Reactivate subscription
+// @Description Reactivates a subscription that was set to cancel at period end
+// @Tags subscriptions
+// @Produce json
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/v1/subscriptions/reactivate [post]
+func (h *SubscriptionHandler) ReactivateSubscription(c *gin.Context) {
+	// Get authenticated user from context
+	user, exists := c.Get("user")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	currentUser, ok := user.(*models.User)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user information"})
+		return
+	}
+
+	// Reactivate subscription
+	if err := h.subscriptionService.ReactivateSubscription(c.Request.Context(), currentUser); err != nil {
+		log.Printf("Failed to reactivate subscription: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Subscription reactivated successfully"})
+}
+
+// GetInvoices retrieves the user's invoices
+// @Summary Get invoices
+// @Description Retrieves the authenticated user's subscription invoices
+// @Tags subscriptions
+// @Produce json
+// @Param limit query int false "Number of invoices to retrieve (default: 10, max: 100)"
+// @Success 200 {array} stripe.Invoice
+// @Failure 401 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/v1/subscriptions/invoices [get]
+func (h *SubscriptionHandler) GetInvoices(c *gin.Context) {
+	// Get authenticated user from context
+	user, exists := c.Get("user")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	currentUser, ok := user.(*models.User)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user information"})
+		return
+	}
+
+	// Parse query parameters
+	var limit int64 = 10
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if parsedLimit, err := c.GetInt64("limit"); err == nil {
+			limit = parsedLimit
+		}
+	}
+
+	// Get invoices
+	invoices, err := h.subscriptionService.GetInvoices(c.Request.Context(), currentUser, limit)
+	if err != nil {
+		log.Printf("Failed to get invoices: %v", err)
+		if err == services.ErrSubscriptionNotFound || err == services.ErrStripeCustomerNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "No subscription found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve invoices"})
+		return
+	}
+
+	c.JSON(http.StatusOK, invoices)
+}
