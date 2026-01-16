@@ -190,7 +190,7 @@ export function SearchErrorAlert({
                     )}
 
                     {/* Action Buttons */}
-                    {type === 'error' && !isCircuitOpen && (
+                    {type === 'error' && !isCircuitOpen && onRetry && (
                         <div className='flex gap-2 flex-wrap'>
                         <button
                             onClick={handleRetry}

@@ -170,4 +170,85 @@ describe('SearchErrorAlert', () => {
     // Retry button should not be present
     expect(screen.queryByTestId('retry-search')).not.toBeInTheDocument();
   });
+
+  it('should display retry count indicator when retrying', () => {
+    render(<SearchErrorAlert type="error" retryCount={2} maxRetries={3} isRetrying={true} />);
+    
+    const retryCountIndicator = screen.getByTestId('retry-count-indicator');
+    expect(retryCountIndicator).toBeInTheDocument();
+    expect(retryCountIndicator).toHaveTextContent('Retrying 2/3');
+  });
+
+  it('should display retry count indicator after retry attempt', () => {
+    render(<SearchErrorAlert type="error" retryCount={1} maxRetries={3} isRetrying={false} />);
+    
+    const retryCountIndicator = screen.getByTestId('retry-count-indicator');
+    expect(retryCountIndicator).toBeInTheDocument();
+    expect(retryCountIndicator).toHaveTextContent('Retry 1/3');
+  });
+
+  it('should display progress bar when retrying', () => {
+    render(<SearchErrorAlert type="error" retryCount={2} maxRetries={3} isRetrying={true} />);
+    
+    const progressBar = screen.getByTestId('retry-progress-bar');
+    expect(progressBar).toBeInTheDocument();
+    
+    // Check progress bar has correct width
+    const progressBarInner = progressBar.querySelector('div');
+    expect(progressBarInner).toHaveStyle({ width: '66.66666666666666%' });
+  });
+
+  it('should show cancel button when retrying', () => {
+    const onCancelRetry = vi.fn();
+    render(<SearchErrorAlert type="error" isRetrying={true} onCancelRetry={onCancelRetry} />);
+    
+    const cancelButton = screen.getByTestId('cancel-retry');
+    expect(cancelButton).toBeInTheDocument();
+    expect(cancelButton).toHaveTextContent('Cancel');
+  });
+
+  it('should call onCancelRetry when cancel button is clicked', () => {
+    const onCancelRetry = vi.fn();
+    render(<SearchErrorAlert type="error" isRetrying={true} onCancelRetry={onCancelRetry} />);
+    
+    const cancelButton = screen.getByTestId('cancel-retry');
+    cancelButton.click();
+    
+    expect(onCancelRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not show cancel button when not retrying', () => {
+    const onCancelRetry = vi.fn();
+    render(<SearchErrorAlert type="error" isRetrying={false} onCancelRetry={onCancelRetry} />);
+    
+    expect(screen.queryByTestId('cancel-retry')).not.toBeInTheDocument();
+  });
+
+  it('should display circuit breaker status when circuit is open', () => {
+    render(<SearchErrorAlert type="error" isCircuitOpen={true} />);
+    
+    const circuitBreakerStatus = screen.getByTestId('circuit-breaker-status');
+    expect(circuitBreakerStatus).toBeInTheDocument();
+    expect(circuitBreakerStatus).toHaveTextContent('Service protection active');
+  });
+
+  it('should not show retry button when circuit breaker is open', () => {
+    render(<SearchErrorAlert type="error" isCircuitOpen={true} onRetry={vi.fn()} />);
+    
+    // Retry button should not be present when circuit is open
+    expect(screen.queryByTestId('retry-search')).not.toBeInTheDocument();
+  });
+
+  it('should have correct ARIA attributes for progress bar', () => {
+    render(<SearchErrorAlert type="error" retryCount={1} maxRetries={3} isRetrying={true} />);
+    
+    const progressBar = screen.getByTestId('retry-progress-bar');
+    const progressBarInner = progressBar.querySelector('div[role="progressbar"]');
+    
+    expect(progressBarInner).toHaveAttribute('role', 'progressbar');
+    expect(progressBarInner).toHaveAttribute('aria-valuenow', '1');
+    expect(progressBarInner).toHaveAttribute('aria-valuemin', '0');
+    expect(progressBarInner).toHaveAttribute('aria-valuemax', '3');
+    expect(progressBarInner).toHaveAttribute('aria-label', 'Retry progress: 1 of 3');
+  });
 });
