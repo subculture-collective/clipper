@@ -2,7 +2,12 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui';
+import { EmojiPicker } from '@/components/ui/EmojiPicker';
+import { MarkdownHelpModal } from '@/components/ui/MarkdownHelpModal';
 import { useCreateComment, useUpdateComment, useToast } from '@/hooks';
+import { useAutoSave, useDraftStorage } from '@/hooks/useAutoSave';
+import { validateAndNormalizeUrl } from '@/lib/url-validation';
+import { HelpCircle, Smile, Save } from 'lucide-react';
 
 interface CommentFormProps {
   clipId: string;
@@ -29,6 +34,8 @@ export const CommentForm: React.FC<CommentFormProps> = ({
 }) => {
   const [content, setContent] = React.useState(initialContent);
   const [showPreview, setShowPreview] = React.useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = React.useState(false);
+  const [showMarkdownHelp, setShowMarkdownHelp] = React.useState(false);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
   const { mutate: createComment, isPending: isCreating } = useCreateComment();
@@ -39,12 +46,36 @@ export const CommentForm: React.FC<CommentFormProps> = ({
   const maxLength = 5000;
   const isEmpty = content.trim().length === 0;
 
+  // Draft storage key
+  const draftKey = `comment-draft-${clipId}-${parentId || 'root'}`;
+  const { saveDraft, loadDraft, clearDraft } = useDraftStorage(draftKey);
+
+  // Auto-save functionality
+  const { status: autoSaveStatus, lastSaved } = useAutoSave(content, {
+    onSave: (content) => {
+      saveDraft(content);
+    },
+    interval: 30000, // 30 seconds
+    minLength: 1,
+  });
+
   // Generate default placeholder based on context
   const defaultPlaceholder = React.useMemo(() => {
     if (placeholder) return placeholder;
     if (parentId && parentUsername) return `Reply to @${parentUsername}...`;
     return 'Write a comment...';
   }, [placeholder, parentId, parentUsername]);
+
+  // Load draft on mount
+  React.useEffect(() => {
+    if (!editCommentId && !initialContent) {
+      const draft = loadDraft();
+      if (draft) {
+        setContent(draft);
+        toast.info('Draft restored');
+      }
+    }
+  }, [editCommentId, initialContent, loadDraft, toast]);
 
   React.useEffect(() => {
     // Focus textarea on mount
@@ -67,6 +98,7 @@ export const CommentForm: React.FC<CommentFormProps> = ({
         {
           onSuccess: () => {
             setContent('');
+            clearDraft(); // Clear draft on successful submit
             toast.success('Comment updated successfully');
             onSuccess?.();
           },
@@ -89,6 +121,7 @@ export const CommentForm: React.FC<CommentFormProps> = ({
         {
           onSuccess: () => {
             setContent('');
+            clearDraft(); // Clear draft on successful submit
             toast.success(parentId ? 'Reply posted successfully' : 'Comment posted successfully');
             onSuccess?.();
           },
@@ -141,6 +174,38 @@ export const CommentForm: React.FC<CommentFormProps> = ({
     }, 0);
   };
 
+  const insertLink = () => {
+    const url = prompt('Enter URL:');
+    if (!url) return;
+
+    const validatedUrl = validateAndNormalizeUrl(url);
+    if (!validatedUrl) {
+      toast.error('Invalid URL. Please enter a valid URL (e.g., https://example.com)');
+      return;
+    }
+
+    insertMarkdown('[', `](${validatedUrl})`);
+  };
+
+  const insertEmoji = (emoji: string) => {
+    if (!textareaRef.current) return;
+
+    const textarea = textareaRef.current;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const newText = content.substring(0, start) + emoji + content.substring(end);
+
+    setContent(newText);
+    setShowEmojiPicker(false);
+
+    // Restore focus and cursor position
+    setTimeout(() => {
+      textarea.focus();
+      const newCursorPos = start + emoji.length;
+      textarea.setSelectionRange(newCursorPos, newCursorPos);
+    }, 0);
+  };
+
   return (
     <form onSubmit={handleSubmit} className={cn('space-y-3', className)}>
       <div className="border border-border rounded-lg overflow-hidden">
@@ -173,9 +238,9 @@ export const CommentForm: React.FC<CommentFormProps> = ({
           <div className="w-px h-5 bg-border mx-1" />
           <button
             type="button"
-            onClick={() => insertMarkdown('[', '](url)')}
+            onClick={insertLink}
             className="p-1.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors text-sm"
-            title="Link"
+            title="Insert Link"
           >
             🔗
           </button>
@@ -196,7 +261,50 @@ export const CommentForm: React.FC<CommentFormProps> = ({
             {'</>'}
           </button>
 
+          <div className="w-px h-5 bg-border mx-1" />
+
+          {/* Emoji picker button */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              className="p-1.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+              title="Insert Emoji"
+              aria-label="Emoji picker"
+            >
+              <Smile className="w-4 h-4" />
+            </button>
+            {showEmojiPicker && (
+              <EmojiPicker
+                onEmojiSelect={insertEmoji}
+                onClose={() => setShowEmojiPicker(false)}
+                className="bottom-full mb-2 left-0"
+              />
+            )}
+          </div>
+
+          {/* Markdown help button */}
+          <button
+            type="button"
+            onClick={() => setShowMarkdownHelp(true)}
+            className="p-1.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+            title="Markdown Help"
+            aria-label="Markdown formatting guide"
+          >
+            <HelpCircle className="w-4 h-4" />
+          </button>
+
           <div className="flex-1" />
+
+          {/* Auto-save status */}
+          {autoSaveStatus !== 'idle' && (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground mr-2">
+              <Save className="w-3 h-3" />
+              {autoSaveStatus === 'saving' && 'Saving...'}
+              {autoSaveStatus === 'saved' && 'Saved'}
+              {autoSaveStatus === 'error' && 'Save failed'}
+            </div>
+          )}
 
           {/* Tab buttons */}
           <div className="flex gap-1">
@@ -311,7 +419,19 @@ export const CommentForm: React.FC<CommentFormProps> = ({
         <span className="text-xs text-muted-foreground ml-2">
           Tip: Press Ctrl+Enter to submit
         </span>
+
+        {lastSaved && (
+          <span className="text-xs text-muted-foreground ml-auto">
+            Last saved: {lastSaved.toLocaleTimeString()}
+          </span>
+        )}
       </div>
+
+      {/* Markdown Help Modal */}
+      <MarkdownHelpModal
+        isOpen={showMarkdownHelp}
+        onClose={() => setShowMarkdownHelp(false)}
+      />
     </form>
   );
 };

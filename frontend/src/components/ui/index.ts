@@ -80,3 +80,7 @@ export type { MutedIconProps } from './MutedIcon';
 export { DocHeader } from './DocHeader';
 
 export { DocTOC } from './DocTOC';
+
+export { EmojiPicker } from './EmojiPicker';
+
+export { MarkdownHelpModal } from './MarkdownHelpModal';
