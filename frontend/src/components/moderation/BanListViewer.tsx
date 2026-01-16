@@ -303,9 +303,7 @@ export function BanListViewer({
 
     // Bulk selection handlers
     const handleSelectAll = () => {
-        const activeBanIds = filteredAndSortedBans
-            .filter(ban => getBanStatus(ban) !== 'Expired')
-            .map(ban => ban.id);
+        const activeBanIds = activeBans.map(ban => ban.id);
         
         if (selectedBanIds.size === activeBanIds.length && activeBanIds.length > 0) {
             // If all are selected, deselect all
@@ -352,11 +350,11 @@ export function BanListViewer({
             
             if (failed === 0) {
                 setSuccessMessage(
-                    `Successfully unbanned ${successful} user${successful > 1 ? 's' : ''}`
+                    `Successfully unbanned ${successful} user${successful !== 1 ? 's' : ''}`
                 );
             } else {
                 setError(
-                    `Unbanned ${successful} user${successful > 1 ? 's' : ''}, but ${failed} failed`
+                    `Unbanned ${successful} user${successful !== 1 ? 's' : ''}, but ${failed} failed`
                 );
             }
             
@@ -398,6 +396,11 @@ export function BanListViewer({
                 return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400';
         }
     };
+
+    // Memoize active (non-expired) bans for bulk selection
+    const activeBans = useMemo(() => {
+        return filteredAndSortedBans.filter(ban => getBanStatus(ban) !== 'Expired');
+    }, [filteredAndSortedBans]);
 
     if (loading) {
         return (
@@ -583,7 +586,7 @@ export function BanListViewer({
                 <div className='rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-4'>
                     <div className='flex items-center justify-between'>
                         <div className='text-sm font-medium text-blue-800 dark:text-blue-400'>
-                            {selectedBanIds.size} ban{selectedBanIds.size > 1 ? 's' : ''} selected
+                            {selectedBanIds.size} ban{selectedBanIds.size !== 1 ? 's' : ''} selected
                         </div>
                         <div className='flex gap-2'>
                             <button
@@ -621,19 +624,12 @@ export function BanListViewer({
                                         type='checkbox'
                                         checked={
                                             selectedBanIds.size > 0 &&
-                                            selectedBanIds.size ===
-                                                filteredAndSortedBans.filter(
-                                                    ban => getBanStatus(ban) !== 'Expired'
-                                                ).length
+                                            selectedBanIds.size === activeBans.length
                                         }
                                         onChange={handleSelectAll}
                                         className='h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500'
                                         aria-label='Select all active bans'
-                                        disabled={
-                                            filteredAndSortedBans.filter(
-                                                ban => getBanStatus(ban) !== 'Expired'
-                                            ).length === 0
-                                        }
+                                        disabled={activeBans.length === 0}
                                     />
                                 </th>
                             )}
@@ -1014,7 +1010,7 @@ export function BanListViewer({
                             <>
                                 Are you sure you want to unban{' '}
                                 <strong>{selectedBanIds.size}</strong> user
-                                {selectedBanIds.size > 1 ? 's' : ''}?
+                                {selectedBanIds.size !== 1 ? 's' : ''}?
                             </>
                         )}
                     </p>

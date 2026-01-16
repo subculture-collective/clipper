@@ -1903,7 +1903,7 @@ test.describe('Moderation E2E', () => {
                 // Verify confirmation modal appears with count
                 const modal = page.getByRole('dialog');
                 await expect(modal).toBeVisible();
-                await expect(modal.getByText(/2 users?/i)).toBeVisible();
+                await expect(modal.getByText(/2 users/i)).toBeVisible();
                 await expect(
                     modal.getByText(/cannot be undone/i)
                 ).toBeVisible();
@@ -1963,6 +1963,57 @@ test.describe('Moderation E2E', () => {
                 // Verify dialog shows correct count
                 const modal = page.getByRole('dialog');
                 await expect(modal.getByText(/5 users/i)).toBeVisible();
+
+                // Cancel action
+                await modal
+                    .getByRole('button', { name: /cancel/i })
+                    .first()
+                    .click();
+                await expect(modal).not.toBeVisible();
+            });
+
+            test('confirmation dialog shows singular form for single user', async ({
+                page,
+            }) => {
+                const mocks = await setupModerationMocks(page);
+
+                const moderatorUser: MockUser = {
+                    id: 'moderator-1',
+                    username: 'moderatoruser',
+                    email: 'moderator@example.com',
+                    role: 'moderator',
+                    karma_points: 200,
+                    is_banned: false,
+                };
+                mocks.setCurrentUser(moderatorUser);
+
+                // Seed only 1 ban
+                mocks.seedBan({
+                    id: 'ban-1',
+                    user_id: 'user-1',
+                    target_username: 'user1',
+                    channel_id: 'channel-1',
+                    reason: 'Test reason',
+                    created_at: new Date().toISOString(),
+                    created_by: 'moderator-1',
+                    is_active: true,
+                });
+
+                await page.goto('/admin/bans');
+                await page.waitForLoadState('networkidle');
+
+                // Select the single ban
+                await page.getByLabel(/select ban for user1/i).first().check();
+
+                // Verify toolbar shows singular
+                await expect(page.getByText(/1 ban selected/i)).toBeVisible();
+
+                // Open bulk unban dialog
+                await page.getByRole('button', { name: /bulk unban/i }).click();
+
+                // Verify dialog shows singular form
+                const modal = page.getByRole('dialog');
+                await expect(modal.getByText(/1 user[^s]/i)).toBeVisible();
 
                 // Cancel action
                 await modal
