@@ -96,7 +96,7 @@ export function SearchPage() {
     }, []);
 
     // Search error state management
-    const { errorState, handleSearchError, handleSearchSuccess, retry, dismissError } = useSearchErrorState();
+    const { errorState, handleSearchError, handleSearchSuccess, retry, cancelRetry, dismissError } = useSearchErrorState();
 
     // Fetch search results
     const { data, isLoading, error, refetch } = useQuery<SearchResponse>({
@@ -123,13 +123,24 @@ export function SearchPage() {
                 handleSearchSuccess();
                 return result;
             } catch (err) {
-                handleSearchError(err);
+                // Enable automatic retry on error
+                handleSearchError(err, { autoRetry: true });
                 throw err;
             }
         },
         enabled: query.length > 0,
         retry: false, // We handle retries manually
     });
+
+    // Auto-retry on error if retry count < max
+    useEffect(() => {
+        if (error && errorState.type === 'error' && !errorState.isRetrying && 
+            errorState.retryCount < errorState.maxRetries && !errorState.isCircuitOpen) {
+            // Trigger automatic retry
+            retry(() => refetch());
+        }
+    }, [error, errorState.type, errorState.isRetrying, errorState.retryCount, 
+        errorState.maxRetries, errorState.isCircuitOpen, retry, refetch]);
 
     // Update tab when type param changes
     useEffect(() => {
@@ -395,9 +406,13 @@ export function SearchPage() {
                     <SearchErrorAlert
                         type={errorState.type}
                         message={errorState.message}
+                        retryCount={errorState.retryCount}
+                        maxRetries={errorState.maxRetries}
                         onRetry={handleRetry}
                         isRetrying={errorState.isRetrying}
+                        onCancelRetry={cancelRetry}
                         onDismiss={dismissError}
+                        isCircuitOpen={errorState.isCircuitOpen}
                     />
 
                     {/* Loading State */}
