@@ -1441,10 +1441,8 @@ func (h *ModerationHandler) GetModerationAnalytics(c *gin.Context) {
 	)
 	if err == nil && appealStats.TotalAppeals > 0 {
 		// Calculate false positive rate (approved appeals / total appeals)
-		if appealStats.TotalAppeals > 0 {
-			rate := float64(appealStats.ApprovedAppeals) / float64(appealStats.TotalAppeals) * 100
-			appealStats.FalsePositiveRate = &rate
-		}
+		rate := float64(appealStats.ApprovedAppeals) / float64(appealStats.TotalAppeals) * 100
+		appealStats.FalsePositiveRate = &rate
 		analytics.Appeals = appealStats
 	}
 

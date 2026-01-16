@@ -137,16 +137,10 @@ export function ModerationAnalyticsDashboard() {
             {/* Charts Grid */}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 {/* Actions by Type */}
-                <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-                    <h3 className="mb-4 text-lg font-bold text-gray-900">
-                        Actions by Type
-                    </h3>
-                    <PieChartComponent
-                        data={actionTypeData}
-                        nameKey="name"
-                        dataKey="value"
-                    />
-                </div>
+                <PieChartComponent
+                    data={actionTypeData}
+                    title="Actions by Type"
+                />
 
                 {/* Top Moderators */}
                 <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
@@ -189,16 +183,10 @@ export function ModerationAnalyticsDashboard() {
 
                 {/* Ban Reasons Distribution */}
                 {banReasonsData.length > 0 && (
-                    <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-                        <h3 className="mb-4 text-lg font-bold text-gray-900">
-                            Ban Reasons Distribution
-                        </h3>
-                        <PieChartComponent
-                            data={banReasonsData}
-                            nameKey="name"
-                            dataKey="value"
-                        />
-                    </div>
+                    <PieChartComponent
+                        data={banReasonsData}
+                        title="Ban Reasons Distribution"
+                    />
                 )}
 
                 {/* Most Banned Users */}
