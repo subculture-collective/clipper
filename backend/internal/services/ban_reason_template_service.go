@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/subculture-collective/clipper/backend/internal/models"
 	"github.com/subculture-collective/clipper/backend/internal/repository"
 	"github.com/subculture-collective/clipper/backend/pkg/utils"
@@ -78,8 +79,9 @@ func (s *BanReasonTemplateService) CreateTemplate(ctx context.Context, userID uu
 	
 	err := s.repo.Create(ctx, template)
 	if err != nil {
-		// Check if it's a unique constraint violation
-		if err.Error() == "UNIQUE constraint failed: ban_reason_templates.broadcaster_id, ban_reason_templates.name" {
+		// Check if it's a unique constraint violation (PostgreSQL error code 23505)
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 			return nil, ErrTemplateNameExists
 		}
 		return nil, fmt.Errorf("failed to create template: %w", err)
