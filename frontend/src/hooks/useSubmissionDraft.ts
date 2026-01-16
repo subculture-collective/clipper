@@ -11,7 +11,7 @@ export interface SubmissionDraft {
     lastSaved: number;
 }
 
-export function useSubmissionDraft(initialFormData: SubmitClipRequest) {
+export function useSubmissionDraft() {
     const [hasDraft, setHasDraft] = useState(false);
     const [lastSaved, setLastSaved] = useState<number | null>(null);
     const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);

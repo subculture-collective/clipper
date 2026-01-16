@@ -129,7 +129,7 @@ export function SubmitClipPage() {
         useState(true);
 
     // Draft management
-    const draft = useSubmissionDraft(formData);
+    const draft = useSubmissionDraft();
     const [showDraftRestored, setShowDraftRestored] = useState(false);
 
     // Check if user is authenticated and has enough karma
