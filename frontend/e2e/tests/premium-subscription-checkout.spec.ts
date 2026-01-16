@@ -244,8 +244,8 @@ test.describe('Premium Subscription - Success Page', () => {
 
 test.describe('Premium Subscription - Entitlements', () => {
   test('should enable pro features after successful purchase', async ({ authenticatedPage }) => {
-    // This test requires a completed subscription
-    // Skip if not in integration test environment
+    // Skip this test if Stripe is not configured
+    // This test requires a completed subscription to verify pro feature access
     const stripeKey = process.env.VITE_STRIPE_PUBLISHABLE_KEY;
     if (!stripeKey || !stripeKey.startsWith('pk_test_')) {
       test.skip();
