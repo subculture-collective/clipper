@@ -47,6 +47,13 @@ describe('isValidUrl', () => {
     expect(isValidUrl('http://192.168.1.1:8080/path')).toBe(true);
   });
 
+  it('should reject invalid IP addresses', () => {
+    expect(isValidUrl('999.999.999.999')).toBe(false);
+    expect(isValidUrl('256.1.1.1')).toBe(false);
+    expect(isValidUrl('192.168.1.256')).toBe(false);
+    expect(isValidUrl('1.2.3.999')).toBe(false);
+  });
+
   it('should reject potentially malicious URLs', () => {
     // javascript: protocol
     expect(isValidUrl('javascript:alert(1)')).toBe(false);

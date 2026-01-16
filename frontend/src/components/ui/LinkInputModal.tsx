@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Modal } from './Modal';
 import { Input } from './Input';
 import { Button } from './Button';
+import { validateAndNormalizeUrl } from '@/lib/url-validation';
 
 interface LinkInputModalProps {
   isOpen: boolean;
@@ -25,8 +26,15 @@ export const LinkInputModal: React.FC<LinkInputModalProps> = ({ isOpen, onClose,
       return;
     }
 
+    // Validate and normalize the URL before inserting
+    const validatedUrl = validateAndNormalizeUrl(url.trim());
+    if (!validatedUrl) {
+      setError('Invalid URL. Please enter a valid URL (e.g., https://example.com)');
+      return;
+    }
+
     setError('');
-    onInsert(url.trim(), text.trim());
+    onInsert(validatedUrl, text.trim());
     
     // Reset form
     setUrl('');

@@ -28,10 +28,16 @@ export function isValidUrl(url: string): boolean {
     return true;
   }
 
-  // IP address with optional port and path
-  const ipPattern = /^\d{1,3}(?:\.\d{1,3}){3}(?::\d{1,5})?(?:\/[^\s]*)?$/;
+  // IP address with optional port and path - validate octets are 0-255
+  const ipPattern = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})(?::\d{1,5})?(?:\/[^\s]*)?$/;
   if (ipPattern.test(url)) {
-    return true;
+    const match = url.match(ipPattern);
+    if (match) {
+      const octets = [match[1], match[2], match[3], match[4]].map(Number);
+      if (octets.every(octet => octet >= 0 && octet <= 255)) {
+        return true;
+      }
+    }
   }
 
   // Domain with optional www, port, and path

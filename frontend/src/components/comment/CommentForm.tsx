@@ -183,14 +183,9 @@ export const CommentForm: React.FC<CommentFormProps> = ({
   };
 
   const insertLink = (url: string, linkText: string) => {
-    const validatedUrl = validateAndNormalizeUrl(url);
-    if (!validatedUrl) {
-      toast.error('Invalid URL. Please enter a valid URL (e.g., https://example.com)');
-      return;
-    }
-
-    const displayText = linkText || validatedUrl;
-    insertMarkdown(`[${displayText}](`, `${validatedUrl})`);
+    // URL is already validated and normalized by LinkInputModal
+    const displayText = linkText || url;
+    insertMarkdown(`[${displayText}](`, `${url})`);
   };
 
   const insertEmoji = (emoji: string) => {
