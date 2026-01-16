@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from '@/components/ui/Modal';
+import { getBanReasonTemplates, type BanReasonTemplate } from '@/lib/moderation-api';
 
 interface BanModalProps {
   isOpen: boolean;
@@ -7,6 +8,7 @@ interface BanModalProps {
   onBan: (durationMinutes: number | null, reason: string) => Promise<void>;
   username: string;
   title?: string;
+  broadcasterID?: string; // Optional broadcaster ID for loading channel-specific templates
 }
 
 const DURATION_OPTIONS = [
@@ -24,11 +26,48 @@ export const BanModal: React.FC<BanModalProps> = ({
   onBan,
   username,
   title = 'Ban User',
+  broadcasterID,
 }) => {
   const [reason, setReason] = useState('');
   const [duration, setDuration] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [templates, setTemplates] = useState<BanReasonTemplate[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+
+  // Fetch templates when modal opens
+  useEffect(() => {
+    if (isOpen && templates.length === 0) {
+      setTemplatesLoading(true);
+      getBanReasonTemplates(broadcasterID, true)
+        .then(response => {
+          setTemplates(response.templates);
+        })
+        .catch(err => {
+          console.error('Failed to load templates:', err);
+        })
+        .finally(() => {
+          setTemplatesLoading(false);
+        });
+    }
+  }, [isOpen, broadcasterID, templates.length]);
+  
+  // Apply template when selected
+  useEffect(() => {
+    if (selectedTemplate && templates.length > 0) {
+      const template = templates.find(t => t.id === selectedTemplate);
+      if (template) {
+        setReason(template.reason);
+        // Convert seconds to minutes
+        if (template.duration_seconds === null || template.duration_seconds === undefined) {
+          setDuration(null); // Permanent
+        } else {
+          setDuration(Math.round(template.duration_seconds / 60));
+        }
+      }
+    }
+  }, [selectedTemplate, templates]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,6 +78,7 @@ export const BanModal: React.FC<BanModalProps> = ({
       await onBan(duration, reason);
       setReason('');
       setDuration(null);
+      setSelectedTemplate('');
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to ban user');
@@ -56,6 +96,32 @@ export const BanModal: React.FC<BanModalProps> = ({
           </p>
 
           <div className="space-y-4">
+            {/* Template Selection */}
+            <div>
+              <label htmlFor="template-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Ban Reason Template (Optional)
+              </label>
+              <select
+                id="template-select"
+                value={selectedTemplate}
+                onChange={(e) => setSelectedTemplate(e.target.value)}
+                disabled={isSubmitting || templatesLoading}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">-- Select a template --</option>
+                {templates.map((template) => (
+                  <option key={template.id} value={template.id}>
+                    {template.name} {template.is_default ? '(Default)' : ''}
+                  </option>
+                ))}
+              </select>
+              {templatesLoading && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Loading templates...
+                </p>
+              )}
+            </div>
+
             <div>
               <label htmlFor="duration" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Ban Duration

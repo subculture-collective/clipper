@@ -582,3 +582,119 @@ export async function unbanUserOnTwitch(
     );
     return response.data;
 }
+
+// ==================== BAN REASON TEMPLATES ====================
+
+export interface BanReasonTemplate {
+    id: string;
+    name: string;
+    reason: string;
+    duration_seconds?: number | null;
+    is_default: boolean;
+    broadcaster_id?: string | null;
+    created_by?: string | null;
+    created_at: string;
+    updated_at: string;
+    usage_count: number;
+    last_used_at?: string | null;
+}
+
+export interface CreateBanReasonTemplateRequest {
+    name: string;
+    reason: string;
+    duration_seconds?: number | null;
+    broadcaster_id?: string | null;
+}
+
+export interface UpdateBanReasonTemplateRequest {
+    name?: string;
+    reason?: string;
+    duration_seconds?: number | null;
+}
+
+export interface BanReasonTemplatesResponse {
+    templates: BanReasonTemplate[];
+}
+
+/**
+ * Get all ban reason templates
+ */
+export async function getBanReasonTemplates(
+    broadcasterID?: string,
+    includeDefaults: boolean = true
+): Promise<BanReasonTemplatesResponse> {
+    const params = new URLSearchParams({
+        includeDefaults: includeDefaults.toString(),
+    });
+    
+    if (broadcasterID) {
+        params.append('broadcasterID', broadcasterID);
+    }
+
+    const response = await apiClient.get<BanReasonTemplatesResponse>(
+        `/moderation/ban-templates?${params.toString()}`
+    );
+    return response.data;
+}
+
+/**
+ * Get a specific ban reason template by ID
+ */
+export async function getBanReasonTemplate(id: string): Promise<BanReasonTemplate> {
+    const response = await apiClient.get<BanReasonTemplate>(
+        `/moderation/ban-templates/${id}`
+    );
+    return response.data;
+}
+
+/**
+ * Create a new ban reason template
+ */
+export async function createBanReasonTemplate(
+    request: CreateBanReasonTemplateRequest
+): Promise<BanReasonTemplate> {
+    const response = await apiClient.post<BanReasonTemplate>(
+        '/moderation/ban-templates',
+        request
+    );
+    return response.data;
+}
+
+/**
+ * Update an existing ban reason template
+ */
+export async function updateBanReasonTemplate(
+    id: string,
+    request: UpdateBanReasonTemplateRequest
+): Promise<BanReasonTemplate> {
+    const response = await apiClient.patch<BanReasonTemplate>(
+        `/moderation/ban-templates/${id}`,
+        request
+    );
+    return response.data;
+}
+
+/**
+ * Delete a ban reason template
+ */
+export async function deleteBanReasonTemplate(id: string): Promise<void> {
+    await apiClient.delete(`/moderation/ban-templates/${id}`);
+}
+
+/**
+ * Get usage statistics for ban reason templates
+ */
+export async function getBanReasonTemplateStats(
+    broadcasterID?: string
+): Promise<BanReasonTemplatesResponse> {
+    const params = new URLSearchParams();
+    
+    if (broadcasterID) {
+        params.append('broadcasterID', broadcasterID);
+    }
+
+    const response = await apiClient.get<BanReasonTemplatesResponse>(
+        `/moderation/ban-templates/stats?${params.toString()}`
+    );
+    return response.data;
+}
