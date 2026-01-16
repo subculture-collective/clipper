@@ -58,6 +58,12 @@ export function BanListViewer({
     const [detailsModalOpen, setDetailsModalOpen] = useState(false);
     const [selectedBan, setSelectedBan] = useState<ChatBan | null>(null);
 
+    // Bulk actions state
+    const [selectedBanIds, setSelectedBanIds] = useState<Set<string>>(new Set());
+    const [bulkActionModalOpen, setBulkActionModalOpen] = useState(false);
+    const [bulkActionType, setBulkActionType] = useState<'unban' | null>(null);
+    const [bulkActionInProgress, setBulkActionInProgress] = useState(false);
+
     const loadBans = useCallback(async () => {
         try {
             setLoading(true);
@@ -291,6 +297,78 @@ export function BanListViewer({
 
     const handlePageChange = (newPage: number) => {
         setPage(newPage);
+        // Clear selection when changing pages to avoid confusion
+        setSelectedBanIds(new Set());
+    };
+
+    // Bulk selection handlers
+    const handleSelectAll = () => {
+        const activeBanIds = filteredAndSortedBans
+            .filter(ban => getBanStatus(ban) !== 'Expired')
+            .map(ban => ban.id);
+        
+        if (selectedBanIds.size === activeBanIds.length && activeBanIds.length > 0) {
+            // If all are selected, deselect all
+            setSelectedBanIds(new Set());
+        } else {
+            // Select all active bans
+            setSelectedBanIds(new Set(activeBanIds));
+        }
+    };
+
+    const handleSelectBan = (banId: string) => {
+        const newSelection = new Set(selectedBanIds);
+        if (newSelection.has(banId)) {
+            newSelection.delete(banId);
+        } else {
+            newSelection.add(banId);
+        }
+        setSelectedBanIds(newSelection);
+    };
+
+    const handleBulkUnban = async () => {
+        if (selectedBanIds.size === 0) return;
+
+        try {
+            setBulkActionInProgress(true);
+            const banIdsArray = Array.from(selectedBanIds);
+            
+            // Execute unbans sequentially to avoid overwhelming the server
+            const results = await Promise.allSettled(
+                banIdsArray.map(banId => unbanUser(banId))
+            );
+
+            // Check results
+            const successful = results.filter(r => r.status === 'fulfilled').length;
+            const failed = results.filter(r => r.status === 'rejected').length;
+
+            setBulkActionModalOpen(false);
+            setSelectedBanIds(new Set());
+            
+            if (failed === 0) {
+                setSuccessMessage(
+                    `Successfully unbanned ${successful} user${successful > 1 ? 's' : ''}`
+                );
+            } else {
+                setError(
+                    `Unbanned ${successful} user${successful > 1 ? 's' : ''}, but ${failed} failed`
+                );
+            }
+            
+            setPage(1); // Reset to first page
+            await loadBans(); // Reload the list
+        } catch (err) {
+            setError(
+                err instanceof Error ? err.message : 'Failed to perform bulk unban'
+            );
+        } finally {
+            setBulkActionInProgress(false);
+        }
+    };
+
+    const openBulkActionModal = (actionType: 'unban') => {
+        setBulkActionType(actionType);
+        setBulkActionModalOpen(true);
     };
 
     const totalPages = Math.ceil(total / limit);
@@ -495,6 +573,32 @@ export function BanListViewer({
                 </div>
             )}
 
+            {/* Bulk Actions Toolbar */}
+            {canManage && selectedBanIds.size > 0 && (
+                <div className='rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-4'>
+                    <div className='flex items-center justify-between'>
+                        <div className='text-sm font-medium text-blue-800 dark:text-blue-400'>
+                            {selectedBanIds.size} ban{selectedBanIds.size > 1 ? 's' : ''} selected
+                        </div>
+                        <div className='flex gap-2'>
+                            <button
+                                onClick={() => setSelectedBanIds(new Set())}
+                                className='px-3 py-1.5 text-sm font-medium text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-100'
+                            >
+                                Clear Selection
+                            </button>
+                            <button
+                                onClick={() => openBulkActionModal('unban')}
+                                disabled={bulkActionInProgress}
+                                className='rounded bg-red-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-gray-400'
+                            >
+                                {bulkActionInProgress ? 'Processing...' : 'Bulk Unban'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Table */}
             <div className='overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'>
                 <table
@@ -503,6 +607,31 @@ export function BanListViewer({
                 >
                     <thead className='bg-gray-50 dark:bg-gray-900'>
                         <tr>
+                            {canManage && (
+                                <th
+                                    className='px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400'
+                                    role='columnheader'
+                                >
+                                    <input
+                                        type='checkbox'
+                                        checked={
+                                            selectedBanIds.size > 0 &&
+                                            selectedBanIds.size ===
+                                                filteredAndSortedBans.filter(
+                                                    ban => getBanStatus(ban) !== 'Expired'
+                                                ).length
+                                        }
+                                        onChange={handleSelectAll}
+                                        className='h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500'
+                                        aria-label='Select all active bans'
+                                        disabled={
+                                            filteredAndSortedBans.filter(
+                                                ban => getBanStatus(ban) !== 'Expired'
+                                            ).length === 0
+                                        }
+                                    />
+                                </th>
+                            )}
                             <th
                                 className='px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800'
                                 onClick={() => handleSort('username')}
@@ -593,7 +722,7 @@ export function BanListViewer({
                         {filteredAndSortedBans.length === 0 ? (
                             <tr>
                                 <td
-                                    colSpan={7}
+                                    colSpan={canManage ? 8 : 7}
                                     className='px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400'
                                 >
                                     No bans available
@@ -602,11 +731,27 @@ export function BanListViewer({
                         ) : (
                             filteredAndSortedBans.map(ban => {
                                 const status = getBanStatus(ban);
+                                const isExpired = status === 'Expired';
+                                const isSelected = selectedBanIds.has(ban.id);
                                 return (
                                     <tr
                                         key={ban.id}
                                         className='hover:bg-gray-50 dark:hover:bg-gray-700'
                                     >
+                                        {canManage && (
+                                            <td className='px-6 py-4 whitespace-nowrap'>
+                                                <input
+                                                    type='checkbox'
+                                                    checked={isSelected}
+                                                    onChange={() => handleSelectBan(ban.id)}
+                                                    disabled={isExpired}
+                                                    className='h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50'
+                                                    aria-label={`Select ban for ${
+                                                        ban.target_username || ban.user_id
+                                                    }`}
+                                                />
+                                            </td>
+                                        )}
                                         <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100'>
                                             {ban.target_username || ban.user_id}
                                         </td>
@@ -849,6 +994,56 @@ export function BanListViewer({
                         </div>
                     </div>
                 )}
+            </Modal>
+
+            {/* Bulk Action Confirmation Modal */}
+            <Modal
+                open={bulkActionModalOpen}
+                onClose={() => !bulkActionInProgress && setBulkActionModalOpen(false)}
+                title='Confirm Bulk Action'
+                size='md'
+            >
+                <div className='space-y-4'>
+                    <p className='text-sm text-gray-600 dark:text-gray-400'>
+                        {bulkActionType === 'unban' && (
+                            <>
+                                Are you sure you want to unban{' '}
+                                <strong>{selectedBanIds.size}</strong> user
+                                {selectedBanIds.size > 1 ? 's' : ''}?
+                            </>
+                        )}
+                    </p>
+                    <div className='rounded bg-yellow-50 dark:bg-yellow-900/20 p-3'>
+                        <p className='text-xs text-yellow-800 dark:text-yellow-400'>
+                            This action cannot be undone. The selected users will
+                            immediately regain access to the channel.
+                        </p>
+                    </div>
+                    {bulkActionInProgress && (
+                        <div className='flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400'>
+                            <div className='h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600'></div>
+                            <span>Processing bulk action...</span>
+                        </div>
+                    )}
+                    <div className='flex justify-end space-x-3 pt-4'>
+                        <button
+                            type='button'
+                            onClick={() => setBulkActionModalOpen(false)}
+                            disabled={bulkActionInProgress}
+                            className='px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed'
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type='button'
+                            onClick={handleBulkUnban}
+                            disabled={bulkActionInProgress}
+                            className='px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed'
+                        >
+                            {bulkActionInProgress ? 'Processing...' : 'Confirm Bulk Unban'}
+                        </button>
+                    </div>
+                </div>
             </Modal>
         </div>
     );
