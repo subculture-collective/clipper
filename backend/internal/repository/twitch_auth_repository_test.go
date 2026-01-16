@@ -18,7 +18,7 @@ func setupTwitchAuthTestDB(t *testing.T) (*pgxpool.Pool, func()) {
 	// Build connection string from environment or defaults
 	connString := os.Getenv("TEST_DATABASE_URL")
 	if connString == "" {
-		connString = "postgres://clipper:clipper_password@localhost:5436/clipper_db?sslmode=disable"
+		connString = "postgres://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable"
 	}
 
 	pool, err := pgxpool.New(context.Background(), connString)
@@ -50,6 +50,7 @@ func insertTestUser(t *testing.T, pool *pgxpool.Pool, userID uuid.UUID) {
 	_, err := pool.Exec(ctx, `
 		INSERT INTO users (id, twitch_id, username, display_name, role, account_type)
 		VALUES ($1, $2, $3, $4, $5, $6)
+		ON CONFLICT (id) DO NOTHING
 	`, userID, fmt.Sprintf("twitch_%s", prefix), fmt.Sprintf("user_%s", prefix), fmt.Sprintf("Test User %s", prefix), "user", "member")
 	if err != nil {
 		t.Fatalf("Failed to insert test user: %v", err)
@@ -82,6 +83,7 @@ func TestTwitchAuthRepository_UpsertTwitchAuth(t *testing.T) {
 		TwitchUsername: twitchUsername,
 		AccessToken:    "test_access_token",
 		RefreshToken:   "test_refresh_token",
+		Scopes:         "chat:read chat:edit moderator:manage:banned_users channel:manage:banned_users",
 		ExpiresAt:      expiresAt,
 	}
 
@@ -127,6 +129,7 @@ func TestTwitchAuthRepository_GetTwitchAuth(t *testing.T) {
 	twitchUserID := fmt.Sprintf("tw_%s", userID.String()[:8])
 	twitchUsername := fmt.Sprintf("testuser_%s", userID.String()[:8])
 	expiresAt := time.Now().Add(4 * time.Hour)
+	scopes := "chat:read chat:edit moderator:manage:banned_users channel:manage:banned_users"
 
 	auth := &models.TwitchAuth{
 		UserID:         userID,
@@ -134,6 +137,7 @@ func TestTwitchAuthRepository_GetTwitchAuth(t *testing.T) {
 		TwitchUsername: twitchUsername,
 		AccessToken:    "test_access_token_2",
 		RefreshToken:   "test_refresh_token_2",
+		Scopes:         scopes,
 		ExpiresAt:      expiresAt,
 	}
 
@@ -170,6 +174,9 @@ func TestTwitchAuthRepository_GetTwitchAuth(t *testing.T) {
 	if retrieved.AccessToken != "test_access_token_2" {
 		t.Errorf("Expected AccessToken 'test_access_token_2', got '%s'", retrieved.AccessToken)
 	}
+	if retrieved.Scopes != scopes {
+		t.Errorf("Expected Scopes '%s', got '%s'", scopes, retrieved.Scopes)
+	}
 
 	// Test non-existent user
 	nonExistentID := uuid.New()
@@ -204,6 +211,7 @@ func TestTwitchAuthRepository_RefreshToken(t *testing.T) {
 		TwitchUsername: twitchUsername,
 		AccessToken:    "old_access_token",
 		RefreshToken:   "old_refresh_token",
+		Scopes:         "chat:read chat:edit",
 		ExpiresAt:      expiresAt,
 	}
 
@@ -218,9 +226,10 @@ func TestTwitchAuthRepository_RefreshToken(t *testing.T) {
 		t.Fatalf("Failed to insert twitch auth: %v", err)
 	}
 
-	// Refresh token
+	// Refresh token with new scopes
 	newExpiresAt := time.Now().Add(8 * time.Hour)
-	err = repo.RefreshToken(ctx, userID, "new_access_token", "new_refresh_token", newExpiresAt)
+	newScopes := "chat:read chat:edit moderator:manage:banned_users channel:manage:banned_users"
+	err = repo.RefreshToken(ctx, userID, "new_access_token", "new_refresh_token", newScopes, newExpiresAt)
 	if err != nil {
 		t.Fatalf("Failed to refresh token: %v", err)
 	}
@@ -236,6 +245,9 @@ func TestTwitchAuthRepository_RefreshToken(t *testing.T) {
 	}
 	if retrieved.RefreshToken != "new_refresh_token" {
 		t.Errorf("Expected RefreshToken 'new_refresh_token', got '%s'", retrieved.RefreshToken)
+	}
+	if retrieved.Scopes != newScopes {
+		t.Errorf("Expected Scopes '%s', got '%s'", newScopes, retrieved.Scopes)
 	}
 }
 
@@ -302,6 +314,7 @@ func TestTwitchAuthRepository_DeleteTwitchAuth(t *testing.T) {
 		TwitchUsername: twitchUsername,
 		AccessToken:    "test_access_token_4",
 		RefreshToken:   "test_refresh_token_4",
+		Scopes:         "chat:read chat:edit",
 		ExpiresAt:      expiresAt,
 	}
 

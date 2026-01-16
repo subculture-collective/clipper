@@ -1,20 +1,54 @@
 import { useEffect, useState, useCallback } from 'react';
 import { format, subDays } from 'date-fns';
 import {
-    getModerationAuditLogs,
-    type ModerationDecisionWithDetails,
+    getAuditLogs,
+    exportAuditLogs,
+    type AuditLogEntry,
 } from '../../lib/moderation-api';
+import {
+    Shield,
+    Ban,
+    AlertTriangle,
+    CheckCircle,
+    XCircle,
+    Clock,
+    Download,
+    RefreshCw,
+    Search,
+    Filter,
+    ChevronLeft,
+    ChevronRight,
+} from 'lucide-react';
+
+interface AuditLogFilters {
+    actor: string;
+    action: string;
+    target: string;
+    startDate: string;
+    endDate: string;
+    search: string;
+    limit: number;
+    offset: number;
+}
+
+// Utility function to truncate IDs for display
+const truncateId = (id: string, length: number = 8): string => {
+    return id.length > length ? `${id.substring(0, length)}...` : id;
+};
 
 export function AuditLogViewer() {
-    const [logs, setLogs] = useState<ModerationDecisionWithDetails[]>([]);
+    const [logs, setLogs] = useState<AuditLogEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [total, setTotal] = useState(0);
-    const [filters, setFilters] = useState({
-        moderator_id: '',
+    const [exporting, setExporting] = useState(false);
+    const [filters, setFilters] = useState<AuditLogFilters>({
+        actor: '',
         action: '',
-        start_date: format(subDays(new Date(), 30), 'yyyy-MM-dd'),
-        end_date: format(new Date(), 'yyyy-MM-dd'),
+        target: '',
+        startDate: format(subDays(new Date(), 30), 'yyyy-MM-dd'),
+        endDate: format(new Date(), 'yyyy-MM-dd'),
+        search: '',
         limit: 50,
         offset: 0,
     });
@@ -23,9 +57,19 @@ export function AuditLogViewer() {
         try {
             setLoading(true);
             setError(null);
-            const response = await getModerationAuditLogs(filters);
-            setLogs(response.data);
-            setTotal(response.meta.total);
+            // Convert date filters to RFC3339 format for API consistency
+            const apiFilters = {
+                ...filters,
+                startDate: filters.startDate
+                    ? new Date(filters.startDate + 'T00:00:00').toISOString()
+                    : '',
+                endDate: filters.endDate
+                    ? new Date(filters.endDate + 'T23:59:59').toISOString()
+                    : '',
+            };
+            const response = await getAuditLogs(apiFilters);
+            setLogs(response.logs);
+            setTotal(response.total);
         } catch (err) {
             setError('Failed to load audit logs');
             console.error('Audit logs error:', err);
@@ -38,51 +82,97 @@ export function AuditLogViewer() {
         loadLogs();
     }, [loadLogs]);
 
-    const handleExportCSV = () => {
-        if (logs.length === 0) return;
+    const handleExportCSV = async () => {
+        try {
+            setExporting(true);
+            // Convert date filters to RFC3339 format for API consistency
+            const blob = await exportAuditLogs({
+                actor: filters.actor || undefined,
+                action: filters.action || undefined,
+                target: filters.target || undefined,
+                startDate: filters.startDate
+                    ? new Date(filters.startDate + 'T00:00:00').toISOString()
+                    : undefined,
+                endDate: filters.endDate
+                    ? new Date(filters.endDate + 'T23:59:59').toISOString()
+                    : undefined,
+                search: filters.search || undefined,
+            });
 
-        // Create CSV header
-        const headers = [
-            'Timestamp',
-            'Moderator',
-            'Action',
-            'Content Type',
-            'Content ID',
-            'Reason',
-        ];
+            // Download file
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute(
+                'download',
+                `audit-logs-${format(new Date(), 'yyyy-MM-dd-HHmmss')}.csv`
+            );
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error('Export error:', err);
+            setError('Failed to export audit logs');
+        } finally {
+            setExporting(false);
+        }
+    };
 
-        // Create CSV rows
-        const rows = logs.map((log) => [
-            format(new Date(log.created_at), 'yyyy-MM-dd HH:mm:ss'),
-            log.moderator_name,
-            log.action,
-            log.content_type,
-            log.content_id,
-            log.reason || '',
-        ]);
+    const getActionIcon = (action: string) => {
+        const iconClass = 'h-4 w-4';
+        switch (action.toLowerCase()) {
+            case 'ban':
+            case 'user_banned':
+                return <Ban className={iconClass} />;
+            case 'unban':
+            case 'user_unbanned':
+                return <CheckCircle className={iconClass} />;
+            case 'timeout':
+            case 'user_timeout':
+                return <Clock className={iconClass} />;
+            case 'warn':
+            case 'warning_issued':
+                return <AlertTriangle className={iconClass} />;
+            case 'approve':
+            case 'approved':
+                return <CheckCircle className={iconClass} />;
+            case 'reject':
+            case 'rejected':
+                return <XCircle className={iconClass} />;
+            case 'sync':
+            case 'sync_bans':
+                return <RefreshCw className={iconClass} />;
+            default:
+                return <Shield className={iconClass} />;
+        }
+    };
 
-        // Combine into CSV string
-        const csvContent = [
-            headers.join(','),
-            ...rows.map((row) =>
-                row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')
-            ),
-        ].join('\n');
-
-        // Download file
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute(
-            'download',
-            `moderation-audit-logs-${format(new Date(), 'yyyy-MM-dd')}.csv`
-        );
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+    const getActionColor = (action: string) => {
+        switch (action.toLowerCase()) {
+            case 'ban':
+            case 'user_banned':
+            case 'reject':
+            case 'rejected':
+                return 'bg-red-100 text-red-800';
+            case 'unban':
+            case 'user_unbanned':
+            case 'approve':
+            case 'approved':
+                return 'bg-green-100 text-green-800';
+            case 'timeout':
+            case 'user_timeout':
+                return 'bg-yellow-100 text-yellow-800';
+            case 'warn':
+            case 'warning_issued':
+                return 'bg-orange-100 text-orange-800';
+            case 'sync':
+            case 'sync_bans':
+                return 'bg-blue-100 text-blue-800';
+            default:
+                return 'bg-blue-100 text-blue-800';
+        }
     };
 
     const handlePageChange = (newOffset: number) => {
@@ -92,44 +182,39 @@ export function AuditLogViewer() {
     const currentPage = Math.floor(filters.offset / filters.limit) + 1;
     const totalPages = Math.ceil(total / filters.limit);
 
-    if (loading) {
-        return (
-            <div className="flex h-64 items-center justify-center">
-                <div className="text-lg text-gray-600">Loading audit logs...</div>
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-                <p className="text-red-800">{error}</p>
-                <button
-                    onClick={loadLogs}
-                    className="mt-2 text-sm text-red-600 underline hover:text-red-800"
-                >
-                    Retry
-                </button>
-            </div>
-        );
-    }
-
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-gray-900">Audit Logs</h2>
-                <button
-                    onClick={handleExportCSV}
-                    disabled={logs.length === 0}
-                    className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
-                >
-                    Export to CSV
-                </button>
+            {/* Header */}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex gap-2">
+                    <button
+                        onClick={loadLogs}
+                        disabled={loading}
+                        className="inline-flex items-center gap-2 rounded bg-gray-600 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+                        title="Refresh logs"
+                    >
+                        <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                        <span className="hidden sm:inline">Refresh</span>
+                    </button>
+                    <button
+                        onClick={handleExportCSV}
+                        disabled={logs.length === 0 || exporting}
+                        className="inline-flex items-center gap-2 rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+                        title="Export to CSV"
+                    >
+                        <Download className="h-4 w-4" />
+                        <span className="hidden sm:inline">{exporting ? 'Exporting...' : 'Export CSV'}</span>
+                    </button>
+                </div>
             </div>
 
             {/* Filters */}
             <div className="rounded-lg border border-gray-200 bg-white p-4">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+                <div className="mb-3 flex items-center gap-2 text-sm font-medium text-gray-700">
+                    <Filter className="h-4 w-4" />
+                    <span>Filters</span>
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                     <div>
                         <label
                             htmlFor="action-filter"
@@ -143,13 +228,57 @@ export function AuditLogViewer() {
                             onChange={(e) =>
                                 setFilters({ ...filters, action: e.target.value, offset: 0 })
                             }
-                            className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                            className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                         >
                             <option value="">All Actions</option>
+                            <option value="ban">Ban</option>
+                            <option value="unban">Unban</option>
+                            <option value="timeout">Timeout</option>
+                            <option value="warn">Warning</option>
                             <option value="approve">Approve</option>
                             <option value="reject">Reject</option>
-                            <option value="escalate">Escalate</option>
+                            <option value="sync">Sync</option>
+                            <option value="user_banned">User Banned</option>
+                            <option value="user_unbanned">User Unbanned</option>
+                            <option value="clip_approved">Clip Approved</option>
+                            <option value="clip_rejected">Clip Rejected</option>
                         </select>
+                    </div>
+                    <div>
+                        <label
+                            htmlFor="actor-filter"
+                            className="mb-1 block text-sm font-medium text-gray-700"
+                        >
+                            Actor (User ID)
+                        </label>
+                        <input
+                            id="actor-filter"
+                            type="text"
+                            value={filters.actor}
+                            onChange={(e) =>
+                                setFilters({ ...filters, actor: e.target.value, offset: 0 })
+                            }
+                            placeholder="Filter by actor ID..."
+                            className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                    </div>
+                    <div>
+                        <label
+                            htmlFor="target-filter"
+                            className="mb-1 block text-sm font-medium text-gray-700"
+                        >
+                            Target (User ID)
+                        </label>
+                        <input
+                            id="target-filter"
+                            type="text"
+                            value={filters.target}
+                            onChange={(e) =>
+                                setFilters({ ...filters, target: e.target.value, offset: 0 })
+                            }
+                            placeholder="Filter by target ID..."
+                            className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
                     </div>
                     <div>
                         <label
@@ -161,15 +290,15 @@ export function AuditLogViewer() {
                         <input
                             id="start-date-filter"
                             type="date"
-                            value={filters.start_date}
+                            value={filters.startDate}
                             onChange={(e) =>
                                 setFilters({
                                     ...filters,
-                                    start_date: e.target.value,
+                                    startDate: e.target.value,
                                     offset: 0,
                                 })
                             }
-                            className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                            className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                         />
                     </div>
                     <div>
@@ -182,12 +311,33 @@ export function AuditLogViewer() {
                         <input
                             id="end-date-filter"
                             type="date"
-                            value={filters.end_date}
+                            value={filters.endDate}
                             onChange={(e) =>
-                                setFilters({ ...filters, end_date: e.target.value, offset: 0 })
+                                setFilters({ ...filters, endDate: e.target.value, offset: 0 })
                             }
-                            className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                            className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                         />
+                    </div>
+                    <div className="md:col-span-2 lg:col-span-2 xl:col-span-4">
+                        <label
+                            htmlFor="search-filter"
+                            className="mb-1 block text-sm font-medium text-gray-700"
+                        >
+                            Search (Reason)
+                        </label>
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                            <input
+                                id="search-filter"
+                                type="text"
+                                value={filters.search}
+                                onChange={(e) =>
+                                    setFilters({ ...filters, search: e.target.value, offset: 0 })
+                                }
+                                placeholder="Search in reason field..."
+                                className="w-full rounded border border-gray-300 py-2 pl-10 pr-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            />
+                        </div>
                     </div>
                     <div>
                         <label
@@ -206,7 +356,7 @@ export function AuditLogViewer() {
                                     offset: 0,
                                 })
                             }
-                            className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                            className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                         >
                             <option value="25">25</option>
                             <option value="50">50</option>
@@ -216,84 +366,143 @@ export function AuditLogViewer() {
                 </div>
             </div>
 
-            {/* Table */}
-            <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                                Timestamp
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                                Moderator
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                                Action
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                                Content Type
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                                Reason
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 bg-white">
-                        {logs.length === 0 ? (
-                            <tr>
-                                <td
-                                    colSpan={5}
-                                    className="px-6 py-4 text-center text-sm text-gray-500"
-                                >
-                                    No audit logs found
-                                </td>
-                            </tr>
-                        ) : (
-                            logs.map((log) => (
-                                <tr key={log.id} className="hover:bg-gray-50">
-                                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-                                        {format(
-                                            new Date(log.created_at),
-                                            'yyyy-MM-dd HH:mm:ss'
-                                        )}
-                                    </td>
-                                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-                                        {log.moderator_name}
-                                    </td>
-                                    <td className="whitespace-nowrap px-6 py-4 text-sm">
-                                        <span
-                                            className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
-                                                log.action === 'approve'
-                                                    ? 'bg-green-100 text-green-800'
-                                                    : log.action === 'reject'
-                                                      ? 'bg-red-100 text-red-800'
-                                                      : 'bg-yellow-100 text-yellow-800'
-                                            }`}
-                                        >
-                                            {log.action}
-                                        </span>
-                                    </td>
-                                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-                                        {log.content_type}
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">
-                                        {log.reason || '-'}
-                                    </td>
+            {/* Loading State */}
+            {loading && (
+                <div className="flex h-64 items-center justify-center rounded-lg border border-gray-200 bg-white">
+                    <div className="text-center">
+                        <RefreshCw className="mx-auto h-8 w-8 animate-spin text-gray-400" />
+                        <div className="mt-2 text-lg text-gray-600">Loading audit logs...</div>
+                    </div>
+                </div>
+            )}
+
+            {/* Error State */}
+            {error && !loading && (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+                    <p className="text-red-800">{error}</p>
+                    <button
+                        onClick={loadLogs}
+                        className="mt-2 text-sm text-red-600 underline hover:text-red-800"
+                    >
+                        Retry
+                    </button>
+                </div>
+            )}
+
+            {/* Timeline View */}
+            {!loading && !error && (
+                <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                    {/* Table Header */}
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                        Timestamp
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                        Action
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                        Actor
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                        Target
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                        Entity Type
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                        Reason
+                                    </th>
                                 </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
-            </div>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200 bg-white">
+                                {logs.length === 0 ? (
+                                    <tr>
+                                        <td
+                                            colSpan={6}
+                                            className="px-6 py-12 text-center text-sm text-gray-500"
+                                        >
+                                            <Shield className="mx-auto h-12 w-12 text-gray-300" />
+                                            <p className="mt-2 font-medium">No audit logs found</p>
+                                            <p className="mt-1 text-xs">Try adjusting your filters</p>
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    logs.map((log) => (
+                                        <tr key={log.id} className="hover:bg-gray-50">
+                                            <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
+                                                <div className="flex flex-col">
+                                                    <span className="font-medium">
+                                                        {format(
+                                                            new Date(log.createdAt),
+                                                            'MMM dd, yyyy'
+                                                        )}
+                                                    </span>
+                                                    <span className="text-xs text-gray-500">
+                                                        {format(
+                                                            new Date(log.createdAt),
+                                                            'HH:mm:ss'
+                                                        )}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="whitespace-nowrap px-6 py-4 text-sm">
+                                                <span
+                                                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${getActionColor(
+                                                        log.action
+                                                    )}`}
+                                                >
+                                                    {getActionIcon(log.action)}
+                                                    {log.action}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-gray-900">
+                                                <div className="flex flex-col">
+                                                    <span className="font-medium">
+                                                        {log.actor.username || 'Unknown'}
+                                                    </span>
+                                                    <span className="text-xs text-gray-500">
+                                                        {truncateId(log.actor.id)}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-gray-900">
+                                                <div className="flex flex-col">
+                                                    <span className="font-medium">
+                                                        {log.target.username || 'Unknown'}
+                                                    </span>
+                                                    <span className="text-xs text-gray-500">
+                                                        {truncateId(log.target.id)}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600">
+                                                {log.entityType}
+                                            </td>
+                                            <td className="max-w-md px-6 py-4 text-sm text-gray-500">
+                                                <div className="line-clamp-2" title={log.reason}>
+                                                    {log.reason || '-'}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
 
             {/* Pagination */}
-            {totalPages > 1 && (
-                <div className="flex items-center justify-between">
+            {!loading && !error && totalPages > 1 && (
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="text-sm text-gray-700">
                         Showing {filters.offset + 1} to{' '}
                         {Math.min(filters.offset + filters.limit, total)} of {total} results
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2">
                         <button
                             onClick={() =>
                                 handlePageChange(
@@ -301,11 +510,12 @@ export function AuditLogViewer() {
                                 )
                             }
                             disabled={filters.offset === 0}
-                            className="rounded border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:bg-gray-100"
+                            className="inline-flex items-center gap-1 rounded border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
                         >
-                            Previous
+                            <ChevronLeft className="h-4 w-4" />
+                            <span className="hidden sm:inline">Previous</span>
                         </button>
-                        <span className="flex items-center px-4 text-sm text-gray-700">
+                        <span className="flex items-center px-3 text-sm text-gray-700">
                             Page {currentPage} of {totalPages}
                         </span>
                         <button
@@ -313,9 +523,10 @@ export function AuditLogViewer() {
                                 handlePageChange(filters.offset + filters.limit)
                             }
                             disabled={filters.offset + filters.limit >= total}
-                            className="rounded border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:bg-gray-100"
+                            className="inline-flex items-center gap-1 rounded border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
                         >
-                            Next
+                            <span className="hidden sm:inline">Next</span>
+                            <ChevronRight className="h-4 w-4" />
                         </button>
                     </div>
                 </div>

@@ -13,6 +13,8 @@ export interface User {
   role: 'user' | 'admin' | 'moderator';
   karma_points: number;
   is_banned: boolean;
+  ban_reason?: string;
+  banned_until?: string;
   is_verified?: boolean;
   is_premium?: boolean;
   premium_tier?: string;

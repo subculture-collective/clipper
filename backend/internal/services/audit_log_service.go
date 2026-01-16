@@ -12,13 +12,21 @@ import (
 	"github.com/subculture-collective/clipper/internal/repository"
 )
 
+// AuditLogRepository defines the interface for audit log repository operations
+type AuditLogRepository interface {
+	List(ctx context.Context, filters repository.AuditLogFilters, page, limit int) ([]*models.ModerationAuditLogWithUser, int, error)
+	Create(ctx context.Context, log *models.ModerationAuditLog) error
+	Export(ctx context.Context, filters repository.AuditLogFilters) ([]*models.ModerationAuditLogWithUser, error)
+	GetByID(ctx context.Context, id uuid.UUID) (*models.ModerationAuditLogWithUser, error)
+}
+
 // AuditLogService handles audit log business logic
 type AuditLogService struct {
-	auditLogRepo *repository.AuditLogRepository
+	auditLogRepo AuditLogRepository
 }
 
 // NewAuditLogService creates a new AuditLogService
-func NewAuditLogService(auditLogRepo *repository.AuditLogRepository) *AuditLogService {
+func NewAuditLogService(auditLogRepo AuditLogRepository) *AuditLogService {
 	return &AuditLogService{
 		auditLogRepo: auditLogRepo,
 	}
@@ -27,6 +35,38 @@ func NewAuditLogService(auditLogRepo *repository.AuditLogRepository) *AuditLogSe
 // GetAuditLogs retrieves audit logs with optional filters
 func (s *AuditLogService) GetAuditLogs(ctx context.Context, filters repository.AuditLogFilters, page, limit int) ([]*models.ModerationAuditLogWithUser, int, error) {
 	return s.auditLogRepo.List(ctx, filters, page, limit)
+}
+
+// GetAuditLogByID retrieves a single audit log entry by ID
+func (s *AuditLogService) GetAuditLogByID(ctx context.Context, id uuid.UUID) (*models.ModerationAuditLogWithUser, error) {
+	return s.auditLogRepo.GetByID(ctx, id)
+}
+
+// AuditLogOptions contains optional fields for logging moderation actions
+type AuditLogOptions struct {
+	Channel   *uuid.UUID
+	Reason    *string
+	Metadata  map[string]interface{}
+	IPAddress *string
+	UserAgent *string
+}
+
+// LogAction logs a moderation action with comprehensive context
+// This is a generic method for logging any moderation action with full audit trail support
+func (s *AuditLogService) LogAction(ctx context.Context, action string, actor uuid.UUID, target uuid.UUID, entityType string, opts AuditLogOptions) error {
+	log := &models.ModerationAuditLog{
+		Action:      action,
+		EntityType:  entityType,
+		EntityID:    target,
+		ModeratorID: actor,
+		Reason:      opts.Reason,
+		Metadata:    opts.Metadata,
+		IPAddress:   opts.IPAddress,
+		UserAgent:   opts.UserAgent,
+		ChannelID:   opts.Channel,
+	}
+
+	return s.auditLogRepo.Create(ctx, log)
 }
 
 // ExportAuditLogsCSV exports audit logs to CSV format
@@ -51,6 +91,9 @@ func (s *AuditLogService) ExportAuditLogsCSV(ctx context.Context, filters reposi
 		"Moderator Username",
 		"Reason",
 		"Metadata",
+		"IP Address",
+		"User Agent",
+		"Channel ID",
 		"Created At",
 	}
 	if err := csvWriter.Write(header); err != nil {
@@ -74,6 +117,21 @@ func (s *AuditLogService) ExportAuditLogsCSV(ctx context.Context, filters reposi
 			metadata = fmt.Sprintf("%v", log.Metadata)
 		}
 
+		ipAddress := ""
+		if log.IPAddress != nil {
+			ipAddress = *log.IPAddress
+		}
+
+		userAgent := ""
+		if log.UserAgent != nil {
+			userAgent = *log.UserAgent
+		}
+
+		channelID := ""
+		if log.ChannelID != nil {
+			channelID = log.ChannelID.String()
+		}
+
 		row := []string{
 			log.ID.String(),
 			log.Action,
@@ -83,6 +141,9 @@ func (s *AuditLogService) ExportAuditLogsCSV(ctx context.Context, filters reposi
 			moderatorUsername,
 			reason,
 			metadata,
+			ipAddress,
+			userAgent,
+			channelID,
 			log.CreatedAt.Format(time.RFC3339),
 		}
 
@@ -95,7 +156,7 @@ func (s *AuditLogService) ExportAuditLogsCSV(ctx context.Context, filters reposi
 }
 
 // ParseFiltersFromQuery parses audit log filters from query parameters
-func ParseAuditLogFilters(moderatorID, action, entityType, startDate, endDate string) (repository.AuditLogFilters, error) {
+func ParseAuditLogFilters(moderatorID, action, entityType, entityID, channelID, startDate, endDate, search string) (repository.AuditLogFilters, error) {
 	filters := repository.AuditLogFilters{}
 
 	if moderatorID != "" {
@@ -114,6 +175,22 @@ func ParseAuditLogFilters(moderatorID, action, entityType, startDate, endDate st
 		filters.EntityType = entityType
 	}
 
+	if entityID != "" {
+		id, err := uuid.Parse(entityID)
+		if err != nil {
+			return filters, fmt.Errorf("invalid entity_id: %w", err)
+		}
+		filters.EntityID = &id
+	}
+
+	if channelID != "" {
+		id, err := uuid.Parse(channelID)
+		if err != nil {
+			return filters, fmt.Errorf("invalid channel_id: %w", err)
+		}
+		filters.ChannelID = &id
+	}
+
 	if startDate != "" {
 		t, err := time.Parse(time.RFC3339, startDate)
 		if err != nil {
@@ -128,6 +205,10 @@ func ParseAuditLogFilters(moderatorID, action, entityType, startDate, endDate st
 			return filters, fmt.Errorf("invalid end_date format (use RFC3339): %w", err)
 		}
 		filters.EndDate = &t
+	}
+
+	if search != "" {
+		filters.Search = search
 	}
 
 	return filters, nil

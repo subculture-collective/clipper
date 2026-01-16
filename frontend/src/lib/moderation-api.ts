@@ -231,6 +231,23 @@ export interface ModerationDecisionWithDetails {
     created_at: string;
 }
 
+export interface AuditLogEntry {
+    id: string;
+    action: string;
+    entityType: string;
+    actor: {
+        id: string;
+        username: string;
+    };
+    target: {
+        id: string;
+        username: string;
+    };
+    reason: string;
+    createdAt: string;
+    metadata: Record<string, unknown>;
+}
+
 export interface AuditLogsResponse {
     success: boolean;
     data: ModerationDecisionWithDetails[];
@@ -241,9 +258,31 @@ export interface AuditLogsResponse {
     };
 }
 
+export interface NewAuditLogsResponse {
+    logs: AuditLogEntry[];
+    total: number;
+    limit: number;
+    offset: number;
+}
+
 export interface TimeSeriesPoint {
     date: string;
     count: number;
+}
+
+export interface BannedUserStat {
+    user_id: string;
+    username: string;
+    ban_count: number;
+    last_ban_at: string;
+}
+
+export interface AppealStats {
+    total_appeals: number;
+    pending_appeals: number;
+    approved_appeals: number;
+    rejected_appeals: number;
+    false_positive_rate?: number;
 }
 
 export interface ModerationAnalytics {
@@ -253,6 +292,9 @@ export interface ModerationAnalytics {
     actions_over_time: TimeSeriesPoint[];
     content_type_breakdown: Record<string, number>;
     average_response_time_minutes?: number;
+    ban_reasons: Record<string, number>;
+    most_banned_users: BannedUserStat[];
+    appeals?: AppealStats;
 }
 
 export interface AnalyticsResponse {
@@ -261,7 +303,7 @@ export interface AnalyticsResponse {
 }
 
 /**
- * Get moderation audit logs with filters
+ * Get moderation audit logs with filters (legacy endpoint)
  */
 export async function getModerationAuditLogs(params: {
     moderator_id?: string;
@@ -287,6 +329,67 @@ export async function getModerationAuditLogs(params: {
 }
 
 /**
+ * Get audit logs with filters (new API endpoint)
+ */
+export async function getAuditLogs(params: {
+    actor?: string;
+    action?: string;
+    target?: string;
+    channel?: string;
+    startDate?: string;
+    endDate?: string;
+    search?: string;
+    limit?: number;
+    offset?: number;
+}): Promise<NewAuditLogsResponse> {
+    const queryParams = new URLSearchParams();
+    
+    if (params.actor) queryParams.append('actor', params.actor);
+    if (params.action) queryParams.append('action', params.action);
+    if (params.target) queryParams.append('target', params.target);
+    if (params.channel) queryParams.append('channel', params.channel);
+    if (params.startDate) queryParams.append('startDate', params.startDate);
+    if (params.endDate) queryParams.append('endDate', params.endDate);
+    if (params.search) queryParams.append('search', params.search);
+    if (params.limit) queryParams.append('limit', params.limit.toString());
+    if (params.offset) queryParams.append('offset', params.offset.toString());
+
+    const response = await apiClient.get<NewAuditLogsResponse>(
+        `/api/v1/moderation/audit-logs?${queryParams.toString()}`
+    );
+    return response.data;
+}
+
+/**
+ * Export audit logs to CSV
+ */
+export async function exportAuditLogs(params: {
+    actor?: string;
+    action?: string;
+    target?: string;
+    channel?: string;
+    startDate?: string;
+    endDate?: string;
+    search?: string;
+}): Promise<Blob> {
+    const queryParams = new URLSearchParams();
+    
+    if (params.actor) queryParams.append('actor', params.actor);
+    if (params.action) queryParams.append('action', params.action);
+    if (params.target) queryParams.append('target', params.target);
+    if (params.channel) queryParams.append('channel', params.channel);
+    if (params.startDate) queryParams.append('startDate', params.startDate);
+    if (params.endDate) queryParams.append('endDate', params.endDate);
+    if (params.search) queryParams.append('search', params.search);
+
+    const response = await apiClient.get(
+        `/api/v1/moderation/audit-logs/export?${queryParams.toString()}`,
+        { responseType: 'blob' }
+    );
+    return response.data;
+}
+
+/**
  * Get moderation analytics
  */
 export async function getModerationAnalytics(params: {
@@ -300,6 +403,288 @@ export async function getModerationAnalytics(params: {
 
     const response = await apiClient.get<AnalyticsResponse>(
         `/admin/moderation/analytics?${queryParams.toString()}`
+    );
+    return response.data;
+}
+
+// ==================== BAN STATUS ====================
+
+export interface BanStatus {
+    isBanned: boolean;
+    banReason?: string;
+    bannedAt?: string;
+    expiresAt?: string | null;
+}
+
+export interface BanStatusResponse {
+    success: boolean;
+    data: BanStatus;
+}
+
+/**
+ * Check if the authenticated user is banned from a specific channel
+ */
+export async function checkBanStatus(channelId: string): Promise<BanStatus> {
+    const queryParams = new URLSearchParams();
+    queryParams.append('channelId', channelId);
+
+    const response = await apiClient.get<BanStatusResponse>(
+        `/moderation/ban-status?${queryParams.toString()}`
+    );
+    return response.data.data;
+}
+
+// ==================== CHANNEL MODERATOR MANAGEMENT ====================
+
+export interface ChannelModerator {
+    id: string;
+    user_id: string;
+    channel_id: string;
+    role: 'moderator' | 'admin' | 'owner';
+    assigned_by?: string;
+    assigned_at: string;
+    // User details
+    username?: string;
+    display_name?: string;
+    avatar_url?: string;
+}
+
+export interface ListModeratorsResponse {
+    success: boolean;
+    data: ChannelModerator[];
+    meta: {
+        total: number;
+        limit: number;
+        offset: number;
+    };
+}
+
+export interface AddModeratorRequest {
+    userId: string;
+    channelId: string;
+    reason?: string;
+}
+
+export interface RemoveModeratorResponse {
+    success: boolean;
+    message: string;
+}
+
+export interface UpdateModeratorPermissionsRequest {
+    role: 'moderator' | 'admin';
+}
+
+/**
+ * List moderators for a specific channel
+ */
+export async function listChannelModerators(
+    channelId: string,
+    limit: number = 50,
+    offset: number = 0
+): Promise<ListModeratorsResponse> {
+    const params = new URLSearchParams({
+        channelId,
+        limit: limit.toString(),
+        offset: offset.toString(),
+    });
+
+    const response = await apiClient.get<ListModeratorsResponse>(
+        `/moderation/moderators?${params.toString()}`
+    );
+    return response.data;
+}
+
+/**
+ * Add a moderator to a channel
+ */
+export async function addChannelModerator(
+    request: AddModeratorRequest
+): Promise<{ success: boolean; message: string; moderator: ChannelModerator }> {
+    const response = await apiClient.post<{
+        success: boolean;
+        message: string;
+        moderator: ChannelModerator;
+    }>('/moderation/moderators', request);
+    return response.data;
+}
+
+/**
+ * Remove a moderator from a channel
+ */
+export async function removeChannelModerator(
+    moderatorId: string
+): Promise<RemoveModeratorResponse> {
+    const response = await apiClient.delete<RemoveModeratorResponse>(
+        `/moderation/moderators/${moderatorId}`
+    );
+    return response.data;
+}
+
+/**
+ * Update a moderator's permissions (role)
+ */
+export async function updateModeratorPermissions(
+    moderatorId: string,
+    request: UpdateModeratorPermissionsRequest
+): Promise<{ success: boolean; message: string; moderator: ChannelModerator }> {
+    const response = await apiClient.patch<{
+        success: boolean;
+        message: string;
+        moderator: ChannelModerator;
+    }>(`/moderation/moderators/${moderatorId}`, request);
+    return response.data;
+}
+
+// ==================== TWITCH BAN/UNBAN ====================
+
+export interface TwitchBanRequest {
+    broadcasterID: string;
+    userID: string;
+    reason?: string;
+    duration?: number; // Duration in seconds for timeout, omit for permanent ban
+}
+
+export interface TwitchUnbanRequest {
+    broadcasterID: string;
+    userID: string;
+}
+
+export interface TwitchBanResponse {
+    success: boolean;
+    message: string;
+    broadcasterID: string;
+    userID: string;
+}
+
+export interface TwitchUnbanResponse {
+    success: boolean;
+    message: string;
+    broadcasterID: string;
+    userID: string;
+}
+
+export interface TwitchModerationError {
+    error: string;
+    code?: string;
+    detail?: string;
+}
+
+/**
+ * Ban a user on Twitch
+ * Requires broadcaster or Twitch moderator permissions
+ */
+export async function banUserOnTwitch(
+    request: TwitchBanRequest
+): Promise<TwitchBanResponse> {
+    const response = await apiClient.post<TwitchBanResponse>(
+        '/moderation/twitch/ban',
+        request
+    );
+    return response.data;
+}
+
+/**
+ * Unban a user on Twitch
+ * Requires broadcaster or Twitch moderator permissions
+ */
+export async function unbanUserOnTwitch(
+    request: TwitchUnbanRequest
+): Promise<TwitchUnbanResponse> {
+    const params = new URLSearchParams({
+        broadcasterID: request.broadcasterID,
+        userID: request.userID,
+    });
+
+    const response = await apiClient.delete<TwitchUnbanResponse>(
+        `/moderation/twitch/ban?${params.toString()}`
+    );
+    return response.data;
+}
+
+// ==================== BAN REASON TEMPLATES ====================
+
+// Import types from banTemplate.ts to avoid duplication
+export type { BanReasonTemplate, CreateBanReasonTemplateRequest, UpdateBanReasonTemplateRequest, BanReasonTemplatesResponse } from '../../types/banTemplate';
+
+/**
+ * Get all ban reason templates
+ */
+export async function getBanReasonTemplates(
+    broadcasterID?: string,
+    includeDefaults: boolean = true
+): Promise<BanReasonTemplatesResponse> {
+    const params = new URLSearchParams({
+        includeDefaults: includeDefaults.toString(),
+    });
+    
+    if (broadcasterID) {
+        params.append('broadcasterID', broadcasterID);
+    }
+
+    const response = await apiClient.get<BanReasonTemplatesResponse>(
+        `/moderation/ban-templates?${params.toString()}`
+    );
+    return response.data;
+}
+
+/**
+ * Get a specific ban reason template by ID
+ */
+export async function getBanReasonTemplate(id: string): Promise<BanReasonTemplate> {
+    const response = await apiClient.get<BanReasonTemplate>(
+        `/moderation/ban-templates/${id}`
+    );
+    return response.data;
+}
+
+/**
+ * Create a new ban reason template
+ */
+export async function createBanReasonTemplate(
+    request: CreateBanReasonTemplateRequest
+): Promise<BanReasonTemplate> {
+    const response = await apiClient.post<BanReasonTemplate>(
+        '/moderation/ban-templates',
+        request
+    );
+    return response.data;
+}
+
+/**
+ * Update an existing ban reason template
+ */
+export async function updateBanReasonTemplate(
+    id: string,
+    request: UpdateBanReasonTemplateRequest
+): Promise<BanReasonTemplate> {
+    const response = await apiClient.patch<BanReasonTemplate>(
+        `/moderation/ban-templates/${id}`,
+        request
+    );
+    return response.data;
+}
+
+/**
+ * Delete a ban reason template
+ */
+export async function deleteBanReasonTemplate(id: string): Promise<void> {
+    await apiClient.delete(`/moderation/ban-templates/${id}`);
+}
+
+/**
+ * Get usage statistics for ban reason templates
+ */
+export async function getBanReasonTemplateStats(
+    broadcasterID?: string
+): Promise<BanReasonTemplatesResponse> {
+    const params = new URLSearchParams();
+    
+    if (broadcasterID) {
+        params.append('broadcasterID', broadcasterID);
+    }
+
+    const response = await apiClient.get<BanReasonTemplatesResponse>(
+        `/moderation/ban-templates/stats?${params.toString()}`
     );
     return response.data;
 }

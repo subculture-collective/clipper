@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -11,29 +13,53 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/subculture-collective/clipper/internal/models"
+	"github.com/subculture-collective/clipper/internal/repository"
 	"github.com/subculture-collective/clipper/internal/services"
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
 const (
-	secondsPerHour = 3600
+	secondsPerHour         = 3600
+	banSyncTimeoutDuration = 5 * time.Minute
 )
+
+// TwitchModerationService defines the interface for Twitch-specific moderation operations
+type TwitchModerationService interface {
+	BanUserOnTwitch(ctx context.Context, moderatorUserID uuid.UUID, broadcasterID string, targetUserID string, reason *string, duration *int) error
+	UnbanUserOnTwitch(ctx context.Context, moderatorUserID uuid.UUID, broadcasterID string, targetUserID string) error
+}
 
 // ModerationHandler handles moderation operations
 type ModerationHandler struct {
-	moderationEventService *services.ModerationEventService
-	abuseDetector          *services.SubmissionAbuseDetector
-	toxicityClassifier     *services.ToxicityClassifier
-	db                     *pgxpool.Pool
+	moderationEventService  *services.ModerationEventService
+	moderationService       *services.ModerationService
+	abuseDetector           *services.SubmissionAbuseDetector
+	toxicityClassifier      *services.ToxicityClassifier
+	twitchBanSyncService    *services.TwitchBanSyncService
+	twitchModerationService TwitchModerationService
+	communityRepo           *repository.CommunityRepository
+	auditLogRepo            *repository.AuditLogRepository
+	db                      *pgxpool.Pool
 }
 
 // NewModerationHandler creates a new ModerationHandler
-func NewModerationHandler(moderationEventService *services.ModerationEventService, abuseDetector *services.SubmissionAbuseDetector, toxicityClassifier *services.ToxicityClassifier, db *pgxpool.Pool) *ModerationHandler {
+func NewModerationHandler(moderationEventService *services.ModerationEventService, moderationService *services.ModerationService, abuseDetector *services.SubmissionAbuseDetector, toxicityClassifier *services.ToxicityClassifier, twitchBanSyncService *services.TwitchBanSyncService, communityRepo *repository.CommunityRepository, auditLogRepo *repository.AuditLogRepository, db *pgxpool.Pool) *ModerationHandler {
 	return &ModerationHandler{
-		moderationEventService: moderationEventService,
-		abuseDetector:          abuseDetector,
-		toxicityClassifier:     toxicityClassifier,
-		db:                     db,
+		moderationEventService:  moderationEventService,
+		moderationService:       moderationService,
+		abuseDetector:           abuseDetector,
+		toxicityClassifier:      toxicityClassifier,
+		twitchBanSyncService:    twitchBanSyncService,
+		twitchModerationService: nil, // Will be set separately if configured
+		communityRepo:           communityRepo,
+		auditLogRepo:            auditLogRepo,
+		db:                      db,
 	}
+}
+
+// SetTwitchModerationService sets the Twitch moderation service (optional dependency)
+func (h *ModerationHandler) SetTwitchModerationService(service TwitchModerationService) {
+	h.twitchModerationService = service
 }
 
 // GetPendingEvents retrieves pending moderation events
@@ -1212,6 +1238,8 @@ func (h *ModerationHandler) GetModerationAnalytics(c *gin.Context) {
 		ActionsByModerator:   make(map[string]int),
 		ContentTypeBreakdown: make(map[string]int),
 		ActionsOverTime:      []models.TimeSeriesPoint{},
+		BanReasons:           make(map[string]int),
+		MostBannedUsers:      []models.BannedUserStat{},
 	}
 
 	// Total actions in date range
@@ -1347,6 +1375,75 @@ func (h *ModerationHandler) GetModerationAnalytics(c *gin.Context) {
 		analytics.AverageResponseTime = avgResponseMinutes
 	}
 
+	// Ban reasons distribution (from user_bans table)
+	analytics.BanReasons = make(map[string]int)
+	rows, err = h.db.Query(ctx, `
+		SELECT reason, COUNT(*)
+		FROM user_bans
+		WHERE created_at >= $1 AND created_at < $2::date + interval '1 day'
+		GROUP BY reason
+		ORDER BY COUNT(*) DESC
+	`, startDate, endDate)
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var reason string
+			var count int
+			if err := rows.Scan(&reason, &count); err == nil {
+				analytics.BanReasons[reason] = count
+			}
+		}
+	}
+
+	// Most banned users (users with most bans in the date range)
+	rows, err = h.db.Query(ctx, `
+		SELECT 
+			ub.user_id,
+			COALESCE(u.username, 'Unknown') as username,
+			COUNT(*) as ban_count,
+			MAX(ub.created_at) as last_ban_at
+		FROM user_bans ub
+		LEFT JOIN users u ON ub.user_id = u.id
+		WHERE ub.created_at >= $1 AND ub.created_at < $2::date + interval '1 day'
+		GROUP BY ub.user_id, u.username
+		ORDER BY ban_count DESC, last_ban_at DESC
+		LIMIT 10
+	`, startDate, endDate)
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var stat models.BannedUserStat
+			var lastBanAt time.Time
+			if err := rows.Scan(&stat.UserID, &stat.Username, &stat.BanCount, &lastBanAt); err == nil {
+				stat.LastBanAt = lastBanAt.Format(time.RFC3339)
+				analytics.MostBannedUsers = append(analytics.MostBannedUsers, stat)
+			}
+		}
+	}
+
+	// Appeals statistics
+	appealStats := &models.AppealStats{}
+	err = h.db.QueryRow(ctx, `
+		SELECT 
+			COUNT(*) as total,
+			COUNT(*) FILTER (WHERE status = 'pending') as pending,
+			COUNT(*) FILTER (WHERE status = 'approved') as approved,
+			COUNT(*) FILTER (WHERE status = 'rejected') as rejected
+		FROM moderation_appeals
+		WHERE created_at >= $1 AND created_at < $2::date + interval '1 day'
+	`, startDate, endDate).Scan(
+		&appealStats.TotalAppeals,
+		&appealStats.PendingAppeals,
+		&appealStats.ApprovedAppeals,
+		&appealStats.RejectedAppeals,
+	)
+	if err == nil && appealStats.TotalAppeals > 0 {
+		// Calculate false positive rate (approved appeals / total appeals)
+		rate := float64(appealStats.ApprovedAppeals) / float64(appealStats.TotalAppeals) * 100
+		appealStats.FalsePositiveRate = &rate
+		analytics.Appeals = appealStats
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    analytics,
@@ -1411,5 +1508,1373 @@ func (h *ModerationHandler) GetToxicityMetrics(c *gin.Context) {
 		"data":       metrics,
 		"start_date": startDate.Format("2006-01-02"),
 		"end_date":   endDate.Format("2006-01-02"),
+	})
+}
+
+// SyncBans initiates Twitch ban synchronization for a channel
+// POST /api/v1/moderation/sync-bans
+func (h *ModerationHandler) SyncBans(c *gin.Context) {
+	logger := utils.GetLogger()
+
+	// Get user ID from context (authentication required)
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	// Parse request body
+	var req struct {
+		ChannelID string `json:"channel_id" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request: channel_id is required",
+		})
+		return
+	}
+
+	// Validate channel_id is not empty
+	if strings.TrimSpace(req.ChannelID) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "channel_id cannot be empty",
+		})
+		return
+	}
+
+	// Check if Twitch ban sync service is available
+	if h.twitchBanSyncService == nil {
+		logger.Warn("Twitch ban sync service not available", map[string]interface{}{
+			"user_id": userID.String(),
+		})
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Twitch ban sync service not available. Please ensure Twitch integration is configured.",
+		})
+		return
+	}
+
+	// Create job ID for tracking
+	jobID := uuid.New()
+
+	// Log sync request
+	logger.Info("Ban sync requested", map[string]interface{}{
+		"user_id":    userID.String(),
+		"channel_id": req.ChannelID,
+		"job_id":     jobID.String(),
+	})
+
+	// Start async ban sync in a goroutine (fire and forget)
+	go func() {
+		// Create a new context for the background job with timeout
+		bgCtx, cancel := context.WithTimeout(context.Background(), banSyncTimeoutDuration)
+		defer cancel()
+
+		err := h.twitchBanSyncService.SyncChannelBans(bgCtx, userID.String(), req.ChannelID)
+		if err != nil {
+			// Log error but don't fail the request
+			var authErr *services.AuthenticationError
+			var authzErr *services.AuthorizationError
+			var apiErr *services.BanSyncTwitchAPIError
+			var dbErr *services.DatabaseError
+
+			if errors.As(err, &authErr) {
+				logger.Error("Ban sync authentication failed", err, map[string]interface{}{
+					"user_id":    userID.String(),
+					"channel_id": req.ChannelID,
+					"job_id":     jobID.String(),
+				})
+			} else if errors.As(err, &authzErr) {
+				logger.Error("Ban sync authorization failed", err, map[string]interface{}{
+					"user_id":    userID.String(),
+					"channel_id": req.ChannelID,
+					"job_id":     jobID.String(),
+				})
+			} else if errors.As(err, &apiErr) {
+				logger.Error("Ban sync Twitch API error", err, map[string]interface{}{
+					"user_id":    userID.String(),
+					"channel_id": req.ChannelID,
+					"job_id":     jobID.String(),
+				})
+			} else if errors.As(err, &dbErr) {
+				logger.Error("Ban sync database error", err, map[string]interface{}{
+					"user_id":    userID.String(),
+					"channel_id": req.ChannelID,
+					"job_id":     jobID.String(),
+				})
+			} else {
+				logger.Error("Ban sync failed", err, map[string]interface{}{
+					"user_id":    userID.String(),
+					"channel_id": req.ChannelID,
+					"job_id":     jobID.String(),
+				})
+			}
+		} else {
+			logger.Info("Ban sync completed successfully", map[string]interface{}{
+				"user_id":    userID.String(),
+				"channel_id": req.ChannelID,
+				"job_id":     jobID.String(),
+			})
+		}
+	}()
+
+	// Return immediate response
+	c.JSON(http.StatusOK, gin.H{
+		"status":  "syncing",
+		"job_id":  jobID.String(),
+		"message": "Ban sync started",
+	})
+}
+
+// GetBans retrieves bans for a channel with filtering and pagination
+// GET /api/v1/moderation/bans
+func (h *ModerationHandler) GetBans(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	// Get moderator ID from context
+	moderatorIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+	moderatorID := moderatorIDVal.(uuid.UUID)
+
+	// Parse query parameters
+	channelIDStr := c.Query("channelId")
+	if channelIDStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "channelId query parameter is required",
+		})
+		return
+	}
+
+	channelID, err := uuid.Parse(channelIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid channelId format",
+		})
+		return
+	}
+
+	// Check if moderation service is available before parsing pagination
+	if h.moderationService == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Moderation service not available",
+		})
+		return
+	}
+
+	// Parse pagination parameters
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+
+	// Validate pagination parameters
+	if limit < 1 || limit > 100 {
+		limit = 10
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	// Ensure offset is a multiple of limit for proper page calculation
+	if offset%limit != 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "offset must be a multiple of limit",
+		})
+		return
+	}
+
+	// Convert offset to page number (GetBans expects page, not offset)
+	page := (offset / limit) + 1
+
+	// Get bans from moderation service
+	bans, total, err := h.moderationService.GetBans(ctx, channelID, moderatorID, page, limit)
+	if err != nil {
+		if errors.Is(err, services.ErrModerationPermissionDenied) || errors.Is(err, services.ErrModerationNotAuthorized) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		if errors.Is(err, services.ErrModerationCommunityNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to retrieve bans",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"bans":   bans,
+		"total":  total,
+		"limit":  limit,
+		"offset": offset,
+	})
+}
+
+// CreateBan creates a new ban
+// POST /api/v1/moderation/ban
+func (h *ModerationHandler) CreateBan(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	// Get moderator ID from context
+	moderatorIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+	moderatorID := moderatorIDVal.(uuid.UUID)
+
+	// Parse request body
+	var req struct {
+		ChannelID string  `json:"channelId" binding:"required"`
+		UserID    string  `json:"userId" binding:"required"`
+		Reason    *string `json:"reason"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request: " + err.Error(),
+		})
+		return
+	}
+
+	// Parse UUIDs
+	channelID, err := uuid.Parse(req.ChannelID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid channelId format",
+		})
+		return
+	}
+
+	userID, err := uuid.Parse(req.UserID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid userId format",
+		})
+		return
+	}
+
+	// Check if moderation service is available
+	if h.moderationService == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Moderation service not available",
+		})
+		return
+	}
+
+	// Create ban using moderation service
+	err = h.moderationService.BanUser(ctx, channelID, moderatorID, userID, req.Reason)
+	if err != nil {
+		if errors.Is(err, services.ErrModerationPermissionDenied) || errors.Is(err, services.ErrModerationNotAuthorized) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		if errors.Is(err, services.ErrModerationCommunityNotFound) || errors.Is(err, services.ErrModerationUserNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		if errors.Is(err, services.ErrModerationCannotBanOwner) {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to create ban",
+		})
+		return
+	}
+
+	// Retrieve the created ban to return full details using direct query
+	// Note: We use a direct query here because we need the most recently created ban
+	// and CommunityRepository doesn't have a method to get ban by channel+user
+	var ban models.CommunityBan
+	err = h.db.QueryRow(ctx, `
+		SELECT id, community_id, banned_user_id, banned_by_user_id, reason, banned_at
+		FROM community_bans
+		WHERE community_id = $1 AND banned_user_id = $2
+		ORDER BY banned_at DESC
+		LIMIT 1
+	`, channelID, userID).Scan(
+		&ban.ID, &ban.CommunityID, &ban.BannedUserID, &ban.BannedByUserID, &ban.Reason, &ban.BannedAt,
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Ban created but failed to retrieve details",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"id":        ban.ID,
+		"channelId": ban.CommunityID,
+		"userId":    ban.BannedUserID,
+		"bannedBy":  ban.BannedByUserID,
+		"reason":    ban.Reason,
+		"bannedAt":  ban.BannedAt,
+	})
+}
+
+// RevokeBan revokes/deletes a ban
+// DELETE /api/v1/moderation/ban/:id
+func (h *ModerationHandler) RevokeBan(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	// Get moderator ID from context
+	moderatorIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+	moderatorID := moderatorIDVal.(uuid.UUID)
+
+	// Parse ban ID from URL
+	banIDStr := c.Param("id")
+	banID, err := uuid.Parse(banIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid ban ID format",
+		})
+		return
+	}
+
+	// Check if moderation service is available
+	if h.moderationService == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Moderation service not available",
+		})
+		return
+	}
+
+	// Check if community repository is available
+	if h.communityRepo == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Community repository not available",
+		})
+		return
+	}
+
+	// Retrieve the ban to get channel and user IDs using repository
+	ban, err := h.communityRepo.GetBanByID(ctx, banID)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "Ban not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to retrieve ban details",
+		})
+		return
+	}
+
+	// Unban user using moderation service
+	err = h.moderationService.UnbanUser(ctx, ban.CommunityID, moderatorID, ban.BannedUserID)
+	if err != nil {
+		if errors.Is(err, services.ErrModerationPermissionDenied) || errors.Is(err, services.ErrModerationNotAuthorized) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		if errors.Is(err, services.ErrModerationNotBanned) || errors.Is(err, services.ErrModerationCommunityNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to revoke ban",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Ban revoked successfully",
+	})
+}
+
+// GetBanDetails retrieves details of a specific ban
+// GET /api/v1/moderation/ban/:id
+func (h *ModerationHandler) GetBanDetails(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	// Get moderator ID from context
+	moderatorIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+	moderatorID := moderatorIDVal.(uuid.UUID)
+
+	// Parse ban ID from URL
+	banIDStr := c.Param("id")
+	banID, err := uuid.Parse(banIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid ban ID format",
+		})
+		return
+	}
+
+	// Check if moderation service is available
+	if h.moderationService == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Moderation service not available",
+		})
+		return
+	}
+
+	// Check if community repository is available
+	if h.communityRepo == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Community repository not available",
+		})
+		return
+	}
+
+	// Retrieve ban from repository
+	ban, err := h.communityRepo.GetBanByID(ctx, banID)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "Ban not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to retrieve ban details",
+		})
+		return
+	}
+
+	// Verify moderator has permission to view bans for this channel
+	err = h.moderationService.HasModerationPermission(ctx, ban.CommunityID, moderatorID)
+	if err != nil {
+		if errors.Is(err, services.ErrModerationPermissionDenied) || errors.Is(err, services.ErrModerationNotAuthorized) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": "You do not have permission to view this ban",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to verify permissions",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"id":        ban.ID,
+		"channelId": ban.CommunityID,
+		"userId":    ban.BannedUserID,
+		"bannedBy":  ban.BannedByUserID,
+		"reason":    ban.Reason,
+		"bannedAt":  ban.BannedAt,
+	})
+}
+
+// ListModerators retrieves moderators for a channel
+// GET /api/v1/moderation/moderators
+func (h *ModerationHandler) ListModerators(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	// Get user ID from context
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	// Parse query parameters
+	channelIDStr := c.Query("channelId")
+	if channelIDStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "channelId query parameter is required",
+		})
+		return
+	}
+
+	channelID, err := uuid.Parse(channelIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid channelId format",
+		})
+		return
+	}
+
+	// Parse pagination parameters
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
+	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+
+	// Validate pagination parameters
+	if limit < 1 || limit > 100 {
+		limit = 50
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	// Check permission to view moderators - must be admin, site moderator, or channel owner/admin
+	if err := h.validateModeratorListPermission(ctx, channelID, userID); err != nil {
+		if errors.Is(err, services.ErrModerationPermissionDenied) || errors.Is(err, services.ErrModerationNotAuthorized) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": "You do not have permission to view moderators for this channel",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to verify permissions",
+		})
+		return
+	}
+
+	// Get all moderators (both mods and admins) with proper pagination
+	// Query both roles in a single database query
+	query := `
+		SELECT id, community_id, user_id, role, joined_at
+		FROM community_members
+		WHERE community_id = $1 AND (role = $2 OR role = $3)
+		ORDER BY joined_at DESC
+		LIMIT $4 OFFSET $5
+	`
+
+	// Count total
+	var total int
+	err = h.db.QueryRow(ctx, `
+		SELECT COUNT(*)
+		FROM community_members
+		WHERE community_id = $1 AND (role = $2 OR role = $3)
+	`, channelID, models.CommunityRoleMod, models.CommunityRoleAdmin).Scan(&total)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to count moderators",
+		})
+		return
+	}
+
+	// Get moderators
+	rows, err := h.db.Query(ctx, query, channelID, models.CommunityRoleMod, models.CommunityRoleAdmin, limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to retrieve moderators",
+		})
+		return
+	}
+	defer rows.Close()
+
+	var moderators []*models.CommunityMember
+	for rows.Next() {
+		member := &models.CommunityMember{}
+		err := rows.Scan(&member.ID, &member.CommunityID, &member.UserID, &member.Role, &member.JoinedAt)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Failed to scan moderator",
+			})
+			return
+		}
+		moderators = append(moderators, member)
+	}
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to iterate moderators",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"moderators": moderators,
+		"total":      total,
+		"limit":      limit,
+		"offset":     offset,
+	})
+}
+
+// AddModerator adds a moderator to a channel
+// POST /api/v1/moderation/moderators
+func (h *ModerationHandler) AddModerator(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	// Get user ID from context
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	// Parse request body
+	var req struct {
+		UserID    string  `json:"userId" binding:"required"`
+		ChannelID string  `json:"channelId" binding:"required"`
+		Reason    *string `json:"reason"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request: " + err.Error(),
+		})
+		return
+	}
+
+	// Parse UUIDs
+	channelID, err := uuid.Parse(req.ChannelID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid channelId format",
+		})
+		return
+	}
+
+	targetUserID, err := uuid.Parse(req.UserID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid userId format",
+		})
+		return
+	}
+
+	// Check permission to add moderators - must be admin or channel owner/admin
+	if err := h.validateModeratorManagementPermission(ctx, channelID, userID); err != nil {
+		if errors.Is(err, services.ErrModerationPermissionDenied) || errors.Is(err, services.ErrModerationNotAuthorized) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": "You do not have permission to add moderators to this channel",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to verify permissions",
+		})
+		return
+	}
+
+	// Validate scope - community moderators can't assign mods to other channels
+	if err := h.validateModeratorScope(ctx, channelID, userID); err != nil {
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": "Community moderators can only manage moderators for their assigned channels",
+		})
+		return
+	}
+
+	// Check if target user exists
+	var userExists bool
+	err = h.db.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)", targetUserID).Scan(&userExists)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to verify user",
+		})
+		return
+	}
+	if !userExists {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "User not found",
+		})
+		return
+	}
+
+	// Check if user is already a member
+	existingMember, err := h.communityRepo.GetMember(ctx, channelID, targetUserID)
+	if err == nil && existingMember != nil {
+		// Check if user is already an admin - don't demote them
+		if existingMember.Role == models.CommunityRoleAdmin {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "User is already a channel admin. Cannot demote to moderator.",
+			})
+			return
+		}
+		// User is already a member, update their role to mod
+		if err := h.communityRepo.UpdateMemberRole(ctx, channelID, targetUserID, models.CommunityRoleMod); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Failed to update member role",
+			})
+			return
+		}
+	} else {
+		// User is not a member, add them as a moderator
+		member := &models.CommunityMember{
+			ID:          uuid.New(),
+			CommunityID: channelID,
+			UserID:      targetUserID,
+			Role:        models.CommunityRoleMod,
+		}
+		if err := h.communityRepo.AddMember(ctx, member); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Failed to add moderator",
+			})
+			return
+		}
+	}
+
+	// Create audit log
+	metadata := map[string]interface{}{
+		"channel_id":     channelID.String(),
+		"target_user_id": targetUserID.String(),
+		"assigned_by":    userID.String(),
+		"new_role":       models.CommunityRoleMod,
+	}
+	if req.Reason != nil {
+		metadata["reason"] = *req.Reason
+	}
+
+	auditLog := &models.ModerationAuditLog{
+		Action:      "add_moderator",
+		EntityType:  "community_member",
+		EntityID:    targetUserID,
+		ModeratorID: userID,
+		Reason:      req.Reason,
+		Metadata:    metadata,
+	}
+
+	// Create audit log
+	h.createModeratorAuditLog(ctx, auditLog)
+
+	// Retrieve the updated member to return
+	member, err := h.communityRepo.GetMember(ctx, channelID, targetUserID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Moderator added but failed to retrieve details",
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"success":   true,
+		"moderator": member,
+		"message":   "Moderator added successfully",
+	})
+}
+
+// RemoveModerator removes a moderator from a channel
+// DELETE /api/v1/moderation/moderators/:id
+func (h *ModerationHandler) RemoveModerator(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	// Get user ID from context
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	// Parse member ID from URL
+	memberIDStr := c.Param("id")
+	memberID, err := uuid.Parse(memberIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid moderator ID format",
+		})
+		return
+	}
+
+	// Get the member to find channel and user IDs
+	var member models.CommunityMember
+	err = h.db.QueryRow(ctx, `
+		SELECT id, community_id, user_id, role
+		FROM community_members
+		WHERE id = $1
+	`, memberID).Scan(&member.ID, &member.CommunityID, &member.UserID, &member.Role)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Moderator not found",
+		})
+		return
+	}
+
+	// Check permission to remove moderators
+	if err := h.validateModeratorManagementPermission(ctx, member.CommunityID, userID); err != nil {
+		if errors.Is(err, services.ErrModerationPermissionDenied) || errors.Is(err, services.ErrModerationNotAuthorized) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": "You do not have permission to remove moderators from this channel",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to verify permissions",
+		})
+		return
+	}
+
+	// Validate scope - community moderators can't manage mods in other channels
+	if err := h.validateModeratorScope(ctx, member.CommunityID, userID); err != nil {
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": "Community moderators can only manage moderators for their assigned channels",
+		})
+		return
+	}
+
+	// Check if trying to remove a channel owner (admin role typically)
+	community, err := h.communityRepo.GetCommunityByID(ctx, member.CommunityID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to retrieve community",
+		})
+		return
+	}
+	if community.OwnerID == member.UserID {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Cannot remove the channel owner",
+		})
+		return
+	}
+
+	// Update member role to 'member' instead of removing them entirely
+	if err := h.communityRepo.UpdateMemberRole(ctx, member.CommunityID, member.UserID, models.CommunityRoleMember); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to remove moderator",
+		})
+		return
+	}
+
+	// Create audit log
+	metadata := map[string]interface{}{
+		"channel_id":     member.CommunityID.String(),
+		"target_user_id": member.UserID.String(),
+		"removed_by":     userID.String(),
+		"previous_role":  member.Role,
+		"new_role":       models.CommunityRoleMember,
+	}
+
+	auditLog := &models.ModerationAuditLog{
+		Action:      "remove_moderator",
+		EntityType:  "community_member",
+		EntityID:    member.UserID,
+		ModeratorID: userID,
+		Metadata:    metadata,
+	}
+
+	// Create audit log
+	h.createModeratorAuditLog(ctx, auditLog)
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Moderator removed successfully",
+	})
+}
+
+// UpdateModeratorPermissions updates a moderator's permissions (role)
+// PATCH /api/v1/moderation/moderators/:id
+func (h *ModerationHandler) UpdateModeratorPermissions(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	// Get user ID from context
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	// Parse member ID from URL
+	memberIDStr := c.Param("id")
+	memberID, err := uuid.Parse(memberIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid moderator ID format",
+		})
+		return
+	}
+
+	// Parse request body
+	var req struct {
+		Role string `json:"role" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request: role is required",
+		})
+		return
+	}
+
+	// Validate role using constants
+	if req.Role != models.CommunityRoleMod && req.Role != models.CommunityRoleAdmin {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid role: must be 'mod' or 'admin'",
+		})
+		return
+	}
+
+	// Get the member to find channel and user IDs
+	var member models.CommunityMember
+	err = h.db.QueryRow(ctx, `
+		SELECT id, community_id, user_id, role
+		FROM community_members
+		WHERE id = $1
+	`, memberID).Scan(&member.ID, &member.CommunityID, &member.UserID, &member.Role)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Moderator not found",
+		})
+		return
+	}
+
+	// Check permission to update moderators
+	if err := h.validateModeratorManagementPermission(ctx, member.CommunityID, userID); err != nil {
+		if errors.Is(err, services.ErrModerationPermissionDenied) || errors.Is(err, services.ErrModerationNotAuthorized) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": "You do not have permission to update moderators in this channel",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to verify permissions",
+		})
+		return
+	}
+
+	// Validate scope - community moderators can't manage mods in other channels
+	if err := h.validateModeratorScope(ctx, member.CommunityID, userID); err != nil {
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": "Community moderators can only manage moderators for their assigned channels",
+		})
+		return
+	}
+
+	// Check if trying to modify a channel owner
+	community, err := h.communityRepo.GetCommunityByID(ctx, member.CommunityID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to retrieve community",
+		})
+		return
+	}
+	if community.OwnerID == member.UserID {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Cannot modify the channel owner's role",
+		})
+		return
+	}
+
+	// Update member role
+	if err := h.communityRepo.UpdateMemberRole(ctx, member.CommunityID, member.UserID, req.Role); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to update moderator permissions",
+		})
+		return
+	}
+
+	// Create audit log
+	metadata := map[string]interface{}{
+		"channel_id":     member.CommunityID.String(),
+		"target_user_id": member.UserID.String(),
+		"updated_by":     userID.String(),
+		"previous_role":  member.Role,
+		"new_role":       req.Role,
+	}
+
+	auditLog := &models.ModerationAuditLog{
+		Action:      "update_moderator_permissions",
+		EntityType:  "community_member",
+		EntityID:    member.UserID,
+		ModeratorID: userID,
+		Metadata:    metadata,
+	}
+
+	// Create audit log
+	h.createModeratorAuditLog(ctx, auditLog)
+
+	// Retrieve updated member
+	updatedMember, err := h.communityRepo.GetMember(ctx, member.CommunityID, member.UserID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Permissions updated but failed to retrieve details",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success":   true,
+		"moderator": updatedMember,
+		"message":   "Moderator permissions updated successfully",
+	})
+}
+
+// getUserDetails fetches user details from the database
+// This helper reduces code duplication across permission validation functions
+func (h *ModerationHandler) getUserDetails(ctx context.Context, userID uuid.UUID) (*models.User, error) {
+	var user models.User
+	err := h.db.QueryRow(ctx, `
+		SELECT id, role, account_type, moderator_scope
+		FROM users
+		WHERE id = $1
+	`, userID).Scan(&user.ID, &user.Role, &user.AccountType, &user.ModeratorScope)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+	return &user, nil
+}
+
+// isAdminOrSiteModerator checks if a user has admin or site-wide moderator privileges
+func isAdminOrSiteModerator(user *models.User) bool {
+	if user.Role == models.RoleAdmin || user.AccountType == models.AccountTypeAdmin {
+		return true
+	}
+	if user.AccountType == models.AccountTypeModerator && user.ModeratorScope == models.ModeratorScopeSite {
+		return true
+	}
+	return false
+}
+
+// validateModeratorListPermission checks if a user can view moderators for a channel
+func (h *ModerationHandler) validateModeratorListPermission(ctx context.Context, channelID, userID uuid.UUID) error {
+	// Check if user exists and get their details
+	user, err := h.getUserDetails(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	// Admins and site moderators can view any channel's moderators
+	if isAdminOrSiteModerator(user) {
+		return nil
+	}
+
+	// Channel owners and admins can view their channel's moderators
+	community, err := h.communityRepo.GetCommunityByID(ctx, channelID)
+	if err != nil {
+		return services.ErrModerationCommunityNotFound
+	}
+	if community.OwnerID == userID {
+		return nil
+	}
+
+	// Channel admins can view
+	member, err := h.communityRepo.GetMember(ctx, channelID, userID)
+	if err == nil && member != nil && member.Role == models.CommunityRoleAdmin {
+		return nil
+	}
+
+	return services.ErrModerationPermissionDenied
+}
+
+// validateModeratorManagementPermission checks if a user can add/remove/update moderators
+func (h *ModerationHandler) validateModeratorManagementPermission(ctx context.Context, channelID, userID uuid.UUID) error {
+	// Check if user exists and get their details
+	user, err := h.getUserDetails(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	// Admins can manage any channel's moderators
+	if isAdminOrSiteModerator(user) {
+		return nil
+	}
+
+	// Channel owners can manage their channel's moderators
+	community, err := h.communityRepo.GetCommunityByID(ctx, channelID)
+	if err != nil {
+		return services.ErrModerationCommunityNotFound
+	}
+	if community.OwnerID == userID {
+		return nil
+	}
+
+	// Channel admins can manage moderators
+	member, err := h.communityRepo.GetMember(ctx, channelID, userID)
+	if err == nil && member != nil && member.Role == models.CommunityRoleAdmin {
+		return nil
+	}
+
+	return services.ErrModerationPermissionDenied
+}
+
+// validateModeratorScope checks if a community moderator is managing their assigned channels
+func (h *ModerationHandler) validateModeratorScope(ctx context.Context, channelID, userID uuid.UUID) error {
+	// Get user details with moderation channels
+	var user models.User
+	var moderationChannels []uuid.UUID
+	err := h.db.QueryRow(ctx, `
+		SELECT id, role, account_type, moderator_scope, moderation_channels
+		FROM users
+		WHERE id = $1
+	`, userID).Scan(&user.ID, &user.Role, &user.AccountType, &user.ModeratorScope, &moderationChannels)
+	if err != nil {
+		return fmt.Errorf("failed to get user: %w", err)
+	}
+
+	// Admins and site moderators have no scope restrictions
+	if isAdminOrSiteModerator(&user) {
+		return nil
+	}
+
+	// Channel owners have no restrictions for their channels
+	community, err := h.communityRepo.GetCommunityByID(ctx, channelID)
+	if err != nil {
+		return services.ErrModerationCommunityNotFound
+	}
+	if community.OwnerID == userID {
+		return nil
+	}
+
+	// Community moderators must have the channel in their moderation scope
+	if user.AccountType == models.AccountTypeCommunityModerator {
+		if user.ModeratorScope != models.ModeratorScopeCommunity {
+			return services.ErrModerationNotAuthorized
+		}
+
+		// Check if this channel is in their authorized scope
+		for _, authorizedChannelID := range moderationChannels {
+			if authorizedChannelID == channelID {
+				return nil
+			}
+		}
+		return services.ErrModerationNotAuthorized
+	}
+
+	// Default: deny access for any other case
+	return services.ErrModerationPermissionDenied
+}
+
+// createModeratorAuditLog creates an audit log entry for moderator management actions
+// Uses AuditLogRepository for consistency with other audit logging in the codebase
+func (h *ModerationHandler) createModeratorAuditLog(ctx context.Context, auditLog *models.ModerationAuditLog) {
+	logger := utils.GetLogger()
+
+	if err := h.auditLogRepo.Create(ctx, auditLog); err != nil {
+		logger.Error("Failed to create audit log", err, map[string]interface{}{
+			"action":      auditLog.Action,
+			"entity_type": auditLog.EntityType,
+			"entity_id":   auditLog.EntityID,
+			"moderator":   auditLog.ModeratorID,
+			"reason":      auditLog.Reason,
+			"metadata":    auditLog.Metadata,
+			"error":       err.Error(),
+		})
+	}
+}
+
+// TwitchBanUser bans a user on Twitch via the Twitch API
+// POST /api/v1/moderation/twitch/ban
+// This enforces Twitch-specific scope requirements and blocks site moderators
+func (h *ModerationHandler) TwitchBanUser(c *gin.Context) {
+	ctx := c.Request.Context()
+	logger := utils.GetLogger()
+
+	// Get moderator ID from context
+	moderatorIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+	moderatorID := moderatorIDVal.(uuid.UUID)
+
+	// Parse request body
+	var req struct {
+		BroadcasterID string  `json:"broadcasterID" binding:"required"` // Twitch broadcaster ID (string, not UUID)
+		UserID        string  `json:"userID" binding:"required"`        // Twitch user ID to ban (string)
+		Reason        *string `json:"reason"`
+		Duration      *int    `json:"duration"` // Duration in seconds for timeout, omit for permanent ban
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request: " + err.Error(),
+		})
+		return
+	}
+
+	// Validate Twitch moderation service is available
+	if h.twitchModerationService == nil {
+		logger.Error("Twitch moderation service not configured", nil, map[string]interface{}{
+			"moderator_id": moderatorID.String(),
+		})
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Twitch moderation service not available. Please ensure Twitch integration is configured.",
+		})
+		return
+	}
+
+	// Ban user on Twitch with scope validation
+	err := h.twitchModerationService.BanUserOnTwitch(ctx, moderatorID, req.BroadcasterID, req.UserID, req.Reason, req.Duration)
+	if err != nil {
+		// Handle specific error types with appropriate HTTP status codes
+		if errors.Is(err, services.ErrSiteModeratorsReadOnly) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error":  err.Error(),
+				"code":   "SITE_MODERATORS_READ_ONLY",
+				"detail": "Site moderators can view Twitch bans but cannot create them. You must be the Twitch channel broadcaster or a Twitch-recognized moderator for this channel.",
+			})
+			return
+		}
+		if errors.Is(err, services.ErrTwitchNotAuthenticated) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error":  err.Error(),
+				"code":   "NOT_AUTHENTICATED",
+				"detail": "You must connect your Twitch account to perform this action.",
+			})
+			return
+		}
+		if errors.Is(err, services.ErrTwitchScopeInsufficient) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error":  err.Error(),
+				"code":   "INSUFFICIENT_SCOPES",
+				"detail": "Your Twitch account does not have the required permissions (moderator:manage:banned_users or channel:manage:banned_users). Please re-authenticate with Twitch.",
+			})
+			return
+		}
+		if errors.Is(err, services.ErrTwitchNotBroadcaster) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error":  err.Error(),
+				"code":   "NOT_BROADCASTER",
+				"detail": "Only the channel broadcaster can perform Twitch ban actions for this channel.",
+			})
+			return
+		}
+
+		// Log error for debugging
+		logger.Error("Twitch ban failed", err, map[string]interface{}{
+			"moderator_id":   moderatorID.String(),
+			"broadcaster_id": req.BroadcasterID,
+			"target_user_id": req.UserID,
+		})
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to ban user on Twitch",
+		})
+		return
+	}
+
+	logger.Info("User banned on Twitch", map[string]interface{}{
+		"moderator_id":   moderatorID.String(),
+		"broadcaster_id": req.BroadcasterID,
+		"target_user_id": req.UserID,
+	})
+
+	c.JSON(http.StatusOK, gin.H{
+		"success":       true,
+		"message":       "User banned on Twitch successfully",
+		"broadcasterID": req.BroadcasterID,
+		"userID":        req.UserID,
+	})
+}
+
+// TwitchUnbanUser unbans a user on Twitch via the Twitch API
+// DELETE /api/v1/moderation/twitch/ban
+// This enforces Twitch-specific scope requirements and blocks site moderators
+func (h *ModerationHandler) TwitchUnbanUser(c *gin.Context) {
+	ctx := c.Request.Context()
+	logger := utils.GetLogger()
+
+	// Get moderator ID from context
+	moderatorIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+	moderatorID := moderatorIDVal.(uuid.UUID)
+
+	// Parse request body or query params
+	broadcasterID := c.Query("broadcasterID")
+	userID := c.Query("userID")
+
+	if broadcasterID == "" || userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "broadcasterID and userID query parameters are required",
+		})
+		return
+	}
+
+	// Validate Twitch moderation service is available
+	if h.twitchModerationService == nil {
+		logger.Error("Twitch moderation service not configured", nil, map[string]interface{}{
+			"moderator_id": moderatorID.String(),
+		})
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Twitch moderation service not available. Please ensure Twitch integration is configured.",
+		})
+		return
+	}
+
+	// Unban user on Twitch with scope validation
+	err := h.twitchModerationService.UnbanUserOnTwitch(ctx, moderatorID, broadcasterID, userID)
+	if err != nil {
+		// Handle specific error types with appropriate HTTP status codes
+		if errors.Is(err, services.ErrSiteModeratorsReadOnly) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error":  err.Error(),
+				"code":   "SITE_MODERATORS_READ_ONLY",
+				"detail": "Site moderators can view Twitch bans but cannot remove them. You must be the Twitch channel broadcaster or a Twitch-recognized moderator for this channel.",
+			})
+			return
+		}
+		if errors.Is(err, services.ErrTwitchNotAuthenticated) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error":  err.Error(),
+				"code":   "NOT_AUTHENTICATED",
+				"detail": "You must connect your Twitch account to perform this action.",
+			})
+			return
+		}
+		if errors.Is(err, services.ErrTwitchScopeInsufficient) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error":  err.Error(),
+				"code":   "INSUFFICIENT_SCOPES",
+				"detail": "Your Twitch account does not have the required permissions (moderator:manage:banned_users or channel:manage:banned_users). Please re-authenticate with Twitch.",
+			})
+			return
+		}
+		if errors.Is(err, services.ErrTwitchNotBroadcaster) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error":  err.Error(),
+				"code":   "NOT_BROADCASTER",
+				"detail": "Only the channel broadcaster can perform Twitch unban actions for this channel.",
+			})
+			return
+		}
+
+		// Log error for debugging
+		logger.Error("Twitch unban failed", err, map[string]interface{}{
+			"moderator_id":   moderatorID.String(),
+			"broadcaster_id": broadcasterID,
+			"target_user_id": userID,
+		})
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to unban user on Twitch",
+		})
+		return
+	}
+
+	logger.Info("User unbanned on Twitch", map[string]interface{}{
+		"moderator_id":   moderatorID.String(),
+		"broadcaster_id": broadcasterID,
+		"target_user_id": userID,
+	})
+
+	c.JSON(http.StatusOK, gin.H{
+		"success":       true,
+		"message":       "User unbanned on Twitch successfully",
+		"broadcasterID": broadcasterID,
+		"userID":        userID,
 	})
 }

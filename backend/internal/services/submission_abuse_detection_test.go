@@ -16,8 +16,8 @@ import (
 func setupTestRedis(t *testing.T) *redispkg.Client {
 	// Create a test Redis client
 	cfg := &config.RedisConfig{
-		Host:     "localhost",
-		Port:     "6379",
+		Host:     getTestEnv("TEST_REDIS_HOST", "localhost"),
+		Port:     getTestEnv("TEST_REDIS_PORT", "6380"),
 		Password: "",
 		DB:       15, // Use a test database
 	}

@@ -173,6 +173,7 @@ func TestIsValidAccountType(t *testing.T) {
 		{AccountTypeMember, true},
 		{AccountTypeBroadcaster, true},
 		{AccountTypeModerator, true},
+		{AccountTypeCommunityModerator, true},
 		{AccountTypeAdmin, true},
 		{"invalid", false},
 		{"", false},
@@ -241,15 +242,38 @@ func TestGetAccountTypePermissions(t *testing.T) {
 			},
 		},
 		{
+			name:          "community moderator permissions",
+			accountType:   AccountTypeCommunityModerator,
+			expectedCount: 4,
+			mustHavePerms: []string{
+				PermissionCommunityModerate,
+				PermissionModerateUsers,
+				PermissionViewChannelAnalytics,
+				PermissionManageModerators,
+			},
+			mustNotHavePerms: []string{
+				PermissionCreateSubmission,
+				PermissionCreateComment,
+				PermissionViewBroadcasterAnalytics,
+				PermissionModerateContent,
+				PermissionCreateDiscoveryLists,
+				PermissionManageUsers,
+				PermissionManageSystem,
+			},
+		},
+		{
 			name:          "admin permissions",
 			accountType:   AccountTypeAdmin,
-			expectedCount: 13,
+			expectedCount: 16,
 			mustHavePerms: []string{
 				PermissionCreateSubmission,
 				PermissionModerateContent,
 				PermissionManageUsers,
 				PermissionManageSystem,
 				PermissionViewAnalyticsDashboard,
+				PermissionCommunityModerate,
+				PermissionViewChannelAnalytics,
+				PermissionManageModerators,
 			},
 		},
 		{
@@ -313,6 +337,13 @@ func TestUserCan(t *testing.T) {
 			permission:  PermissionViewBroadcasterAnalytics,
 			expected:    false,
 		},
+		{
+			name:        "member cannot access community:moderate permission",
+			accountType: AccountTypeMember,
+			role:        RoleUser,
+			permission:  PermissionCommunityModerate,
+			expected:    false,
+		},
 		// Broadcaster tests
 		{
 			name:        "broadcaster can view analytics",
@@ -343,6 +374,63 @@ func TestUserCan(t *testing.T) {
 			permission:  PermissionManageSystem,
 			expected:    false,
 		},
+		// Community Moderator tests
+		{
+			name:        "community moderator can use community:moderate permission",
+			accountType: AccountTypeCommunityModerator,
+			role:        RoleUser,
+			permission:  PermissionCommunityModerate,
+			expected:    true,
+		},
+		{
+			name:        "community moderator can moderate users",
+			accountType: AccountTypeCommunityModerator,
+			role:        RoleUser,
+			permission:  PermissionModerateUsers,
+			expected:    true,
+		},
+		{
+			name:        "community moderator can view channel analytics",
+			accountType: AccountTypeCommunityModerator,
+			role:        RoleUser,
+			permission:  PermissionViewChannelAnalytics,
+			expected:    true,
+		},
+		{
+			name:        "community moderator can manage moderators",
+			accountType: AccountTypeCommunityModerator,
+			role:        RoleUser,
+			permission:  PermissionManageModerators,
+			expected:    true,
+		},
+		{
+			name:        "community moderator cannot create submissions",
+			accountType: AccountTypeCommunityModerator,
+			role:        RoleUser,
+			permission:  PermissionCreateSubmission,
+			expected:    false,
+		},
+		{
+			name:        "community moderator cannot moderate content",
+			accountType: AccountTypeCommunityModerator,
+			role:        RoleUser,
+			permission:  PermissionModerateContent,
+			expected:    false,
+		},
+		{
+			name:        "community moderator cannot create discovery lists",
+			accountType: AccountTypeCommunityModerator,
+			role:        RoleUser,
+			permission:  PermissionCreateDiscoveryLists,
+			expected:    false,
+		},
+		{
+			name:        "community moderator cannot manage users",
+			accountType: AccountTypeCommunityModerator,
+			role:        RoleUser,
+			permission:  PermissionManageUsers,
+			expected:    false,
+		},
 		// Admin tests
 		{
 			name:        "admin can do everything - by role",
@@ -356,6 +444,27 @@ func TestUserCan(t *testing.T) {
 			accountType: AccountTypeAdmin,
 			role:        RoleUser,
 			permission:  PermissionManageSystem,
+			expected:    true,
+		},
+		{
+			name:        "admin has community:moderate permission",
+			accountType: AccountTypeAdmin,
+			role:        RoleAdmin,
+			permission:  PermissionCommunityModerate,
+			expected:    true,
+		},
+		{
+			name:        "admin has view:channel_analytics permission",
+			accountType: AccountTypeAdmin,
+			role:        RoleAdmin,
+			permission:  PermissionViewChannelAnalytics,
+			expected:    true,
+		},
+		{
+			name:        "admin has manage:moderators permission",
+			accountType: AccountTypeAdmin,
+			role:        RoleAdmin,
+			permission:  PermissionManageModerators,
 			expected:    true,
 		},
 	}
@@ -445,7 +554,99 @@ func TestAccountTypeConstants(t *testing.T) {
 	if AccountTypeModerator != "moderator" {
 		t.Errorf("AccountTypeModerator = %q, want %q", AccountTypeModerator, "moderator")
 	}
+	if AccountTypeCommunityModerator != "community_moderator" {
+		t.Errorf("AccountTypeCommunityModerator = %q, want %q", AccountTypeCommunityModerator, "community_moderator")
+	}
 	if AccountTypeAdmin != "admin" {
 		t.Errorf("AccountTypeAdmin = %q, want %q", AccountTypeAdmin, "admin")
+	}
+}
+
+func TestModeratorScopeConstants(t *testing.T) {
+	// Ensure moderator scope constants have expected values
+	if ModeratorScopeSite != "site" {
+		t.Errorf("ModeratorScopeSite = %q, want %q", ModeratorScopeSite, "site")
+	}
+	if ModeratorScopeCommunity != "community" {
+		t.Errorf("ModeratorScopeCommunity = %q, want %q", ModeratorScopeCommunity, "community")
+	}
+}
+
+func TestUserIsValidModerator(t *testing.T) {
+	tests := []struct {
+		name               string
+		moderatorScope     string
+		moderationChannels []uuid.UUID
+		expected           bool
+	}{
+		{
+			name:               "not a moderator - empty scope",
+			moderatorScope:     "",
+			moderationChannels: nil,
+			expected:           true,
+		},
+		{
+			name:               "site moderator with empty channel list",
+			moderatorScope:     ModeratorScopeSite,
+			moderationChannels: []uuid.UUID{},
+			expected:           true,
+		},
+		{
+			name:               "site moderator with nil channel list",
+			moderatorScope:     ModeratorScopeSite,
+			moderationChannels: nil,
+			expected:           true,
+		},
+		{
+			name:               "site moderator with channels - invalid",
+			moderatorScope:     ModeratorScopeSite,
+			moderationChannels: []uuid.UUID{uuid.New()},
+			expected:           false,
+		},
+		{
+			name:               "community moderator with one channel",
+			moderatorScope:     ModeratorScopeCommunity,
+			moderationChannels: []uuid.UUID{uuid.New()},
+			expected:           true,
+		},
+		{
+			name:               "community moderator with multiple channels",
+			moderatorScope:     ModeratorScopeCommunity,
+			moderationChannels: []uuid.UUID{uuid.New(), uuid.New()},
+			expected:           true,
+		},
+		{
+			name:               "community moderator without channels - invalid",
+			moderatorScope:     ModeratorScopeCommunity,
+			moderationChannels: []uuid.UUID{},
+			expected:           false,
+		},
+		{
+			name:               "community moderator with nil channels - invalid",
+			moderatorScope:     ModeratorScopeCommunity,
+			moderationChannels: nil,
+			expected:           false,
+		},
+		{
+			name:               "invalid scope",
+			moderatorScope:     "invalid",
+			moderationChannels: []uuid.UUID{},
+			expected:           false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			user := &User{
+				ID:                 uuid.New(),
+				Username:           "testuser",
+				ModeratorScope:     tt.moderatorScope,
+				ModerationChannels: tt.moderationChannels,
+			}
+
+			if got := user.IsValidModerator(); got != tt.expected {
+				t.Errorf("IsValidModerator() = %v, want %v", got, tt.expected)
+			}
+		})
 	}
 }

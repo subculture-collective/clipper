@@ -3,12 +3,16 @@ package handlers
 import (
 	"context"
 	"crypto/ecdsa"
+	"crypto/sha256"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"io"
+	"math/big"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -282,37 +286,201 @@ func (h *SendGridWebhookHandler) updateExistingLog(log *models.EmailLog, event *
 	}
 }
 
-// verifySignature verifies the SendGrid webhook signature
+// verifySignature verifies the SendGrid webhook signature using ECDSA
 func (h *SendGridWebhookHandler) verifySignature(payload []byte, signature, timestamp string) error {
-	// SECURITY WARNING: This is a placeholder implementation that does NOT provide real security.
-	// Before using this webhook endpoint in production, you MUST implement proper ECDSA signature verification.
-	//
-	// The current implementation only checks for signature presence but does not verify its authenticity,
-	// making the endpoint vulnerable to spoofed webhook requests.
-	//
-	// To implement proper verification:
-	// 1. Parse the ECDSA public key from h.publicKey (already configured)
-	// 2. Construct the signed payload: timestamp + payload
-	// 3. Decode the base64-encoded signature
-	// 4. Verify the signature using crypto/ecdsa.Verify()
-	//
-	// Reference: https://docs.sendgrid.com/for-developers/tracking-events/getting-started-event-webhook-security-features
-
 	if signature == "" {
+		h.logger.Warn("Webhook signature verification failed: empty signature")
 		return fmt.Errorf("empty signature")
 	}
 
-	// TODO: Implement ECDSA signature verification before production use
-	// Example implementation:
-	// signedPayload := timestamp + string(payload)
-	// hash := sha256.Sum256([]byte(signedPayload))
-	// sigBytes, _ := base64.StdEncoding.DecodeString(signature)
-	// r, s := parseSignature(sigBytes)
-	// if !ecdsa.Verify(h.publicKey, hash[:], r, s) {
-	//     return fmt.Errorf("invalid signature")
-	// }
+	if timestamp == "" {
+		h.logger.Warn("Webhook signature verification failed: empty timestamp")
+		return fmt.Errorf("empty timestamp")
+	}
 
+	// Verify timestamp is not too old (within 5 minutes)
+	timestampInt, err := strconv.ParseInt(timestamp, 10, 64)
+	if err != nil {
+		h.logger.Warn("Webhook signature verification failed: invalid timestamp format", map[string]interface{}{"error": err.Error()})
+		return fmt.Errorf("invalid timestamp format: %w", err)
+	}
+
+	timestampTime := time.Unix(timestampInt, 0)
+	age := time.Since(timestampTime)
+	if age > 5*time.Minute {
+		h.logger.Warn("Webhook signature verification failed: timestamp too old", map[string]interface{}{
+			"timestamp_age_seconds": age.Seconds(),
+			"max_age_seconds":       300,
+		})
+		return fmt.Errorf("timestamp too old: %v (max 5 minutes)", age)
+	}
+
+	// Future timestamps are also invalid
+	if age < 0 {
+		h.logger.Warn("Webhook signature verification failed: timestamp in future", map[string]interface{}{
+			"timestamp": timestamp,
+		})
+		return fmt.Errorf("timestamp is in the future")
+	}
+
+	// Construct the signed payload according to SendGrid spec: timestamp + payload
+	signedPayload := timestamp + string(payload)
+
+	// Hash the signed payload with SHA-256
+	hash := sha256.Sum256([]byte(signedPayload))
+
+	// Decode the base64-encoded signature
+	sigBytes, err := base64.StdEncoding.DecodeString(signature)
+	if err != nil {
+		h.logger.Warn("Webhook signature verification failed: invalid base64 encoding", map[string]interface{}{"error": err.Error()})
+		return fmt.Errorf("invalid signature encoding: %w", err)
+	}
+
+	// Parse the DER-encoded ECDSA signature
+	r, s, err := parseECDSASignature(sigBytes)
+	if err != nil {
+		h.logger.Warn("Webhook signature verification failed: invalid signature format", map[string]interface{}{"error": err.Error()})
+		return fmt.Errorf("invalid signature format: %w", err)
+	}
+
+	// Validate r and s are within the curve order [1, n-1]
+	// This is a security best practice to prevent malleability attacks
+	n := h.publicKey.Curve.Params().N
+	if r.Cmp(n) >= 0 || s.Cmp(n) >= 0 {
+		h.logger.Warn("Webhook signature verification failed: r or s exceeds curve order")
+		return fmt.Errorf("invalid signature: r or s exceeds curve order")
+	}
+
+	// Verify the signature using the public key
+	if !ecdsa.Verify(h.publicKey, hash[:], r, s) {
+		h.logger.Warn("Webhook signature verification failed: signature mismatch")
+		return fmt.Errorf("invalid signature")
+	}
+
+	h.logger.Info("Webhook signature verification successful", map[string]interface{}{
+		"timestamp": timestamp,
+	})
 	return nil
+}
+
+// parseECDSASignature parses an ECDSA signature into r and s components
+// SendGrid can send signatures in two formats:
+// 1. Raw format: r || s (32 bytes each for P-256 curve) - total 64 bytes
+// 2. DER-encoded ASN.1 format: SEQUENCE { INTEGER r, INTEGER s }
+func parseECDSASignature(sigBytes []byte) (*big.Int, *big.Int, error) {
+	// Check for DER SEQUENCE tag first (more reliable than length check)
+	if len(sigBytes) > 0 && sigBytes[0] == 0x30 {
+		// DER-encoded signature
+		return parseDERSignature(sigBytes)
+	}
+
+	// Assume raw r||s format (32 bytes each for P-256)
+	if len(sigBytes) != 64 {
+		return nil, nil, fmt.Errorf("invalid signature length: expected 64 bytes for raw format, got %d", len(sigBytes))
+	}
+
+	r := new(big.Int).SetBytes(sigBytes[:32])
+	s := new(big.Int).SetBytes(sigBytes[32:])
+
+	// Validate r and s are positive (non-zero)
+	// This prevents malleability attacks and ensures signature validity
+	if r.Sign() <= 0 || s.Sign() <= 0 {
+		return nil, nil, fmt.Errorf("invalid signature: r and s must be positive")
+	}
+
+	return r, s, nil
+}
+
+// parseDERSignature parses a DER-encoded ECDSA signature
+// DER format: SEQUENCE { INTEGER r, INTEGER s }
+// This is a basic DER parser that handles common cases
+func parseDERSignature(sigBytes []byte) (*big.Int, *big.Int, error) {
+	if len(sigBytes) < 8 {
+		return nil, nil, fmt.Errorf("signature too short: minimum 8 bytes required, got %d", len(sigBytes))
+	}
+
+	// Check for SEQUENCE tag
+	if sigBytes[0] != 0x30 {
+		return nil, nil, fmt.Errorf("invalid DER signature: expected SEQUENCE tag (0x30), got 0x%02x", sigBytes[0])
+	}
+
+	// Parse sequence length (supporting only short form for simplicity)
+	// Long form would have bit 7 set (value >= 0x80)
+	seqLen := int(sigBytes[1])
+	if seqLen >= 0x80 {
+		return nil, nil, fmt.Errorf("DER long form length not supported (complex DER encoding)")
+	}
+
+	// Validate sequence length doesn't exceed buffer
+	if 2+seqLen > len(sigBytes) {
+		return nil, nil, fmt.Errorf("invalid DER signature: sequence length %d exceeds buffer size %d", seqLen, len(sigBytes)-2)
+	}
+
+	idx := 2 // Skip SEQUENCE tag and length
+
+	// Parse r
+	if idx >= len(sigBytes) || sigBytes[idx] != 0x02 {
+		return nil, nil, fmt.Errorf("invalid DER signature: expected INTEGER tag for r at position %d", idx)
+	}
+	idx++
+
+	if idx >= len(sigBytes) {
+		return nil, nil, fmt.Errorf("invalid DER signature: unexpected end of data")
+	}
+
+	rLen := int(sigBytes[idx])
+	if rLen >= 0x80 {
+		return nil, nil, fmt.Errorf("DER long form length not supported for r")
+	}
+	if rLen == 0 {
+		return nil, nil, fmt.Errorf("invalid DER signature: r length is zero")
+	}
+	idx++
+
+	// Validate r length doesn't exceed buffer
+	if idx+rLen > len(sigBytes) {
+		return nil, nil, fmt.Errorf("invalid DER signature: r length %d exceeds remaining buffer %d", rLen, len(sigBytes)-idx)
+	}
+
+	r := new(big.Int).SetBytes(sigBytes[idx : idx+rLen])
+	idx += rLen
+
+	// Parse s
+	if idx >= len(sigBytes) || sigBytes[idx] != 0x02 {
+		return nil, nil, fmt.Errorf("invalid DER signature: expected INTEGER tag for s at position %d", idx)
+	}
+	idx++
+
+	if idx >= len(sigBytes) {
+		return nil, nil, fmt.Errorf("invalid DER signature: unexpected end of data")
+	}
+
+	sLen := int(sigBytes[idx])
+	if sLen >= 0x80 {
+		return nil, nil, fmt.Errorf("DER long form length not supported for s")
+	}
+	if sLen == 0 {
+		return nil, nil, fmt.Errorf("invalid DER signature: s length is zero")
+	}
+	idx++
+
+	// Validate s length doesn't exceed buffer
+	if idx+sLen > len(sigBytes) {
+		return nil, nil, fmt.Errorf("invalid DER signature: s length %d exceeds remaining buffer %d", sLen, len(sigBytes)-idx)
+	}
+
+	s := new(big.Int).SetBytes(sigBytes[idx : idx+sLen])
+
+	// Validate r and s are positive (non-zero) as required by ECDSA
+	// This prevents malleability attacks and ensures signature validity
+	if r.Sign() <= 0 {
+		return nil, nil, fmt.Errorf("invalid DER signature: r must be positive")
+	}
+	if s.Sign() <= 0 {
+		return nil, nil, fmt.Errorf("invalid DER signature: s must be positive")
+	}
+
+	return r, s, nil
 }
 
 // parseECDSAPublicKey parses an ECDSA public key from PEM format

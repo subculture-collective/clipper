@@ -8,3 +8,4 @@ export { TwitchEmbed } from './TwitchEmbed';
 export { SubmissionConfirmation } from './SubmissionConfirmation';
 export { AddToPlaylistButton } from './AddToPlaylistButton';
 export { RateLimitError } from './RateLimitError';
+export { DuplicateClipError } from './DuplicateClipError';

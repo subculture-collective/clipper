@@ -255,6 +255,12 @@ func TestTwitchOAuthHandler_InitiateTwitchOAuth(t *testing.T) {
 	if !strings.Contains(scope, "chat:read") || !strings.Contains(scope, "chat:edit") {
 		t.Error("Expected chat scopes in redirect URL")
 	}
+	if !strings.Contains(scope, "moderator:manage:banned_users") {
+		t.Error("Expected moderator:manage:banned_users scope in redirect URL")
+	}
+	if !strings.Contains(scope, "channel:manage:banned_users") {
+		t.Error("Expected channel:manage:banned_users scope in redirect URL")
+	}
 
 	// Verify client_id and redirect_uri are present and non-empty
 	if query.Get("client_id") != "test_client_id" {

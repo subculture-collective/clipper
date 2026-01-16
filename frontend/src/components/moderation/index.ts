@@ -5,3 +5,8 @@ export { UserAppealsStatus } from './UserAppealsStatus';
 export { ModerationAnalyticsDashboard } from './ModerationAnalyticsDashboard';
 export { AuditLogViewer } from './AuditLogViewer';
 export { ModerationQueueView } from './ModerationQueueView';
+export { ModeratorManager } from './ModeratorManager';
+export { BanListViewer } from './BanListViewer';
+export { SyncBansModal } from './SyncBansModal';
+export { TwitchModerationActions } from './TwitchModerationActions';
+export { BanTemplateManager } from './BanTemplateManager';
