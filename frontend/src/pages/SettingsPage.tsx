@@ -650,6 +650,29 @@ export function SettingsPage() {
                                         </div>
                                     )}
 
+                                    {subscription.tier === 'pro' && subscription.current_period_start && subscription.current_period_end && (
+                                        <div>
+                                            <label className='block text-sm font-medium mb-1'>
+                                                Billing Period
+                                            </label>
+                                            <p data-testid="billing-period">
+                                                {(() => {
+                                                    const start = new Date(subscription.current_period_start);
+                                                    const end = new Date(subscription.current_period_end);
+                                                    const daysDiff = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+                                                    
+                                                    if (daysDiff >= 350) {
+                                                        return 'Yearly';
+                                                    } else if (daysDiff >= 28 && daysDiff <= 32) {
+                                                        return 'Monthly';
+                                                    } else {
+                                                        return `${daysDiff} days`;
+                                                    }
+                                                })()}
+                                            </p>
+                                        </div>
+                                    )}
+
                                     {subscription.current_period_end && (
                                         <div>
                                             <label className='block text-sm font-medium mb-1'>
