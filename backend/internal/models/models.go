@@ -3887,3 +3887,116 @@ const (
 	CDNMetricTypeCacheHitRate = "cache_hit_rate"
 	CDNMetricTypeRequests     = "requests"
 )
+
+// ServiceStatus represents the current status of a service
+type ServiceStatus struct {
+	ID              uuid.UUID              `json:"id" db:"id"`
+	ServiceName     string                 `json:"service_name" db:"service_name"`
+	Status          string                 `json:"status" db:"status"`
+	StatusMessage   *string                `json:"status_message,omitempty" db:"status_message"`
+	LastCheckAt     time.Time              `json:"last_check_at" db:"last_check_at"`
+	ResponseTimeMs  *int                   `json:"response_time_ms,omitempty" db:"response_time_ms"`
+	ErrorRate       *float64               `json:"error_rate,omitempty" db:"error_rate"`
+	Metadata        map[string]interface{} `json:"metadata,omitempty" db:"metadata"`
+	CreatedAt       time.Time              `json:"created_at" db:"created_at"`
+	UpdatedAt       time.Time              `json:"updated_at" db:"updated_at"`
+}
+
+// StatusHistory represents historical status data
+type StatusHistory struct {
+	ID             int64                  `json:"id" db:"id"`
+	ServiceName    string                 `json:"service_name" db:"service_name"`
+	Status         string                 `json:"status" db:"status"`
+	ResponseTimeMs *int                   `json:"response_time_ms,omitempty" db:"response_time_ms"`
+	ErrorRate      *float64               `json:"error_rate,omitempty" db:"error_rate"`
+	CheckedAt      time.Time              `json:"checked_at" db:"checked_at"`
+	Metadata       map[string]interface{} `json:"metadata,omitempty" db:"metadata"`
+}
+
+// StatusIncident represents a service incident
+type StatusIncident struct {
+	ID          uuid.UUID  `json:"id" db:"id"`
+	ServiceName string     `json:"service_name" db:"service_name"`
+	Title       string     `json:"title" db:"title"`
+	Description *string    `json:"description,omitempty" db:"description"`
+	Severity    string     `json:"severity" db:"severity"`
+	Status      string     `json:"status" db:"status"`
+	StartedAt   time.Time  `json:"started_at" db:"started_at"`
+	ResolvedAt  *time.Time `json:"resolved_at,omitempty" db:"resolved_at"`
+	CreatedBy   *uuid.UUID `json:"created_by,omitempty" db:"created_by"`
+	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// StatusIncidentUpdate represents an update to an incident
+type StatusIncidentUpdate struct {
+	ID         uuid.UUID  `json:"id" db:"id"`
+	IncidentID uuid.UUID  `json:"incident_id" db:"incident_id"`
+	Status     string     `json:"status" db:"status"`
+	Message    string     `json:"message" db:"message"`
+	CreatedBy  *uuid.UUID `json:"created_by,omitempty" db:"created_by"`
+	CreatedAt  time.Time  `json:"created_at" db:"created_at"`
+}
+
+// StatusSubscription represents a user's subscription to status updates
+type StatusSubscription struct {
+	ID               uuid.UUID  `json:"id" db:"id"`
+	UserID           uuid.UUID  `json:"user_id" db:"user_id"`
+	ServiceName      *string    `json:"service_name,omitempty" db:"service_name"`
+	NotificationType string     `json:"notification_type" db:"notification_type"`
+	WebhookURL       *string    `json:"webhook_url,omitempty" db:"webhook_url"`
+	IsActive         bool       `json:"is_active" db:"is_active"`
+	CreatedAt        time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt        time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// Service status constants
+const (
+	ServiceStatusHealthy   = "healthy"
+	ServiceStatusDegraded  = "degraded"
+	ServiceStatusUnhealthy = "unhealthy"
+)
+
+// Incident severity constants
+const (
+	IncidentSeverityCritical    = "critical"
+	IncidentSeverityMajor       = "major"
+	IncidentSeverityMinor       = "minor"
+	IncidentSeverityMaintenance = "maintenance"
+)
+
+// Incident status constants
+const (
+	IncidentStatusInvestigating = "investigating"
+	IncidentStatusIdentified    = "identified"
+	IncidentStatusMonitoring    = "monitoring"
+	IncidentStatusResolved      = "resolved"
+)
+
+// Notification type constants
+const (
+	NotificationTypeEmail   = "email"
+	NotificationTypeWebhook = "webhook"
+	NotificationTypeAll     = "all"
+)
+
+// CreateIncidentRequest represents the request to create an incident
+type CreateIncidentRequest struct {
+	ServiceName string  `json:"service_name" binding:"required,max=100"`
+	Title       string  `json:"title" binding:"required,min=3,max=255"`
+	Description *string `json:"description,omitempty" binding:"omitempty,max=5000"`
+	Severity    string  `json:"severity" binding:"required,oneof=critical major minor maintenance"`
+}
+
+// UpdateIncidentRequest represents the request to update an incident
+type UpdateIncidentRequest struct {
+	Status  *string `json:"status,omitempty" binding:"omitempty,oneof=investigating identified monitoring resolved"`
+	Message string  `json:"message" binding:"required,min=1,max=5000"`
+}
+
+// CreateSubscriptionRequest represents the request to create a status subscription
+type CreateSubscriptionRequest struct {
+	ServiceName      *string `json:"service_name,omitempty" binding:"omitempty,max=100"`
+	NotificationType string  `json:"notification_type" binding:"required,oneof=email webhook all"`
+	WebhookURL       *string `json:"webhook_url,omitempty" binding:"omitempty,url,max=2048"`
+}
