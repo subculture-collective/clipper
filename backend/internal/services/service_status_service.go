@@ -159,7 +159,9 @@ func (s *ServiceStatusService) UpdateServiceStatus(
 		return fmt.Errorf("failed to update service status: %w", err)
 	}
 
-	// Also record in history
+	// Also record in history for trending analysis.
+	// Note: History logging failures are non-fatal to ensure current status updates always succeed.
+	// This design prioritizes real-time status reliability over complete historical records.
 	historyQuery := `
 		INSERT INTO status_history (service_name, status, response_time_ms, error_rate, checked_at, metadata)
 		VALUES ($1, $2, $3, $4, NOW(), $5)
@@ -309,7 +311,14 @@ func (s *ServiceStatusService) CleanupOldHistory(ctx context.Context, olderThan 
 	return nil
 }
 
-// GetOverallStatus returns the overall system status
+// GetOverallStatus returns the overall system status based on service health aggregation.
+// Status calculation thresholds:
+//   - If >50% of services are unhealthy, overall status is "unhealthy"
+//   - If >30% of services are degraded or unhealthy, overall status is "degraded"
+//   - Otherwise, overall status is "healthy"
+//   - If no services are tracked, returns "unhealthy" to indicate missing monitoring
+// These thresholds ensure that the system reports degraded status before complete failure,
+// allowing operators time to respond to issues.
 func (s *ServiceStatusService) GetOverallStatus(ctx context.Context) (string, error) {
 	query := `
 		SELECT status, COUNT(*) as count

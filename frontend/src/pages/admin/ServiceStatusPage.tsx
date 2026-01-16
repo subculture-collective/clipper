@@ -40,16 +40,16 @@ const StatusBadge = ({ status }: { status: string }) => {
 };
 
 const SeverityBadge = ({ severity }: { severity: string }) => {
-    const getVariant = (sev: string): 'destructive' | 'warning' | 'secondary' | 'outline' => {
+    const getVariant = (sev: string): 'error' | 'warning' | 'secondary' | 'default' => {
         switch (sev) {
             case 'critical':
-                return 'destructive';
+                return 'error';
             case 'major':
                 return 'warning';
             case 'minor':
                 return 'secondary';
             case 'maintenance':
-                return 'outline';
+                return 'default';
             default:
                 return 'secondary';
         }
@@ -70,52 +70,79 @@ export function ServiceStatusPage() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        fetchServiceStatus();
-        fetchActiveIncidents();
-        fetchOverallStatus();
+        const controller = new AbortController();
+        const { signal } = controller;
+
+        const loadData = async () => {
+            setLoading(true);
+            try {
+                await Promise.allSettled([
+                    fetchServiceStatus(signal),
+                    fetchActiveIncidents(signal),
+                    fetchOverallStatus(signal)
+                ]);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadData();
         
         // Poll for updates every 30 seconds
         const interval = setInterval(() => {
-            fetchServiceStatus();
-            fetchActiveIncidents();
-            fetchOverallStatus();
+            loadData();
         }, 30000);
         
-        return () => clearInterval(interval);
+        return () => {
+            clearInterval(interval);
+            controller.abort();
+        };
     }, []);
 
-    const fetchServiceStatus = async () => {
+    const fetchServiceStatus = async (signal?: AbortSignal) => {
         try {
-            const response = await fetch('/api/v1/status/services');
+            const response = await fetch('/api/v1/status/services', { signal });
             if (!response.ok) throw new Error('Failed to fetch service status');
             const data = await response.json();
             setServices(data.data || []);
+            setError(null);
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Unknown error');
+            if (err instanceof DOMException && err.name === 'AbortError') {
+                return;
+            }
+            const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+            setError(errorMsg);
+            console.error('Failed to fetch service status:', err);
         }
     };
 
-    const fetchActiveIncidents = async () => {
+    const fetchActiveIncidents = async (signal?: AbortSignal) => {
         try {
-            const response = await fetch('/api/v1/status/incidents/active');
+            const response = await fetch('/api/v1/status/incidents/active', { signal });
             if (!response.ok) throw new Error('Failed to fetch incidents');
             const data = await response.json();
             setIncidents(data.data || []);
         } catch (err) {
+            if (err instanceof DOMException && err.name === 'AbortError') {
+                return;
+            }
             console.error('Failed to fetch incidents:', err);
-        } finally {
-            setLoading(false);
+            // Don't set global error for incidents, just log it
         }
     };
 
-    const fetchOverallStatus = async () => {
+    const fetchOverallStatus = async (signal?: AbortSignal) => {
         try {
-            const response = await fetch('/api/v1/status/overall');
+            const response = await fetch('/api/v1/status/overall', { signal });
             if (!response.ok) throw new Error('Failed to fetch overall status');
             const data = await response.json();
             setOverallStatus(data.data?.status || 'unknown');
         } catch (err) {
+            if (err instanceof DOMException && err.name === 'AbortError') {
+                return;
+            }
             console.error('Failed to fetch overall status:', err);
+            // Don't set global error for overall status, just log it
         }
     };
 

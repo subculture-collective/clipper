@@ -592,7 +592,7 @@ func main() {
 
 	// Helper function to update service status
 	updateServiceStatus := func(serviceName, status string, message *string, responseTimeMs *int, errorRate *float64) {
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		
 		metadata := make(map[string]interface{})
@@ -605,6 +605,8 @@ func main() {
 
 	// Readiness check - indicates if the service is ready to serve traffic
 	r.GET("/health/ready", func(c *gin.Context) {
+		overallStart := time.Now()
+		
 		// Check database connection
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
@@ -665,9 +667,9 @@ func main() {
 			}
 		}
 		
-		// Update API service status
+		// Update API service status with actual response time
 		apiMsg := "API server responding normally"
-		apiLatency := 0
+		apiLatency := int(time.Since(overallStart).Milliseconds())
 		updateServiceStatus("api", models.ServiceStatusHealthy, &apiMsg, &apiLatency, nil)
 
 		c.JSON(http.StatusOK, gin.H{
@@ -1596,11 +1598,11 @@ func main() {
 			status.GET("/history", serviceStatusHandler.GetAllStatusHistory)
 			status.GET("/overall", serviceStatusHandler.GetOverallStatus)
 			
-			// Public incident endpoints
-			status.GET("/incidents", serviceStatusHandler.ListIncidents)
+			// Incident endpoints (require authentication for listing, public for active/details)
 			status.GET("/incidents/active", serviceStatusHandler.GetActiveIncidents)
 			status.GET("/incidents/:id", serviceStatusHandler.GetIncident)
 			status.GET("/incidents/:id/updates", serviceStatusHandler.GetIncidentUpdates)
+			status.GET("/incidents", middleware.OptionalAuthMiddleware(authService), serviceStatusHandler.ListIncidents)
 			
 			// Protected subscription endpoints (require authentication)
 			status.POST("/subscriptions", middleware.AuthMiddleware(authService), serviceStatusHandler.CreateSubscription)

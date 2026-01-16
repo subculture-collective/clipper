@@ -113,6 +113,5 @@ INSERT INTO service_status (service_name, status, status_message) VALUES
     ('database', 'healthy', 'PostgreSQL connection pool healthy'),
     ('redis', 'healthy', 'Redis cache operational'),
     ('opensearch', 'healthy', 'OpenSearch cluster operational'),
-    ('api', 'healthy', 'API server responding normally'),
-    ('websocket', 'healthy', 'WebSocket connections stable')
+    ('api', 'healthy', 'API server responding normally')
 ON CONFLICT (service_name) DO NOTHING;
