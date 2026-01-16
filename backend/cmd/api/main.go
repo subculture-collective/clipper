@@ -204,6 +204,7 @@ func main() {
 	twitchAuthRepo := repository.NewTwitchAuthRepository(db.Pool)
 	twitchBanRepo := repository.NewTwitchBanRepository(db.Pool)
 	applicationLogRepo := repository.NewApplicationLogRepository(db.Pool)
+	banReasonTemplateRepo := repository.NewBanReasonTemplateRepository(db.Pool)
 
 	// Initialize Twitch client
 	twitchClient, err := twitch.NewClient(&cfg.Twitch, redisClient)
@@ -303,6 +304,9 @@ func main() {
 
 	// Initialize moderation service for ban management
 	moderationService := services.NewModerationService(db.Pool, communityRepo, userRepo, auditLogRepo)
+	
+	// Initialize ban reason template service
+	banReasonTemplateService := services.NewBanReasonTemplateService(banReasonTemplateRepo, communityRepo, logger)
 
 	// Initialize account type service
 	accountTypeService := services.NewAccountTypeService(userRepo, accountTypeConversionRepo, auditLogRepo, mfaService)
@@ -467,6 +471,7 @@ func main() {
 	verificationHandler := handlers.NewVerificationHandler(verificationRepo, notificationService, db.Pool)
 	chatHandler := handlers.NewChatHandler(db.Pool)
 	applicationLogHandler := handlers.NewApplicationLogHandler(applicationLogRepo)
+	banReasonTemplateHandler := handlers.NewBanReasonTemplateHandler(banReasonTemplateService, logger)
 
 	// Initialize WebSocket server
 	wsServer := websocket.NewServer(db.Pool, redisClient.GetClient(), &cfg.WebSocket)
@@ -915,6 +920,14 @@ func main() {
 				moderationAppeals.GET("/audit-logs", middleware.AuthMiddleware(authService), middleware.RequireRole("admin", "moderator"), middleware.RateLimitMiddleware(redisClient, 60, time.Minute), auditLogHandler.ListModerationAuditLogs)
 				moderationAppeals.GET("/audit-logs/export", middleware.AuthMiddleware(authService), middleware.RequireRole("admin", "moderator"), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), auditLogHandler.ExportModerationAuditLogs)
 				moderationAppeals.GET("/audit-logs/:id", middleware.AuthMiddleware(authService), middleware.RequireRole("admin", "moderator"), middleware.RateLimitMiddleware(redisClient, 60, time.Minute), auditLogHandler.GetModerationAuditLog)
+				
+				// Ban reason template endpoints
+				moderationAppeals.GET("/ban-templates", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 60, time.Minute), banReasonTemplateHandler.ListTemplates)
+				moderationAppeals.GET("/ban-templates/stats", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 60, time.Minute), banReasonTemplateHandler.GetUsageStats)
+				moderationAppeals.GET("/ban-templates/:id", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 60, time.Minute), banReasonTemplateHandler.GetTemplate)
+				moderationAppeals.POST("/ban-templates", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Hour), banReasonTemplateHandler.CreateTemplate)
+				moderationAppeals.PATCH("/ban-templates/:id", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Hour), banReasonTemplateHandler.UpdateTemplate)
+				moderationAppeals.DELETE("/ban-templates/:id", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Hour), banReasonTemplateHandler.DeleteTemplate)
 			}
 		}
 

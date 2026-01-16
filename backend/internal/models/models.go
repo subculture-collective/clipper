@@ -3069,11 +3069,42 @@ type ChatModerationLog struct {
 	TargetUsername    *string `json:"target_username,omitempty" db:"target_username"`
 }
 
+// BanReasonTemplate represents a reusable ban reason template
+type BanReasonTemplate struct {
+	ID              uuid.UUID  `json:"id" db:"id"`
+	Name            string     `json:"name" db:"name"`
+	Reason          string     `json:"reason" db:"reason"`
+	DurationSeconds *int       `json:"duration_seconds,omitempty" db:"duration_seconds"`
+	IsDefault       bool       `json:"is_default" db:"is_default"`
+	BroadcasterID   *string    `json:"broadcaster_id,omitempty" db:"broadcaster_id"`
+	CreatedBy       *uuid.UUID `json:"created_by,omitempty" db:"created_by"`
+	CreatedAt       time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at" db:"updated_at"`
+	UsageCount      int        `json:"usage_count" db:"usage_count"`
+	LastUsedAt      *time.Time `json:"last_used_at,omitempty" db:"last_used_at"`
+}
+
+// CreateBanReasonTemplateRequest represents a request to create a template
+type CreateBanReasonTemplateRequest struct {
+	Name            string  `json:"name" binding:"required,max=100"`
+	Reason          string  `json:"reason" binding:"required,max=1000"`
+	DurationSeconds *int    `json:"duration_seconds,omitempty" binding:"omitempty,min=1,max=1209600"`
+	BroadcasterID   *string `json:"broadcaster_id,omitempty" binding:"omitempty"`
+}
+
+// UpdateBanReasonTemplateRequest represents a request to update a template
+type UpdateBanReasonTemplateRequest struct {
+	Name            *string `json:"name,omitempty" binding:"omitempty,max=100"`
+	Reason          *string `json:"reason,omitempty" binding:"omitempty,max=1000"`
+	DurationSeconds *int    `json:"duration_seconds,omitempty" binding:"omitempty,min=1,max=1209600"`
+}
+
 // BanUserRequest represents a request to ban a user
 type BanUserRequest struct {
-	UserID          string `json:"user_id" binding:"required,uuid"`
-	Reason          string `json:"reason" binding:"omitempty,max=1000"`
-	DurationMinutes *int   `json:"duration_minutes,omitempty" binding:"omitempty,min=1"`
+	UserID          string     `json:"user_id" binding:"required,uuid"`
+	Reason          string     `json:"reason" binding:"omitempty,max=1000"`
+	DurationMinutes *int       `json:"duration_minutes,omitempty" binding:"omitempty,min=1"`
+	TemplateID      *uuid.UUID `json:"template_id,omitempty" binding:"omitempty,uuid"`
 }
 
 // MuteUserRequest represents a request to mute a user
