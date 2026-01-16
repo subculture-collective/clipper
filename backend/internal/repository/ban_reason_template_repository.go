@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -35,11 +36,15 @@ func (r *BanReasonTemplateRepository) List(ctx context.Context, broadcasterID *s
 	
 	query := `SELECT * FROM ban_reason_templates WHERE `
 	args := []interface{}{}
-	argNum := 1
 	
 	if broadcasterID != nil {
-		query += `(broadcaster_id = $` + string(rune('0'+argNum)) + ` OR (is_default = true AND $` + string(rune('0'+argNum+1)) + `))`
-		args = append(args, *broadcasterID, includeDefaults)
+		if includeDefaults {
+			query += `(broadcaster_id = $1 OR is_default = true)`
+			args = append(args, *broadcasterID)
+		} else {
+			query += `broadcaster_id = $1`
+			args = append(args, *broadcasterID)
+		}
 	} else if includeDefaults {
 		query += `is_default = true`
 	} else {
@@ -85,17 +90,19 @@ func (r *BanReasonTemplateRepository) Update(ctx context.Context, id uuid.UUID, 
 	query := `UPDATE ban_reason_templates SET `
 	args := []interface{}{}
 	argNum := 1
+	first := true
 	
 	for field, value := range updates {
-		if argNum > 1 {
+		if !first {
 			query += ", "
 		}
-		query += field + ` = $` + string(rune('0'+argNum))
+		query += fmt.Sprintf("%s = $%d", field, argNum)
 		args = append(args, value)
 		argNum++
+		first = false
 	}
 	
-	query += ` WHERE id = $` + string(rune('0'+argNum))
+	query += fmt.Sprintf(" WHERE id = $%d", argNum)
 	args = append(args, id)
 	
 	_, err := r.db.ExecContext(ctx, query, args...)
