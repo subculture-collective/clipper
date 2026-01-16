@@ -92,8 +92,8 @@ export const MarkdownHelpModal: React.FC<MarkdownHelpModalProps> = ({ isOpen, on
         <div className="pt-4 border-t border-border">
           <h4 className="font-semibold text-sm mb-2">Keyboard Shortcuts</h4>
           <ul className="text-sm space-y-1 text-muted-foreground">
-            <li>• <kbd className="px-1 py-0.5 bg-muted rounded text-xs">Ctrl+Enter</kbd> to submit</li>
-            <li>• <kbd className="px-1 py-0.5 bg-muted rounded text-xs">Escape</kbd> to cancel</li>
+            <li>• <kbd className="px-1 py-0.5 bg-muted rounded text-xs">Ctrl+Enter</kbd> (or <kbd className="px-1 py-0.5 bg-muted rounded text-xs">Cmd+Enter</kbd> on Mac) to submit</li>
+            <li>• <kbd className="px-1 py-0.5 bg-muted rounded text-xs">Escape</kbd> to reset content</li>
           </ul>
         </div>
       </div>

@@ -31,6 +31,35 @@ describe('isValidUrl', () => {
     expect(isValidUrl('subdomain.example.com')).toBe(true);
     expect(isValidUrl('https://subdomain.example.com')).toBe(true);
   });
+
+  it('should validate localhost URLs', () => {
+    expect(isValidUrl('localhost')).toBe(true);
+    expect(isValidUrl('http://localhost')).toBe(true);
+    expect(isValidUrl('localhost:3000')).toBe(true);
+    expect(isValidUrl('http://localhost:3000')).toBe(true);
+    expect(isValidUrl('http://localhost:3000/path')).toBe(true);
+  });
+
+  it('should validate IP addresses', () => {
+    expect(isValidUrl('192.168.1.1')).toBe(true);
+    expect(isValidUrl('http://192.168.1.1')).toBe(true);
+    expect(isValidUrl('192.168.1.1:8080')).toBe(true);
+    expect(isValidUrl('http://192.168.1.1:8080/path')).toBe(true);
+  });
+
+  it('should reject potentially malicious URLs', () => {
+    // javascript: protocol
+    expect(isValidUrl('javascript:alert(1)')).toBe(false);
+    
+    // data: protocol
+    expect(isValidUrl('data:text/html,<script>alert(1)</script>')).toBe(false);
+    
+    // file: protocol
+    expect(isValidUrl('file:///etc/passwd')).toBe(false);
+    
+    // ftp: protocol
+    expect(isValidUrl('ftp://example.com')).toBe(false);
+  });
 });
 
 describe('normalizeUrl', () => {

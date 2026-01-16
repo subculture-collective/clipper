@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui';
 import { EmojiPicker } from '@/components/ui/EmojiPicker';
 import { MarkdownHelpModal } from '@/components/ui/MarkdownHelpModal';
+import { LinkInputModal } from '@/components/ui/LinkInputModal';
 import { useCreateComment, useUpdateComment, useToast } from '@/hooks';
 import { useAutoSave, useDraftStorage } from '@/hooks/useAutoSave';
 import { validateAndNormalizeUrl } from '@/lib/url-validation';
@@ -36,6 +37,7 @@ export const CommentForm: React.FC<CommentFormProps> = ({
   const [showPreview, setShowPreview] = React.useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = React.useState(false);
   const [showMarkdownHelp, setShowMarkdownHelp] = React.useState(false);
+  const [showLinkModal, setShowLinkModal] = React.useState(false);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
   const { mutate: createComment, isPending: isCreating } = useCreateComment();
@@ -66,16 +68,22 @@ export const CommentForm: React.FC<CommentFormProps> = ({
     return 'Write a comment...';
   }, [placeholder, parentId, parentUsername]);
 
-  // Load draft on mount
+  // Load draft on mount, but clear draft when editing existing comment
   React.useEffect(() => {
-    if (!editCommentId && !initialContent) {
+    if (editCommentId) {
+      // Clear any stored draft when editing to avoid confusion
+      clearDraft();
+      return;
+    }
+
+    if (!initialContent) {
       const draft = loadDraft();
       if (draft) {
         setContent(draft);
         toast.info('Draft restored');
       }
     }
-  }, [editCommentId, initialContent, loadDraft, toast]);
+  }, [editCommentId, initialContent, loadDraft, clearDraft, toast]);
 
   React.useEffect(() => {
     // Focus textarea on mount
@@ -174,17 +182,15 @@ export const CommentForm: React.FC<CommentFormProps> = ({
     }, 0);
   };
 
-  const insertLink = () => {
-    const url = prompt('Enter URL:');
-    if (!url) return;
-
+  const insertLink = (url: string, linkText: string) => {
     const validatedUrl = validateAndNormalizeUrl(url);
     if (!validatedUrl) {
       toast.error('Invalid URL. Please enter a valid URL (e.g., https://example.com)');
       return;
     }
 
-    insertMarkdown('[', `](${validatedUrl})`);
+    const displayText = linkText || validatedUrl;
+    insertMarkdown(`[${displayText}](`, `${validatedUrl})`);
   };
 
   const insertEmoji = (emoji: string) => {
@@ -238,7 +244,7 @@ export const CommentForm: React.FC<CommentFormProps> = ({
           <div className="w-px h-5 bg-border mx-1" />
           <button
             type="button"
-            onClick={insertLink}
+            onClick={() => setShowLinkModal(true)}
             className="p-1.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors text-sm"
             title="Insert Link"
           >
@@ -431,6 +437,13 @@ export const CommentForm: React.FC<CommentFormProps> = ({
       <MarkdownHelpModal
         isOpen={showMarkdownHelp}
         onClose={() => setShowMarkdownHelp(false)}
+      />
+
+      {/* Link Input Modal */}
+      <LinkInputModal
+        isOpen={showLinkModal}
+        onClose={() => setShowLinkModal(false)}
+        onInsert={insertLink}
       />
     </form>
   );

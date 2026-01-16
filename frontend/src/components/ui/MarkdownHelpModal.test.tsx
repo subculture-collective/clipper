@@ -36,7 +36,7 @@ describe('MarkdownHelpModal', () => {
 
     expect(screen.getByText(/keyboard shortcuts/i)).toBeInTheDocument();
     expect(screen.getByText(/to submit/i)).toBeInTheDocument();
-    expect(screen.getByText(/to cancel/i)).toBeInTheDocument();
+    expect(screen.getByText(/to reset content/i)).toBeInTheDocument();
   });
 
   it('should show syntax and examples for each formatting option', () => {

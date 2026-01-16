@@ -7,7 +7,7 @@ interface EmojiPickerProps {
   className?: string;
 }
 
-// Common emoji categories
+// Common emoji categories - defined outside component to avoid recreation on every render
 const EMOJI_CATEGORIES = {
   smileys: {
     name: 'Smileys & People',
@@ -29,42 +29,45 @@ const EMOJI_CATEGORIES = {
     name: 'Symbols',
     emojis: ['✅', '❌', '⭕', '❗', '❓', '❕', '❔', '⚠️', '🚫', '💯', '🔞', '📵', '🚭', '🚱', '🚷', '♻️', '✔️', '💲', '💱', '™️', '©️', '®️', '〰️', '➰', '➿', '🔚', '🔙', '🔛', '🔝', '🔜'],
   },
-};
+} as const;
 
 export const EmojiPicker: React.FC<EmojiPickerProps> = ({ onEmojiSelect, onClose, className }) => {
   const [activeCategory, setActiveCategory] = React.useState<keyof typeof EMOJI_CATEGORIES>('smileys');
   const pickerRef = React.useRef<HTMLDivElement>(null);
 
+  // Memoize handlers to prevent unnecessary re-creation
+  const handleClickOutside = React.useCallback((event: MouseEvent) => {
+    if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
+      onClose();
+    }
+  }, [onClose]);
+
+  const handleEscape = React.useCallback((event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      onClose();
+    }
+  }, [onClose]);
+
   // Close picker when clicking outside
   React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
-        onClose();
-      }
-    };
-
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [onClose]);
+  }, [handleClickOutside]);
 
   // Close on Escape key
   React.useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose();
-      }
-    };
-
     document.addEventListener('keydown', handleEscape);
     return () => {
       document.removeEventListener('keydown', handleEscape);
     };
-  }, [onClose]);
+  }, [handleEscape]);
 
   const handleEmojiClick = (emoji: string) => {
     onEmojiSelect(emoji);
+    // Auto-close after selection for better UX
+    onClose();
   };
 
   return (

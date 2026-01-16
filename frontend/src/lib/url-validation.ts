@@ -11,15 +11,32 @@ export function isValidUrl(url: string): boolean {
     return false;
   }
 
-  try {
-    const urlObj = new URL(url);
-    return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
-  } catch {
-    // If URL constructor fails, try a relaxed pattern
-    // Allow URLs without protocol if they look like domains
-    const relaxedPattern = /^(?:(?:https?:\/\/)?(?:www\.)?)?[a-z0-9]+([-.]{1}[a-z0-9]+)*\.[a-z]{2,}(?:\/[^\s]*)?$/i;
-    return relaxedPattern.test(url);
+  // First check if it has http/https protocol
+  if (/^https?:\/\//i.test(url)) {
+    try {
+      const urlObj = new URL(url);
+      return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+    } catch {
+      return false;
+    }
   }
+
+  // For URLs without http/https protocol, check common patterns
+  // localhost with optional port and path
+  const localhostPattern = /^localhost(?::\d{1,5})?(?:\/[^\s]*)?$/i;
+  if (localhostPattern.test(url)) {
+    return true;
+  }
+
+  // IP address with optional port and path
+  const ipPattern = /^\d{1,3}(?:\.\d{1,3}){3}(?::\d{1,5})?(?:\/[^\s]*)?$/;
+  if (ipPattern.test(url)) {
+    return true;
+  }
+
+  // Domain with optional www, port, and path
+  const domainPattern = /^(?:www\.)?[a-z0-9]+([-.]{1}[a-z0-9]+)*\.[a-z]{2,}(?::\d{1,5})?(?:\/[^\s]*)?$/i;
+  return domainPattern.test(url);
 }
 
 /**

@@ -84,3 +84,5 @@ export { DocTOC } from './DocTOC';
 export { EmojiPicker } from './EmojiPicker';
 
 export { MarkdownHelpModal } from './MarkdownHelpModal';
+
+export { LinkInputModal } from './LinkInputModal';
