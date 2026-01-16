@@ -148,6 +148,7 @@ export function useSearchErrorState(): UseSearchErrorStateReturn {
   const openCircuitBreaker = useCallback(() => {
     setErrorState(prev => ({
       ...prev,
+      type: 'error',
       isCircuitOpen: true,
       message: 'Search service is experiencing issues. Automatic retries have been paused. We\'ll try again in 30 seconds.',
     }));

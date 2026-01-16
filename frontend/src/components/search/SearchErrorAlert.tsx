@@ -190,8 +190,9 @@ export function SearchErrorAlert({
                     )}
 
                     {/* Action Buttons */}
-                    {type === 'error' && !isCircuitOpen && onRetry && (
+                    {type === 'error' && !isCircuitOpen && (onRetry || (isRetrying && onCancelRetry)) && (
                         <div className='flex gap-2 flex-wrap'>
+                        {onRetry && (
                         <button
                             onClick={handleRetry}
                             disabled={isRetrying}
@@ -247,6 +248,7 @@ export function SearchErrorAlert({
                                 </>
                             )}
                         </button>
+                        )}
 
                         {/* Cancel Retry Button - shown when retrying */}
                         {isRetrying && onCancelRetry && (
