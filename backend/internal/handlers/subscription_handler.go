@@ -4,6 +4,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/subculture-collective/clipper/internal/models"
@@ -342,7 +343,7 @@ func (h *SubscriptionHandler) GetInvoices(c *gin.Context) {
 	// Parse query parameters
 	var limit int64 = 10
 	if limitStr := c.Query("limit"); limitStr != "" {
-		if parsedLimit, err := c.GetInt64("limit"); err == nil {
+		if parsedLimit, err := strconv.ParseInt(limitStr, 10, 64); err == nil {
 			limit = parsedLimit
 		}
 	}
