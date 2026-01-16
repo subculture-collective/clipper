@@ -86,7 +86,33 @@ describe('ModerationAnalyticsDashboard', () => {
             comments: 60,
         },
         average_response_time_minutes: 25,
-        daily_activity: [],
+        actions_over_time: [],
+        ban_reasons: {
+            spam: 30,
+            harassment: 20,
+            inappropriate: 10,
+        },
+        most_banned_users: [
+            {
+                user_id: 'user-1',
+                username: 'banned_user_1',
+                ban_count: 5,
+                last_ban_at: '2024-01-15T10:00:00Z',
+            },
+            {
+                user_id: 'user-2',
+                username: 'banned_user_2',
+                ban_count: 3,
+                last_ban_at: '2024-01-14T10:00:00Z',
+            },
+        ],
+        appeals: {
+            total_appeals: 20,
+            pending_appeals: 5,
+            approved_appeals: 8,
+            rejected_appeals: 7,
+            false_positive_rate: 40.0,
+        },
     };
 
     beforeEach(() => {
@@ -422,6 +448,120 @@ describe('ModerationAnalyticsDashboard', () => {
                     .getByText('Failed to load analytics data')
                     .closest('div');
                 expect(errorContainer).toHaveClass('border-red-200');
+            });
+        });
+    });
+
+    describe('New Analytics Features', () => {
+        it('displays false positive rate metric', async () => {
+            render(<ModerationAnalyticsDashboard />);
+
+            await waitFor(() => {
+                expect(screen.getByText('False Positive Rate')).toBeInTheDocument();
+                expect(screen.getByText('40.0%')).toBeInTheDocument();
+            });
+        });
+
+        it('renders ban reasons distribution chart when data available', async () => {
+            render(<ModerationAnalyticsDashboard />);
+
+            await waitFor(() => {
+                expect(screen.getByText('spam: 30')).toBeInTheDocument();
+                expect(screen.getByText('harassment: 20')).toBeInTheDocument();
+                expect(screen.getByText('inappropriate: 10')).toBeInTheDocument();
+            });
+        });
+
+        it('does not render ban reasons chart when no data', async () => {
+            vi.mocked(moderationApi.getModerationAnalytics).mockResolvedValue({
+                success: true,
+                data: {
+                    ...mockAnalytics,
+                    ban_reasons: {},
+                },
+            });
+
+            render(<ModerationAnalyticsDashboard />);
+
+            await waitFor(() => {
+                expect(screen.queryByText('Ban Reasons Distribution')).not.toBeInTheDocument();
+            });
+        });
+
+        it('displays most banned users table', async () => {
+            render(<ModerationAnalyticsDashboard />);
+
+            await waitFor(() => {
+                expect(screen.getByText('Most Banned Users')).toBeInTheDocument();
+                expect(screen.getByText('banned_user_1')).toBeInTheDocument();
+                expect(screen.getByText('banned_user_2')).toBeInTheDocument();
+                expect(screen.getByText('5')).toBeInTheDocument();
+                expect(screen.getByText('3')).toBeInTheDocument();
+            });
+        });
+
+        it('does not render banned users table when no data', async () => {
+            vi.mocked(moderationApi.getModerationAnalytics).mockResolvedValue({
+                success: true,
+                data: {
+                    ...mockAnalytics,
+                    most_banned_users: [],
+                },
+            });
+
+            render(<ModerationAnalyticsDashboard />);
+
+            await waitFor(() => {
+                expect(screen.queryByText('Most Banned Users')).not.toBeInTheDocument();
+            });
+        });
+
+        it('displays appeals statistics section', async () => {
+            render(<ModerationAnalyticsDashboard />);
+
+            await waitFor(() => {
+                expect(screen.getByText('Appeals & Reversals')).toBeInTheDocument();
+                expect(screen.getByText('Total Appeals')).toBeInTheDocument();
+                expect(screen.getByText('20')).toBeInTheDocument();
+                expect(screen.getByText('Pending')).toBeInTheDocument();
+                expect(screen.getByText('5')).toBeInTheDocument();
+                expect(screen.getByText('Approved')).toBeInTheDocument();
+                expect(screen.getByText('8')).toBeInTheDocument();
+                expect(screen.getByText('Rejected')).toBeInTheDocument();
+                expect(screen.getByText('7')).toBeInTheDocument();
+            });
+        });
+
+        it('does not render appeals section when no appeals data', async () => {
+            vi.mocked(moderationApi.getModerationAnalytics).mockResolvedValue({
+                success: true,
+                data: {
+                    ...mockAnalytics,
+                    appeals: undefined,
+                },
+            });
+
+            render(<ModerationAnalyticsDashboard />);
+
+            await waitFor(() => {
+                expect(screen.queryByText('Appeals & Reversals')).not.toBeInTheDocument();
+            });
+        });
+
+        it('handles missing false positive rate gracefully', async () => {
+            vi.mocked(moderationApi.getModerationAnalytics).mockResolvedValue({
+                success: true,
+                data: {
+                    ...mockAnalytics,
+                    appeals: undefined,
+                },
+            });
+
+            render(<ModerationAnalyticsDashboard />);
+
+            await waitFor(() => {
+                expect(screen.getByText('False Positive Rate')).toBeInTheDocument();
+                expect(screen.getByText('N/A')).toBeInTheDocument();
             });
         });
     });

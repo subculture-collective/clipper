@@ -5,17 +5,17 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/subculture-collective/clipper/backend/internal/models"
-	"github.com/subculture-collective/clipper/backend/internal/services"
-	"github.com/subculture-collective/clipper/backend/pkg/utils"
+	"github.com/subculture-collective/clipper/internal/models"
+	"github.com/subculture-collective/clipper/internal/services"
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
 type BanReasonTemplateHandler struct {
 	service *services.BanReasonTemplateService
-	logger  *utils.Logger
+	logger  *utils.StructuredLogger
 }
 
-func NewBanReasonTemplateHandler(service *services.BanReasonTemplateService, logger *utils.Logger) *BanReasonTemplateHandler {
+func NewBanReasonTemplateHandler(service *services.BanReasonTemplateService, logger *utils.StructuredLogger) *BanReasonTemplateHandler {
 	return &BanReasonTemplateHandler{
 		service: service,
 		logger:  logger,

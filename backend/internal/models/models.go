@@ -2887,6 +2887,23 @@ type TimeSeriesPoint struct {
 	Count int    `json:"count"`
 }
 
+// BannedUserStat represents statistics for a banned user
+type BannedUserStat struct {
+	UserID    string `json:"user_id"`
+	Username  string `json:"username"`
+	BanCount  int    `json:"ban_count"`
+	LastBanAt string `json:"last_ban_at"`
+}
+
+// AppealStats represents appeal and reversal statistics
+type AppealStats struct {
+	TotalAppeals      int     `json:"total_appeals"`
+	PendingAppeals    int     `json:"pending_appeals"`
+	ApprovedAppeals   int     `json:"approved_appeals"`
+	RejectedAppeals   int     `json:"rejected_appeals"`
+	FalsePositiveRate *float64 `json:"false_positive_rate,omitempty"` // Percentage of approved appeals
+}
+
 // ModerationAnalytics represents analytics data for moderation actions
 type ModerationAnalytics struct {
 	TotalActions         int               `json:"total_actions"`
@@ -2895,6 +2912,9 @@ type ModerationAnalytics struct {
 	ActionsOverTime      []TimeSeriesPoint `json:"actions_over_time"`
 	ContentTypeBreakdown map[string]int    `json:"content_type_breakdown"`
 	AverageResponseTime  *float64          `json:"average_response_time_minutes,omitempty"`
+	BanReasons           map[string]int    `json:"ban_reasons"`
+	MostBannedUsers      []BannedUserStat  `json:"most_banned_users"`
+	Appeals              *AppealStats      `json:"appeals,omitempty"`
 }
 
 // ============================================================================

@@ -270,6 +270,21 @@ export interface TimeSeriesPoint {
     count: number;
 }
 
+export interface BannedUserStat {
+    user_id: string;
+    username: string;
+    ban_count: number;
+    last_ban_at: string;
+}
+
+export interface AppealStats {
+    total_appeals: number;
+    pending_appeals: number;
+    approved_appeals: number;
+    rejected_appeals: number;
+    false_positive_rate?: number;
+}
+
 export interface ModerationAnalytics {
     total_actions: number;
     actions_by_type: Record<string, number>;
@@ -277,6 +292,9 @@ export interface ModerationAnalytics {
     actions_over_time: TimeSeriesPoint[];
     content_type_breakdown: Record<string, number>;
     average_response_time_minutes?: number;
+    ban_reasons: Record<string, number>;
+    most_banned_users: BannedUserStat[];
+    appeals?: AppealStats;
 }
 
 export interface AnalyticsResponse {
