@@ -176,7 +176,7 @@ describe('SearchErrorAlert', () => {
     
     const retryCountIndicator = screen.getByTestId('retry-count-indicator');
     expect(retryCountIndicator).toBeInTheDocument();
-    expect(retryCountIndicator).toHaveTextContent('Retrying 2/3');
+    expect(retryCountIndicator).toHaveTextContent('Retrying attempt 2/3');
   });
 
   it('should display retry count indicator after retry attempt', () => {
@@ -184,7 +184,14 @@ describe('SearchErrorAlert', () => {
     
     const retryCountIndicator = screen.getByTestId('retry-count-indicator');
     expect(retryCountIndicator).toBeInTheDocument();
-    expect(retryCountIndicator).toHaveTextContent('Retry 1/3');
+    expect(retryCountIndicator).toHaveTextContent('Retry attempt 1/3');
+  });
+
+  it('should not display retry count indicator after max retries', () => {
+    render(<SearchErrorAlert type="error" retryCount={3} maxRetries={3} isRetrying={false} />);
+    
+    const retryCountIndicator = screen.queryByTestId('retry-count-indicator');
+    expect(retryCountIndicator).not.toBeInTheDocument();
   });
 
   it('should display progress bar when retrying', () => {
@@ -193,9 +200,9 @@ describe('SearchErrorAlert', () => {
     const progressBar = screen.getByTestId('retry-progress-bar');
     expect(progressBar).toBeInTheDocument();
     
-    // Check progress bar has correct width
+    // Check progress bar has correct width (retryCount 2, so progress is (2-1)/3 = 33.33%)
     const progressBarInner = progressBar.querySelector('div');
-    expect(progressBarInner).toHaveStyle({ width: '66.66666666666666%' });
+    expect(progressBarInner).toHaveStyle({ width: '33.33333333333333%' });
   });
 
   it('should show cancel button when retrying', () => {
@@ -246,9 +253,17 @@ describe('SearchErrorAlert', () => {
     const progressBarInner = progressBar.querySelector('div[role="progressbar"]');
     
     expect(progressBarInner).toHaveAttribute('role', 'progressbar');
-    expect(progressBarInner).toHaveAttribute('aria-valuenow', '1');
+    expect(progressBarInner).toHaveAttribute('aria-valuenow', '0');
     expect(progressBarInner).toHaveAttribute('aria-valuemin', '0');
     expect(progressBarInner).toHaveAttribute('aria-valuemax', '3');
-    expect(progressBarInner).toHaveAttribute('aria-label', 'Retry progress: 1 of 3');
+    expect(progressBarInner).toHaveAttribute('aria-label', 'Retry progress: attempt 1 of 3');
+  });
+
+  it('should show error variant when circuit breaker is open', () => {
+    render(<SearchErrorAlert type="failover" isCircuitOpen={true} />);
+    
+    // Should use error variant even though type is failover
+    const alert = screen.getByTestId('search-failover-warning');
+    expect(alert).toBeInTheDocument();
   });
 });

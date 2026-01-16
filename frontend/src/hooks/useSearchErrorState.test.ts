@@ -560,5 +560,40 @@ describe('useSearchErrorState', () => {
       
       expect(result.current.errorState.isCircuitOpen).toBe(false);
     });
+
+    it('should count failover errors toward circuit breaker', async () => {
+      const { result } = renderHook(() => useSearchErrorState());
+      
+      const failoverError: Partial<AxiosError> = {
+        response: {
+          headers: { 'x-search-failover': 'true' },
+          status: 200,
+          statusText: 'OK',
+          data: {},
+          config: {} as unknown as InternalAxiosRequestConfig,
+        },
+      };
+      
+      const error: Partial<AxiosError> = {
+        response: {
+          headers: {},
+          status: 503,
+          statusText: 'Service Unavailable',
+          data: {},
+          config: {} as unknown as InternalAxiosRequestConfig,
+        },
+      };
+      
+      // Mix of failover (3) and error (2) = 5 total
+      result.current.handleSearchError(failoverError);
+      result.current.handleSearchError(error);
+      result.current.handleSearchError(failoverError);
+      result.current.handleSearchError(failoverError);
+      result.current.handleSearchError(error);
+      
+      await waitFor(() => {
+        expect(result.current.errorState.isCircuitOpen).toBe(true);
+      });
+    });
   });
 });

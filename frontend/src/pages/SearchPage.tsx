@@ -123,8 +123,7 @@ export function SearchPage() {
                 handleSearchSuccess();
                 return result;
             } catch (err) {
-                // Enable automatic retry on error
-                handleSearchError(err, { autoRetry: true });
+                handleSearchError(err);
                 throw err;
             }
         },
@@ -132,15 +131,16 @@ export function SearchPage() {
         retry: false, // We handle retries manually
     });
 
-    // Auto-retry on error if retry count < max
+    // Trigger automatic retry when an error occurs
     useEffect(() => {
         if (error && errorState.type === 'error' && !errorState.isRetrying && 
-            errorState.retryCount < errorState.maxRetries && !errorState.isCircuitOpen) {
-            // Trigger automatic retry
+            errorState.retryCount === 0 && !errorState.isCircuitOpen) {
+            // Only trigger on initial error (retryCount === 0) to avoid retry loops
+            // The retry() function itself handles the retry loop with exponential backoff
             retry(() => refetch());
         }
     }, [error, errorState.type, errorState.isRetrying, errorState.retryCount, 
-        errorState.maxRetries, errorState.isCircuitOpen, retry, refetch]);
+        errorState.isCircuitOpen, retry, refetch]);
 
     // Update tab when type param changes
     useEffect(() => {

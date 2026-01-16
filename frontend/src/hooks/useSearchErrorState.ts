@@ -176,7 +176,8 @@ export function useSearchErrorState(): UseSearchErrorStateReturn {
     const { type, message } = analyzeError(error);
     
     // Increment consecutive failures for circuit breaker
-    if (type === 'error') {
+    // Count both 'error' and 'failover' types as they both indicate degraded service
+    if (type === 'error' || type === 'failover') {
       consecutiveFailuresRef.current++;
       
       // Check if we should open circuit breaker
@@ -202,12 +203,6 @@ export function useSearchErrorState(): UseSearchErrorStateReturn {
         isRetrying: false,
       };
     });
-
-    // Auto-retry if enabled and not at max retries and type is 'error'
-    if (options?.autoRetry && type === 'error') {
-      // Store the current error state for retry
-      pendingRetryRef.current = null; // Will be set by the caller
-    }
   }, [analyzeError, openCircuitBreaker]);
 
   /**
@@ -248,14 +243,8 @@ export function useSearchErrorState(): UseSearchErrorStateReturn {
    * Supports both manual and automatic retries
    */
   const retry = useCallback(async (searchFn: () => Promise<void>) => {
-    // Check if circuit breaker is open
-    let isCircuitOpen = false;
-    setErrorState(prev => {
-      isCircuitOpen = prev.isCircuitOpen;
-      return prev;
-    });
-
-    if (isCircuitOpen) {
+    // Check if circuit breaker is open by reading from current state
+    if (errorState.isCircuitOpen) {
       trackEvent('search_retry_blocked_by_circuit_breaker', {});
       return;
     }
@@ -313,7 +302,7 @@ export function useSearchErrorState(): UseSearchErrorStateReturn {
       setErrorState(prev => ({
         ...prev,
         isRetrying: false,
-        message: 'Retry cancelled by user.',
+        message: 'Retry cancelled. You can try again manually.',
       }));
       trackEvent('search_retry_cancelled', {
         retry_count: currentRetryCount + 1,
@@ -331,7 +320,7 @@ export function useSearchErrorState(): UseSearchErrorStateReturn {
       // Clear pending retry
       pendingRetryRef.current = null;
     }
-  }, [handleSearchError, handleSearchSuccess]);
+  }, [errorState.isCircuitOpen, handleSearchError, handleSearchSuccess]);
 
   /**
    * Cancel ongoing retry
@@ -350,6 +339,7 @@ export function useSearchErrorState(): UseSearchErrorStateReturn {
     pendingRetryRef.current = null;
 
     setErrorState(prev => {
+      // Track analytics event inside state update to access current retry count
       trackEvent('search_retry_cancelled', {
         retry_count: prev.retryCount,
       });

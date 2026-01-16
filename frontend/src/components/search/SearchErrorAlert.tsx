@@ -59,7 +59,7 @@ const ERROR_MESSAGES = {
     circuit_breaker: {
         title: 'Search Service Unavailable',
         description:
-            'The search service is experiencing persistent issues. We\'ve paused automatic retries to prevent overload. We\'ll try again automatically in 30 seconds.',
+            "The search service is experiencing persistent issues. We've paused automatic retries to prevent overload. We'll try again automatically in 30 seconds.",
     },
 };
 
@@ -135,8 +135,11 @@ export function SearchErrorAlert({
         : ERROR_MESSAGES[type];
     const displayMessage = message || errorConfig.description;
 
-    // Show retry count if retrying or if count > 0
-    const showRetryCount = (isRetrying || retryCount > 0) && retryCount <= maxRetries;
+    // Show retry count if retrying or if count > 0, but hide once max retries are reached
+    const showRetryCount = (isRetrying || retryCount > 0) && retryCount < maxRetries;
+
+    // Determine Alert variant - circuit breaker always shows as error
+    const alertVariant = isCircuitOpen ? 'error' : (type === 'failover' ? 'warning' : 'error');
 
     return (
         <div
@@ -150,9 +153,9 @@ export function SearchErrorAlert({
             aria-live='polite'
         >
             <Alert
-                variant={type === 'failover' ? 'warning' : 'error'}
+                variant={alertVariant}
                 title={errorConfig.title}
-                dismissible={type === 'failover'}
+                dismissible={type === 'failover' && !isCircuitOpen}
                 onDismiss={handleDismiss}
             >
                 <div className='space-y-3'>
@@ -162,7 +165,7 @@ export function SearchErrorAlert({
                         {/* Retry Count Indicator */}
                         {showRetryCount && (
                             <p className='mt-2 text-sm font-medium' data-testid='retry-count-indicator'>
-                                {isRetrying ? 'Retrying' : 'Retry'} {retryCount}/{maxRetries}
+                                {isRetrying ? 'Retrying' : 'Retry'} attempt {retryCount}/{maxRetries}
                             </p>
                         )}
 
@@ -179,12 +182,12 @@ export function SearchErrorAlert({
                         <div className='w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden' data-testid='retry-progress-bar'>
                             <div 
                                 className='h-full bg-primary animate-pulse'
-                                style={{ width: `${(retryCount / maxRetries) * 100}%` }}
+                                style={{ width: `${((retryCount - 1) / maxRetries) * 100}%` }}
                                 role='progressbar'
-                                aria-valuenow={retryCount}
+                                aria-valuenow={retryCount - 1}
                                 aria-valuemin={0}
                                 aria-valuemax={maxRetries}
-                                aria-label={`Retry progress: ${retryCount} of ${maxRetries}`}
+                                aria-label={`Retry progress: attempt ${retryCount} of ${maxRetries}`}
                             />
                         </div>
                     )}
