@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button, Modal, ModalFooter, Alert, Input, TextArea } from '../ui';
 import {
     getBanReasonTemplates,
@@ -60,8 +60,8 @@ export function BanTemplateManager({
     // Stats
     const [stats, setStats] = useState<BanReasonTemplate[]>([]);
 
-    // Load templates
-    const loadTemplates = async () => {
+    // Load templates - memoized to avoid useEffect dependency issues
+    const loadTemplates = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
@@ -73,7 +73,7 @@ export function BanTemplateManager({
         } finally {
             setLoading(false);
         }
-    };
+    }, [broadcasterID, toast]);
 
     // Load stats
     const loadStats = async () => {
@@ -87,7 +87,7 @@ export function BanTemplateManager({
 
     useEffect(() => {
         loadTemplates();
-    }, [broadcasterID]);
+    }, [loadTemplates]);
 
     const resetForm = () => {
         setFormName('');
@@ -100,10 +100,23 @@ export function BanTemplateManager({
     const handleCreate = async () => {
         setSubmitting(true);
         try {
+            // Validate duration for non-permanent bans
+            let durationSeconds: number | null = null;
+            if (!formIsPermanent) {
+                const trimmed = formDuration.trim();
+                const parsed = parseInt(trimmed, 10);
+                if (!trimmed || Number.isNaN(parsed) || parsed <= 0) {
+                    toast.error('Please enter a valid duration for non-permanent bans.');
+                    setSubmitting(false);
+                    return;
+                }
+                durationSeconds = parsed;
+            }
+            
             const request: CreateBanReasonTemplateRequest = {
                 name: formName,
                 reason: formReason,
-                duration_seconds: formIsPermanent ? null : parseInt(formDuration, 10),
+                duration_seconds: durationSeconds,
                 broadcaster_id: broadcasterID,
             };
             await createBanReasonTemplate(request);
@@ -123,10 +136,23 @@ export function BanTemplateManager({
         
         setSubmitting(true);
         try {
+            // Validate duration for non-permanent bans
+            let durationSeconds: number | null = null;
+            if (!formIsPermanent) {
+                const trimmed = formDuration.trim();
+                const parsed = parseInt(trimmed, 10);
+                if (!trimmed || Number.isNaN(parsed) || parsed <= 0) {
+                    toast.error('Please enter a valid duration for non-permanent bans.');
+                    setSubmitting(false);
+                    return;
+                }
+                durationSeconds = parsed;
+            }
+            
             const request: UpdateBanReasonTemplateRequest = {
                 name: formName,
                 reason: formReason,
-                duration_seconds: formIsPermanent ? null : parseInt(formDuration, 10),
+                duration_seconds: durationSeconds,
             };
             await updateBanReasonTemplate(selectedTemplate.id, request);
             toast.success('Template updated successfully');
@@ -327,6 +353,7 @@ export function BanTemplateManager({
                                 <input
                                     type="radio"
                                     id="permanent-create"
+                                    name="ban-duration-create"
                                     checked={formIsPermanent}
                                     onChange={() => setFormIsPermanent(true)}
                                     disabled={submitting}
@@ -337,6 +364,7 @@ export function BanTemplateManager({
                                 <input
                                     type="radio"
                                     id="temporary-create"
+                                    name="ban-duration-create"
                                     checked={!formIsPermanent}
                                     onChange={() => setFormIsPermanent(false)}
                                     disabled={submitting}
@@ -431,6 +459,7 @@ export function BanTemplateManager({
                                 <input
                                     type="radio"
                                     id="permanent-edit"
+                                    name="ban-duration-edit"
                                     checked={formIsPermanent}
                                     onChange={() => setFormIsPermanent(true)}
                                     disabled={submitting}
@@ -441,6 +470,7 @@ export function BanTemplateManager({
                                 <input
                                     type="radio"
                                     id="temporary-edit"
+                                    name="ban-duration-edit"
                                     checked={!formIsPermanent}
                                     onChange={() => setFormIsPermanent(false)}
                                     disabled={submitting}

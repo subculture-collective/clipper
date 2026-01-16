@@ -2,29 +2,43 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/subculture-collective/clipper/backend/internal/models"
 )
 
 type BanReasonTemplateRepository struct {
-	db *sqlx.DB
+	pool *pgxpool.Pool
 }
 
-func NewBanReasonTemplateRepository(db *sqlx.DB) *BanReasonTemplateRepository {
-	return &BanReasonTemplateRepository{db: db}
+func NewBanReasonTemplateRepository(pool *pgxpool.Pool) *BanReasonTemplateRepository {
+	return &BanReasonTemplateRepository{pool: pool}
 }
 
 // GetByID retrieves a template by ID
 func (r *BanReasonTemplateRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.BanReasonTemplate, error) {
 	var template models.BanReasonTemplate
-	query := `SELECT * FROM ban_reason_templates WHERE id = $1`
-	err := r.db.GetContext(ctx, &template, query, id)
-	if err == sql.ErrNoRows {
+	query := `SELECT id, name, reason, duration_seconds, is_default, broadcaster_id, created_by, created_at, updated_at, usage_count, last_used_at FROM ban_reason_templates WHERE id = $1`
+	
+	err := r.pool.QueryRow(ctx, query, id).Scan(
+		&template.ID,
+		&template.Name,
+		&template.Reason,
+		&template.DurationSeconds,
+		&template.IsDefault,
+		&template.BroadcasterID,
+		&template.CreatedBy,
+		&template.CreatedAt,
+		&template.UpdatedAt,
+		&template.UsageCount,
+		&template.LastUsedAt,
+	)
+	
+	if err == pgx.ErrNoRows {
 		return nil, nil
 	}
 	return &template, err
@@ -34,7 +48,7 @@ func (r *BanReasonTemplateRepository) GetByID(ctx context.Context, id uuid.UUID)
 func (r *BanReasonTemplateRepository) List(ctx context.Context, broadcasterID *string, includeDefaults bool) ([]models.BanReasonTemplate, error) {
 	var templates []models.BanReasonTemplate
 	
-	query := `SELECT * FROM ban_reason_templates WHERE `
+	query := `SELECT id, name, reason, duration_seconds, is_default, broadcaster_id, created_by, created_at, updated_at, usage_count, last_used_at FROM ban_reason_templates WHERE `
 	args := []interface{}{}
 	
 	if broadcasterID != nil {
@@ -53,8 +67,34 @@ func (r *BanReasonTemplateRepository) List(ctx context.Context, broadcasterID *s
 	
 	query += ` ORDER BY is_default DESC, usage_count DESC, name ASC`
 	
-	err := r.db.SelectContext(ctx, &templates, query, args...)
-	return templates, err
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	
+	for rows.Next() {
+		var template models.BanReasonTemplate
+		err := rows.Scan(
+			&template.ID,
+			&template.Name,
+			&template.Reason,
+			&template.DurationSeconds,
+			&template.IsDefault,
+			&template.BroadcasterID,
+			&template.CreatedBy,
+			&template.CreatedAt,
+			&template.UpdatedAt,
+			&template.UsageCount,
+			&template.LastUsedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		templates = append(templates, template)
+	}
+	
+	return templates, rows.Err()
 }
 
 // Create creates a new template
@@ -69,7 +109,7 @@ func (r *BanReasonTemplateRepository) Create(ctx context.Context, template *mode
 	template.UpdatedAt = now
 	template.UsageCount = 0
 	
-	return r.db.GetContext(ctx, &template.ID, query,
+	err := r.pool.QueryRow(ctx, query,
 		template.Name,
 		template.Reason,
 		template.DurationSeconds,
@@ -79,20 +119,35 @@ func (r *BanReasonTemplateRepository) Create(ctx context.Context, template *mode
 		template.CreatedAt,
 		template.UpdatedAt,
 		template.UsageCount,
-	)
+	).Scan(&template.ID)
+	
+	return err
 }
 
 // Update updates an existing template
 func (r *BanReasonTemplateRepository) Update(ctx context.Context, id uuid.UUID, updates map[string]interface{}) error {
+	// Whitelist of allowed fields to prevent SQL injection
+	allowedFields := map[string]bool{
+		"name":             true,
+		"reason":           true,
+		"duration_seconds": true,
+		"updated_at":       true,
+	}
+	
 	updates["updated_at"] = time.Now()
 	
-	// Build dynamic update query
+	// Build dynamic update query with whitelisted fields
 	query := `UPDATE ban_reason_templates SET `
 	args := []interface{}{}
 	argNum := 1
 	first := true
 	
 	for field, value := range updates {
+		// Validate field name against whitelist
+		if !allowedFields[field] {
+			return fmt.Errorf("invalid field name: %s", field)
+		}
+		
 		if !first {
 			query += ", "
 		}
@@ -105,25 +160,20 @@ func (r *BanReasonTemplateRepository) Update(ctx context.Context, id uuid.UUID, 
 	query += fmt.Sprintf(" WHERE id = $%d", argNum)
 	args = append(args, id)
 	
-	_, err := r.db.ExecContext(ctx, query, args...)
+	_, err := r.pool.Exec(ctx, query, args...)
 	return err
 }
 
 // Delete deletes a template
 func (r *BanReasonTemplateRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	query := `DELETE FROM ban_reason_templates WHERE id = $1 AND is_default = false`
-	result, err := r.db.ExecContext(ctx, query, id)
+	result, err := r.pool.Exec(ctx, query, id)
 	if err != nil {
 		return err
 	}
 	
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-	
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
+	if result.RowsAffected() == 0 {
+		return pgx.ErrNoRows
 	}
 	
 	return nil
@@ -132,7 +182,7 @@ func (r *BanReasonTemplateRepository) Delete(ctx context.Context, id uuid.UUID) 
 // IncrementUsage increments the usage count for a template
 func (r *BanReasonTemplateRepository) IncrementUsage(ctx context.Context, id uuid.UUID) error {
 	query := `UPDATE ban_reason_templates SET usage_count = usage_count + 1, last_used_at = $1 WHERE id = $2`
-	_, err := r.db.ExecContext(ctx, query, time.Now(), id)
+	_, err := r.pool.Exec(ctx, query, time.Now(), id)
 	return err
 }
 
@@ -140,7 +190,7 @@ func (r *BanReasonTemplateRepository) IncrementUsage(ctx context.Context, id uui
 func (r *BanReasonTemplateRepository) GetUsageStats(ctx context.Context, broadcasterID *string) ([]models.BanReasonTemplate, error) {
 	var templates []models.BanReasonTemplate
 	
-	query := `SELECT * FROM ban_reason_templates WHERE `
+	query := `SELECT id, name, reason, duration_seconds, is_default, broadcaster_id, created_by, created_at, updated_at, usage_count, last_used_at FROM ban_reason_templates WHERE `
 	args := []interface{}{}
 	
 	if broadcasterID != nil {
@@ -150,6 +200,32 @@ func (r *BanReasonTemplateRepository) GetUsageStats(ctx context.Context, broadca
 		query += `is_default = true ORDER BY usage_count DESC, name ASC`
 	}
 	
-	err := r.db.SelectContext(ctx, &templates, query, args...)
-	return templates, err
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	
+	for rows.Next() {
+		var template models.BanReasonTemplate
+		err := rows.Scan(
+			&template.ID,
+			&template.Name,
+			&template.Reason,
+			&template.DurationSeconds,
+			&template.IsDefault,
+			&template.BroadcasterID,
+			&template.CreatedBy,
+			&template.CreatedAt,
+			&template.UpdatedAt,
+			&template.UsageCount,
+			&template.LastUsedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		templates = append(templates, template)
+	}
+	
+	return templates, rows.Err()
 }
