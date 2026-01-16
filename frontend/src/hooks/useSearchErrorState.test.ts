@@ -27,7 +27,9 @@ describe('useSearchErrorState', () => {
       type: 'none',
       message: undefined,
       retryCount: 0,
+      maxRetries: 3,
       isRetrying: false,
+      isCircuitOpen: false,
     });
   });
 
@@ -393,7 +395,9 @@ describe('useSearchErrorState', () => {
         type: 'none',
         message: undefined,
         retryCount: 0,
+        maxRetries: 3,
         isRetrying: false,
+        isCircuitOpen: false,
       });
     });
 
@@ -411,6 +415,185 @@ describe('useSearchErrorState', () => {
       
       expect(clearTimeoutSpy).toHaveBeenCalled();
       clearTimeoutSpy.mockRestore();
+    });
+  });
+
+  describe('cancelRetry', () => {
+    it('should cancel ongoing retry', async () => {
+      const { result } = renderHook(() => useSearchErrorState());
+      const searchFn = vi.fn().mockResolvedValue(undefined);
+      
+      // Start retry
+      result.current.retry(searchFn);
+      await waitFor(() => {
+        expect(result.current.errorState.isRetrying).toBe(true);
+      });
+      
+      // Cancel retry
+      result.current.cancelRetry();
+      
+      expect(result.current.errorState.isRetrying).toBe(false);
+      expect(result.current.errorState.message).toContain('cancelled');
+    });
+
+    it('should track cancel analytics event', () => {
+      const { result } = renderHook(() => useSearchErrorState());
+      const searchFn = vi.fn().mockResolvedValue(undefined);
+      
+      result.current.retry(searchFn);
+      vi.clearAllMocks();
+      
+      result.current.cancelRetry();
+      
+      expect(telemetry.trackEvent).toHaveBeenCalledWith('search_retry_cancelled', expect.objectContaining({
+        retry_count: expect.any(Number),
+      }));
+    });
+  });
+
+  describe('circuit breaker', () => {
+    it('should open circuit breaker after consecutive failures', async () => {
+      const { result } = renderHook(() => useSearchErrorState());
+      
+      const error: Partial<AxiosError> = {
+        response: {
+          headers: {},
+          status: 503,
+          statusText: 'Service Unavailable',
+          data: {},
+          config: {} as unknown as InternalAxiosRequestConfig,
+        },
+      };
+      
+      // Trigger 5 consecutive failures
+      for (let i = 0; i < 5; i++) {
+        result.current.handleSearchError(error);
+        await waitFor(() => {
+          expect(result.current.errorState.type).toBe('error');
+        });
+      }
+      
+      // Circuit breaker should be open
+      expect(result.current.errorState.isCircuitOpen).toBe(true);
+      expect(result.current.errorState.message).toContain('paused');
+    });
+
+    it('should track circuit breaker open event', async () => {
+      const { result } = renderHook(() => useSearchErrorState());
+      
+      const error: Partial<AxiosError> = {
+        response: {
+          headers: {},
+          status: 503,
+          statusText: 'Service Unavailable',
+          data: {},
+          config: {} as unknown as InternalAxiosRequestConfig,
+        },
+      };
+      
+      vi.clearAllMocks();
+      
+      // Trigger 5 consecutive failures
+      for (let i = 0; i < 5; i++) {
+        result.current.handleSearchError(error);
+      }
+      
+      await waitFor(() => {
+        expect(telemetry.trackEvent).toHaveBeenCalledWith('search_circuit_breaker_opened', expect.any(Object));
+      });
+    });
+
+    it('should close circuit breaker after timeout', async () => {
+      const { result } = renderHook(() => useSearchErrorState());
+      
+      const error: Partial<AxiosError> = {
+        response: {
+          headers: {},
+          status: 503,
+          statusText: 'Service Unavailable',
+          data: {},
+          config: {} as unknown as InternalAxiosRequestConfig,
+        },
+      };
+      
+      // Trigger 5 consecutive failures to open circuit
+      for (let i = 0; i < 5; i++) {
+        result.current.handleSearchError(error);
+      }
+      
+      await waitFor(() => {
+        expect(result.current.errorState.isCircuitOpen).toBe(true);
+      });
+      
+      // Fast-forward 30 seconds
+      vi.advanceTimersByTime(30000);
+      await vi.runOnlyPendingTimersAsync();
+      
+      expect(result.current.errorState.isCircuitOpen).toBe(false);
+    });
+
+    it('should reset consecutive failures on success', () => {
+      const { result } = renderHook(() => useSearchErrorState());
+      
+      const error: Partial<AxiosError> = {
+        response: {
+          headers: {},
+          status: 503,
+          statusText: 'Service Unavailable',
+          data: {},
+          config: {} as unknown as InternalAxiosRequestConfig,
+        },
+      };
+      
+      // Trigger 3 failures
+      for (let i = 0; i < 3; i++) {
+        result.current.handleSearchError(error);
+      }
+      
+      // Success should reset counter
+      result.current.handleSearchSuccess();
+      
+      // Another 3 failures should not open circuit (would need 5)
+      for (let i = 0; i < 3; i++) {
+        result.current.handleSearchError(error);
+      }
+      
+      expect(result.current.errorState.isCircuitOpen).toBe(false);
+    });
+
+    it('should count failover errors toward circuit breaker', async () => {
+      const { result } = renderHook(() => useSearchErrorState());
+      
+      const failoverError: Partial<AxiosError> = {
+        response: {
+          headers: { 'x-search-failover': 'true' },
+          status: 200,
+          statusText: 'OK',
+          data: {},
+          config: {} as unknown as InternalAxiosRequestConfig,
+        },
+      };
+      
+      const error: Partial<AxiosError> = {
+        response: {
+          headers: {},
+          status: 503,
+          statusText: 'Service Unavailable',
+          data: {},
+          config: {} as unknown as InternalAxiosRequestConfig,
+        },
+      };
+      
+      // Mix of failover (3) and error (2) = 5 total
+      result.current.handleSearchError(failoverError);
+      result.current.handleSearchError(error);
+      result.current.handleSearchError(failoverError);
+      result.current.handleSearchError(failoverError);
+      result.current.handleSearchError(error);
+      
+      await waitFor(() => {
+        expect(result.current.errorState.isCircuitOpen).toBe(true);
+      });
     });
   });
 });

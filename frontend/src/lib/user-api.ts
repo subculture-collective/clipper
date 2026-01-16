@@ -112,6 +112,8 @@ export interface UserProfile {
     trust_score: number;
     role: string;
     is_banned: boolean;
+    ban_reason?: string;
+    banned_until?: string;
     follower_count: number;
     following_count: number;
     created_at: string;

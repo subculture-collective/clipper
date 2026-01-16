@@ -63,7 +63,7 @@ func NewTwitchBanSyncService(
 // channelID: the Twitch channel ID to sync bans for
 func (s *TwitchBanSyncService) SyncChannelBans(ctx context.Context, userID, channelID string) error {
 	logger := utils.GetLogger()
-	
+
 	// Parse UUIDs
 	userUUID, err := uuid.Parse(userID)
 	if err != nil {
@@ -88,7 +88,7 @@ func (s *TwitchBanSyncService) SyncChannelBans(ctx context.Context, userID, chan
 		logger.Info("Twitch token expired, refreshing", map[string]interface{}{
 			"user_id": userID,
 		})
-		
+
 		// Refresh token logic would go here
 		// For now, return an error if token is expired
 		return &AuthenticationError{Message: "Twitch token expired, please re-authenticate"}
@@ -97,8 +97,8 @@ func (s *TwitchBanSyncService) SyncChannelBans(ctx context.Context, userID, chan
 	// Validate user owns the channel by checking if their Twitch user ID matches the channel ID
 	if auth.TwitchUserID != channelID {
 		logger.Warn("User attempted to sync bans for channel they don't own", map[string]interface{}{
-			"user_id":          userID,
-			"user_twitch_id":   auth.TwitchUserID,
+			"user_id":           userID,
+			"user_twitch_id":    auth.TwitchUserID,
 			"requested_channel": channelID,
 		})
 		return &AuthorizationError{Message: "user does not own the specified channel"}
@@ -113,10 +113,10 @@ func (s *TwitchBanSyncService) SyncChannelBans(ctx context.Context, userID, chan
 	var allBans []twitch.BannedUser
 	cursor := ""
 	pageCount := 0
-	
+
 	for {
 		pageCount++
-		
+
 		// Fetch banned users from Twitch with exponential backoff for rate limiting
 		var bansResp *twitch.BannedUsersResponse
 		err := s.retryWithBackoff(ctx, func() error {
@@ -135,9 +135,9 @@ func (s *TwitchBanSyncService) SyncChannelBans(ctx context.Context, userID, chan
 		}
 
 		logger.Debug("Fetched page of banned users", map[string]interface{}{
-			"page":       pageCount,
-			"count":      len(bansResp.Data),
-			"has_more":   bansResp.Pagination.Cursor != "",
+			"page":     pageCount,
+			"count":    len(bansResp.Data),
+			"has_more": bansResp.Pagination.Cursor != "",
 		})
 
 		allBans = append(allBans, bansResp.Data...)
@@ -169,7 +169,7 @@ func (s *TwitchBanSyncService) SyncChannelBans(ctx context.Context, userID, chan
 	now := time.Now()
 	dbBans := make([]*repository.TwitchBan, 0, len(allBans))
 	failedUserCreations := 0
-	
+
 	for _, twitchBan := range allBans {
 		// Get or create user for banned user
 		bannedUserUUID, err := s.getOrCreateUserByTwitchID(ctx, twitchBan.UserID, twitchBan.UserLogin, twitchBan.UserName)
@@ -224,11 +224,11 @@ func (s *TwitchBanSyncService) SyncChannelBans(ctx context.Context, userID, chan
 	}
 
 	logger.Info("Ban sync completed successfully", map[string]interface{}{
-		"user_id":                userID,
-		"channel_id":             channelID,
-		"bans_synced":            len(dbBans),
-		"pages":                  pageCount,
-		"failed_user_creations":  failedUserCreations,
+		"user_id":               userID,
+		"channel_id":            channelID,
+		"bans_synced":           len(dbBans),
+		"pages":                 pageCount,
+		"failed_user_creations": failedUserCreations,
 	})
 
 	return nil
@@ -238,7 +238,7 @@ func (s *TwitchBanSyncService) SyncChannelBans(ctx context.Context, userID, chan
 func (s *TwitchBanSyncService) retryWithBackoff(ctx context.Context, fn func() error) error {
 	maxRetries := 3
 	baseDelay := time.Second
-	
+
 	var lastErr error
 	for attempt := 0; attempt < maxRetries; attempt++ {
 		err := fn()
@@ -255,7 +255,7 @@ func (s *TwitchBanSyncService) retryWithBackoff(ctx context.Context, fn func() e
 			if delay == 0 {
 				delay = baseDelay * time.Duration(1<<uint(attempt))
 			}
-			
+
 			logger := utils.GetLogger()
 			logger.Warn("Rate limited by Twitch, retrying", map[string]interface{}{
 				"attempt":     attempt + 1,
@@ -274,7 +274,7 @@ func (s *TwitchBanSyncService) retryWithBackoff(ctx context.Context, fn func() e
 		// For other errors, use exponential backoff
 		if attempt < maxRetries-1 {
 			delay := baseDelay * time.Duration(1<<uint(attempt))
-			
+
 			logger := utils.GetLogger()
 			logger.Warn("Request failed, retrying", map[string]interface{}{
 				"attempt":     attempt + 1,

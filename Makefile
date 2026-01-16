@@ -79,12 +79,12 @@ test: ## Run all tests (unit by default; set INTEGRATION=1 and/or E2E=1 to expan
 	@if [ "$(E2E)" = "1" ]; then \
 		echo "Starting backend API for frontend E2E..."; \
 		mkdir -p .tmp; \
-		(\
+		(bash -c '\
 			cd backend && \
 			set -a && source .env.test && set +a && \
 			PORT=8080 \
-			GIN_MODE=release \
-			BASE_URL=http://localhost:5173 \
+			GIN_MODE=debug \
+			BASE_URL=http://127.0.0.1:5173 \
 			DB_HOST=localhost \
 			DB_PORT=5437 \
 			DB_USER=clipper \
@@ -93,13 +93,13 @@ test: ## Run all tests (unit by default; set INTEGRATION=1 and/or E2E=1 to expan
 			REDIS_HOST=localhost \
 			REDIS_PORT=6380 \
 			OPENSEARCH_URL=http://localhost:9201 \
-			CORS_ALLOWED_ORIGINS=http://localhost:5173 \
+			CORS_ALLOWED_ORIGINS=http://127.0.0.1:5173 \
 			RATE_LIMIT_WHITELIST_IPS=127.0.0.1 \
 			FEATURE_ANALYTICS=false \
 			go run cmd/api/main.go \
-		) > .tmp/backend-e2e.log 2>&1 & echo $$! > .tmp/backend-e2e.pid; \
+		') > .tmp/backend-e2e.log 2>&1 & echo $$! > .tmp/backend-e2e.pid; \
 		echo "Backend started (PID: $$(cat .tmp/backend-e2e.pid))"; \
-		sleep 3; \
+		sleep 5; \
 		echo "Running frontend E2E tests..."; \
 		cd frontend && npm run test:e2e; \
 		echo "Stopping backend API..."; \

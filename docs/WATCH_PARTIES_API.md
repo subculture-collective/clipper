@@ -149,7 +149,7 @@ The system is designed with a **±2 second sync tolerance** for video playback s
 
 **Endpoint**: `GET /api/v1/watch-parties/:id/ws`
 
-**Authentication**: Required via JWT in the `Authorization` header (e.g., `Authorization: Bearer <jwt>`). 
+**Authentication**: Required via JWT in the `Authorization` header (e.g., `Authorization: Bearer <jwt>`).
 
 **Security Note**: Do not send JWT tokens in URL query parameters as they will be logged by proxies, browsers, and servers, creating a security risk.
 
@@ -347,20 +347,20 @@ function handleSyncEvent(event) {
   const serverTime = event.server_timestamp;
   const clientTime = Date.now() / 1000;
   const latency = clientTime - serverTime;
-  
+
   // Calculate expected position accounting for latency
-  const expectedPosition = event.is_playing 
-    ? serverPosition + latency 
+  const expectedPosition = event.is_playing
+    ? serverPosition + latency
     : serverPosition;
-  
+
   const currentPosition = videoPlayer.currentTime;
   const drift = Math.abs(currentPosition - expectedPosition);
-  
+
   // Only adjust if drift exceeds tolerance
   if (drift > 2.0) {
     videoPlayer.currentTime = expectedPosition;
   }
-  
+
   if (event.is_playing !== videoPlayer.playing) {
     event.is_playing ? videoPlayer.play() : videoPlayer.pause();
   }
@@ -468,7 +468,7 @@ const ws = new WebSocket(wsUrl);
 
 ws.onopen = () => {
   console.log('Connected to watch party');
-  
+
   // Request current state
   ws.send(JSON.stringify({
     type: 'sync-request',
@@ -500,7 +500,7 @@ function sendPlayCommand() {
     console.error('Viewers cannot control playback');
     return;
   }
-  
+
   ws.send(JSON.stringify({
     type: 'play',
     party_id: partyId,
@@ -513,7 +513,7 @@ function sendSeekCommand(position) {
     console.error('Viewers cannot control playback');
     return;
   }
-  
+
   ws.send(JSON.stringify({
     type: 'seek',
     party_id: partyId,

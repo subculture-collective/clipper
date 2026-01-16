@@ -152,7 +152,7 @@ func TestCSRFMiddleware_Integration(t *testing.T) {
 	// Skip if Redis is not available
 	cfg := &config.RedisConfig{
 		Host:     "localhost",
-		Port:     "6379",
+		Port:     "6380",
 		Password: "",
 		DB:       0,
 	}

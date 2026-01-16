@@ -10,7 +10,7 @@ func TestTwitchBanMetricsRegistration(t *testing.T) {
 	// Test that metrics are properly registered and accessible
 	// We can't directly test registration without causing conflicts,
 	// but we can verify the metrics are usable
-	
+
 	// Just verify metrics can be incremented/observed without panicking
 	TwitchBanActionTotal.WithLabelValues("ban", "success", "none").Inc()
 	TwitchBanActionDuration.WithLabelValues("ban").Observe(1.0)

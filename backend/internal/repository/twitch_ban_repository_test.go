@@ -106,7 +106,7 @@ func TestNewTwitchBanRepository(t *testing.T) {
 	// This test validates that the repository constructor works
 	// In a real scenario, you'd pass a real pool here
 	repo := NewTwitchBanRepository(nil)
-	
+
 	if repo == nil {
 		t.Fatal("NewTwitchBanRepository should return a non-nil repository")
 	}

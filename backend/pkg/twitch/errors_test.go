@@ -37,9 +37,9 @@ func TestCircuitBreakerError(t *testing.T) {
 
 func TestModerationError(t *testing.T) {
 	tests := []struct {
-		name      string
-		err       *ModerationError
-		expected  string
+		name     string
+		err      *ModerationError
+		expected string
 	}{
 		{
 			name: "error with request ID",
@@ -159,15 +159,15 @@ func TestParseModerationError(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := ParseModerationError(tt.statusCode, tt.body, tt.requestID)
-			
+
 			if err.Code != tt.expectedCode {
 				t.Errorf("expected error code %s, got %s", tt.expectedCode, err.Code)
 			}
-			
+
 			if err.StatusCode != tt.statusCode {
 				t.Errorf("expected status code %d, got %d", tt.statusCode, err.StatusCode)
 			}
-			
+
 			if err.RequestID != tt.requestID {
 				t.Errorf("expected request ID %s, got %s", tt.requestID, err.RequestID)
 			}

@@ -75,13 +75,13 @@ func (s *ModerationService) BanUser(ctx context.Context, communityID, moderatorI
 		return fmt.Errorf("failed to get moderator: %w", err)
 	}
 
-	// Validate permission
-	if err := s.validateModerationPermission(ctx, moderator, communityID); err != nil {
+	// Validate scope first for better error messages
+	if err := s.validateModerationScope(moderator, communityID); err != nil {
 		return err
 	}
 
-	// Validate scope for community moderators
-	if err := s.validateModerationScope(moderator, communityID); err != nil {
+	// Validate permission
+	if err := s.validateModerationPermission(ctx, moderator, communityID); err != nil {
 		return err
 	}
 
@@ -152,13 +152,13 @@ func (s *ModerationService) UnbanUser(ctx context.Context, communityID, moderato
 		return fmt.Errorf("failed to get moderator: %w", err)
 	}
 
-	// Validate permission
-	if err := s.validateModerationPermission(ctx, moderator, communityID); err != nil {
+	// Validate scope first for better error messages
+	if err := s.validateModerationScope(moderator, communityID); err != nil {
 		return err
 	}
 
-	// Validate scope for community moderators
-	if err := s.validateModerationScope(moderator, communityID); err != nil {
+	// Validate permission
+	if err := s.validateModerationPermission(ctx, moderator, communityID); err != nil {
 		return err
 	}
 
@@ -206,13 +206,13 @@ func (s *ModerationService) GetBans(ctx context.Context, communityID, moderatorI
 		return nil, 0, fmt.Errorf("failed to get moderator: %w", err)
 	}
 
-	// Validate permission
-	if err := s.validateModerationPermission(ctx, moderator, communityID); err != nil {
+	// Validate scope first for better error messages
+	if err := s.validateModerationScope(moderator, communityID); err != nil {
 		return nil, 0, err
 	}
 
-	// Validate scope for community moderators
-	if err := s.validateModerationScope(moderator, communityID); err != nil {
+	// Validate permission
+	if err := s.validateModerationPermission(ctx, moderator, communityID); err != nil {
 		return nil, 0, err
 	}
 
@@ -242,13 +242,13 @@ func (s *ModerationService) UpdateBan(ctx context.Context, communityID, moderato
 		return fmt.Errorf("failed to get moderator: %w", err)
 	}
 
-	// Validate permission
-	if err := s.validateModerationPermission(ctx, moderator, communityID); err != nil {
+	// Validate scope first for better error messages
+	if err := s.validateModerationScope(moderator, communityID); err != nil {
 		return err
 	}
 
-	// Validate scope for community moderators
-	if err := s.validateModerationScope(moderator, communityID); err != nil {
+	// Validate permission
+	if err := s.validateModerationPermission(ctx, moderator, communityID); err != nil {
 		return err
 	}
 
@@ -321,7 +321,9 @@ func (s *ModerationService) validateModerationPermission(ctx context.Context, mo
 		return nil
 	}
 
-	// Community moderators need to be a mod or admin in the specific community
+	// Community moderators need to be checked for specific community authorization
+	// The scope check handles which communities they can moderate
+	// Here we just check if they have the moderator role in the community
 	if moderator.AccountType == models.AccountTypeCommunityModerator {
 		member, err := s.communityRepo.GetMember(ctx, communityID, moderator.ID)
 		if err != nil {

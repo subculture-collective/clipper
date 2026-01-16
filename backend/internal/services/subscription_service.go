@@ -67,6 +67,12 @@ func NewSubscriptionService(
 	}
 }
 
+// GetRepository exposes the underlying subscription repository for tests and auxiliary services
+// This maintains clear separation while allowing integration tests to inspect persisted state.
+func (s *SubscriptionService) GetRepository() repository.SubscriptionRepositoryInterface {
+	return s.repo
+}
+
 // GetOrCreateCustomer gets or creates a Stripe customer for the user
 func (s *SubscriptionService) GetOrCreateCustomer(ctx context.Context, user *models.User) (string, error) {
 	// Check if user already has a subscription with customer ID

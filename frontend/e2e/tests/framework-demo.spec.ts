@@ -360,7 +360,7 @@ test.describe('Framework Demo - Helper Utilities', () => {
 
     // Get current URL
     const url = homePage.getUrl();
-    expect(url).toContain('localhost');
+    expect(url).toMatch(/localhost|127\.0\.0\.1/);
 
     // Use getByTestId helper
     const clipCard = homePage.getByTestId('clip-card');

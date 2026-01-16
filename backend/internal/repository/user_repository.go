@@ -70,7 +70,10 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Use
 	query := `
 		SELECT
 			id, twitch_id, username, display_name, email, avatar_url, bio,
-			karma_points, role, account_type, is_banned, created_at, updated_at, last_login_at
+			karma_points, role, account_type, is_banned, created_at, updated_at, last_login_at,
+			COALESCE(moderator_scope, '') AS moderator_scope,
+			COALESCE(moderation_channels, '{}'::uuid[]) AS moderation_channels,
+			moderation_started_at
 		FROM users
 		WHERE id = $1
 	`
@@ -80,6 +83,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Use
 		&user.ID, &user.TwitchID, &user.Username, &user.DisplayName, &user.Email,
 		&user.AvatarURL, &user.Bio, &user.KarmaPoints, &user.Role, &user.AccountType, &user.IsBanned,
 		&user.CreatedAt, &user.UpdatedAt, &user.LastLoginAt,
+		&user.ModeratorScope, &user.ModerationChannels, &user.ModerationStartedAt,
 	)
 
 	if err != nil {
@@ -97,7 +101,10 @@ func (r *UserRepository) GetByTwitchID(ctx context.Context, twitchID string) (*m
 	query := `
 		SELECT
 			id, twitch_id, username, display_name, email, avatar_url, bio,
-			karma_points, role, account_type, is_banned, created_at, updated_at, last_login_at
+			karma_points, role, account_type, is_banned, created_at, updated_at, last_login_at,
+			COALESCE(moderator_scope, '') AS moderator_scope,
+			COALESCE(moderation_channels, '{}'::uuid[]) AS moderation_channels,
+			moderation_started_at
 		FROM users
 		WHERE twitch_id = $1
 	`
@@ -107,6 +114,7 @@ func (r *UserRepository) GetByTwitchID(ctx context.Context, twitchID string) (*m
 		&user.ID, &user.TwitchID, &user.Username, &user.DisplayName, &user.Email,
 		&user.AvatarURL, &user.Bio, &user.KarmaPoints, &user.Role, &user.AccountType, &user.IsBanned,
 		&user.CreatedAt, &user.UpdatedAt, &user.LastLoginAt,
+		&user.ModeratorScope, &user.ModerationChannels, &user.ModerationStartedAt,
 	)
 
 	if err != nil {
@@ -124,7 +132,10 @@ func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*m
 	query := `
 		SELECT
 			id, twitch_id, username, display_name, email, avatar_url, bio,
-			karma_points, role, account_type, is_banned, created_at, updated_at, last_login_at
+			karma_points, role, account_type, is_banned, created_at, updated_at, last_login_at,
+			COALESCE(moderator_scope, '') AS moderator_scope,
+			COALESCE(moderation_channels, '{}'::uuid[]) AS moderation_channels,
+			moderation_started_at
 		FROM users
 		WHERE LOWER(username) = LOWER($1)
 	`
@@ -134,6 +145,7 @@ func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*m
 		&user.ID, &user.TwitchID, &user.Username, &user.DisplayName, &user.Email,
 		&user.AvatarURL, &user.Bio, &user.KarmaPoints, &user.Role, &user.AccountType, &user.IsBanned,
 		&user.CreatedAt, &user.UpdatedAt, &user.LastLoginAt,
+		&user.ModeratorScope, &user.ModerationChannels, &user.ModerationStartedAt,
 	)
 
 	if err != nil {
@@ -155,7 +167,10 @@ func (r *UserRepository) GetByIDs(ctx context.Context, ids []uuid.UUID) ([]*mode
 	query := `
 		SELECT
 			id, twitch_id, username, display_name, email, avatar_url, bio,
-			karma_points, role, account_type, is_banned, created_at, updated_at, last_login_at
+			karma_points, role, account_type, is_banned, created_at, updated_at, last_login_at,
+			COALESCE(moderator_scope, '') AS moderator_scope,
+			COALESCE(moderation_channels, '{}'::uuid[]) AS moderation_channels,
+			moderation_started_at
 		FROM users
 		WHERE id = ANY($1)
 	`
@@ -173,6 +188,7 @@ func (r *UserRepository) GetByIDs(ctx context.Context, ids []uuid.UUID) ([]*mode
 			&user.ID, &user.TwitchID, &user.Username, &user.DisplayName, &user.Email,
 			&user.AvatarURL, &user.Bio, &user.KarmaPoints, &user.Role, &user.AccountType, &user.IsBanned,
 			&user.CreatedAt, &user.UpdatedAt, &user.LastLoginAt,
+			&user.ModeratorScope, &user.ModerationChannels, &user.ModerationStartedAt,
 		)
 		if err != nil {
 			return nil, err

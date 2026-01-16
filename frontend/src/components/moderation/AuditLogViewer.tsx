@@ -141,6 +141,9 @@ export function AuditLogViewer() {
             case 'reject':
             case 'rejected':
                 return <XCircle className={iconClass} />;
+            case 'sync':
+            case 'sync_bans':
+                return <RefreshCw className={iconClass} />;
             default:
                 return <Shield className={iconClass} />;
         }
@@ -164,6 +167,9 @@ export function AuditLogViewer() {
             case 'warn':
             case 'warning_issued':
                 return 'bg-orange-100 text-orange-800';
+            case 'sync':
+            case 'sync_bans':
+                return 'bg-blue-100 text-blue-800';
             default:
                 return 'bg-blue-100 text-blue-800';
         }
@@ -180,7 +186,6 @@ export function AuditLogViewer() {
         <div className="space-y-6">
             {/* Header */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <h2 className="text-2xl font-bold text-gray-900">Audit Logs</h2>
                 <div className="flex gap-2">
                     <button
                         onClick={loadLogs}
@@ -209,7 +214,7 @@ export function AuditLogViewer() {
                     <Filter className="h-4 w-4" />
                     <span>Filters</span>
                 </div>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                     <div>
                         <label
                             htmlFor="action-filter"
@@ -232,6 +237,7 @@ export function AuditLogViewer() {
                             <option value="warn">Warning</option>
                             <option value="approve">Approve</option>
                             <option value="reject">Reject</option>
+                            <option value="sync">Sync</option>
                             <option value="user_banned">User Banned</option>
                             <option value="user_unbanned">User Unbanned</option>
                             <option value="clip_approved">Clip Approved</option>
@@ -253,6 +259,24 @@ export function AuditLogViewer() {
                                 setFilters({ ...filters, actor: e.target.value, offset: 0 })
                             }
                             placeholder="Filter by actor ID..."
+                            className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                    </div>
+                    <div>
+                        <label
+                            htmlFor="target-filter"
+                            className="mb-1 block text-sm font-medium text-gray-700"
+                        >
+                            Target (User ID)
+                        </label>
+                        <input
+                            id="target-filter"
+                            type="text"
+                            value={filters.target}
+                            onChange={(e) =>
+                                setFilters({ ...filters, target: e.target.value, offset: 0 })
+                            }
+                            placeholder="Filter by target ID..."
                             className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                         />
                     </div>
@@ -294,7 +318,7 @@ export function AuditLogViewer() {
                             className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                         />
                     </div>
-                    <div className="md:col-span-2 lg:col-span-3">
+                    <div className="md:col-span-2 lg:col-span-2 xl:col-span-4">
                         <label
                             htmlFor="search-filter"
                             className="mb-1 block text-sm font-medium text-gray-700"

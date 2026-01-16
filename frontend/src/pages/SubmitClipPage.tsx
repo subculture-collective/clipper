@@ -29,6 +29,7 @@ import type {
 import { TagSelector } from '../components/tag/TagSelector';
 import { tagApi } from '../lib/tag-api';
 import type { Tag } from '../types/tag';
+import { useSubmissionDraft } from '../hooks/useSubmissionDraft';
 
 /**
  * Clip-specific duplicate error patterns to avoid false positives
@@ -109,6 +110,7 @@ export function SubmitClipPage() {
     const [tagQueryLoading, setTagQueryLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [urlError, setUrlError] = useState<string | null>(null);
     const [rateLimitError, setRateLimitError] =
         useState<RateLimitErrorResponse | null>(null);
     const [duplicateError, setDuplicateError] = useState<{
@@ -126,12 +128,17 @@ export function SubmitClipPage() {
     const [karmaRequirementEnabled, setKarmaRequirementEnabled] =
         useState(true);
 
+    // Draft management
+    const draft = useSubmissionDraft();
+    const [showDraftRestored, setShowDraftRestored] = useState(false);
+
     // Check if user is authenticated and has enough karma
     const canSubmit =
         isAuthenticated &&
         user &&
         (!karmaRequirementEnabled || user.karma_points >= karmaRequired) &&
-        !rateLimitError;
+        !rateLimitError &&
+        !duplicateError;
     const karmaNeeded =
         user ? Math.max(0, karmaRequired - user.karma_points) : karmaRequired;
 
@@ -149,15 +156,34 @@ export function SubmitClipPage() {
     );
 
     // Pre-fill from navigation state (e.g., when claiming a scraped clip)
+    // or restore from draft
     useEffect(() => {
+        let timeoutId: number | undefined;
+        
         const state = location.state as { clipUrl?: string } | null;
         if (state?.clipUrl) {
             setFormData(prev => ({
                 ...prev,
                 clip_url: state.clipUrl!,
             }));
+        } else {
+            // Try to load draft if no state from navigation
+            const savedDraft = draft.loadDraft();
+            if (savedDraft) {
+                setFormData(savedDraft.formData);
+                setSelectedTags(savedDraft.selectedTags);
+                setShowDraftRestored(true);
+                // Auto-hide the restored message after 5 seconds
+                timeoutId = setTimeout(() => setShowDraftRestored(false), 5000) as unknown as number;
+            }
         }
-    }, [location.state]);
+        
+        return () => {
+            if (timeoutId !== undefined) {
+                clearTimeout(timeoutId);
+            }
+        };
+    }, [location.state, draft.loadDraft]);
 
     // Load rate limit from localStorage on mount
     useEffect(() => {
@@ -240,20 +266,40 @@ export function SubmitClipPage() {
     };
 
     // Auto-set NSFW if clip already marked (best effort) when URL changes
+    // Also check for duplicates and show error proactively
     useEffect(() => {
         const clipID = extractClipIDFromURL(formData.clip_url);
-        if (!clipID) return;
+        
+        // Clear duplicate error when URL is empty or invalid
+        if (!clipID) {
+            setDuplicateError(null);
+            return;
+        }
 
         let isActive = true;
         checkClipStatus(clipID)
             .then(resp => {
                 if (!isActive) return;
+                
+                // Auto-set NSFW if clip already marked
                 if (resp?.clip?.is_nsfw) {
                     setFormData(prev => ({ ...prev, is_nsfw: true }));
+                }
+                
+                // Check if clip already exists (duplicate detection)
+                if (resp?.exists && !resp?.can_be_claimed) {
+                    setDuplicateError({
+                        message: 'This clip has already been submitted to the database.',
+                        clipId: resp.clip?.id,
+                        clipSlug: resp.clip?.twitch_clip_id,
+                    });
+                } else {
+                    setDuplicateError(null);
                 }
             })
             .catch(() => {
                 // ignore; optional helper
+                setDuplicateError(null);
             });
 
         return () => {
@@ -299,6 +345,11 @@ export function SubmitClipPage() {
         };
     }, [formData.clip_url, formData.custom_title, selectedTags.length, slugify]);
 
+    // Auto-save draft every 30 seconds when form has content
+    useEffect(() => {
+        draft.startAutoSave(formData, selectedTags);
+    }, [formData, selectedTags, draft.startAutoSave]);
+
     const handleCreateTag = async (name: string): Promise<Tag | null> => {
         const slug = slugify(name);
         setTagQueryLoading(true);
@@ -328,6 +379,21 @@ export function SubmitClipPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Validate URL format before submission using URL constructor
+        if (formData.clip_url) {
+            try {
+                const url = new URL(formData.clip_url);
+                if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+                    setUrlError('Invalid URL format - please enter a valid URL');
+                    return;
+                }
+            } catch {
+                setUrlError('Invalid URL format - please enter a valid URL');
+                return;
+            }
+        }
+        setUrlError(null);
 
         if (!canSubmit) {
             if (karmaRequirementEnabled) {
@@ -366,6 +432,9 @@ export function SubmitClipPage() {
                 is_nsfw: response.submission.is_nsfw,
                 tags: Array.isArray(tagsToSubmit) ? tagsToSubmit : [],
             });
+
+            // Clear draft on successful submission
+            draft.clearDraft();
 
             // Reset form
             setFormData({
@@ -590,8 +659,61 @@ export function SubmitClipPage() {
                     </Alert>
                 )}
 
+                {showDraftRestored && (
+                    <Alert 
+                        variant='info' 
+                        className='mb-6'
+                        dismissible={true}
+                        onDismiss={() => setShowDraftRestored(false)}
+                    >
+                        Draft restored from your last session
+                    </Alert>
+                )}
+
+                {draft.hasDraft && draft.lastSaved && (
+                    <div className='mb-4 xs:mb-6 flex items-center justify-between bg-blue-500/10 border border-blue-500/20 rounded-lg p-3'>
+                        <div className='flex items-center gap-2 text-sm text-blue-400'>
+                            <svg
+                                className='w-4 h-4'
+                                fill='none'
+                                stroke='currentColor'
+                                viewBox='0 0 24 24'
+                            >
+                                <path
+                                    strokeLinecap='round'
+                                    strokeLinejoin='round'
+                                    strokeWidth={2}
+                                    d='M5 13l4 4L19 7'
+                                />
+                            </svg>
+                            <span>
+                                Draft saved {new Date(draft.lastSaved).toLocaleTimeString()}
+                            </span>
+                        </div>
+                        <Button
+                            type='button'
+                            variant='ghost'
+                            size='sm'
+                            onClick={() => {
+                                draft.clearDraft();
+                                setFormData({
+                                    clip_url: '',
+                                    custom_title: '',
+                                    is_nsfw: false,
+                                    submission_reason: '',
+                                    broadcaster_name_override: '',
+                                });
+                                setSelectedTags([]);
+                            }}
+                            className='text-blue-400 hover:text-blue-300'
+                        >
+                            Clear Draft
+                        </Button>
+                    </div>
+                )}
+
                 <Card className='p-6 mb-8'>
-                    <form onSubmit={handleSubmit}>
+                    <form onSubmit={handleSubmit} noValidate>
                         <div className='space-y-6'>
                             {/* Clip URL Input */}
                             <div>
@@ -604,18 +726,41 @@ export function SubmitClipPage() {
                                 </label>
                                 <Input
                                     id='clip_url'
+                                    name='url'
                                     type='url'
                                     value={formData.clip_url}
-                                    onChange={e =>
+                                    onChange={e => {
                                         setFormData({
                                             ...formData,
                                             clip_url: e.target.value,
-                                        })
-                                    }
+                                        });
+                                        // Clear URL error when user types
+                                        if (urlError) setUrlError(null);
+                                    }}
+                                    onBlur={e => {
+                                        // Validate URL on blur for better UX
+                                        if (e.target.value) {
+                                            try {
+                                                const url = new URL(e.target.value);
+                                                if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+                                                    setUrlError('Invalid URL format - please enter a valid URL');
+                                                } else {
+                                                    setUrlError(null);
+                                                }
+                                            } catch {
+                                                setUrlError('Invalid URL format - please enter a valid URL');
+                                            }
+                                        }
+                                    }}
                                     placeholder='https://clips.twitch.tv/...'
                                     required
                                     disabled={!canSubmit}
                                 />
+                                {urlError && (
+                                    <p className='text-xs text-red-500 mt-1'>
+                                        {urlError}
+                                    </p>
+                                )}
                                 <p className='text-xs text-muted-foreground mt-1'>
                                     Paste the full URL of a Twitch clip
                                 </p>

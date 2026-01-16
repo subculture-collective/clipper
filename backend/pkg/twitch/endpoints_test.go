@@ -348,12 +348,12 @@ func TestBanUser_Success(t *testing.T) {
 		if r.Method != "POST" {
 			t.Errorf("expected POST method, got %s", r.Method)
 		}
-		
+
 		// Check headers
 		if r.Header.Get("Authorization") != "Bearer test-token" {
 			t.Errorf("expected Authorization header with bearer token")
 		}
-		
+
 		// Return success response
 		response := BanUserResponse{
 			Data: []BanData{
@@ -365,7 +365,7 @@ func TestBanUser_Success(t *testing.T) {
 				},
 			},
 		}
-		
+
 		w.Header().Set("Twitch-Request-Id", "req-test-123")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(response)
@@ -376,7 +376,7 @@ func TestBanUser_Success(t *testing.T) {
 	httpClient := &http.Client{Timeout: 10 * time.Second}
 	cache := NewMockCache()
 	mockCache := &mockCacheWrapper{mockCache: cache}
-	
+
 	// Override baseURL temporarily by creating a custom client
 	// Note: In real implementation, baseURL would need to be configurable
 	client := &Client{
@@ -385,14 +385,14 @@ func TestBanUser_Success(t *testing.T) {
 		cache:              mockCache,
 		channelRateLimiter: NewChannelRateLimiter(100),
 	}
-	
+
 	ctx := context.Background()
-	
+
 	// Note: This test demonstrates the interface, but cannot fully test
 	// without being able to override the baseURL constant
 	_ = client
 	_ = ctx
-	
+
 	t.Log("BanUser interface validated - full integration testing requires configurable baseURL")
 }
 
@@ -401,13 +401,13 @@ func TestBanUser_AlreadyBanned(t *testing.T) {
 	requestID := "req-123"
 	statusCode := 400
 	body := "The user is already banned in this channel"
-	
+
 	err := ParseModerationError(statusCode, body, requestID)
-	
+
 	if err.Code != ModerationErrorCodeAlreadyBanned {
 		t.Errorf("expected error code %s, got %s", ModerationErrorCodeAlreadyBanned, err.Code)
 	}
-	
+
 	if err.RequestID != requestID {
 		t.Errorf("expected request ID %s, got %s", requestID, err.RequestID)
 	}
@@ -418,9 +418,9 @@ func TestBanUser_InsufficientScope(t *testing.T) {
 	requestID := "req-456"
 	statusCode := 403
 	body := "Missing required scope: moderator:manage:banned_users"
-	
+
 	err := ParseModerationError(statusCode, body, requestID)
-	
+
 	if err.Code != ModerationErrorCodeInsufficientScope {
 		t.Errorf("expected error code %s, got %s", ModerationErrorCodeInsufficientScope, err.Code)
 	}
@@ -431,9 +431,9 @@ func TestBanUser_RateLimited(t *testing.T) {
 	requestID := "req-789"
 	statusCode := 429
 	body := "Rate limit exceeded"
-	
+
 	err := ParseModerationError(statusCode, body, requestID)
-	
+
 	if err.Code != ModerationErrorCodeRateLimited {
 		t.Errorf("expected error code %s, got %s", ModerationErrorCodeRateLimited, err.Code)
 	}
@@ -442,14 +442,14 @@ func TestBanUser_RateLimited(t *testing.T) {
 func TestBanUser_ServerError(t *testing.T) {
 	// Test ParseModerationError for server error (5xx)
 	testCases := []int{500, 502, 503, 504}
-	
+
 	for _, statusCode := range testCases {
 		t.Run(fmt.Sprintf("status_%d", statusCode), func(t *testing.T) {
 			requestID := fmt.Sprintf("req-%d", statusCode)
 			body := "Internal server error"
-			
+
 			err := ParseModerationError(statusCode, body, requestID)
-			
+
 			if err.Code != ModerationErrorCodeServerError {
 				t.Errorf("expected error code %s, got %s", ModerationErrorCodeServerError, err.Code)
 			}
@@ -462,9 +462,9 @@ func TestUnbanUser_NotBanned(t *testing.T) {
 	requestID := "req-unban-1"
 	statusCode := 400
 	body := "The user is not banned in this channel"
-	
+
 	err := ParseModerationError(statusCode, body, requestID)
-	
+
 	if err.Code != ModerationErrorCodeNotBanned {
 		t.Errorf("expected error code %s, got %s", ModerationErrorCodeNotBanned, err.Code)
 	}
@@ -475,9 +475,9 @@ func TestUnbanUser_TargetNotFound(t *testing.T) {
 	requestID := "req-unban-2"
 	statusCode := 404
 	body := "User not found"
-	
+
 	err := ParseModerationError(statusCode, body, requestID)
-	
+
 	if err.Code != ModerationErrorCodeTargetNotFound {
 		t.Errorf("expected error code %s, got %s", ModerationErrorCodeTargetNotFound, err.Code)
 	}
@@ -513,7 +513,7 @@ func TestBanUserRequest_Validation(t *testing.T) {
 			shouldError: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			hasError := tt.request.UserID == ""
@@ -529,14 +529,14 @@ func TestChannelRateLimiter_Integration(t *testing.T) {
 	crl := NewChannelRateLimiter(5)
 	ctx := context.Background()
 	channelID := "test-channel"
-	
+
 	// Should be able to consume 5 tokens
 	for i := 0; i < 5; i++ {
 		if err := crl.Wait(ctx, channelID); err != nil {
 			t.Fatalf("unexpected error on token %d: %v", i+1, err)
 		}
 	}
-	
+
 	// 6th request should have no tokens available
 	// (would block until refill, but we check availability)
 	if available := crl.Available(channelID); available != 0 {
@@ -558,7 +558,7 @@ func TestBanUser_RetryOn429(t *testing.T) {
 	attemptCount := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		attemptCount++
-		
+
 		// First two attempts return 429, third succeeds
 		if attemptCount <= 2 {
 			w.Header().Set("Twitch-Request-Id", fmt.Sprintf("req-429-%d", attemptCount))
@@ -569,7 +569,7 @@ func TestBanUser_RetryOn429(t *testing.T) {
 			})
 			return
 		}
-		
+
 		// Success on third attempt
 		response := BanUserResponse{
 			Data: []BanData{
@@ -585,11 +585,11 @@ func TestBanUser_RetryOn429(t *testing.T) {
 		json.NewEncoder(w).Encode(response)
 	}))
 	defer server.Close()
-	
+
 	// This test validates the retry logic works for 429 responses
 	// Note: Cannot fully test without ability to override baseURL
 	t.Log("429 retry logic validated - would retry up to 3 times on rate limit")
-	
+
 	// Verify the server mock works as expected
 	if attemptCount > 0 {
 		t.Logf("Server received %d requests (expected pattern: 429, 429, 200)", attemptCount)
@@ -599,8 +599,8 @@ func TestBanUser_RetryOn429(t *testing.T) {
 // TestBanUser_NoRetryOn4xx tests that 4xx errors (except 429) don't retry
 func TestBanUser_NoRetryOn4xx(t *testing.T) {
 	testCases := []struct {
-		name       string
-		statusCode int
+		name        string
+		statusCode  int
 		shouldRetry bool
 	}{
 		{"400 Bad Request", 400, false},
@@ -609,7 +609,7 @@ func TestBanUser_NoRetryOn4xx(t *testing.T) {
 		{"404 Not Found", 404, false},
 		{"429 Too Many Requests", 429, true},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			attemptCount := 0
@@ -621,7 +621,7 @@ func TestBanUser_NoRetryOn4xx(t *testing.T) {
 				})
 			}))
 			defer server.Close()
-			
+
 			// This validates the retry behavior
 			// 429 should trigger retries (attemptCount would be > 1)
 			// Other 4xx should not retry (attemptCount would be 1)
@@ -637,13 +637,13 @@ func TestBanUser_NoRetryOn4xx(t *testing.T) {
 // TestBanUser_RetryOn5xx tests that 5xx errors trigger retry logic
 func TestBanUser_RetryOn5xx(t *testing.T) {
 	testCases := []int{500, 502, 503, 504}
-	
+
 	for _, statusCode := range testCases {
 		t.Run(fmt.Sprintf("status_%d", statusCode), func(t *testing.T) {
 			attemptCount := 0
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				attemptCount++
-				
+
 				// First attempt returns 5xx, second succeeds
 				if attemptCount == 1 {
 					w.WriteHeader(statusCode)
@@ -652,7 +652,7 @@ func TestBanUser_RetryOn5xx(t *testing.T) {
 					})
 					return
 				}
-				
+
 				// Success on retry
 				response := BanUserResponse{
 					Data: []BanData{
@@ -667,7 +667,7 @@ func TestBanUser_RetryOn5xx(t *testing.T) {
 				json.NewEncoder(w).Encode(response)
 			}))
 			defer server.Close()
-			
+
 			t.Logf("Status %d should trigger retry logic", statusCode)
 		})
 	}
