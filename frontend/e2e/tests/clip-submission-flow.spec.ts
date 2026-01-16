@@ -326,7 +326,8 @@ async function setupClipSubmissionApiMocks(
             }
 
             if (/\/admin\/submissions\/[^/]+\/approve$/.test(pathname)) {
-                const id = pathname.split('/').at(-2) as string;
+                const parts = pathname.split('/');
+                const id = parts[parts.length - 2] as string;
                 const record = submissions.get(id);
                 if (record) {
                     record.status = 'approved';
@@ -338,7 +339,8 @@ async function setupClipSubmissionApiMocks(
             }
 
             if (/\/admin\/submissions\/[^/]+\/reject$/.test(pathname)) {
-                const id = pathname.split('/').at(-2) as string;
+                const parts = pathname.split('/');
+                const id = parts[parts.length - 2] as string;
                 const body = (request.postDataJSON?.() as any) || {};
                 const record = submissions.get(id);
                 if (record) {
@@ -447,7 +449,6 @@ test.describe('Clip Submission E2E Flow', () => {
         });
 
         test('user with insufficient karma sees warning', async ({
-            page,
             submitClipPage,
         }) => {
             mockApi.setCurrentUser({
@@ -465,7 +466,6 @@ test.describe('Clip Submission E2E Flow', () => {
 
     test.describe('Scenario 1: Successful Clip Submission (Happy Path)', () => {
         test('user can submit a new clip successfully', async ({
-            page,
             submitClipPage,
             authenticatedUser,
         }) => {
@@ -488,7 +488,6 @@ test.describe('Clip Submission E2E Flow', () => {
         });
 
         test('submission appears in recent submissions after successful submit', async ({
-            page,
             submitClipPage,
             authenticatedUser,
         }) => {
@@ -559,7 +558,6 @@ test.describe('Clip Submission E2E Flow', () => {
 
     test.describe('Scenario 3: Duplicate Detection', () => {
         test('duplicate clip detection prevents resubmission', async ({
-            page,
             submitClipPage,
             authenticatedUser,
         }) => {
@@ -679,7 +677,6 @@ test.describe('Clip Submission E2E Flow', () => {
 
     test.describe('Scenario 6: Form Validation', () => {
         test('missing clip URL disables submit button', async ({
-            page,
             submitClipPage,
             authenticatedUser,
         }) => {
@@ -714,7 +711,6 @@ test.describe('Clip Submission E2E Flow', () => {
         });
 
         test('can mark submission as NSFW', async ({
-            page,
             submitClipPage,
             authenticatedUser,
         }) => {
@@ -808,7 +804,6 @@ test.describe('Clip Submission E2E Flow', () => {
 
     test.describe('Performance', () => {
         test('form loads within acceptable time', async ({
-            page,
             submitClipPage,
             authenticatedUser,
         }) => {
@@ -826,7 +821,6 @@ test.describe('Clip Submission E2E Flow', () => {
         });
 
         test('submission completes within acceptable time', async ({
-            page,
             submitClipPage,
             authenticatedUser,
         }) => {

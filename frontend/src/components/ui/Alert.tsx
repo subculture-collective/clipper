@@ -85,7 +85,7 @@ export const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
         {...props}
       >
         <div className="flex gap-3">
-          <div className="flex-shrink-0">
+          <div className="shrink-0">
             {icon || defaultIcons[variant]}
           </div>
           <div className="flex-1">
@@ -97,7 +97,7 @@ export const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
           {dismissible && (
             <button
               onClick={onDismiss}
-              className="flex-shrink-0 ml-auto hover:opacity-70 transition-opacity"
+              className="shrink-0 ml-auto hover:opacity-70 transition-opacity"
               aria-label="Dismiss"
             >
               <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">

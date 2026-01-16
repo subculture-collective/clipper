@@ -102,7 +102,7 @@ export default function SubscriptionSuccessPage() {
                                 key={index}
                                 className='flex items-start gap-3 p-3 bg-gray-900 rounded-lg border border-gray-700'
                             >
-                                <span className='text-2xl flex-shrink-0'>
+                                <span className='text-2xl shrink-0'>
                                     {feature.icon}
                                 </span>
                                 <div>
@@ -119,7 +119,7 @@ export default function SubscriptionSuccessPage() {
                 </div>
 
                 {/* Next steps */}
-                <div className='bg-gradient-to-br from-purple-900/30 to-blue-900/30 rounded-lg p-6 mb-8 border border-purple-800'>
+                <div className='bg-linear-to-br from-purple-900/30 to-blue-900/30 rounded-lg p-6 mb-8 border border-purple-800'>
                     <h2 className='text-lg font-semibold text-white mb-4'>
                         🚀 Getting Started
                     </h2>

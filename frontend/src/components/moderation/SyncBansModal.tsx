@@ -42,6 +42,13 @@ export function SyncBansModal({
         setShowConfirmation(false);
     };
 
+    // Reset form state when modal closes
+    useEffect(() => {
+        if (!open) {
+            resetFormState();
+        }
+    }, [open]);
+
     // Poll for sync progress
     useEffect(() => {
         if (!jobId || !open) return;

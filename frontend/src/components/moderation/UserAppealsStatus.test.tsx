@@ -73,8 +73,10 @@ describe('UserAppealsStatus', () => {
     it('displays loading state initially', () => {
       render(<UserAppealsStatus />);
 
-      const spinner = screen.getByRole('status', { hidden: true });
+      // The spinner div exists with the animate-spin class
+      const spinner = screen.getByRole('generic', { hidden: true });
       expect(spinner).toBeInTheDocument();
+      expect(spinner).toHaveClass('animate-spin');
     });
 
     it('displays appeals after loading', async () => {
@@ -368,7 +370,7 @@ describe('UserAppealsStatus', () => {
     it('displays spinner with proper role during loading', () => {
       render(<UserAppealsStatus />);
 
-      expect(screen.getByRole('status', { hidden: true })).toBeInTheDocument();
+      expect(screen.getByRole('generic', { hidden: true })).toBeInTheDo…;
     });
   });
 });
