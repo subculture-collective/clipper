@@ -158,6 +158,8 @@ export function SubmitClipPage() {
     // Pre-fill from navigation state (e.g., when claiming a scraped clip)
     // or restore from draft
     useEffect(() => {
+        let timeoutId: number | undefined;
+        
         const state = location.state as { clipUrl?: string } | null;
         if (state?.clipUrl) {
             setFormData(prev => ({
@@ -172,10 +174,15 @@ export function SubmitClipPage() {
                 setSelectedTags(savedDraft.selectedTags);
                 setShowDraftRestored(true);
                 // Auto-hide the restored message after 5 seconds
-                const timeoutId = setTimeout(() => setShowDraftRestored(false), 5000);
-                return () => clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => setShowDraftRestored(false), 5000) as unknown as number;
             }
         }
+        
+        return () => {
+            if (timeoutId !== undefined) {
+                clearTimeout(timeoutId);
+            }
+        };
     }, [location.state, draft]);
 
     // Load rate limit from localStorage on mount

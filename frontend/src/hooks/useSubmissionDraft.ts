@@ -4,10 +4,13 @@ import type { Tag } from '../types/tag';
 
 const DRAFT_STORAGE_KEY = 'submission_draft';
 // Allow configuration via environment variable for testing
-const DRAFT_AUTOSAVE_INTERVAL = 
-    typeof window !== 'undefined' && (window as any).__DRAFT_AUTOSAVE_INTERVAL__ 
-        ? (window as any).__DRAFT_AUTOSAVE_INTERVAL__ 
-        : 30000; // 30 seconds by default
+const getAutoSaveInterval = () => {
+    if (typeof window !== 'undefined' && (window as any).__DRAFT_AUTOSAVE_INTERVAL__) {
+        return (window as any).__DRAFT_AUTOSAVE_INTERVAL__;
+    }
+    return 30000; // 30 seconds by default
+};
+const DRAFT_AUTOSAVE_INTERVAL = getAutoSaveInterval();
 
 export interface SubmissionDraft {
     formData: SubmitClipRequest;
