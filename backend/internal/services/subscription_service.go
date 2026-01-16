@@ -856,6 +856,7 @@ func (s *SubscriptionService) CancelSubscription(ctx context.Context, user *mode
 
 	if err := s.repo.Update(ctx, sub); err != nil {
 		log.Printf("Failed to update subscription after cancellation: %v", err)
+		return fmt.Errorf("subscription cancelled in Stripe but failed to update local record: %w", err)
 	}
 
 	// Log audit event
@@ -941,6 +942,7 @@ func (s *SubscriptionService) ReactivateSubscription(ctx context.Context, user *
 
 	if err := s.repo.Update(ctx, sub); err != nil {
 		log.Printf("Failed to update subscription after reactivation: %v", err)
+		return fmt.Errorf("subscription reactivated in Stripe but failed to update local record: %w", err)
 	}
 
 	// Log audit event

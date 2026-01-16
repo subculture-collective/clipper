@@ -343,9 +343,16 @@ func (h *SubscriptionHandler) GetInvoices(c *gin.Context) {
 	// Parse query parameters
 	var limit int64 = 10
 	if limitStr := c.Query("limit"); limitStr != "" {
-		if parsedLimit, err := strconv.ParseInt(limitStr, 10, 64); err == nil {
-			limit = parsedLimit
+		parsedLimit, err := strconv.ParseInt(limitStr, 10, 64)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid limit parameter"})
+			return
 		}
+		if parsedLimit < 1 || parsedLimit > 100 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Limit must be between 1 and 100"})
+			return
+		}
+		limit = parsedLimit
 	}
 
 	// Get invoices

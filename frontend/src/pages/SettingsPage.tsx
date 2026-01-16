@@ -39,6 +39,11 @@ import {
 } from '../lib/subscription-api';
 import type { Subscription } from '../lib/subscription-api';
 
+// Constants for billing period calculation
+const DAYS_IN_YEAR = 350; // Threshold for yearly subscription (allowing some variance)
+const DAYS_IN_MONTH_MIN = 28; // Minimum days for monthly subscription
+const DAYS_IN_MONTH_MAX = 32; // Maximum days for monthly subscription
+
 export function SettingsPage() {
     const { user, refreshUser } = useAuth();
     const queryClient = useQueryClient();
@@ -661,9 +666,9 @@ export function SettingsPage() {
                                                     const end = new Date(subscription.current_period_end);
                                                     const daysDiff = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
                                                     
-                                                    if (daysDiff >= 350) {
+                                                    if (daysDiff >= DAYS_IN_YEAR) {
                                                         return 'Yearly';
-                                                    } else if (daysDiff >= 28 && daysDiff <= 32) {
+                                                    } else if (daysDiff >= DAYS_IN_MONTH_MIN && daysDiff <= DAYS_IN_MONTH_MAX) {
                                                         return 'Monthly';
                                                     } else {
                                                         return `${daysDiff} days`;
