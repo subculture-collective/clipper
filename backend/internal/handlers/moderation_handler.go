@@ -1393,7 +1393,6 @@ func (h *ModerationHandler) GetModerationAnalytics(c *gin.Context) {
 				analytics.BanReasons[reason] = count
 			}
 		}
-		rows.Close()
 	}
 
 	// Most banned users (users with most bans in the date range)
@@ -1420,10 +1419,9 @@ func (h *ModerationHandler) GetModerationAnalytics(c *gin.Context) {
 				analytics.MostBannedUsers = append(analytics.MostBannedUsers, stat)
 			}
 		}
-		rows.Close()
 	}
 
-	// Appeals statistics (if moderation_appeals table exists)
+	// Appeals statistics
 	appealStats := &models.AppealStats{}
 	err = h.db.QueryRow(ctx, `
 		SELECT 

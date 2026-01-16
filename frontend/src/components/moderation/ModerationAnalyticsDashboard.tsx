@@ -211,7 +211,7 @@ export function ModerationAnalyticsDashboard() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200 bg-white">
-                                    {bannedUsersData.map((user, idx) => (
+                                    {bannedUsersData.map((user) => (
                                         <tr key={user.user_id} className="hover:bg-gray-50">
                                             <td className="whitespace-nowrap px-4 py-2 text-sm font-medium text-gray-900">
                                                 {user.username}
