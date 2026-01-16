@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/subculture-collective/clipper/backend/internal/models"
+	"github.com/subculture-collective/clipper/internal/models"
 )
 
 type BanReasonTemplateRepository struct {

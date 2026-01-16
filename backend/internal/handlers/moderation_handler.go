@@ -1238,6 +1238,8 @@ func (h *ModerationHandler) GetModerationAnalytics(c *gin.Context) {
 		ActionsByModerator:   make(map[string]int),
 		ContentTypeBreakdown: make(map[string]int),
 		ActionsOverTime:      []models.TimeSeriesPoint{},
+		BanReasons:           make(map[string]int),
+		MostBannedUsers:      []models.BannedUserStat{},
 	}
 
 	// Total actions in date range
@@ -1371,6 +1373,79 @@ func (h *ModerationHandler) GetModerationAnalytics(c *gin.Context) {
 	`, startDate, endDate).Scan(&avgResponseMinutes)
 	if err == nil && avgResponseMinutes != nil {
 		analytics.AverageResponseTime = avgResponseMinutes
+	}
+
+	// Ban reasons distribution (from user_bans table)
+	analytics.BanReasons = make(map[string]int)
+	rows, err = h.db.Query(ctx, `
+		SELECT reason, COUNT(*)
+		FROM user_bans
+		WHERE created_at >= $1 AND created_at < $2::date + interval '1 day'
+		GROUP BY reason
+		ORDER BY COUNT(*) DESC
+	`, startDate, endDate)
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var reason string
+			var count int
+			if err := rows.Scan(&reason, &count); err == nil {
+				analytics.BanReasons[reason] = count
+			}
+		}
+		rows.Close()
+	}
+
+	// Most banned users (users with most bans in the date range)
+	rows, err = h.db.Query(ctx, `
+		SELECT 
+			ub.user_id,
+			COALESCE(u.username, 'Unknown') as username,
+			COUNT(*) as ban_count,
+			MAX(ub.created_at) as last_ban_at
+		FROM user_bans ub
+		LEFT JOIN users u ON ub.user_id = u.id
+		WHERE ub.created_at >= $1 AND ub.created_at < $2::date + interval '1 day'
+		GROUP BY ub.user_id, u.username
+		ORDER BY ban_count DESC, last_ban_at DESC
+		LIMIT 10
+	`, startDate, endDate)
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var stat models.BannedUserStat
+			var lastBanAt time.Time
+			if err := rows.Scan(&stat.UserID, &stat.Username, &stat.BanCount, &lastBanAt); err == nil {
+				stat.LastBanAt = lastBanAt.Format(time.RFC3339)
+				analytics.MostBannedUsers = append(analytics.MostBannedUsers, stat)
+			}
+		}
+		rows.Close()
+	}
+
+	// Appeals statistics (if moderation_appeals table exists)
+	appealStats := &models.AppealStats{}
+	err = h.db.QueryRow(ctx, `
+		SELECT 
+			COUNT(*) as total,
+			COUNT(*) FILTER (WHERE status = 'pending') as pending,
+			COUNT(*) FILTER (WHERE status = 'approved') as approved,
+			COUNT(*) FILTER (WHERE status = 'rejected') as rejected
+		FROM moderation_appeals
+		WHERE created_at >= $1 AND created_at < $2::date + interval '1 day'
+	`, startDate, endDate).Scan(
+		&appealStats.TotalAppeals,
+		&appealStats.PendingAppeals,
+		&appealStats.ApprovedAppeals,
+		&appealStats.RejectedAppeals,
+	)
+	if err == nil && appealStats.TotalAppeals > 0 {
+		// Calculate false positive rate (approved appeals / total appeals)
+		if appealStats.TotalAppeals > 0 {
+			rate := float64(appealStats.ApprovedAppeals) / float64(appealStats.TotalAppeals) * 100
+			appealStats.FalsePositiveRate = &rate
+		}
+		analytics.Appeals = appealStats
 	}
 
 	c.JSON(http.StatusOK, gin.H{

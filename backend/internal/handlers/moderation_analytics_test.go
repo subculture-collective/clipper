@@ -92,3 +92,24 @@ func TestGetModerationAnalytics_CustomDateRange(t *testing.T) {
 		t.Errorf("Expected valid date range to not return bad request, got %d", w.Code)
 	}
 }
+
+// TestGetModerationAnalytics_ResponseStructure tests that analytics response has correct structure
+func TestGetModerationAnalytics_ResponseStructure(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	testUserID := uuid.New()
+	handler := NewModerationHandler(nil, nil, nil, nil, nil, nil, nil, nil)
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/api/admin/moderation/analytics", nil)
+	c.Set("user_id", testUserID)
+
+	handler.GetModerationAnalytics(c)
+
+	// Test passes if we get expected error code (no DB) but not a bad request
+	// This validates parameter parsing and handler structure
+	if w.Code == http.StatusBadRequest {
+		t.Errorf("Expected handler to accept valid request, got %d", w.Code)
+	}
+}

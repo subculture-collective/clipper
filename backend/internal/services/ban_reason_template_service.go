@@ -8,9 +8,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/subculture-collective/clipper/backend/internal/models"
-	"github.com/subculture-collective/clipper/backend/internal/repository"
-	"github.com/subculture-collective/clipper/backend/pkg/utils"
+	"github.com/subculture-collective/clipper/internal/models"
+	"github.com/subculture-collective/clipper/internal/repository"
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
 var (
@@ -23,13 +23,13 @@ var (
 type BanReasonTemplateService struct {
 	repo         *repository.BanReasonTemplateRepository
 	communityRepo *repository.CommunityRepository
-	logger       *utils.Logger
+	logger       *utils.StructuredLogger
 }
 
 func NewBanReasonTemplateService(
 	repo *repository.BanReasonTemplateRepository,
 	communityRepo *repository.CommunityRepository,
-	logger *utils.Logger,
+	logger *utils.StructuredLogger,
 ) *BanReasonTemplateService {
 	return &BanReasonTemplateService{
 		repo:         repo,
