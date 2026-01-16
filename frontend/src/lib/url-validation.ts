@@ -17,7 +17,7 @@ export function isValidUrl(url: string): boolean {
   } catch {
     // If URL constructor fails, try a relaxed pattern
     // Allow URLs without protocol if they look like domains
-    const relaxedPattern = /^(?:(?:https?:\/\/)?(?:www\.)?)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,}(?:\/[^\s]*)?$/i;
+    const relaxedPattern = /^(?:(?:https?:\/\/)?(?:www\.)?)?[a-z0-9]+([-.]{1}[a-z0-9]+)*\.[a-z]{2,}(?:\/[^\s]*)?$/i;
     return relaxedPattern.test(url);
   }
 }

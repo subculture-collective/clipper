@@ -24,7 +24,7 @@ describe('useAutoSave', () => {
 
   it('should trigger save after debounce delay', async () => {
     const mockSave = vi.fn().mockResolvedValue(undefined);
-    const { result, rerender } = renderHook(
+    const { rerender } = renderHook(
       ({ content }) => useAutoSave(content, { onSave: mockSave, debounceDelay: 1000 }),
       { initialProps: { content: 'test' } }
     );
