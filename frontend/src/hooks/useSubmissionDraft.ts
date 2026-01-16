@@ -88,7 +88,7 @@ export function useSubmissionDraft() {
         if (hasContent(formData, selectedTags)) {
             autoSaveTimerRef.current = setTimeout(() => {
                 saveDraft(formData, selectedTags);
-            }, DRAFT_AUTOSAVE_INTERVAL);
+            }, DRAFT_AUTOSAVE_INTERVAL) as unknown as number;
         }
     }, [hasContent, saveDraft]);
 

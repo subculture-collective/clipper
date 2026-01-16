@@ -183,7 +183,7 @@ export function SubmitClipPage() {
                 clearTimeout(timeoutId);
             }
         };
-    }, [location.state, draft]);
+    }, [location.state, draft.loadDraft]);
 
     // Load rate limit from localStorage on mount
     useEffect(() => {
@@ -348,7 +348,7 @@ export function SubmitClipPage() {
     // Auto-save draft every 30 seconds when form has content
     useEffect(() => {
         draft.startAutoSave(formData, selectedTags);
-    }, [formData, selectedTags, draft]);
+    }, [formData, selectedTags, draft.startAutoSave]);
 
     const handleCreateTag = async (name: string): Promise<Tag | null> => {
         const slug = slugify(name);
@@ -660,7 +660,12 @@ export function SubmitClipPage() {
                 )}
 
                 {showDraftRestored && (
-                    <Alert variant='info' className='mb-6'>
+                    <Alert 
+                        variant='info' 
+                        className='mb-6'
+                        dismissible={true}
+                        onDismiss={() => setShowDraftRestored(false)}
+                    >
                         Draft restored from your last session
                     </Alert>
                 )}
