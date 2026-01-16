@@ -17,6 +17,7 @@ type Config struct {
 	JWT             JWTConfig
 	Twitch          TwitchConfig
 	CORS            CORSConfig
+	WebSocket       WebSocketConfig
 	OpenSearch      OpenSearchConfig
 	Stripe          StripeConfig
 	Sentry          SentryConfig
