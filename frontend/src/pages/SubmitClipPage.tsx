@@ -29,6 +29,7 @@ import type {
 import { TagSelector } from '../components/tag/TagSelector';
 import { tagApi } from '../lib/tag-api';
 import type { Tag } from '../types/tag';
+import { useSubmissionDraft } from '../hooks/useSubmissionDraft';
 
 /**
  * Clip-specific duplicate error patterns to avoid false positives
@@ -127,6 +128,10 @@ export function SubmitClipPage() {
     const [karmaRequirementEnabled, setKarmaRequirementEnabled] =
         useState(true);
 
+    // Draft management
+    const draft = useSubmissionDraft();
+    const [showDraftRestored, setShowDraftRestored] = useState(false);
+
     // Check if user is authenticated and has enough karma
     const canSubmit =
         isAuthenticated &&
@@ -151,15 +156,34 @@ export function SubmitClipPage() {
     );
 
     // Pre-fill from navigation state (e.g., when claiming a scraped clip)
+    // or restore from draft
     useEffect(() => {
+        let timeoutId: number | undefined;
+        
         const state = location.state as { clipUrl?: string } | null;
         if (state?.clipUrl) {
             setFormData(prev => ({
                 ...prev,
                 clip_url: state.clipUrl!,
             }));
+        } else {
+            // Try to load draft if no state from navigation
+            const savedDraft = draft.loadDraft();
+            if (savedDraft) {
+                setFormData(savedDraft.formData);
+                setSelectedTags(savedDraft.selectedTags);
+                setShowDraftRestored(true);
+                // Auto-hide the restored message after 5 seconds
+                timeoutId = setTimeout(() => setShowDraftRestored(false), 5000) as unknown as number;
+            }
         }
-    }, [location.state]);
+        
+        return () => {
+            if (timeoutId !== undefined) {
+                clearTimeout(timeoutId);
+            }
+        };
+    }, [location.state, draft.loadDraft]);
 
     // Load rate limit from localStorage on mount
     useEffect(() => {
@@ -321,6 +345,11 @@ export function SubmitClipPage() {
         };
     }, [formData.clip_url, formData.custom_title, selectedTags.length, slugify]);
 
+    // Auto-save draft every 30 seconds when form has content
+    useEffect(() => {
+        draft.startAutoSave(formData, selectedTags);
+    }, [formData, selectedTags, draft.startAutoSave]);
+
     const handleCreateTag = async (name: string): Promise<Tag | null> => {
         const slug = slugify(name);
         setTagQueryLoading(true);
@@ -403,6 +432,9 @@ export function SubmitClipPage() {
                 is_nsfw: response.submission.is_nsfw,
                 tags: Array.isArray(tagsToSubmit) ? tagsToSubmit : [],
             });
+
+            // Clear draft on successful submission
+            draft.clearDraft();
 
             // Reset form
             setFormData({
@@ -625,6 +657,59 @@ export function SubmitClipPage() {
                     <Alert variant='error' className='mb-6'>
                         {error}
                     </Alert>
+                )}
+
+                {showDraftRestored && (
+                    <Alert 
+                        variant='info' 
+                        className='mb-6'
+                        dismissible={true}
+                        onDismiss={() => setShowDraftRestored(false)}
+                    >
+                        Draft restored from your last session
+                    </Alert>
+                )}
+
+                {draft.hasDraft && draft.lastSaved && (
+                    <div className='mb-4 xs:mb-6 flex items-center justify-between bg-blue-500/10 border border-blue-500/20 rounded-lg p-3'>
+                        <div className='flex items-center gap-2 text-sm text-blue-400'>
+                            <svg
+                                className='w-4 h-4'
+                                fill='none'
+                                stroke='currentColor'
+                                viewBox='0 0 24 24'
+                            >
+                                <path
+                                    strokeLinecap='round'
+                                    strokeLinejoin='round'
+                                    strokeWidth={2}
+                                    d='M5 13l4 4L19 7'
+                                />
+                            </svg>
+                            <span>
+                                Draft saved {new Date(draft.lastSaved).toLocaleTimeString()}
+                            </span>
+                        </div>
+                        <Button
+                            type='button'
+                            variant='ghost'
+                            size='sm'
+                            onClick={() => {
+                                draft.clearDraft();
+                                setFormData({
+                                    clip_url: '',
+                                    custom_title: '',
+                                    is_nsfw: false,
+                                    submission_reason: '',
+                                    broadcaster_name_override: '',
+                                });
+                                setSelectedTags([]);
+                            }}
+                            className='text-blue-400 hover:text-blue-300'
+                        >
+                            Clear Draft
+                        </Button>
+                    </div>
                 )}
 
                 <Card className='p-6 mb-8'>

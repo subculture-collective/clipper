@@ -849,4 +849,123 @@ test.describe('Clip Submission E2E Flow', () => {
             expect(submitTime).toBeLessThan(10000);
         });
     });
+
+    test.describe('Draft Functionality', () => {
+        test('draft is saved and restored on page reload', async ({
+            page,
+            submitClipPage,
+            authenticatedUser,
+        }) => {
+            // Set shorter auto-save interval for testing
+            await page.addInitScript(() => {
+                (window as any).__DRAFT_AUTOSAVE_INTERVAL__ = 2000; // 2 seconds for testing
+            });
+
+            // Given: authenticated user
+            mockApi.setCurrentUser(withKarma(authenticatedUser));
+
+            await submitClipPage.goto();
+
+            // When: user fills in the form but doesn't submit
+            await page.fill('input[name="url"]', VALID_TWITCH_CLIP_URL);
+            await page.fill('input#custom_title', 'My Test Draft');
+            await page.fill('textarea#submission_reason', 'Testing draft functionality');
+
+            // Wait for auto-save to trigger (2 seconds + buffer)
+            await page.waitForTimeout(3000);
+
+            // Then: draft indicator should appear
+            const draftIndicator = page.locator('text=/Draft saved/i');
+            await expect(draftIndicator).toBeVisible();
+
+            // When: user reloads the page
+            await page.reload();
+
+            // Then: draft should be restored
+            const urlInput = page.locator('input[name="url"]');
+            const titleInput = page.locator('input#custom_title');
+            const reasonInput = page.locator('textarea#submission_reason');
+
+            await expect(urlInput).toHaveValue(VALID_TWITCH_CLIP_URL);
+            await expect(titleInput).toHaveValue('My Test Draft');
+            await expect(reasonInput).toHaveValue('Testing draft functionality');
+
+            // And: draft restored message should appear
+            const restoredMessage = page.locator('text=/Draft restored/i');
+            await expect(restoredMessage).toBeVisible();
+        });
+
+        test('user can clear draft', async ({
+            page,
+            submitClipPage,
+            authenticatedUser,
+        }) => {
+            // Set shorter auto-save interval for testing
+            await page.addInitScript(() => {
+                (window as any).__DRAFT_AUTOSAVE_INTERVAL__ = 2000;
+            });
+
+            // Given: authenticated user with a saved draft
+            mockApi.setCurrentUser(withKarma(authenticatedUser));
+
+            await submitClipPage.goto();
+
+            // Fill form
+            await page.fill('input[name="url"]', VALID_TWITCH_CLIP_URL);
+            await page.fill('input#custom_title', 'Draft to Clear');
+
+            // Wait for auto-save
+            await page.waitForTimeout(3000);
+
+            // When: user clicks clear draft button
+            const clearButton = page.locator('text=/Clear Draft/i');
+            await expect(clearButton).toBeVisible();
+            await clearButton.click();
+
+            // Then: form should be cleared
+            const urlInput = page.locator('input[name="url"]');
+            const titleInput = page.locator('input#custom_title');
+
+            await expect(urlInput).toHaveValue('');
+            await expect(titleInput).toHaveValue('');
+        });
+
+        test('draft is cleared after successful submission', async ({
+            page,
+            submitClipPage,
+            authenticatedUser,
+        }) => {
+            // Set shorter auto-save interval for testing
+            await page.addInitScript(() => {
+                (window as any).__DRAFT_AUTOSAVE_INTERVAL__ = 2000;
+            });
+
+            // Given: authenticated user
+            mockApi.setCurrentUser(withKarma(authenticatedUser));
+
+            await submitClipPage.goto();
+
+            // Fill and save draft
+            await page.fill('input[name="url"]', VALID_TWITCH_CLIP_URL);
+            await page.fill('input#custom_title', 'Will Submit');
+            await page.waitForTimeout(3000); // Wait for auto-save
+
+            // Submit the form
+            await submitClipPage.submitClip({
+                url: VALID_TWITCH_CLIP_URL,
+                title: 'Will Submit',
+                description: 'Test submission',
+                tags: ['test'],
+            });
+
+            await submitClipPage.expectSubmissionSuccess();
+
+            // When: user goes back to submit page
+            await page.click('text=/Submit Another/i');
+
+            // Then: form should be empty (no draft restored)
+            const urlInput = page.locator('input[name="url"]');
+            await expect(urlInput).toHaveValue('');
+        });
+    });
 });
