@@ -278,7 +278,7 @@ export const CommentForm: React.FC<CommentFormProps> = ({
               <EmojiPicker
                 onEmojiSelect={insertEmoji}
                 onClose={() => setShowEmojiPicker(false)}
-                className="bottom-full mb-2 left-0"
+                className="absolute bottom-full mb-2 right-0 z-50"
               />
             )}
           </div>

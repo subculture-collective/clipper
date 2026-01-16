@@ -39,6 +39,7 @@ export function useAutoSave(
   const lastContentRef = useRef<string>('');
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const intervalTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const statusTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const performSave = useCallback(async () => {
     // Don't save if content is too short or hasn't changed
@@ -54,16 +55,26 @@ export function useAutoSave(
       setStatus('saved');
       setLastSaved(new Date());
 
+      // Clear any existing status timer
+      if (statusTimerRef.current) {
+        clearTimeout(statusTimerRef.current);
+      }
+      
       // Reset status after 2 seconds
-      setTimeout(() => {
+      statusTimerRef.current = setTimeout(() => {
         setStatus('idle');
       }, 2000);
     } catch (error) {
       console.error('Auto-save failed:', error);
       setStatus('error');
       
+      // Clear any existing status timer
+      if (statusTimerRef.current) {
+        clearTimeout(statusTimerRef.current);
+      }
+      
       // Reset error status after 3 seconds
-      setTimeout(() => {
+      statusTimerRef.current = setTimeout(() => {
         setStatus('idle');
       }, 3000);
     }
@@ -108,6 +119,21 @@ export function useAutoSave(
       }
     };
   }, [interval, performSave]);
+
+  // Cleanup all timers on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+      if (intervalTimerRef.current) {
+        clearInterval(intervalTimerRef.current);
+      }
+      if (statusTimerRef.current) {
+        clearTimeout(statusTimerRef.current);
+      }
+    };
+  }, []);
 
   return {
     status,
