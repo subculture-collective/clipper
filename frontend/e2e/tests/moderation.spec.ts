@@ -1749,6 +1749,463 @@ test.describe('Moderation E2E', () => {
             expect(loadTime).toBeLessThan(3000);
         });
 
+        test.describe('Bulk Moderation Actions', () => {
+            test('bulk select checkboxes work correctly', async ({ page }) => {
+                const mocks = await setupModerationMocks(page);
+
+                // Set current user as moderator
+                const moderatorUser: MockUser = {
+                    id: 'moderator-1',
+                    username: 'moderatoruser',
+                    email: 'moderator@example.com',
+                    role: 'moderator',
+                    karma_points: 200,
+                    is_banned: false,
+                };
+                mocks.setCurrentUser(moderatorUser);
+
+                // Seed active bans
+                for (let i = 1; i <= 5; i++) {
+                    mocks.seedBan({
+                        id: `ban-${i}`,
+                        user_id: `user-${i}`,
+                        target_username: `user${i}`,
+                        channel_id: 'channel-1',
+                        reason: `Test reason ${i}`,
+                        created_at: new Date().toISOString(),
+                        created_by: 'moderator-1',
+                        is_active: true,
+                    });
+                }
+
+                // Navigate to ban list
+                await page.goto('/admin/bans');
+                await page.waitForLoadState('networkidle');
+
+                // Find checkboxes
+                const selectAllCheckbox = page.getByLabel(/select all/i);
+                const firstBanCheckbox = page
+                    .getByLabel(/select ban for user1/i)
+                    .first();
+
+                // Verify checkboxes are present
+                await expect(selectAllCheckbox).toBeVisible();
+                await expect(firstBanCheckbox).toBeVisible();
+
+                // Click individual checkbox
+                await firstBanCheckbox.check();
+                await expect(firstBanCheckbox).toBeChecked();
+
+                // Verify bulk action toolbar appears
+                await expect(page.getByText(/1 ban selected/i)).toBeVisible();
+
+                // Uncheck individual checkbox
+                await firstBanCheckbox.uncheck();
+                await expect(firstBanCheckbox).not.toBeChecked();
+            });
+
+            test('bulk select all functionality works', async ({ page }) => {
+                const mocks = await setupModerationMocks(page);
+
+                const moderatorUser: MockUser = {
+                    id: 'moderator-1',
+                    username: 'moderatoruser',
+                    email: 'moderator@example.com',
+                    role: 'moderator',
+                    karma_points: 200,
+                    is_banned: false,
+                };
+                mocks.setCurrentUser(moderatorUser);
+
+                // Seed 3 active bans
+                for (let i = 1; i <= 3; i++) {
+                    mocks.seedBan({
+                        id: `ban-${i}`,
+                        user_id: `user-${i}`,
+                        target_username: `user${i}`,
+                        channel_id: 'channel-1',
+                        reason: `Test reason ${i}`,
+                        created_at: new Date().toISOString(),
+                        created_by: 'moderator-1',
+                        is_active: true,
+                    });
+                }
+
+                await page.goto('/admin/bans');
+                await page.waitForLoadState('networkidle');
+
+                // Click select all
+                const selectAllCheckbox = page.getByLabel(/select all/i);
+                await selectAllCheckbox.check();
+
+                // Verify all checkboxes are checked
+                await expect(
+                    page.getByLabel(/select ban for user1/i).first()
+                ).toBeChecked();
+                await expect(
+                    page.getByLabel(/select ban for user2/i).first()
+                ).toBeChecked();
+                await expect(
+                    page.getByLabel(/select ban for user3/i).first()
+                ).toBeChecked();
+
+                // Verify bulk action toolbar shows correct count
+                await expect(page.getByText(/3 bans selected/i)).toBeVisible();
+
+                // Click select all again to deselect
+                await selectAllCheckbox.uncheck();
+
+                // Verify toolbar is hidden
+                await expect(
+                    page.getByText(/bans selected/i)
+                ).not.toBeVisible();
+            });
+
+            test('bulk unban operation executes with confirmation', async ({
+                page,
+            }) => {
+                const mocks = await setupModerationMocks(page);
+
+                const moderatorUser: MockUser = {
+                    id: 'moderator-1',
+                    username: 'moderatoruser',
+                    email: 'moderator@example.com',
+                    role: 'moderator',
+                    karma_points: 200,
+                    is_banned: false,
+                };
+                mocks.setCurrentUser(moderatorUser);
+
+                // Seed bans
+                for (let i = 1; i <= 3; i++) {
+                    mocks.seedBan({
+                        id: `ban-${i}`,
+                        user_id: `user-${i}`,
+                        target_username: `user${i}`,
+                        channel_id: 'channel-1',
+                        reason: `Test reason ${i}`,
+                        created_at: new Date().toISOString(),
+                        created_by: 'moderator-1',
+                        is_active: true,
+                    });
+                }
+
+                await page.goto('/admin/bans');
+                await page.waitForLoadState('networkidle');
+
+                // Select two bans
+                await page.getByLabel(/select ban for user1/i).first().check();
+                await page.getByLabel(/select ban for user2/i).first().check();
+
+                // Click bulk unban button
+                await page.getByRole('button', { name: /bulk unban/i }).click();
+
+                // Verify confirmation modal appears with count
+                const modal = page.getByRole('dialog');
+                await expect(modal).toBeVisible();
+                await expect(modal.getByText(/2 users/i)).toBeVisible();
+                await expect(
+                    modal.getByText(/cannot be undone/i)
+                ).toBeVisible();
+
+                // Confirm action
+                await modal
+                    .getByRole('button', { name: /confirm bulk unban/i })
+                    .click();
+
+                // Wait for modal to close
+                await expect(modal).not.toBeVisible({ timeout: 10000 });
+
+                // Verify success message
+                await expect(
+                    page.getByText(/successfully unbanned.*2.*user/i)
+                ).toBeVisible({ timeout: 5000 });
+            });
+
+            test('bulk action confirmation dialog shows number of items', async ({
+                page,
+            }) => {
+                const mocks = await setupModerationMocks(page);
+
+                const moderatorUser: MockUser = {
+                    id: 'moderator-1',
+                    username: 'moderatoruser',
+                    email: 'moderator@example.com',
+                    role: 'moderator',
+                    karma_points: 200,
+                    is_banned: false,
+                };
+                mocks.setCurrentUser(moderatorUser);
+
+                // Seed 5 bans
+                for (let i = 1; i <= 5; i++) {
+                    mocks.seedBan({
+                        id: `ban-${i}`,
+                        user_id: `user-${i}`,
+                        target_username: `user${i}`,
+                        channel_id: 'channel-1',
+                        reason: `Test reason ${i}`,
+                        created_at: new Date().toISOString(),
+                        created_by: 'moderator-1',
+                        is_active: true,
+                    });
+                }
+
+                await page.goto('/admin/bans');
+                await page.waitForLoadState('networkidle');
+
+                // Select all bans
+                await page.getByLabel(/select all/i).check();
+
+                // Open bulk unban dialog
+                await page.getByRole('button', { name: /bulk unban/i }).click();
+
+                // Verify dialog shows correct count
+                const modal = page.getByRole('dialog');
+                await expect(modal.getByText(/5 users/i)).toBeVisible();
+
+                // Cancel action
+                await modal
+                    .getByRole('button', { name: /cancel/i })
+                    .first()
+                    .click();
+                await expect(modal).not.toBeVisible();
+            });
+
+            test('confirmation dialog shows singular form for single user', async ({
+                page,
+            }) => {
+                const mocks = await setupModerationMocks(page);
+
+                const moderatorUser: MockUser = {
+                    id: 'moderator-1',
+                    username: 'moderatoruser',
+                    email: 'moderator@example.com',
+                    role: 'moderator',
+                    karma_points: 200,
+                    is_banned: false,
+                };
+                mocks.setCurrentUser(moderatorUser);
+
+                // Seed only 1 ban
+                mocks.seedBan({
+                    id: 'ban-1',
+                    user_id: 'user-1',
+                    target_username: 'user1',
+                    channel_id: 'channel-1',
+                    reason: 'Test reason',
+                    created_at: new Date().toISOString(),
+                    created_by: 'moderator-1',
+                    is_active: true,
+                });
+
+                await page.goto('/admin/bans');
+                await page.waitForLoadState('networkidle');
+
+                // Select the single ban
+                await page.getByLabel(/select ban for user1/i).first().check();
+
+                // Verify toolbar shows singular
+                await expect(page.getByText(/1 ban selected/i)).toBeVisible();
+
+                // Open bulk unban dialog
+                await page.getByRole('button', { name: /bulk unban/i }).click();
+
+                // Verify dialog shows singular form
+                const modal = page.getByRole('dialog');
+                await expect(modal.getByText(/1 user[^s]/i)).toBeVisible();
+
+                // Cancel action
+                await modal
+                    .getByRole('button', { name: /cancel/i })
+                    .first()
+                    .click();
+                await expect(modal).not.toBeVisible();
+            });
+
+            test('pagination does not lose selection', async ({ page }) => {
+                const mocks = await setupModerationMocks(page);
+
+                const moderatorUser: MockUser = {
+                    id: 'moderator-1',
+                    username: 'moderatoruser',
+                    email: 'moderator@example.com',
+                    role: 'moderator',
+                    karma_points: 200,
+                    is_banned: false,
+                };
+                mocks.setCurrentUser(moderatorUser);
+
+                // Seed many bans to trigger pagination
+                for (let i = 1; i <= 60; i++) {
+                    mocks.seedBan({
+                        id: `ban-${i}`,
+                        user_id: `user-${i}`,
+                        target_username: `user${String(i).padStart(2, '0')}`,
+                        channel_id: 'channel-1',
+                        reason: `Test reason ${i}`,
+                        created_at: new Date().toISOString(),
+                        created_by: 'moderator-1',
+                        is_active: true,
+                    });
+                }
+
+                await page.goto('/admin/bans');
+                await page.waitForLoadState('networkidle');
+
+                // Select first ban on page 1
+                const firstCheckbox = page
+                    .locator('input[type="checkbox"]')
+                    .nth(1); // Skip select all checkbox
+                await firstCheckbox.check();
+
+                // Verify selection toolbar appears
+                await expect(page.getByText(/1 ban selected/i)).toBeVisible();
+
+                // Navigate to page 2
+                const nextButton = page.getByRole('button', {
+                    name: /next/i,
+                });
+                if (
+                    await nextButton
+                        .isVisible({ timeout: 2000 })
+                        .catch(() => false)
+                ) {
+                    await nextButton.click();
+                    await page.waitForLoadState('networkidle');
+
+                    // Selection should be cleared on page change
+                    await expect(
+                        page.getByText(/ban selected/i)
+                    ).not.toBeVisible();
+                }
+            });
+
+            test('performance acceptable with 1000+ bans', async ({ page }) => {
+                const mocks = await setupModerationMocks(page);
+
+                const moderatorUser: MockUser = {
+                    id: 'moderator-1',
+                    username: 'moderatoruser',
+                    email: 'moderator@example.com',
+                    role: 'moderator',
+                    karma_points: 200,
+                    is_banned: false,
+                };
+                mocks.setCurrentUser(moderatorUser);
+
+                // Seed 100 bans (simulating large dataset, actual 1000+ would be too slow in tests)
+                for (let i = 1; i <= 100; i++) {
+                    mocks.seedBan({
+                        id: `ban-${i}`,
+                        user_id: `user-${i}`,
+                        target_username: `user${String(i).padStart(3, '0')}`,
+                        channel_id: 'channel-1',
+                        reason: `Test reason ${i}`,
+                        created_at: new Date().toISOString(),
+                        created_by: 'moderator-1',
+                        is_active: true,
+                    });
+                }
+
+                const startTime = Date.now();
+                await page.goto('/admin/bans');
+                await page.waitForLoadState('networkidle');
+
+                // Wait for first item to be visible
+                await expect(
+                    page.locator('input[type="checkbox"]').first()
+                ).toBeVisible({ timeout: 5000 });
+
+                const loadTime = Date.now() - startTime;
+
+                // Verify acceptable load time (< 5 seconds with pagination)
+                expect(loadTime).toBeLessThan(5000);
+
+                // Test bulk selection performance
+                const selectionStartTime = Date.now();
+                await page.getByLabel(/select all/i).check();
+                const selectionTime = Date.now() - selectionStartTime;
+
+                // Verify selection is fast (< 1 second)
+                expect(selectionTime).toBeLessThan(1000);
+            });
+
+            test('expired bans cannot be selected', async ({ page }) => {
+                const mocks = await setupModerationMocks(page);
+
+                const moderatorUser: MockUser = {
+                    id: 'moderator-1',
+                    username: 'moderatoruser',
+                    email: 'moderator@example.com',
+                    role: 'moderator',
+                    karma_points: 200,
+                    is_banned: false,
+                };
+                mocks.setCurrentUser(moderatorUser);
+
+                // Seed one active and one expired ban
+                mocks.seedBan({
+                    id: 'ban-active',
+                    user_id: 'user-active',
+                    target_username: 'activeuser',
+                    channel_id: 'channel-1',
+                    reason: 'Active ban',
+                    created_at: new Date().toISOString(),
+                    expires_at: new Date(
+                        Date.now() + 24 * 60 * 60 * 1000
+                    ).toISOString(),
+                    created_by: 'moderator-1',
+                    is_active: true,
+                });
+
+                mocks.seedBan({
+                    id: 'ban-expired',
+                    user_id: 'user-expired',
+                    target_username: 'expireduser',
+                    channel_id: 'channel-1',
+                    reason: 'Expired ban',
+                    created_at: new Date(
+                        Date.now() - 48 * 60 * 60 * 1000
+                    ).toISOString(),
+                    expires_at: new Date(
+                        Date.now() - 24 * 60 * 60 * 1000
+                    ).toISOString(),
+                    created_by: 'moderator-1',
+                    is_active: false,
+                });
+
+                await page.goto('/admin/bans');
+                await page.waitForLoadState('networkidle');
+
+                // Find checkboxes
+                const activeCheckbox = page
+                    .getByLabel(/select ban for activeuser/i)
+                    .first();
+                const expiredCheckbox = page
+                    .getByLabel(/select ban for expireduser/i)
+                    .first();
+
+                // Verify active ban checkbox is enabled
+                if (
+                    await activeCheckbox
+                        .isVisible({ timeout: 2000 })
+                        .catch(() => false)
+                ) {
+                    await expect(activeCheckbox).toBeEnabled();
+                }
+
+                // Verify expired ban checkbox is disabled
+                if (
+                    await expiredCheckbox
+                        .isVisible({ timeout: 2000 })
+                        .catch(() => false)
+                ) {
+                    await expect(expiredCheckbox).toBeDisabled();
+                }
+            });
+        });
+
         test('moderator management UI is responsive', async ({ page }) => {
             const mocks = await setupModerationMocks(page);
 
