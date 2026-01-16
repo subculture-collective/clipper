@@ -856,6 +856,11 @@ test.describe('Clip Submission E2E Flow', () => {
             submitClipPage,
             authenticatedUser,
         }) => {
+            // Set shorter auto-save interval for testing
+            await page.addInitScript(() => {
+                (window as any).__DRAFT_AUTOSAVE_INTERVAL__ = 2000; // 2 seconds for testing
+            });
+
             // Given: authenticated user
             mockApi.setCurrentUser(withKarma(authenticatedUser));
 
@@ -866,8 +871,8 @@ test.describe('Clip Submission E2E Flow', () => {
             await page.fill('input#custom_title', 'My Test Draft');
             await page.fill('textarea#submission_reason', 'Testing draft functionality');
 
-            // Wait for auto-save to trigger (30 seconds)
-            await page.waitForTimeout(31000);
+            // Wait for auto-save to trigger (2 seconds + buffer)
+            await page.waitForTimeout(3000);
 
             // Then: draft indicator should appear
             const draftIndicator = page.locator('text=/Draft saved/i');
@@ -895,6 +900,11 @@ test.describe('Clip Submission E2E Flow', () => {
             submitClipPage,
             authenticatedUser,
         }) => {
+            // Set shorter auto-save interval for testing
+            await page.addInitScript(() => {
+                (window as any).__DRAFT_AUTOSAVE_INTERVAL__ = 2000;
+            });
+
             // Given: authenticated user with a saved draft
             mockApi.setCurrentUser(withKarma(authenticatedUser));
 
@@ -905,7 +915,7 @@ test.describe('Clip Submission E2E Flow', () => {
             await page.fill('input#custom_title', 'Draft to Clear');
 
             // Wait for auto-save
-            await page.waitForTimeout(31000);
+            await page.waitForTimeout(3000);
 
             // When: user clicks clear draft button
             const clearButton = page.locator('text=/Clear Draft/i');
@@ -925,6 +935,11 @@ test.describe('Clip Submission E2E Flow', () => {
             submitClipPage,
             authenticatedUser,
         }) => {
+            // Set shorter auto-save interval for testing
+            await page.addInitScript(() => {
+                (window as any).__DRAFT_AUTOSAVE_INTERVAL__ = 2000;
+            });
+
             // Given: authenticated user
             mockApi.setCurrentUser(withKarma(authenticatedUser));
 
@@ -933,7 +948,7 @@ test.describe('Clip Submission E2E Flow', () => {
             // Fill and save draft
             await page.fill('input[name="url"]', VALID_TWITCH_CLIP_URL);
             await page.fill('input#custom_title', 'Will Submit');
-            await page.waitForTimeout(31000); // Wait for auto-save
+            await page.waitForTimeout(3000); // Wait for auto-save
 
             // Submit the form
             await submitClipPage.submitClip({

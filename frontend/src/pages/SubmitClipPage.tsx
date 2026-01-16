@@ -172,7 +172,8 @@ export function SubmitClipPage() {
                 setSelectedTags(savedDraft.selectedTags);
                 setShowDraftRestored(true);
                 // Auto-hide the restored message after 5 seconds
-                setTimeout(() => setShowDraftRestored(false), 5000);
+                const timeoutId = setTimeout(() => setShowDraftRestored(false), 5000);
+                return () => clearTimeout(timeoutId);
             }
         }
     }, [location.state, draft]);

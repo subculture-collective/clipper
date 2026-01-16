@@ -3,7 +3,11 @@ import type { SubmitClipRequest } from '../types/submission';
 import type { Tag } from '../types/tag';
 
 const DRAFT_STORAGE_KEY = 'submission_draft';
-const DRAFT_AUTOSAVE_INTERVAL = 30000; // 30 seconds
+// Allow configuration via environment variable for testing
+const DRAFT_AUTOSAVE_INTERVAL = 
+    typeof window !== 'undefined' && (window as any).__DRAFT_AUTOSAVE_INTERVAL__ 
+        ? (window as any).__DRAFT_AUTOSAVE_INTERVAL__ 
+        : 30000; // 30 seconds by default
 
 export interface SubmissionDraft {
     formData: SubmitClipRequest;
@@ -14,7 +18,7 @@ export interface SubmissionDraft {
 export function useSubmissionDraft() {
     const [hasDraft, setHasDraft] = useState(false);
     const [lastSaved, setLastSaved] = useState<number | null>(null);
-    const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const autoSaveTimerRef = useRef<number | null>(null);
 
     // Load draft from localStorage on mount
     const loadDraft = useCallback((): SubmissionDraft | null => {
