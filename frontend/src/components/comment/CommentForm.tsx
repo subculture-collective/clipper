@@ -7,7 +7,6 @@ import { MarkdownHelpModal } from '@/components/ui/MarkdownHelpModal';
 import { LinkInputModal } from '@/components/ui/LinkInputModal';
 import { useCreateComment, useUpdateComment, useToast } from '@/hooks';
 import { useAutoSave, useDraftStorage } from '@/hooks/useAutoSave';
-import { validateAndNormalizeUrl } from '@/lib/url-validation';
 import { HelpCircle, Smile, Save } from 'lucide-react';
 
 interface CommentFormProps {
