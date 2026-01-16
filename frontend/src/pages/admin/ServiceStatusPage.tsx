@@ -40,15 +40,23 @@ const StatusBadge = ({ status }: { status: string }) => {
 };
 
 const SeverityBadge = ({ severity }: { severity: string }) => {
-    const variants = {
-        critical: 'destructive',
-        major: 'warning',
-        minor: 'secondary',
-        maintenance: 'outline',
+    const getVariant = (sev: string): 'destructive' | 'warning' | 'secondary' | 'outline' => {
+        switch (sev) {
+            case 'critical':
+                return 'destructive';
+            case 'major':
+                return 'warning';
+            case 'minor':
+                return 'secondary';
+            case 'maintenance':
+                return 'outline';
+            default:
+                return 'secondary';
+        }
     };
     
     return (
-        <Badge variant={variants[severity as keyof typeof variants] as any}>
+        <Badge variant={getVariant(severity)}>
             {severity}
         </Badge>
     );

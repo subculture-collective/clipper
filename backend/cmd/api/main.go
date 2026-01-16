@@ -597,7 +597,9 @@ func main() {
 		
 		metadata := make(map[string]interface{})
 		if err := serviceStatusService.UpdateServiceStatus(ctx, serviceName, status, message, responseTimeMs, errorRate, metadata); err != nil {
-			log.Printf("Failed to update service status for %s: %v", serviceName, err)
+			utils.GetLogger().Error("Failed to update service status", err, map[string]interface{}{
+				"service": serviceName,
+			})
 		}
 	}
 

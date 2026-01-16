@@ -44,7 +44,8 @@ func (s *ServiceStatusScheduler) Start(ctx context.Context) {
 	ticker := time.NewTicker(s.cleanupInterval)
 	defer ticker.Stop()
 
-	// Run initial cleanup after a short delay
+	// Run initial cleanup after a short delay to avoid startup congestion
+	// This allows other critical services to initialize first
 	time.Sleep(5 * time.Minute)
 	s.cleanupOldHistory(ctx)
 
