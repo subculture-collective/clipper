@@ -222,7 +222,8 @@ env:
 Tests automatically skip when keys aren't available:
 
 ```typescript
-test.skip('should complete successful checkout with test card', async ({ authenticatedPage }) => {
+test('should complete successful checkout with test card', async ({ authenticatedPage }) => {
+  // Skip this test if Stripe is not configured
   const stripeKey = process.env.VITE_STRIPE_PUBLISHABLE_KEY;
   if (!stripeKey || !stripeKey.startsWith('pk_test_')) {
     test.skip();  // Gracefully skip if not configured
