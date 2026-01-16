@@ -120,7 +120,7 @@ export function TwitchModerationActions({
     onModalOpen,
     onModalClose,
 }: TwitchModerationActionsProps) {
-    const { user } = useAuth();
+    const { user, refreshUser } = useAuth();
     const toast = useToast();
     const queryClient = useQueryClient();
     const [showBanModal, setShowBanModal] = useState(false);
@@ -219,9 +219,11 @@ export function TwitchModerationActions({
             setActionAlert({ type: 'success', message: successText });
 
             // Invalidate relevant queries to update UI
-            queryClient.invalidateQueries({ queryKey: ['user'] });
-            queryClient.invalidateQueries({ queryKey: ['banStatus'] });
+            queryClient.invalidateQueries({ queryKey: ['banStatus', broadcasterID] });
             queryClient.invalidateQueries({ queryKey: ['user-profile-by-username'] });
+            
+            // Refresh user data from auth context
+            await refreshUser();
 
             if (onSuccess) {
                 onSuccess();
@@ -258,9 +260,11 @@ export function TwitchModerationActions({
             setActionAlert({ type: 'success', message: successText });
 
             // Invalidate relevant queries to update UI
-            queryClient.invalidateQueries({ queryKey: ['user'] });
-            queryClient.invalidateQueries({ queryKey: ['banStatus'] });
+            queryClient.invalidateQueries({ queryKey: ['banStatus', broadcasterID] });
             queryClient.invalidateQueries({ queryKey: ['user-profile-by-username'] });
+            
+            // Refresh user data from auth context
+            await refreshUser();
 
             if (onSuccess) {
                 onSuccess();
