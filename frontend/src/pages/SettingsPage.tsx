@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Helmet } from '@dr.pogodin/react-helmet';
 import { Link } from 'react-router-dom';
 import {
@@ -40,7 +40,7 @@ import {
 import type { Subscription } from '../lib/subscription-api';
 
 // Constants for billing period calculation
-const DAYS_IN_YEAR = 350; // Threshold for yearly subscription (allowing some variance)
+const DAYS_IN_YEAR = 365; // Threshold for yearly subscription (allowing minimal variance)
 const DAYS_IN_MONTH_MIN = 28; // Minimum days for monthly subscription
 const DAYS_IN_MONTH_MAX = 32; // Maximum days for monthly subscription
 
@@ -48,6 +48,9 @@ export function SettingsPage() {
     const { user, refreshUser } = useAuth();
     const queryClient = useQueryClient();
     const { consent, updateConsent, doNotTrack, resetConsent } = useConsent();
+    
+    // Ref to store timeout ID for success messages
+    const successTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // Profile state
     const [profileData, setProfileData] = useState<UpdateProfileRequest>({
@@ -239,12 +242,19 @@ export function SettingsPage() {
             await cancelSubscription(cancelImmediate);
             await refetchSubscription();
             setShowCancelModal(false);
+            setCancelImmediate(false); // Reset to default
+            
+            // Clear any existing timeout before setting a new one
+            if (successTimeoutRef.current) {
+                clearTimeout(successTimeoutRef.current);
+            }
+            
             setSubscriptionSuccess(
                 cancelImmediate 
                     ? 'Subscription canceled immediately'
                     : 'Subscription will be canceled at the end of the billing period'
             );
-            setTimeout(() => setSubscriptionSuccess(null), 5000);
+            successTimeoutRef.current = setTimeout(() => setSubscriptionSuccess(null), 5000);
         } catch (error: unknown) {
             const err = error as { response?: { data?: { error?: string } } };
             setSubscriptionError(
@@ -256,11 +266,17 @@ export function SettingsPage() {
     const handleReactivateSubscription = async () => {
         setSubscriptionError(null);
         setSubscriptionSuccess(null);
+        
+        // Clear any existing timeout before setting a new one
+        if (successTimeoutRef.current) {
+            clearTimeout(successTimeoutRef.current);
+        }
+        
         try {
             await reactivateSubscription();
             await refetchSubscription();
             setSubscriptionSuccess('Subscription reactivated successfully');
-            setTimeout(() => setSubscriptionSuccess(null), 5000);
+            successTimeoutRef.current = setTimeout(() => setSubscriptionSuccess(null), 5000);
         } catch (error: unknown) {
             const err = error as { response?: { data?: { error?: string } } };
             setSubscriptionError(
@@ -664,7 +680,7 @@ export function SettingsPage() {
                                                 {(() => {
                                                     const start = new Date(subscription.current_period_start);
                                                     const end = new Date(subscription.current_period_end);
-                                                    const daysDiff = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+                                                    const daysDiff = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
                                                     
                                                     if (daysDiff >= DAYS_IN_YEAR) {
                                                         return 'Yearly';
@@ -915,7 +931,10 @@ export function SettingsPage() {
             {/* Cancel Subscription Modal */}
             <Modal
                 open={showCancelModal}
-                onClose={() => setShowCancelModal(false)}
+                onClose={() => {
+                    setShowCancelModal(false);
+                    setCancelImmediate(false); // Reset to default when closing
+                }}
                 title='Cancel Subscription'
             >
                 <div className='space-y-4'>
