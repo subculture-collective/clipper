@@ -41,7 +41,7 @@ func (s *StatusSubscriptionService) CreateSubscription(
 	`
 
 	var subscription models.StatusSubscription
-	err := s.db.QueryRowContext(ctx, query, id, userID, serviceName, notificationType, webhookURL).Scan(
+	err := s.db.Pool.QueryRow(ctx, query, id, userID, serviceName, notificationType, webhookURL).Scan(
 		&subscription.ID,
 		&subscription.UserID,
 		&subscription.ServiceName,
@@ -68,7 +68,7 @@ func (s *StatusSubscriptionService) GetUserSubscriptions(ctx context.Context, us
 		ORDER BY created_at DESC
 	`
 
-	rows, err := s.db.QueryContext(ctx, query, userID)
+	rows, err := s.db.Pool.Query(ctx, query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query subscriptions: %w", err)
 	}
@@ -109,7 +109,7 @@ func (s *StatusSubscriptionService) GetSubscription(ctx context.Context, subscri
 	`
 
 	var subscription models.StatusSubscription
-	err := s.db.QueryRowContext(ctx, query, subscriptionID).Scan(
+	err := s.db.Pool.QueryRow(ctx, query, subscriptionID).Scan(
 		&subscription.ID,
 		&subscription.UserID,
 		&subscription.ServiceName,
@@ -142,12 +142,12 @@ func (s *StatusSubscriptionService) UpdateSubscription(
 		WHERE id = $2
 	`
 
-	result, err := s.db.ExecContext(ctx, query, isActive, subscriptionID)
+	result, err := s.db.Pool.Exec(ctx, query, isActive, subscriptionID)
 	if err != nil {
 		return fmt.Errorf("failed to update subscription: %w", err)
 	}
 
-	rowsAffected, _ := result.RowsAffected()
+	rowsAffected := result.RowsAffected()
 	if rowsAffected == 0 {
 		return fmt.Errorf("subscription not found")
 	}
@@ -159,12 +159,12 @@ func (s *StatusSubscriptionService) UpdateSubscription(
 func (s *StatusSubscriptionService) DeleteSubscription(ctx context.Context, subscriptionID uuid.UUID) error {
 	query := `DELETE FROM status_subscriptions WHERE id = $1`
 
-	result, err := s.db.ExecContext(ctx, query, subscriptionID)
+	result, err := s.db.Pool.Exec(ctx, query, subscriptionID)
 	if err != nil {
 		return fmt.Errorf("failed to delete subscription: %w", err)
 	}
 
-	rowsAffected, _ := result.RowsAffected()
+	rowsAffected := result.RowsAffected()
 	if rowsAffected == 0 {
 		return fmt.Errorf("subscription not found")
 	}
@@ -184,7 +184,7 @@ func (s *StatusSubscriptionService) GetSubscribersForService(
 		ORDER BY created_at ASC
 	`
 
-	rows, err := s.db.QueryContext(ctx, query, serviceName)
+	rows, err := s.db.Pool.Query(ctx, query, serviceName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query subscribers: %w", err)
 	}
