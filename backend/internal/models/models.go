@@ -1093,6 +1093,11 @@ type ChangeSubscriptionPlanRequest struct {
 	PriceID string `json:"price_id" binding:"required"`
 }
 
+// CancelSubscriptionRequest represents a request to cancel a subscription
+type CancelSubscriptionRequest struct {
+	Immediate bool `json:"immediate"` // If true, cancel immediately. Otherwise, cancel at period end.
+}
+
 // CreateCheckoutSessionResponse represents the response with checkout session URL
 type CreateCheckoutSessionResponse struct {
 	SessionID  string `json:"session_id"`
