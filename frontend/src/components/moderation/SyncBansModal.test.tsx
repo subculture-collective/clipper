@@ -182,7 +182,9 @@ describe('SyncBansModal', () => {
             });
             await userEvent.click(startButton);
 
-            expect(screen.getByRole('button', { name: 'Confirm Sync' })).toBeInTheDocument();
+            expect(
+                screen.getByRole('button', { name: 'Confirm Sync' })
+            ).toBeInTheDocument();
             expect(
                 screen.getByText(
                     /You are about to sync all bans from the Twitch channel "twitchdev"/
@@ -232,7 +234,9 @@ describe('SyncBansModal', () => {
             });
             await userEvent.click(startButton);
 
-            expect(screen.getByRole('button', { name: 'Confirm Sync' })).toBeInTheDocument();
+            expect(
+                screen.getByRole('button', { name: 'Confirm Sync' })
+            ).toBeInTheDocument();
 
             const cancelButton = screen.getAllByRole('button', {
                 name: 'Cancel',
@@ -692,14 +696,16 @@ describe('SyncBansModal', () => {
             });
             await userEvent.click(confirmButton);
 
-            // Since the mock rejects, after 2000ms (POLL_INTERVAL_MS), 
+            // Since the mock rejects, after 2000ms (POLL_INTERVAL_MS),
             // the polling will execute and reject, setting error state
             // The component should then show the form again with the error
             // But the test doesn't need to verify the error message - just that it handled it
-            
+
             // For now, just verify that sync starts (shows progress)
             await waitFor(() => {
-                expect(screen.getByText(/Synchronizing Bans/)).toBeInTheDocument();
+                expect(
+                    screen.getByText(/Synchronizing Bans/)
+                ).toBeInTheDocument();
             });
         });
     });
@@ -842,7 +848,9 @@ describe('SyncBansModal', () => {
 
             // Wait for the form to render
             await waitFor(() => {
-                expect(screen.getByLabelText(/Twitch Channel Name/)).toBeInTheDocument();
+                expect(
+                    screen.getByLabelText(/Twitch Channel Name/)
+                ).toBeInTheDocument();
             });
 
             // The form input should be empty (reset)
@@ -850,9 +858,11 @@ describe('SyncBansModal', () => {
                 /Twitch Channel Name/
             ) as HTMLInputElement;
             expect(newInput.value).toBe('');
-            
+
             // Verify success message is gone
-            expect(screen.queryByText('Sync Completed Successfully')).not.toBeInTheDocument();
+            expect(
+                screen.queryByText('Sync Completed Successfully')
+            ).not.toBeInTheDocument();
         });
     });
 

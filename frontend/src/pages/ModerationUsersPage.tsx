@@ -64,12 +64,15 @@ export function ModerationUsersPage() {
     };
 
     // Check if current user is a broadcaster (has a Twitch account)
-    const isBroadcaster = Boolean((currentUser as unknown as { is_broadcaster?: boolean })?.is_broadcaster);
+    const isBroadcaster = Boolean(
+        (currentUser as unknown as { is_broadcaster?: boolean })?.is_broadcaster
+    );
 
     // For now, we'll assume false for Twitch moderator status
     // In a real implementation, this would come from the backend
     const isTwitchModerator = Boolean(
-        (currentUser as unknown as { is_twitch_moderator?: boolean })?.is_twitch_moderator
+        (currentUser as unknown as { is_twitch_moderator?: boolean })
+            ?.is_twitch_moderator
     );
 
     const users = data?.users || [];

@@ -14,11 +14,13 @@ Some tests are skipped by default and require specific configurations to run.
 **Tests**: ~7 additional tests
 
 Tests CDN failure scenarios including:
-- Static asset fallback to origin
-- HLS video playback during CDN failures
-- UI responsiveness during CDN issues
+
+-   Static asset fallback to origin
+-   HLS video playback during CDN failures
+-   UI responsiveness during CDN issues
 
 **Enable with**:
+
 ```bash
 source .env.e2e
 # Then run tests
@@ -32,10 +34,12 @@ npm run test:e2e
 **Tests**: ~1 additional test
 
 Tests search service failover behavior:
-- Search continues during outages
-- Graceful degradation
+
+-   Search continues during outages
+-   Graceful degradation
 
 **Enable with**:
+
 ```bash
 source .env.e2e
 npm run test:e2e
@@ -48,12 +52,14 @@ npm run test:e2e
 **Tests**: ~5 additional tests
 
 Tests payment and subscription functionality:
-- Checkout flow with test cards
-- Subscription management
-- Payment processing
+
+-   Checkout flow with test cards
+-   Subscription management
+-   Payment processing
 
 **Requires**: Stripe test account setup
 **Enable with**:
+
 ```bash
 source .env.e2e
 npm run test:e2e
@@ -65,27 +71,27 @@ Some tests are skipped because they require specific runtime conditions that can
 
 ### Video Playback Tests
 
-- **Why skipped**: Requires actual video player on page + valid HLS clip
-- **Tests affected**: CDN failover HLS tests (5 tests)
-- **How to enable**: Seed database with actual video clips during test setup
+-   **Why skipped**: Requires actual video player on page + valid HLS clip
+-   **Tests affected**: CDN failover HLS tests (5 tests)
+-   **How to enable**: Seed database with actual video clips during test setup
 
 ### Admin/Moderator Tests
 
-- **Why skipped**: Requires logged-in user with specific role
-- **Tests affected**: Channel management, moderation workflow (10+ tests)
-- **How to enable**: Modify test fixtures to create users with admin/moderator roles
+-   **Why skipped**: Requires logged-in user with specific role
+-   **Tests affected**: Channel management, moderation workflow (10+ tests)
+-   **How to enable**: Modify test fixtures to create users with admin/moderator roles
 
 ### Rate Limiting Tests
 
-- **Why skipped**: Rate limit not triggered in test environment
-- **Tests affected**: Clip submission rate limiting (2 tests)
-- **How to enable**: Configure test backend with aggressive rate limits
+-   **Why skipped**: Rate limit not triggered in test environment
+-   **Tests affected**: Clip submission rate limiting (2 tests)
+-   **How to enable**: Configure test backend with aggressive rate limits
 
 ### Authenticated User Tests
 
-- **Why skipped**: Requires pre-authenticated session
-- **Tests affected**: Some integration tests (4-5 tests)
-- **How to enable**: Pre-create authenticated sessions in test setup
+-   **Why skipped**: Requires pre-authenticated session
+-   **Tests affected**: Some integration tests (4-5 tests)
+-   **How to enable**: Pre-create authenticated sessions in test setup
 
 ## Setup E2E Environment
 
@@ -97,6 +103,7 @@ bash setup-e2e-tests.sh
 ```
 
 This script will:
+
 1. Prompt for which test modes to enable
 2. Create `.env.e2e` with your configuration
 3. Show available options
@@ -143,24 +150,24 @@ Running 353 tests
 
 ### Breakdown
 
-| Category | Status | Count |
-| ---------- | -------- | ------- |
-| Auth Tests | ✓ Passing | 52 |
-| Session Management | ✓ Passing | 38 |
-| CDN Failover | ✓ Passing | 5 |
-| CDN Failover HLS* | - Skipped | 5 |
-| Channel Management | ✓ Passing | 10 |
-| Channel Permissions* | - Skipped | 4 |
-| Clip Submission | ✓ Passing | 25 |
-| Rate Limiting* | - Skipped | 2 |
-| Integration | ✓ Passing | 75 |
-| Integration Auth* | - Skipped | 4 |
-| Moderation* | - Skipped | 20 |
-| Premium/Stripe* | - Skipped | 5 |
-| Social Features | ✓ Passing | 58 |
-| **Total** | **311 passing** | **353** |
+| Category              | Status          | Count   |
+| --------------------- | --------------- | ------- |
+| Auth Tests            | ✓ Passing       | 52      |
+| Session Management    | ✓ Passing       | 38      |
+| CDN Failover          | ✓ Passing       | 5       |
+| CDN Failover HLS\*    | - Skipped       | 5       |
+| Channel Management    | ✓ Passing       | 10      |
+| Channel Permissions\* | - Skipped       | 4       |
+| Clip Submission       | ✓ Passing       | 25      |
+| Rate Limiting\*       | - Skipped       | 2       |
+| Integration           | ✓ Passing       | 75      |
+| Integration Auth\*    | - Skipped       | 4       |
+| Moderation\*          | - Skipped       | 20      |
+| Premium/Stripe\*      | - Skipped       | 5       |
+| Social Features       | ✓ Passing       | 58      |
+| **Total**             | **311 passing** | **353** |
 
-*Skipped due to runtime environment requirements
+\*Skipped due to runtime environment requirements
 
 ## Running Tests
 
@@ -199,30 +206,30 @@ npx playwright show-report
 
 ### Tests timing out
 
-- Ensure backend API is running at `http://localhost:8080`
-- Check network connectivity
-- Try with `--headed` mode to see what's happening
+-   Ensure backend API is running at `http://localhost:8080`
+-   Check network connectivity
+-   Try with `--headed` mode to see what's happening
 
 ### Tests skipped unexpectedly
 
-- Check if environment variables are loaded: `echo $E2E_CDN_FAILOVER_MODE`
-- Re-source `.env.e2e` in your terminal
-- Verify files exist: `cat .env.e2e`
+-   Check if environment variables are loaded: `echo $E2E_CDN_FAILOVER_MODE`
+-   Re-source `.env.e2e` in your terminal
+-   Verify files exist: `cat .env.e2e`
 
 ### Some tests still skipped
 
-- This is expected - 42 tests require runtime conditions
-- See "Conditional Skips" section above
-- These tests would need code modifications to enable
+-   This is expected - 42 tests require runtime conditions
+-   See "Conditional Skips" section above
+-   These tests would need code modifications to enable
 
 ## Configuration Files
 
-- `.env.e2e` - Test environment variables (generated by setup script)
-- `playwright.config.ts` - Playwright test configuration
-- `run-playwright-tests.sh` - Test runner that loads `.env.e2e`
+-   `.env.e2e` - Test environment variables (generated by setup script)
+-   `playwright.config.ts` - Playwright test configuration
+-   `run-playwright-tests.sh` - Test runner that loads `.env.e2e`
 
 ## See Also
 
-- [PLAYWRIGHT_SETUP_GUIDE.md](PLAYWRIGHT_SETUP_GUIDE.md) - Complete Playwright setup
-- [FRONTEND_TEST_SETUP_SUMMARY.md](FRONTEND_TEST_SETUP_SUMMARY.md) - Infrastructure overview
-- [Playwright Documentation](https://playwright.dev)
+-   [PLAYWRIGHT_SETUP_GUIDE.md](PLAYWRIGHT_SETUP_GUIDE.md) - Complete Playwright setup
+-   [FRONTEND_TEST_SETUP_SUMMARY.md](FRONTEND_TEST_SETUP_SUMMARY.md) - Infrastructure overview
+-   [Playwright Documentation](https://playwright.dev)
