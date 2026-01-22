@@ -265,7 +265,18 @@ export function SearchPage() {
         const name = prompt('Enter a name for this search (optional):');
         if (name === null) return; // User cancelled
         
-        const activeFilters = Object.keys(filters).length > 0 ? filters : undefined;
+        // Only treat filters as active if at least one has a meaningful value
+        const hasActiveFilters =
+            !!filters.language ||
+            !!filters.gameId ||
+            !!filters.dateFrom ||
+            !!filters.dateTo ||
+            (typeof filters.minVotes === 'number' &&
+                !isNaN(filters.minVotes) &&
+                filters.minVotes > 0) ||
+            (Array.isArray(filters.tags) && filters.tags.length > 0);
+
+        const activeFilters = hasActiveFilters ? filters : undefined;
         searchApi.saveSearch(query, activeFilters, name || undefined);
         
         // TODO: Replace with toast notification for better UX
@@ -307,12 +318,21 @@ export function SearchPage() {
                     <div className='mb-6 xs:mb-8 flex justify-center'>
                         <SearchBar initialQuery={query} onSearch={handleSearch} autoFocus />
                     </div>
-
-                    <div className='text-center text-muted-foreground py-8 xs:py-12'>
-                        <p className='text-base xs:text-lg px-4'>
-                            Enter a search query to find clips, games, creators, and
-                            tags.
-                        </p>
+                    
+                    {/* Search Discovery Components */}
+                    <div className='max-w-4xl mx-auto'>
+                        <div className='text-center text-muted-foreground py-8 xs:py-12 mb-8'>
+                            <p className='text-base xs:text-lg px-4'>
+                                Enter a search query to find clips, games, creators, and
+                                tags.
+                            </p>
+                        </div>
+                        
+                        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-4'>
+                            <TrendingSearches limit={10} days={7} />
+                            <SearchHistory maxItems={10} />
+                            <SavedSearches />
+                        </div>
                     </div>
                 </Container>
             </>
@@ -357,26 +377,8 @@ export function SearchPage() {
                 />
             </div>
 
-            {!query ? (
-                <div className='max-w-4xl mx-auto'>
-                    <div className='text-center text-muted-foreground py-8 xs:py-12 mb-8'>
-                        <p className='text-base xs:text-lg px-4'>
-                            Enter a search query to find clips, games, creators, and
-                            tags.
-                        </p>
-                    </div>
-                    
-                    {/* Search Discovery Components */}
-                    <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-4'>
-                        <TrendingSearches limit={10} days={7} />
-                        <SearchHistory maxItems={10} />
-                        <SavedSearches />
-                    </div>
-                </div>
-            ) : (
-                <>
-                    {/* Header */}
-                    <div className='mb-4 xs:mb-6 flex items-start justify-between gap-4'>
+            {/* Header */}
+            <div className='mb-4 xs:mb-6 flex items-start justify-between gap-4'>
                         <div className='flex-1'>
                             <h1 className='text-2xl xs:text-3xl font-bold mb-2'>
                                 Search Results
@@ -696,8 +698,6 @@ export function SearchPage() {
                             ) : null}
                         </div>
                     )}
-                </>
-            )}
         </Container>
         </>
     );

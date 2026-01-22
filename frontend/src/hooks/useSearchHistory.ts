@@ -32,8 +32,14 @@ export function useSearchHistory() {
         // Load from localStorage
         const localHistory = localStorage.getItem('searchHistory');
         if (localHistory) {
-          const parsed = JSON.parse(localHistory);
-          setHistory(parsed);
+          try {
+            const parsed = JSON.parse(localHistory);
+            setHistory(parsed);
+          } catch {
+            // Corrupted data, reset to empty
+            setHistory([]);
+            localStorage.removeItem('searchHistory');
+          }
         } else {
           setHistory([]);
         }
@@ -42,8 +48,14 @@ export function useSearchHistory() {
       // Fallback to localStorage if backend fails
       const localHistory = localStorage.getItem('searchHistory');
       if (localHistory) {
-        const parsed = JSON.parse(localHistory);
-        setHistory(parsed);
+        try {
+          const parsed = JSON.parse(localHistory);
+          setHistory(parsed);
+        } catch {
+          // Corrupted data, reset to empty
+          setHistory([]);
+          localStorage.removeItem('searchHistory');
+        }
       }
       
       // Only set error if it's not an auth error (401/403)

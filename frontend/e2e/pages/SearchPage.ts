@@ -901,13 +901,32 @@ export class SearchPage extends BasePage {
    * Save the current search
    */
   async saveCurrentSearch(name?: string): Promise<void> {
-    // Handle browser prompt if name will be provided
-    if (name) {
-      this.page.once('dialog', dialog => dialog.accept(name));
-    } else {
-      this.page.once('dialog', dialog => dialog.dismiss());
+    // Handle both the prompt dialog and the success alert dialog
+    let dialogCount = 0;
+    const dialogHandler = async (dialog: any) => {
+      dialogCount++;
+      if (dialogCount === 1) {
+        // First dialog is the prompt for name
+        if (name) {
+          await dialog.accept(name);
+        } else {
+          await dialog.dismiss();
+        }
+      } else {
+        // Second dialog is the success alert
+        await dialog.accept();
+      }
+    };
+    
+    this.page.on('dialog', dialogHandler);
+    
+    try {
+      await this.saveSearchButton.click();
+      // Wait a bit for both dialogs to complete
+      await this.page.waitForTimeout(500);
+    } finally {
+      this.page.off('dialog', dialogHandler);
     }
-    await this.saveSearchButton.click();
   }
 
   /**

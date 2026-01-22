@@ -89,11 +89,23 @@ export function SavedSearches({ className = '' }: SavedSearchesProps) {
                     {search.query}
                   </span>
                 )}
-                {search.filters && Object.keys(search.filters).length > 0 && (
-                  <span className="text-xs text-blue-600 dark:text-blue-400">
-                    {Object.keys(search.filters).length} filter(s)
-                  </span>
-                )}
+                {search.filters && (() => {
+                  // Count only filters with actual values
+                  const filterCount = [
+                    search.filters.language,
+                    search.filters.gameId,
+                    search.filters.dateFrom,
+                    search.filters.dateTo,
+                    typeof search.filters.minVotes === 'number' && !isNaN(search.filters.minVotes) && search.filters.minVotes > 0,
+                    Array.isArray(search.filters.tags) && search.filters.tags.length > 0,
+                  ].filter(Boolean).length;
+                  
+                  return filterCount > 0 ? (
+                    <span className="text-xs text-blue-600 dark:text-blue-400">
+                      {filterCount} filter(s)
+                    </span>
+                  ) : null;
+                })()}
               </div>
             </button>
             <button
