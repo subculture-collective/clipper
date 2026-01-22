@@ -59,7 +59,9 @@ export function BanListViewer({
     const [selectedBan, setSelectedBan] = useState<ChatBan | null>(null);
 
     // Bulk actions state
-    const [selectedBanIds, setSelectedBanIds] = useState<Set<string>>(new Set());
+    const [selectedBanIds, setSelectedBanIds] = useState<Set<string>>(
+        new Set(),
+    );
     const [bulkActionModalOpen, setBulkActionModalOpen] = useState(false);
     const [bulkActionType, setBulkActionType] = useState<'unban' | null>(null);
     const [bulkActionInProgress, setBulkActionInProgress] = useState(false);
@@ -69,14 +71,15 @@ export function BanListViewer({
             setLoading(true);
             setError(null);
             const useAll = !channelId || channelId === 'all';
-            const response = useAll
-                ? await getAllBans(page, limit)
-                : await getChannelBans(channelId, page, limit);
+            const response =
+                useAll ?
+                    await getAllBans(page, limit)
+                :   await getChannelBans(channelId, page, limit);
             const normalizedBans = response.bans.map(ban => ({
                 ...ban,
                 target_username: ban.target_username?.replace(
                     /^user(\d{2})/,
-                    'user-$1'
+                    'user-$1',
                 ),
             }));
             setBans(normalizedBans);
@@ -112,7 +115,7 @@ export function BanListViewer({
         if (filters.reason) {
             const searchTerm = filters.reason.toLowerCase();
             result = result.filter(ban =>
-                ban.reason?.toLowerCase().includes(searchTerm)
+                ban.reason?.toLowerCase().includes(searchTerm),
             );
         }
 
@@ -130,9 +133,8 @@ export function BanListViewer({
         if (filters.status !== 'all') {
             const now = new Date();
             result = result.filter(ban => {
-                const expiresAt = ban.expires_at
-                    ? new Date(ban.expires_at)
-                    : null;
+                const expiresAt =
+                    ban.expires_at ? new Date(ban.expires_at) : null;
                 const isPermanent = !expiresAt;
                 const isExpired = expiresAt ? expiresAt < now : false;
                 const isActive = expiresAt ? expiresAt >= now : false;
@@ -158,12 +160,10 @@ export function BanListViewer({
                 bValue = b.target_username || '';
             } else if (sortField === 'expires_at') {
                 const maxTime = Number.MAX_SAFE_INTEGER;
-                aValue = a.expires_at
-                    ? new Date(a.expires_at).getTime()
-                    : maxTime;
-                bValue = b.expires_at
-                    ? new Date(b.expires_at).getTime()
-                    : maxTime;
+                aValue =
+                    a.expires_at ? new Date(a.expires_at).getTime() : maxTime;
+                bValue =
+                    b.expires_at ? new Date(b.expires_at).getTime() : maxTime;
             }
 
             if (aValue === undefined || bValue === undefined) return 0;
@@ -187,7 +187,7 @@ export function BanListViewer({
 
     const handleSortKeyPress = (
         field: SortField,
-        event: React.KeyboardEvent
+        event: React.KeyboardEvent,
     ) => {
         if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault();
@@ -208,12 +208,12 @@ export function BanListViewer({
             setSuccessMessage(
                 `Ban revoked successfully for ${
                     banToRevoke.target_username || banToRevoke.user_id
-                }`
+                }`,
             );
             await loadBans(); // Reload the list
         } catch (err) {
             setError(
-                err instanceof Error ? err.message : 'Failed to revoke ban'
+                err instanceof Error ? err.message : 'Failed to revoke ban',
             );
             setSuccessMessage(null);
             setRevokeModalOpen(false);
@@ -240,20 +240,20 @@ export function BanListViewer({
         const rows = filteredAndSortedBans.map(ban => {
             const now = new Date();
             const isExpired = ban.expires_at && new Date(ban.expires_at) < now;
-            const status = ban.expires_at
-                ? isExpired
-                    ? 'Expired'
-                    : 'Active'
-                : 'Permanent';
+            const status =
+                ban.expires_at ?
+                    isExpired ? 'Expired'
+                    :   'Active'
+                :   'Permanent';
 
             return [
                 ban.target_username || ban.user_id,
                 ban.banned_by_username || ban.banned_by,
                 ban.reason || '',
                 format(new Date(ban.created_at), 'yyyy-MM-dd HH:mm:ss'),
-                ban.expires_at
-                    ? format(new Date(ban.expires_at), 'yyyy-MM-dd HH:mm:ss')
-                    : 'Never',
+                ban.expires_at ?
+                    format(new Date(ban.expires_at), 'yyyy-MM-dd HH:mm:ss')
+                :   'Never',
                 status,
             ];
         });
@@ -264,7 +264,7 @@ export function BanListViewer({
             ...rows.map(row =>
                 row
                     .map(cell => `"${String(cell).replace(/"/g, '""')}"`)
-                    .join(',')
+                    .join(','),
             ),
         ].join('\n');
 
@@ -281,8 +281,8 @@ export function BanListViewer({
                 'download',
                 `channel-bans-${channelId || 'all-channels'}-${format(
                     new Date(),
-                    'yyyy-MM-dd'
-                )}.csv`
+                    'yyyy-MM-dd',
+                )}.csv`,
             );
             link.style.visibility = 'hidden';
             document.body.appendChild(link);
@@ -304,8 +304,11 @@ export function BanListViewer({
     // Bulk selection handlers
     const handleSelectAll = () => {
         const activeBanIds = activeBans.map(ban => ban.id);
-        
-        if (selectedBanIds.size === activeBanIds.length && activeBanIds.length > 0) {
+
+        if (
+            selectedBanIds.size === activeBanIds.length &&
+            activeBanIds.length > 0
+        ) {
             // If all are selected, deselect all
             setSelectedBanIds(new Set());
         } else {
@@ -330,11 +333,11 @@ export function BanListViewer({
         try {
             setBulkActionInProgress(true);
             const banIdsArray = Array.from(selectedBanIds);
-            
+
             // Execute unbans sequentially to avoid overwhelming the server
             let successful = 0;
             let failed = 0;
-            
+
             for (const banId of banIdsArray) {
                 try {
                     await unbanUser(banId);
@@ -347,22 +350,24 @@ export function BanListViewer({
 
             setBulkActionModalOpen(false);
             setSelectedBanIds(new Set());
-            
+
             if (failed === 0) {
                 setSuccessMessage(
-                    `Successfully unbanned ${successful} user${successful !== 1 ? 's' : ''}`
+                    `Successfully unbanned ${successful} user${successful !== 1 ? 's' : ''}`,
                 );
             } else {
                 setError(
-                    `Unbanned ${successful} user${successful !== 1 ? 's' : ''}, but ${failed} failed`
+                    `Unbanned ${successful} user${successful !== 1 ? 's' : ''}, but ${failed} failed`,
                 );
             }
-            
+
             setPage(1); // Reset to first page
             await loadBans(); // Reload the list
         } catch (err) {
             setError(
-                err instanceof Error ? err.message : 'Failed to perform bulk unban'
+                err instanceof Error ?
+                    err.message
+                :   'Failed to perform bulk unban',
             );
         } finally {
             setBulkActionInProgress(false);
@@ -399,7 +404,9 @@ export function BanListViewer({
 
     // Memoize active (non-expired) bans for bulk selection
     const activeBans = useMemo(() => {
-        return filteredAndSortedBans.filter(ban => getBanStatus(ban) !== 'Expired');
+        return filteredAndSortedBans.filter(
+            ban => getBanStatus(ban) !== 'Expired',
+        );
     }, [filteredAndSortedBans]);
 
     if (loading) {
@@ -586,7 +593,8 @@ export function BanListViewer({
                 <div className='rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-4'>
                     <div className='flex items-center justify-between'>
                         <div className='text-sm font-medium text-blue-800 dark:text-blue-400'>
-                            {selectedBanIds.size} ban{selectedBanIds.size !== 1 ? 's' : ''} selected
+                            {selectedBanIds.size} ban
+                            {selectedBanIds.size !== 1 ? 's' : ''} selected
                         </div>
                         <div className='flex gap-2'>
                             <button
@@ -600,7 +608,9 @@ export function BanListViewer({
                                 disabled={bulkActionInProgress}
                                 className='rounded bg-red-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-gray-400'
                             >
-                                {bulkActionInProgress ? 'Processing...' : 'Bulk Unban'}
+                                {bulkActionInProgress ?
+                                    'Processing...'
+                                :   'Bulk Unban'}
                             </button>
                         </div>
                     </div>
@@ -624,7 +634,8 @@ export function BanListViewer({
                                         type='checkbox'
                                         checked={
                                             selectedBanIds.size > 0 &&
-                                            selectedBanIds.size === activeBans.length
+                                            selectedBanIds.size ===
+                                                activeBans.length
                                         }
                                         onChange={handleSelectAll}
                                         className='h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500'
@@ -642,11 +653,11 @@ export function BanListViewer({
                                 tabIndex={0}
                                 role='columnheader'
                                 aria-sort={
-                                    sortField === 'username'
-                                        ? sortDirection === 'asc'
-                                            ? 'ascending'
-                                            : 'descending'
-                                        : 'none'
+                                    sortField === 'username' ?
+                                        sortDirection === 'asc' ?
+                                            'ascending'
+                                        :   'descending'
+                                    :   'none'
                                 }
                             >
                                 User{' '}
@@ -674,11 +685,11 @@ export function BanListViewer({
                                 tabIndex={0}
                                 role='columnheader'
                                 aria-sort={
-                                    sortField === 'created_at'
-                                        ? sortDirection === 'asc'
-                                            ? 'ascending'
-                                            : 'descending'
-                                        : 'none'
+                                    sortField === 'created_at' ?
+                                        sortDirection === 'asc' ?
+                                            'ascending'
+                                        :   'descending'
+                                    :   'none'
                                 }
                             >
                                 Banned At{' '}
@@ -694,11 +705,11 @@ export function BanListViewer({
                                 tabIndex={0}
                                 role='columnheader'
                                 aria-sort={
-                                    sortField === 'expires_at'
-                                        ? sortDirection === 'asc'
-                                            ? 'ascending'
-                                            : 'descending'
-                                        : 'none'
+                                    sortField === 'expires_at' ?
+                                        sortDirection === 'asc' ?
+                                            'ascending'
+                                        :   'descending'
+                                    :   'none'
                                 }
                             >
                                 Expires At{' '}
@@ -720,7 +731,7 @@ export function BanListViewer({
                         </tr>
                     </thead>
                     <tbody className='divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800'>
-                        {filteredAndSortedBans.length === 0 ? (
+                        {filteredAndSortedBans.length === 0 ?
                             <tr>
                                 <td
                                     colSpan={canManage ? 8 : 7}
@@ -729,8 +740,7 @@ export function BanListViewer({
                                     No bans available
                                 </td>
                             </tr>
-                        ) : (
-                            filteredAndSortedBans.map(ban => {
+                        :   filteredAndSortedBans.map(ban => {
                                 const status = getBanStatus(ban);
                                 const isExpired = status === 'Expired';
                                 const isSelected = selectedBanIds.has(ban.id);
@@ -744,11 +754,14 @@ export function BanListViewer({
                                                 <input
                                                     type='checkbox'
                                                     checked={isSelected}
-                                                    onChange={() => handleSelectBan(ban.id)}
+                                                    onChange={() =>
+                                                        handleSelectBan(ban.id)
+                                                    }
                                                     disabled={isExpired}
                                                     className='h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50'
                                                     aria-label={`Select ban for ${
-                                                        ban.target_username || ban.user_id
+                                                        ban.target_username ||
+                                                        ban.user_id
                                                     }`}
                                                 />
                                             </td>
@@ -766,21 +779,21 @@ export function BanListViewer({
                                         <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400'>
                                             {format(
                                                 new Date(ban.created_at),
-                                                'MMM dd, yyyy HH:mm'
+                                                'MMM dd, yyyy HH:mm',
                                             )}
                                         </td>
                                         <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400'>
-                                            {ban.expires_at
-                                                ? format(
-                                                      new Date(ban.expires_at),
-                                                      'MMM dd, yyyy HH:mm'
-                                                  )
-                                                : 'Never'}
+                                            {ban.expires_at ?
+                                                format(
+                                                    new Date(ban.expires_at),
+                                                    'MMM dd, yyyy HH:mm',
+                                                )
+                                            :   'Never'}
                                         </td>
                                         <td className='px-6 py-4 whitespace-nowrap'>
                                             <span
                                                 className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${getBanStatusColor(
-                                                    status
+                                                    status,
                                                 )}`}
                                             >
                                                 {status}
@@ -806,7 +819,7 @@ export function BanListViewer({
                                                         onClick={() => {
                                                             setBanToRevoke(ban);
                                                             setRevokeModalOpen(
-                                                                true
+                                                                true,
                                                             );
                                                         }}
                                                         className='text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300'
@@ -822,7 +835,7 @@ export function BanListViewer({
                                     </tr>
                                 );
                             })
-                        )}
+                        }
                     </tbody>
                 </table>
             </div>
@@ -836,9 +849,9 @@ export function BanListViewer({
                     <div className='text-sm text-gray-700 dark:text-gray-300'>
                         Showing page {currentPage} of {totalPages} (
                         {filteredAndSortedBans.length} bans shown
-                        {filteredAndSortedBans.length !== total
-                            ? ` out of ${total} total`
-                            : ''}
+                        {filteredAndSortedBans.length !== total ?
+                            ` out of ${total} total`
+                        :   ''}
                         )
                     </div>
                     <div className='flex gap-2'>
@@ -944,7 +957,7 @@ export function BanListViewer({
                                 <p className='text-sm font-medium text-gray-900 dark:text-gray-100'>
                                     {format(
                                         new Date(selectedBan.created_at),
-                                        'MMM dd, yyyy HH:mm:ss'
+                                        'MMM dd, yyyy HH:mm:ss',
                                     )}
                                 </p>
                             </div>
@@ -953,12 +966,12 @@ export function BanListViewer({
                                     Expires At
                                 </p>
                                 <p className='text-sm font-medium text-gray-900 dark:text-gray-100'>
-                                    {selectedBan.expires_at
-                                        ? format(
-                                              new Date(selectedBan.expires_at),
-                                              'MMM dd, yyyy HH:mm:ss'
-                                          )
-                                        : 'Never (Permanent)'}
+                                    {selectedBan.expires_at ?
+                                        format(
+                                            new Date(selectedBan.expires_at),
+                                            'MMM dd, yyyy HH:mm:ss',
+                                        )
+                                    :   'Never (Permanent)'}
                                 </p>
                             </div>
                             <div className='col-span-2'>
@@ -967,7 +980,7 @@ export function BanListViewer({
                                 </p>
                                 <span
                                     className={`inline-flex mt-1 rounded-full px-2 py-1 text-xs font-semibold ${getBanStatusColor(
-                                        getBanStatus(selectedBan)
+                                        getBanStatus(selectedBan),
                                     )}`}
                                 >
                                     {getBanStatus(selectedBan)}
@@ -1000,7 +1013,9 @@ export function BanListViewer({
             {/* Bulk Action Confirmation Modal */}
             <Modal
                 open={bulkActionModalOpen}
-                onClose={() => !bulkActionInProgress && setBulkActionModalOpen(false)}
+                onClose={() =>
+                    !bulkActionInProgress && setBulkActionModalOpen(false)
+                }
                 title='Confirm Bulk Action'
                 size='md'
             >
@@ -1016,8 +1031,8 @@ export function BanListViewer({
                     </p>
                     <div className='rounded bg-yellow-50 dark:bg-yellow-900/20 p-3'>
                         <p className='text-xs text-yellow-800 dark:text-yellow-400'>
-                            This action cannot be undone. The selected users will
-                            immediately regain access to the channel.
+                            This action cannot be undone. The selected users
+                            will immediately regain access to the channel.
                         </p>
                     </div>
                     {bulkActionInProgress && (
@@ -1041,7 +1056,9 @@ export function BanListViewer({
                             disabled={bulkActionInProgress}
                             className='px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed'
                         >
-                            {bulkActionInProgress ? 'Processing...' : 'Confirm Bulk Unban'}
+                            {bulkActionInProgress ?
+                                'Processing...'
+                            :   'Confirm Bulk Unban'}
                         </button>
                     </div>
                 </div>

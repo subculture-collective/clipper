@@ -38,7 +38,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
     const totalComments = data?.pages[0]?.total || 0;
     const allComments = React.useMemo(
         () => data?.pages.flatMap(page => page.comments) || [],
-        [data]
+        [data],
     );
 
     if (error) {
@@ -47,9 +47,9 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
                 <div className='text-center py-8'>
                     <p className='text-error-500'>Error loading comments</p>
                     <p className='text-sm text-muted-foreground mt-2'>
-                        {error instanceof Error
-                            ? error.message
-                            : 'Something went wrong'}
+                        {error instanceof Error ?
+                            error.message
+                        :   'Something went wrong'}
                     </p>
                 </div>
             </div>
@@ -101,7 +101,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
 
             {/* Add comment button/form */}
             <div>
-                {!isAuthenticated ? (
+                {!isAuthenticated ?
                     <div className='text-center py-6 border border-border rounded-lg'>
                         <p className='text-muted-foreground mb-3'>
                             Please log in to comment
@@ -113,20 +113,20 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
                             Log In
                         </Button>
                     </div>
-                ) : !isBanned ? (
+                : !isBanned ?
                     <CommentForm
                         clipId={clipId}
                         placeholder='What are your thoughts?'
                     />
-                ) : null}
+                :   null}
             </div>
 
             {/* Loading state */}
-            {isLoading ? (
+            {isLoading ?
                 <div className='flex justify-center py-12'>
                     <Spinner size='lg' />
                 </div>
-            ) : allComments.length === 0 ? (
+            : allComments.length === 0 ?
                 /* Empty state */
                 <div className='text-center py-12 border border-border rounded-lg'>
                     <p className='text-xl font-semibold mb-2'>
@@ -135,10 +135,8 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
                     <p className='text-muted-foreground mb-4'>
                         Be the first to comment!
                     </p>
-
                 </div>
-            ) : (
-                <>
+            :   <>
                     {/* Comments list */}
                     <CommentTree
                         comments={allComments}
@@ -158,14 +156,14 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
                                 loading={isFetchingNextPage}
                                 variant='outline'
                             >
-                                {isFetchingNextPage
-                                    ? 'Loading...'
-                                    : 'Load More Comments'}
+                                {isFetchingNextPage ?
+                                    'Loading...'
+                                :   'Load More Comments'}
                             </Button>
                         </div>
                     )}
                 </>
-            )}
+            }
         </div>
     );
 };

@@ -34,7 +34,7 @@ type ClipSubmissionMockServer = {
             status?: ClipSubmissionStatus;
             clipUrl?: string;
             title?: string;
-        }
+        },
     ): Promise<ClipSubmissionRecord[]>;
     clear(): void;
 };
@@ -45,7 +45,7 @@ const buildClipIdFromUrl = (url: string) => {
 };
 
 async function setupClipSubmissionApiMocks(
-    page: Page
+    page: Page,
 ): Promise<ClipSubmissionMockServer> {
     const submissions = new Map<string, ClipSubmissionRecord>();
     let currentUser: any | null = null;
@@ -70,7 +70,7 @@ async function setupClipSubmissionApiMocks(
     const listByUser = (userId?: string | null) => {
         if (!userId) return Array.from(submissions.values());
         return Array.from(submissions.values()).filter(
-            s => s.user_id === userId
+            s => s.user_id === userId,
         );
     };
 
@@ -79,7 +79,7 @@ async function setupClipSubmissionApiMocks(
             clip_url: string;
             title?: string;
             user_id: string;
-        }
+        },
     ): ClipSubmissionRecord => {
         const twitch_clip_id = buildClipIdFromUrl(data.clip_url);
         const now = new Date().toISOString();
@@ -149,14 +149,15 @@ async function setupClipSubmissionApiMocks(
             // Tags
             if (pathname.startsWith('/tags/search')) {
                 const q = url.searchParams.get('q') || '';
-                const items = q
-                    ? [q, `${q}-one`, `${q}-two`].map((name, idx) => ({
-                          id: `tag-${name}-${idx}`,
-                          name,
-                          slug: name.replace(/\s+/g, '-'),
-                          usage_count: 1,
-                      }))
-                    : Array.from(tags.values());
+                const items =
+                    q ?
+                        [q, `${q}-one`, `${q}-two`].map((name, idx) => ({
+                            id: `tag-${name}-${idx}`,
+                            name,
+                            slug: name.replace(/\s+/g, '-'),
+                            usage_count: 1,
+                        }))
+                    :   Array.from(tags.values());
                 return respond(route, 200, { success: true, data: items });
             }
 
@@ -182,20 +183,21 @@ async function setupClipSubmissionApiMocks(
                 const existing = Array.from(submissions.values()).find(
                     s =>
                         s.twitch_clip_id === clipId ||
-                        s.twitch_clip_url.includes(clipId)
+                        s.twitch_clip_url.includes(clipId),
                 );
                 return respond(route, 200, {
                     success: true,
                     exists: Boolean(existing),
                     can_be_claimed: !existing,
-                    clip: existing
-                        ? {
-                              id: existing.twitch_clip_id,
-                              is_nsfw: existing.is_nsfw,
-                              url: existing.twitch_clip_url,
-                              title: existing.title,
-                          }
-                        : undefined,
+                    clip:
+                        existing ?
+                            {
+                                id: existing.twitch_clip_id,
+                                is_nsfw: existing.is_nsfw,
+                                url: existing.twitch_clip_url,
+                                title: existing.title,
+                            }
+                        :   undefined,
                 });
             }
 
@@ -234,7 +236,7 @@ async function setupClipSubmissionApiMocks(
                 }
 
                 const duplicate = userSubs.find(
-                    s => s.twitch_clip_url === clip_url
+                    s => s.twitch_clip_url === clip_url,
                 );
                 if (duplicate) {
                     return respond(route, 400, {
@@ -272,13 +274,13 @@ async function setupClipSubmissionApiMocks(
             if (pathname === '/submissions/stats') {
                 const userSubs = listByUser(currentUser?.id);
                 const approved = userSubs.filter(
-                    s => s.status === 'approved'
+                    s => s.status === 'approved',
                 ).length;
                 const rejected = userSubs.filter(
-                    s => s.status === 'rejected'
+                    s => s.status === 'rejected',
                 ).length;
                 const pending = userSubs.filter(
-                    s => s.status === 'pending'
+                    s => s.status === 'pending',
                 ).length;
                 return respond(route, 200, {
                     success: true,
@@ -288,9 +290,8 @@ async function setupClipSubmissionApiMocks(
                         approved_count: approved,
                         rejected_count: rejected,
                         pending_count: pending,
-                        approval_rate: userSubs.length
-                            ? approved / userSubs.length
-                            : 0,
+                        approval_rate:
+                            userSubs.length ? approved / userSubs.length : 0,
                     },
                 });
             }
@@ -368,7 +369,7 @@ async function setupClipSubmissionApiMocks(
                 status?: ClipSubmissionStatus;
                 clipUrl?: string;
                 title?: string;
-            }
+            },
         ) => {
             const seeded: ClipSubmissionRecord[] = [];
             for (let i = 0; i < count; i++) {
@@ -531,7 +532,7 @@ test.describe('Clip Submission E2E Flow', () => {
                 data => {
                     window.localStorage.setItem(
                         'submission_rate_limit',
-                        JSON.stringify(data)
+                        JSON.stringify(data),
                     );
                 },
                 {
@@ -539,7 +540,7 @@ test.describe('Clip Submission E2E Flow', () => {
                     retry_after: retryAfter,
                     limit: 10,
                     window: 60 * 60,
-                }
+                },
             );
 
             await submitClipPage.goto();
@@ -552,7 +553,7 @@ test.describe('Clip Submission E2E Flow', () => {
 
             // And: submit button is disabled (cannot submit more clips)
             await expect(
-                await submitClipPage.isSubmitButtonDisabled()
+                await submitClipPage.isSubmitButtonDisabled(),
             ).toBeTruthy();
         });
     });
@@ -869,7 +870,10 @@ test.describe('Clip Submission E2E Flow', () => {
             // When: user fills in the form but doesn't submit
             await page.fill('input[name="url"]', VALID_TWITCH_CLIP_URL);
             await page.fill('input#custom_title', 'My Test Draft');
-            await page.fill('textarea#submission_reason', 'Testing draft functionality');
+            await page.fill(
+                'textarea#submission_reason',
+                'Testing draft functionality',
+            );
 
             // Wait for auto-save to trigger (2 seconds + buffer)
             await page.waitForTimeout(3000);
@@ -888,7 +892,9 @@ test.describe('Clip Submission E2E Flow', () => {
 
             await expect(urlInput).toHaveValue(VALID_TWITCH_CLIP_URL);
             await expect(titleInput).toHaveValue('My Test Draft');
-            await expect(reasonInput).toHaveValue('Testing draft functionality');
+            await expect(reasonInput).toHaveValue(
+                'Testing draft functionality',
+            );
 
             // And: draft restored message should appear
             const restoredMessage = page.locator('text=/Draft restored/i');

@@ -74,12 +74,12 @@ describe('ModerationQueueView', () => {
                     contentType='clip'
                     title='Clip Moderation'
                     description='Review flagged clips'
-                />
+                />,
             );
 
             expect(screen.getByText('Clip Moderation')).toBeInTheDocument();
             expect(
-                screen.getByText('Review flagged clips')
+                screen.getByText('Review flagged clips'),
             ).toBeInTheDocument();
         });
 
@@ -89,11 +89,11 @@ describe('ModerationQueueView', () => {
                     contentType='clip'
                     title='Clip Moderation'
                     description='Review flagged clips'
-                />
+                />,
             );
 
             expect(
-                screen.getByRole('status', { hidden: true })
+                screen.getByRole('status', { hidden: true }),
             ).toBeInTheDocument();
         });
 
@@ -103,7 +103,7 @@ describe('ModerationQueueView', () => {
                     contentType='clip'
                     title='Clip Moderation'
                     description='Review flagged clips'
-                />
+                />,
             );
 
             await waitFor(() => {
@@ -119,7 +119,7 @@ describe('ModerationQueueView', () => {
                     contentType='clip'
                     title='Clip Moderation'
                     description='Review flagged clips'
-                />
+                />,
             );
 
             await waitFor(() => {
@@ -135,14 +135,14 @@ describe('ModerationQueueView', () => {
                     contentType='clip'
                     title='Clip Moderation'
                     description='Review flagged clips'
-                />
+                />,
             );
 
             await waitFor(() => {
                 expect(moderationApi.getModerationQueue).toHaveBeenCalledWith(
                     'pending',
                     'clip',
-                    50
+                    50,
                 );
             });
         });
@@ -154,7 +154,7 @@ describe('ModerationQueueView', () => {
                     contentType='clip'
                     title='Clip Moderation'
                     description='Review flagged clips'
-                />
+                />,
             );
 
             await waitFor(() => {
@@ -171,7 +171,7 @@ describe('ModerationQueueView', () => {
                 expect(moderationApi.getModerationQueue).toHaveBeenCalledWith(
                     'approved',
                     'clip',
-                    50
+                    50,
                 );
             });
         });
@@ -190,7 +190,7 @@ describe('ModerationQueueView', () => {
                     contentType='clip'
                     title='Clip Moderation'
                     description='Review flagged clips'
-                />
+                />,
             );
 
             await waitFor(() => {
@@ -204,7 +204,7 @@ describe('ModerationQueueView', () => {
 
             await waitFor(() => {
                 expect(moderationApi.approveQueueItem).toHaveBeenCalledWith(
-                    'item-1'
+                    'item-1',
                 );
             });
         });
@@ -221,7 +221,7 @@ describe('ModerationQueueView', () => {
                     contentType='clip'
                     title='Clip Moderation'
                     description='Review flagged clips'
-                />
+                />,
             );
 
             await waitFor(() => {
@@ -251,7 +251,7 @@ describe('ModerationQueueView', () => {
             await waitFor(() => {
                 expect(moderationApi.rejectQueueItem).toHaveBeenCalledWith(
                     'item-1',
-                    'This violates our policy'
+                    'This violates our policy',
                 );
             });
         });
@@ -265,7 +265,7 @@ describe('ModerationQueueView', () => {
                     contentType='clip'
                     title='Clip Moderation'
                     description='Review flagged clips'
-                />
+                />,
             );
 
             await waitFor(() => {
@@ -293,7 +293,7 @@ describe('ModerationQueueView', () => {
                     contentType='clip'
                     title='Clip Moderation'
                     description='Review flagged clips'
-                />
+                />,
             );
 
             await waitFor(() => {
@@ -332,7 +332,7 @@ describe('ModerationQueueView', () => {
                     contentType='clip'
                     title='Clip Moderation'
                     description='Review flagged clips'
-                />
+                />,
             );
 
             await waitFor(() => {
@@ -362,7 +362,7 @@ describe('ModerationQueueView', () => {
     describe('Error Handling', () => {
         it('displays error message when loading fails', async () => {
             vi.mocked(moderationApi.getModerationQueue).mockRejectedValue(
-                new Error('Failed to load queue')
+                new Error('Failed to load queue'),
             );
 
             renderWithRouter(
@@ -370,7 +370,7 @@ describe('ModerationQueueView', () => {
                     contentType='clip'
                     title='Clip Moderation'
                     description='Review flagged clips'
-                />
+                />,
             );
 
             await waitFor(() => {
@@ -381,7 +381,7 @@ describe('ModerationQueueView', () => {
         it('displays error when approve fails', async () => {
             const user = userEvent.setup();
             vi.mocked(moderationApi.approveQueueItem).mockRejectedValue(
-                new Error('Failed to approve')
+                new Error('Failed to approve'),
             );
 
             renderWithRouter(
@@ -389,7 +389,7 @@ describe('ModerationQueueView', () => {
                     contentType='clip'
                     title='Clip Moderation'
                     description='Review flagged clips'
-                />
+                />,
             );
 
             await waitFor(() => {
@@ -403,7 +403,7 @@ describe('ModerationQueueView', () => {
 
             await waitFor(() => {
                 expect(
-                    screen.getByText(/Failed to approve/)
+                    screen.getByText(/Failed to approve/),
                 ).toBeInTheDocument();
             });
         });
@@ -422,7 +422,7 @@ describe('ModerationQueueView', () => {
                     contentType='clip'
                     title='Clip Moderation'
                     description='Review flagged clips'
-                />
+                />,
             );
 
             await waitFor(() => {
@@ -436,7 +436,7 @@ describe('ModerationQueueView', () => {
 
             await waitFor(() => {
                 expect(
-                    screen.getByText(/approved successfully/i)
+                    screen.getByText(/approved successfully/i),
                 ).toBeInTheDocument();
             });
         });
@@ -454,11 +454,13 @@ describe('ModerationQueueView', () => {
                     contentType='clip'
                     title='Clip Moderation'
                     description='Review flagged clips'
-                />
+                />,
             );
 
             await waitFor(() => {
-                expect(screen.getByText(/No.*pending/i)).toBeInTheDocument();
+                expect(
+                    screen.getByText(/No.*in the moderation queue/i),
+                ).toBeInTheDocument();
             });
         });
     });
@@ -470,11 +472,11 @@ describe('ModerationQueueView', () => {
                     contentType='clip'
                     title='Clip Moderation'
                     description='Review flagged clips'
-                />
+                />,
             );
 
             expect(
-                screen.getByRole('heading', { name: 'Clip Moderation' })
+                screen.getByRole('heading', { name: 'Clip Moderation' }),
             ).toBeInTheDocument();
         });
 
@@ -484,7 +486,7 @@ describe('ModerationQueueView', () => {
                     contentType='clip'
                     title='Clip Moderation'
                     description='Review flagged clips'
-                />
+                />,
             );
 
             await waitFor(() => {

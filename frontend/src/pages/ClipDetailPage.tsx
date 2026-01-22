@@ -34,9 +34,10 @@ export function ClipDetailPage() {
 
     const clipUrl = clip ? `${window.location.origin}/clip/${clip.id}` : '';
     const shareTitle = clip ? clip.title : 'Check out this clip';
-    const shareText = clip
-        ? `${clip.title} - Clipped from ${clip.broadcaster_name}'s stream`
-        : '';
+    const shareText =
+        clip ?
+            `${clip.title} - Clipped from ${clip.broadcaster_name}'s stream`
+        :   '';
     // Show ban message if user is banned (before clip loading checks)
     if (isBanned) {
         return (
@@ -83,7 +84,7 @@ export function ClipDetailPage() {
         window.open(
             `https://twitter.com/intent/tweet?text=${text}&url=${url}`,
             '_blank',
-            'noopener,noreferrer'
+            'noopener,noreferrer',
         );
         setShowShareMenu(false);
     };
@@ -94,7 +95,7 @@ export function ClipDetailPage() {
         window.open(
             `https://reddit.com/submit?title=${title}&url=${url}`,
             '_blank',
-            'noopener,noreferrer'
+            'noopener,noreferrer',
         );
         setShowShareMenu(false);
     };
@@ -139,7 +140,6 @@ export function ClipDetailPage() {
         );
     }
 
-
     if (error) {
         return (
             <>
@@ -173,7 +173,6 @@ export function ClipDetailPage() {
             </>
         );
     }
-
 
     // Format duration for display
     const formatDuration = (seconds: number | null | undefined) => {
@@ -328,16 +327,16 @@ export function ClipDetailPage() {
                             disabled={!isAuthenticated || isVoting || isBanned}
                             className={cn(
                                 'px-4 py-3 rounded-md transition-colors touch-target',
-                                clip.user_vote === 1
-                                    ? 'bg-green-600 text-white hover:bg-green-700'
-                                    : 'bg-primary-500 text-white hover:bg-primary-600',
+                                clip.user_vote === 1 ?
+                                    'bg-green-600 text-white hover:bg-green-700'
+                                :   'bg-primary-500 text-white hover:bg-primary-600',
                                 (!isAuthenticated || isVoting || isBanned) &&
-                                    'opacity-50 cursor-not-allowed hover:bg-primary-500'
+                                    'opacity-50 cursor-not-allowed hover:bg-primary-500',
                             )}
                             aria-label={
-                                isAuthenticated
-                                    ? `Upvote, ${clip.vote_score} votes`
-                                    : 'Log in to upvote'
+                                isAuthenticated ?
+                                    `Upvote, ${clip.vote_score} votes`
+                                :   'Log in to upvote'
                             }
                             aria-disabled={
                                 !isAuthenticated || isVoting || isBanned
@@ -351,7 +350,7 @@ export function ClipDetailPage() {
                         <button
                             className={cn(
                                 'px-4 py-3 border border-border rounded-md hover:bg-muted transition-colors touch-target',
-                                isBanned && 'opacity-50 cursor-not-allowed'
+                                isBanned && 'opacity-50 cursor-not-allowed',
                             )}
                             aria-label={`Comment, ${clip.comment_count} comments`}
                             onClick={() => {
@@ -369,24 +368,24 @@ export function ClipDetailPage() {
                             disabled={!isAuthenticated || isBanned}
                             className={cn(
                                 'px-4 py-3 rounded-md transition-colors touch-target',
-                                clip.is_favorited
-                                    ? 'bg-red-500 text-white hover:bg-red-600'
-                                    : 'border border-border hover:bg-muted',
+                                clip.is_favorited ?
+                                    'bg-red-500 text-white hover:bg-red-600'
+                                :   'border border-border hover:bg-muted',
                                 (!isAuthenticated || isBanned) &&
-                                    'opacity-50 cursor-not-allowed hover:bg-muted'
+                                    'opacity-50 cursor-not-allowed hover:bg-muted',
                             )}
                             aria-label={
-                                !isAuthenticated
-                                    ? 'Log in to favorite'
-                                    : clip.is_favorited
-                                    ? `Remove from favorites, ${clip.favorite_count} favorites`
-                                    : `Add to favorites, ${clip.favorite_count} favorites`
+                                !isAuthenticated ? 'Log in to favorite'
+                                : clip.is_favorited ?
+                                    `Remove from favorites, ${clip.favorite_count} favorites`
+                                :   `Add to favorites, ${clip.favorite_count} favorites`
+
                             }
                             aria-disabled={!isAuthenticated || isBanned}
                             title={
-                                isAuthenticated
-                                    ? undefined
-                                    : 'Log in to favorite'
+                                isAuthenticated ? undefined : (
+                                    'Log in to favorite'
+                                )
                             }
                         >
                             {clip.is_favorited ? '❤️ ' : ''}Favorite (
@@ -454,7 +453,7 @@ export function ClipDetailPage() {
                                     year: 'numeric',
                                     month: 'long',
                                     day: 'numeric',
-                                }
+                                },
                             )}
                         </p>
                     </div>

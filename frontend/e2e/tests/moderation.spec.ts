@@ -90,7 +90,7 @@ async function setupModerationMocks(page: Page) {
         resourceType: string,
         resourceId: string,
         actorId: string,
-        details: any = {}
+        details: any = {},
     ) => {
         const log: AuditLogEntry = {
             id: `audit-${Date.now()}-${Math.random()}`,
@@ -138,7 +138,7 @@ async function setupModerationMocks(page: Page) {
 
                 const matchingUsers = Array.from(users.values())
                     .filter(u =>
-                        u.username.toLowerCase().includes(query.toLowerCase())
+                        u.username.toLowerCase().includes(query.toLowerCase()),
                     )
                     .slice(0, 10)
                     .map(u => ({
@@ -227,7 +227,7 @@ async function setupModerationMocks(page: Page) {
                         user_id: body.userId,
                         channel_id: body.channelId,
                         role: moderator.role,
-                    }
+                    },
                 );
 
                 return respond(route, 201, {
@@ -238,7 +238,7 @@ async function setupModerationMocks(page: Page) {
             }
 
             const removeModerator = pathname.match(
-                /^\/moderation\/moderators\/([^/]+)$/
+                /^\/moderation\/moderators\/([^/]+)$/,
             );
             if (removeModerator && method === 'DELETE') {
                 if (!currentUser || currentUser.role !== 'admin') {
@@ -273,7 +273,7 @@ async function setupModerationMocks(page: Page) {
                     currentUser.id,
                     {
                         user_id: moderator.user_id,
-                    }
+                    },
                 );
 
                 return respond(route, 200, {
@@ -300,7 +300,7 @@ async function setupModerationMocks(page: Page) {
                     .sort(
                         (a, b) =>
                             new Date(b.created_at).getTime() -
-                            new Date(a.created_at).getTime()
+                            new Date(a.created_at).getTime(),
                     );
 
                 return respond(route, 200, {
@@ -312,7 +312,7 @@ async function setupModerationMocks(page: Page) {
 
             // RESTful ban endpoint - /chat/channels/:channelId/bans
             const channelBansMatch = pathname.match(
-                /^\/chat\/channels\/([^/]+)\/bans$/
+                /^\/chat\/channels\/([^/]+)\/bans$/,
             );
             if (channelBansMatch && method === 'GET') {
                 if (
@@ -328,11 +328,11 @@ async function setupModerationMocks(page: Page) {
                 const channelId = channelBansMatch[1];
                 const pageNum = parseInt(
                     url.searchParams.get('page') || '1',
-                    10
+                    10,
                 );
                 const limit = parseInt(
                     url.searchParams.get('limit') || '50',
-                    10
+                    10,
                 );
 
                 const bansList = Array.from(bans.values())
@@ -340,7 +340,7 @@ async function setupModerationMocks(page: Page) {
                     .sort(
                         (a, b) =>
                             new Date(b.created_at).getTime() -
-                            new Date(a.created_at).getTime()
+                            new Date(a.created_at).getTime(),
                     );
 
                 return respond(route, 200, {
@@ -385,7 +385,7 @@ async function setupModerationMocks(page: Page) {
                     {
                         channel_name: body.channel_name,
                         job_id: jobId,
-                    }
+                    },
                 );
 
                 return respond(route, 200, {
@@ -397,7 +397,7 @@ async function setupModerationMocks(page: Page) {
 
             // RESTful sync-bans endpoint - /chat/channels/:channelId/sync-bans
             const syncBansMatch = pathname.match(
-                /^\/chat\/channels\/([^/]+)\/sync-bans$/
+                /^\/chat\/channels\/([^/]+)\/sync-bans$/,
             );
             if (syncBansMatch && method === 'POST') {
                 if (
@@ -439,7 +439,7 @@ async function setupModerationMocks(page: Page) {
                     {
                         channel_name: body.channel_name,
                         job_id: jobId,
-                    }
+                    },
                 );
 
                 return respond(route, 200, {
@@ -451,7 +451,7 @@ async function setupModerationMocks(page: Page) {
 
             // Check sync progress
             const syncProgress = pathname.match(
-                /^\/chat\/sync-bans\/([^/]+)\/progress$/
+                /^\/chat\/sync-bans\/([^/]+)\/progress$/,
             );
             if (syncProgress && method === 'GET') {
                 if (
@@ -486,7 +486,7 @@ async function setupModerationMocks(page: Page) {
                         reason: 'Spam',
                         created_at: new Date().toISOString(),
                         expires_at: new Date(
-                            Date.now() + 7 * 24 * 60 * 60 * 1000
+                            Date.now() + 7 * 24 * 60 * 60 * 1000,
                         ).toISOString(),
                         created_by: currentUser.id,
                         is_active: true,
@@ -509,7 +509,7 @@ async function setupModerationMocks(page: Page) {
 
             // RESTful sync-bans progress endpoint - /chat/channels/:channelId/sync-bans/:jobId
             const restfulSyncProgress = pathname.match(
-                /^\/chat\/channels\/([^/]+)\/sync-bans\/([^/]+)$/
+                /^\/chat\/channels\/([^/]+)\/sync-bans\/([^/]+)$/,
             );
             if (restfulSyncProgress && method === 'GET') {
                 if (
@@ -545,7 +545,7 @@ async function setupModerationMocks(page: Page) {
                         reason: 'Spam',
                         created_at: new Date().toISOString(),
                         expires_at: new Date(
-                            Date.now() + 7 * 24 * 60 * 60 * 1000
+                            Date.now() + 7 * 24 * 60 * 60 * 1000,
                         ).toISOString(),
                         created_by: currentUser.id,
                         is_active: true,
@@ -611,7 +611,7 @@ async function setupModerationMocks(page: Page) {
 
             // RESTful unban endpoint - /chat/channels/:channelId/ban/:userId
             const restfulUnbanMatch = pathname.match(
-                /^\/chat\/channels\/([^/]+)\/ban\/([^/]+)$/
+                /^\/chat\/channels\/([^/]+)\/ban\/([^/]+)$/,
             );
             if (restfulUnbanMatch && method === 'DELETE') {
                 if (
@@ -632,7 +632,7 @@ async function setupModerationMocks(page: Page) {
                     b =>
                         b.channel_id === channelId &&
                         b.user_id === userId &&
-                        b.is_active
+                        b.is_active,
                 );
 
                 if (!userBan) {
@@ -661,7 +661,7 @@ async function setupModerationMocks(page: Page) {
                         target_username: userBan.target_username,
                         user_id: userId,
                         channel_id: channelId,
-                    }
+                    },
                 );
 
                 return respond(route, 200, {
@@ -676,7 +676,7 @@ async function setupModerationMocks(page: Page) {
                 const userId = banStatus[1];
                 const user = users.get(userId);
                 const userBans = Array.from(bans.values()).filter(
-                    b => b.user_id === userId && b.is_active
+                    b => b.user_id === userId && b.is_active,
                 );
 
                 if (userBans.length > 0) {
@@ -714,17 +714,17 @@ async function setupModerationMocks(page: Page) {
                 let filteredLogs = [...auditLogs];
                 if (resourceId) {
                     filteredLogs = filteredLogs.filter(
-                        log => log.resource_id === resourceId
+                        log => log.resource_id === resourceId,
                     );
                 }
                 if (action) {
                     filteredLogs = filteredLogs.filter(
-                        log => log.action === action
+                        log => log.action === action,
                     );
                 }
                 if (resourceType) {
                     filteredLogs = filteredLogs.filter(
-                        log => log.resource_type === resourceType
+                        log => log.resource_type === resourceType,
                     );
                 }
 
@@ -733,7 +733,7 @@ async function setupModerationMocks(page: Page) {
                     data: filteredLogs.sort(
                         (a, b) =>
                             new Date(b.timestamp).getTime() -
-                            new Date(a.timestamp).getTime()
+                            new Date(a.timestamp).getTime(),
                     ),
                     meta: {
                         total: filteredLogs.length,
@@ -841,7 +841,7 @@ test.describe('Moderation E2E', () => {
             await expect(
                 page
                     .locator('[role="alert"]')
-                    .filter({ hasText: /success|added/i })
+                    .filter({ hasText: /success|added/i }),
             ).toBeVisible({ timeout: 5000 });
 
             // Verify audit log was created
@@ -849,7 +849,7 @@ test.describe('Moderation E2E', () => {
             const createLog = logs.find(
                 log =>
                     log.action === 'create_moderator' &&
-                    log.details?.user_id === 'user-1'
+                    log.details?.user_id === 'user-1',
             );
             expect(createLog).toBeDefined();
             expect(createLog?.actor_id).toBe('admin-1');
@@ -884,7 +884,7 @@ test.describe('Moderation E2E', () => {
 
             // Verify no access denied message
             await expect(
-                page.getByText(/403|access denied|forbidden/i)
+                page.getByText(/403|access denied|forbidden/i),
             ).not.toBeVisible();
         });
 
@@ -910,7 +910,7 @@ test.describe('Moderation E2E', () => {
 
             // Verify access is denied
             await expect(
-                page.getByText(/403|access denied|forbidden/i)
+                page.getByText(/403|access denied|forbidden/i),
             ).toBeVisible({
                 timeout: 5000,
             });
@@ -967,7 +967,7 @@ test.describe('Moderation E2E', () => {
             await expect(
                 modal
                     .locator('[role="alert"]')
-                    .filter({ hasText: /success|synced|completed/i })
+                    .filter({ hasText: /success|synced|completed/i }),
             ).toBeVisible({ timeout: 10000 });
 
             // Verify audit log was created
@@ -1011,7 +1011,7 @@ test.describe('Moderation E2E', () => {
                 reason: 'Spam',
                 created_at: new Date().toISOString(),
                 expires_at: new Date(
-                    Date.now() + 7 * 24 * 60 * 60 * 1000
+                    Date.now() + 7 * 24 * 60 * 60 * 1000,
                 ).toISOString(),
                 created_by: 'moderator-1',
                 is_active: true,
@@ -1083,7 +1083,7 @@ test.describe('Moderation E2E', () => {
                 await expect(
                     modal
                         .locator('[role="alert"]')
-                        .filter({ hasText: /error|invalid|failed/i })
+                        .filter({ hasText: /error|invalid|failed/i }),
                 ).toBeVisible({ timeout: 5000 });
             }
         });
@@ -1126,7 +1126,7 @@ test.describe('Moderation E2E', () => {
 
             // Verify page loaded
             await expect(
-                page.getByRole('heading', { name: /audit.*log/i })
+                page.getByRole('heading', { name: /audit.*log/i }),
             ).toBeVisible({
                 timeout: 5000,
             });
@@ -1180,11 +1180,9 @@ test.describe('Moderation E2E', () => {
                 const option = page
                     .getByRole('option', { name: /sync.*ban/i })
                     .or(
-                        page
-                            .getByText(/sync.*ban/i)
-                            .filter({
-                                has: page.locator('input[type="checkbox"]'),
-                            })
+                        page.getByText(/sync.*ban/i).filter({
+                            has: page.locator('input[type="checkbox"]'),
+                        }),
                     );
 
                 if (
@@ -1250,7 +1248,7 @@ test.describe('Moderation E2E', () => {
                 await expect(
                     details
                         .getByText(/channel.*name/i)
-                        .or(details.getByText('testchannel'))
+                        .or(details.getByText('testchannel')),
                 ).toBeVisible({ timeout: 5000 });
             }
         });
@@ -1314,7 +1312,7 @@ test.describe('Moderation E2E', () => {
             await expect(
                 page
                     .getByText(/banned|restricted|suspended/i)
-                    .filter({ hasText: /cannot/i })
+                    .filter({ hasText: /cannot/i }),
             ).toBeVisible({ timeout: 5000 });
         });
 
@@ -1412,7 +1410,7 @@ test.describe('Moderation E2E', () => {
                 .getByRole('button', { name: /revoke|unban/i })
                 .filter({ has: page.locator('text=banneduser') })
                 .or(
-                    page.getByRole('button', { name: /revoke|unban/i }).first()
+                    page.getByRole('button', { name: /revoke|unban/i }).first(),
                 );
 
             if (
@@ -1438,7 +1436,7 @@ test.describe('Moderation E2E', () => {
                 await expect(
                     page
                         .locator('[role="alert"]')
-                        .filter({ hasText: /success|unbanned|revoked/i })
+                        .filter({ hasText: /success|unbanned|revoked/i }),
                 ).toBeVisible({ timeout: 5000 });
 
                 // Verify audit log was created
@@ -1446,7 +1444,7 @@ test.describe('Moderation E2E', () => {
                 const unbanLog = logs.find(
                     log =>
                         log.action === 'unban_user' &&
-                        log.resource_id === 'ban-1'
+                        log.resource_id === 'ban-1',
                 );
                 expect(unbanLog).toBeDefined();
 
@@ -1478,7 +1476,7 @@ test.describe('Moderation E2E', () => {
 
             // Verify access is denied
             await expect(
-                page.getByText(/403|access denied|forbidden/i)
+                page.getByText(/403|access denied|forbidden/i),
             ).toBeVisible({
                 timeout: 5000,
             });
@@ -1540,12 +1538,12 @@ test.describe('Moderation E2E', () => {
 
             // Verify moderator can access audit logs
             await expect(
-                page.getByRole('heading', { name: /audit.*log/i })
+                page.getByRole('heading', { name: /audit.*log/i }),
             ).toBeVisible({
                 timeout: 5000,
             });
             await expect(
-                page.getByText(/403|access denied|forbidden/i)
+                page.getByText(/403|access denied|forbidden/i),
             ).not.toBeVisible();
         });
     });
@@ -1606,7 +1604,7 @@ test.describe('Moderation E2E', () => {
                     await expect(
                         page
                             .locator('[role="alert"]')
-                            .filter({ hasText: /error|failed|network/i })
+                            .filter({ hasText: /error|failed|network/i }),
                     ).toBeVisible({ timeout: 5000 });
                 }
             }
@@ -1634,7 +1632,7 @@ test.describe('Moderation E2E', () => {
             await expect(
                 page
                     .getByText(/no bans|empty|no results/i)
-                    .filter({ hasNotText: /found|matching/ })
+                    .filter({ hasNotText: /found|matching/ }),
             ).toBeVisible({ timeout: 5000 });
         });
 
@@ -1698,7 +1696,7 @@ test.describe('Moderation E2E', () => {
             // Verify both audit logs were created
             const logs = mocks.getAuditLogs();
             const moderatorLogs = logs.filter(
-                log => log.action === 'create_moderator'
+                log => log.action === 'create_moderator',
             );
             expect(moderatorLogs.length).toBe(2);
         });
@@ -1840,13 +1838,13 @@ test.describe('Moderation E2E', () => {
 
                 // Verify all checkboxes are checked
                 await expect(
-                    page.getByLabel(/select ban for user1/i).first()
+                    page.getByLabel(/select ban for user1/i).first(),
                 ).toBeChecked();
                 await expect(
-                    page.getByLabel(/select ban for user2/i).first()
+                    page.getByLabel(/select ban for user2/i).first(),
                 ).toBeChecked();
                 await expect(
-                    page.getByLabel(/select ban for user3/i).first()
+                    page.getByLabel(/select ban for user3/i).first(),
                 ).toBeChecked();
 
                 // Verify bulk action toolbar shows correct count
@@ -1857,7 +1855,7 @@ test.describe('Moderation E2E', () => {
 
                 // Verify toolbar is hidden
                 await expect(
-                    page.getByText(/bans selected/i)
+                    page.getByText(/bans selected/i),
                 ).not.toBeVisible();
             });
 
@@ -1894,8 +1892,14 @@ test.describe('Moderation E2E', () => {
                 await page.waitForLoadState('networkidle');
 
                 // Select two bans
-                await page.getByLabel(/select ban for user1/i).first().check();
-                await page.getByLabel(/select ban for user2/i).first().check();
+                await page
+                    .getByLabel(/select ban for user1/i)
+                    .first()
+                    .check();
+                await page
+                    .getByLabel(/select ban for user2/i)
+                    .first()
+                    .check();
 
                 // Click bulk unban button
                 await page.getByRole('button', { name: /bulk unban/i }).click();
@@ -1905,7 +1909,7 @@ test.describe('Moderation E2E', () => {
                 await expect(modal).toBeVisible();
                 await expect(modal.getByText(/2 users/i)).toBeVisible();
                 await expect(
-                    modal.getByText(/cannot be undone/i)
+                    modal.getByText(/cannot be undone/i),
                 ).toBeVisible();
 
                 // Confirm action
@@ -1918,7 +1922,7 @@ test.describe('Moderation E2E', () => {
 
                 // Verify success message
                 await expect(
-                    page.getByText(/successfully unbanned.*2.*user/i)
+                    page.getByText(/successfully unbanned.*2.*user/i),
                 ).toBeVisible({ timeout: 5000 });
             });
 
@@ -2003,7 +2007,10 @@ test.describe('Moderation E2E', () => {
                 await page.waitForLoadState('networkidle');
 
                 // Select the single ban
-                await page.getByLabel(/select ban for user1/i).first().check();
+                await page
+                    .getByLabel(/select ban for user1/i)
+                    .first()
+                    .check();
 
                 // Verify toolbar shows singular
                 await expect(page.getByText(/1 ban selected/i)).toBeVisible();
@@ -2076,7 +2083,7 @@ test.describe('Moderation E2E', () => {
 
                     // Selection should be cleared on page change
                     await expect(
-                        page.getByText(/ban selected/i)
+                        page.getByText(/ban selected/i),
                     ).not.toBeVisible();
                 }
             });
@@ -2114,7 +2121,7 @@ test.describe('Moderation E2E', () => {
 
                 // Wait for first item to be visible
                 await expect(
-                    page.locator('input[type="checkbox"]').first()
+                    page.locator('input[type="checkbox"]').first(),
                 ).toBeVisible({ timeout: 5000 });
 
                 const loadTime = Date.now() - startTime;
@@ -2153,7 +2160,7 @@ test.describe('Moderation E2E', () => {
                     reason: 'Active ban',
                     created_at: new Date().toISOString(),
                     expires_at: new Date(
-                        Date.now() + 24 * 60 * 60 * 1000
+                        Date.now() + 24 * 60 * 60 * 1000,
                     ).toISOString(),
                     created_by: 'moderator-1',
                     is_active: true,
@@ -2166,10 +2173,10 @@ test.describe('Moderation E2E', () => {
                     channel_id: 'channel-1',
                     reason: 'Expired ban',
                     created_at: new Date(
-                        Date.now() - 48 * 60 * 60 * 1000
+                        Date.now() - 48 * 60 * 60 * 1000,
                     ).toISOString(),
                     expires_at: new Date(
-                        Date.now() - 24 * 60 * 60 * 1000
+                        Date.now() - 24 * 60 * 60 * 1000,
                     ).toISOString(),
                     created_by: 'moderator-1',
                     is_active: false,
@@ -2205,7 +2212,6 @@ test.describe('Moderation E2E', () => {
                 }
             });
         });
-
 
         test('moderator management UI is responsive', async ({ page }) => {
             const mocks = await setupModerationMocks(page);

@@ -11,327 +11,327 @@ import { ConsentBanner } from './components/consent';
 
 // Lazy load page components for code splitting
 const HomePage = lazy(() =>
-    import('./pages/HomePage').then(m => ({ default: m.HomePage }))
+    import('./pages/HomePage').then(m => ({ default: m.HomePage })),
 );
 const DiscoveryPage = lazy(() =>
-    import('./pages/DiscoveryPage').then(m => ({ default: m.DiscoveryPage }))
+    import('./pages/DiscoveryPage').then(m => ({ default: m.DiscoveryPage })),
 );
 const DiscoveryListsPage = lazy(() =>
     import('./pages/DiscoveryListsPage').then(m => ({
         default: m.DiscoveryListsPage,
-    }))
+    })),
 );
 const DiscoveryListDetailPage = lazy(() =>
     import('./pages/DiscoveryListDetailPage').then(m => ({
         default: m.DiscoveryListDetailPage,
-    }))
+    })),
 );
 const ScrapedClipsPage = lazy(() =>
     import('./pages/ScrapedClipsPage').then(m => ({
         default: m.ScrapedClipsPage,
-    }))
+    })),
 );
 const LiveFeedPage = lazy(() =>
-    import('./pages/LiveFeedPage').then(m => ({ default: m.LiveFeedPage }))
+    import('./pages/LiveFeedPage').then(m => ({ default: m.LiveFeedPage })),
 );
 const ClipDetailPage = lazy(() =>
-    import('./pages/ClipDetailPage').then(m => ({ default: m.ClipDetailPage }))
+    import('./pages/ClipDetailPage').then(m => ({ default: m.ClipDetailPage })),
 );
 const GamePage = lazy(() =>
-    import('./pages/GamePage').then(m => ({ default: m.GamePage }))
+    import('./pages/GamePage').then(m => ({ default: m.GamePage })),
 );
 const CategoryPage = lazy(() =>
-    import('./pages/CategoryPage').then(m => ({ default: m.CategoryPage }))
+    import('./pages/CategoryPage').then(m => ({ default: m.CategoryPage })),
 );
 const BroadcasterPage = lazy(() =>
     import('./pages/BroadcasterPage').then(m => ({
         default: m.BroadcasterPage,
-    }))
+    })),
 );
 const UserProfilePage = lazy(() =>
     import('./pages/UserProfilePage').then(m => ({
         default: m.UserProfilePage,
-    }))
+    })),
 );
 const TagPage = lazy(() =>
-    import('./pages/TagPage').then(m => ({ default: m.TagPage }))
+    import('./pages/TagPage').then(m => ({ default: m.TagPage })),
 );
 import { SearchPage } from './pages/SearchPage';
 const AboutPage = lazy(() =>
-    import('./pages/AboutPage').then(m => ({ default: m.AboutPage }))
+    import('./pages/AboutPage').then(m => ({ default: m.AboutPage })),
 );
 const PrivacyPage = lazy(() =>
-    import('./pages/PrivacyPage').then(m => ({ default: m.PrivacyPage }))
+    import('./pages/PrivacyPage').then(m => ({ default: m.PrivacyPage })),
 );
 const TermsPage = lazy(() =>
-    import('./pages/TermsPage').then(m => ({ default: m.TermsPage }))
+    import('./pages/TermsPage').then(m => ({ default: m.TermsPage })),
 );
 const DMCAPage = lazy(() =>
-    import('./pages/DMCAPage').then(m => ({ default: m.DMCAPage }))
+    import('./pages/DMCAPage').then(m => ({ default: m.DMCAPage })),
 );
 const CommunityRulesPage = lazy(() =>
     import('./pages/CommunityRulesPage').then(m => ({
         default: m.CommunityRulesPage,
-    }))
+    })),
 );
 const ContactPage = lazy(() =>
-    import('./pages/ContactPage').then(m => ({ default: m.ContactPage }))
+    import('./pages/ContactPage').then(m => ({ default: m.ContactPage })),
 );
 const DocsPage = lazy(() =>
-    import('./pages/DocsPage').then(m => ({ default: m.DocsPage }))
+    import('./pages/DocsPage').then(m => ({ default: m.DocsPage })),
 );
 const NotFoundPage = lazy(() =>
-    import('./pages/NotFoundPage').then(m => ({ default: m.NotFoundPage }))
+    import('./pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })),
 );
 const LoginPage = lazy(() =>
-    import('./pages/LoginPage').then(m => ({ default: m.LoginPage }))
+    import('./pages/LoginPage').then(m => ({ default: m.LoginPage })),
 );
 const AuthCallbackPage = lazy(() =>
     import('./pages/AuthCallbackPage').then(m => ({
         default: m.AuthCallbackPage,
-    }))
+    })),
 );
 const FavoritesPage = lazy(() =>
-    import('./pages/FavoritesPage').then(m => ({ default: m.FavoritesPage }))
+    import('./pages/FavoritesPage').then(m => ({ default: m.FavoritesPage })),
 );
 const ProfilePage = lazy(() =>
-    import('./pages/ProfilePage').then(m => ({ default: m.ProfilePage }))
+    import('./pages/ProfilePage').then(m => ({ default: m.ProfilePage })),
 );
 const SubmitClipPage = lazy(() =>
-    import('./pages/SubmitClipPage').then(m => ({ default: m.SubmitClipPage }))
+    import('./pages/SubmitClipPage').then(m => ({ default: m.SubmitClipPage })),
 );
 const UserSubmissionsPage = lazy(() =>
     import('./pages/UserSubmissionsPage').then(m => ({
         default: m.UserSubmissionsPage,
-    }))
+    })),
 );
 const SettingsPage = lazy(() =>
-    import('./pages/SettingsPage').then(m => ({ default: m.SettingsPage }))
+    import('./pages/SettingsPage').then(m => ({ default: m.SettingsPage })),
 );
 const CookieSettingsPage = lazy(() =>
     import('./pages/CookieSettingsPage').then(m => ({
         default: m.CookieSettingsPage,
-    }))
+    })),
 );
 const CreatorDashboardPage = lazy(() =>
     import('./pages/CreatorDashboardPage').then(m => ({
         default: m.CreatorDashboardPage,
-    }))
+    })),
 );
 const AdminDashboard = lazy(() =>
     import('./pages/admin/AdminDashboard').then(m => ({
         default: m.AdminDashboard,
-    }))
+    })),
 );
 const AdminClipsPage = lazy(() =>
     import('./pages/admin/AdminClipsPage').then(m => ({
         default: m.AdminClipsPage,
-    }))
+    })),
 );
 const AdminCommentsPage = lazy(() =>
     import('./pages/admin/AdminCommentsPage').then(m => ({
         default: m.AdminCommentsPage,
-    }))
+    })),
 );
 const AdminUsersPage = lazy(() =>
     import('./pages/admin/AdminUsersPage').then(m => ({
         default: m.AdminUsersPage,
-    }))
+    })),
 );
 const AdminReportsPage = lazy(() =>
     import('./pages/admin/AdminReportsPage').then(m => ({
         default: m.AdminReportsPage,
-    }))
+    })),
 );
 const AdminWebhookDLQPage = lazy(() =>
     import('./pages/admin/AdminWebhookDLQPage').then(m => ({
         default: m.AdminWebhookDLQPage,
-    }))
+    })),
 );
 const AdminSyncPage = lazy(() =>
     import('./pages/admin/AdminSyncPage').then(m => ({
         default: m.AdminSyncPage,
-    }))
+    })),
 );
 const ModerationQueuePage = lazy(() =>
     import('./pages/admin/ModerationQueuePage').then(m => ({
         default: m.ModerationQueuePage,
-    }))
+    })),
 );
 const AdminModerationQueuePage = lazy(() =>
     import('./pages/admin/AdminModerationQueuePage').then(m => ({
         default: m.AdminModerationQueuePage,
-    }))
+    })),
 );
 const AdminVerificationQueuePage = lazy(() =>
     import('./pages/admin/AdminVerificationQueuePage').then(m => ({
         default: m.AdminVerificationQueuePage,
-    }))
+    })),
 );
 const AdminModerationAnalyticsPage = lazy(
-    () => import('./pages/admin/AdminModerationAnalyticsPage')
+    () => import('./pages/admin/AdminModerationAnalyticsPage'),
 );
 const AdminModeratorsPage = lazy(() =>
     import('./pages/admin/AdminModeratorsPage').then(m => ({
         default: m.AdminModeratorsPage,
-    }))
+    })),
 );
 const AdminBansPage = lazy(() =>
     import('./pages/admin/AdminBansPage').then(m => ({
         default: m.AdminBansPage,
-    }))
+    })),
 );
 const AdminAuditLogsPage = lazy(() =>
     import('./pages/admin/AdminAuditLogsPage').then(m => ({
         default: m.AdminAuditLogsPage,
-    }))
+    })),
 );
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
 const NotificationsPage = lazy(() =>
     import('./pages/NotificationsPage').then(m => ({
         default: m.NotificationsPage,
-    }))
+    })),
 );
 const NotificationPreferencesPage = lazy(() =>
     import('./pages/NotificationPreferencesPage').then(m => ({
         default: m.NotificationPreferencesPage,
-    }))
+    })),
 );
 const CreatorAnalyticsPage = lazy(() => import('./pages/CreatorAnalyticsPage'));
 const PersonalStatsPage = lazy(() => import('./pages/PersonalStatsPage'));
 const AdminAnalyticsPage = lazy(
-    () => import('./pages/admin/AdminAnalyticsPage')
+    () => import('./pages/admin/AdminAnalyticsPage'),
 );
 const AdminRevenuePage = lazy(() => import('./pages/admin/AdminRevenuePage'));
 const AdminCampaignsPage = lazy(
-    () => import('./pages/admin/AdminCampaignsPage')
+    () => import('./pages/admin/AdminCampaignsPage'),
 );
 const AdminDiscoveryListsPage = lazy(() =>
     import('./pages/admin/AdminDiscoveryListsPage').then(m => ({
         default: m.AdminDiscoveryListsPage,
-    }))
+    })),
 );
 const AdminDiscoveryListFormPage = lazy(() =>
     import('./pages/admin/AdminDiscoveryListFormPage').then(m => ({
         default: m.AdminDiscoveryListFormPage,
-    }))
+    })),
 );
 const ServiceStatusPage = lazy(() =>
     import('./pages/admin/ServiceStatusPage').then(m => ({
         default: m.ServiceStatusPage,
-    }))
+    })),
 );
 const PricingPage = lazy(() => import('./pages/PricingPage'));
 const SubscriptionSuccessPage = lazy(
-    () => import('./pages/SubscriptionSuccessPage')
+    () => import('./pages/SubscriptionSuccessPage'),
 );
 const SubscriptionCancelPage = lazy(
-    () => import('./pages/SubscriptionCancelPage')
+    () => import('./pages/SubscriptionCancelPage'),
 );
 const RoleBadgeTestPage = lazy(() =>
     import('./pages/RoleBadgeTestPage').then(m => ({
         default: m.RoleBadgeTestPage,
-    }))
+    })),
 );
 const VerifiedBadgeTestPage = lazy(() =>
     import('./pages/VerifiedBadgeTestPage').then(m => ({
         default: m.VerifiedBadgeTestPage,
-    }))
+    })),
 );
 const VerificationApplicationPage = lazy(() =>
     import('./pages/VerificationApplicationPage').then(m => ({
         default: m.VerificationApplicationPage,
-    }))
+    })),
 );
 const PlaylistsPage = lazy(() =>
-    import('./pages/PlaylistsPage').then(m => ({ default: m.PlaylistsPage }))
+    import('./pages/PlaylistsPage').then(m => ({ default: m.PlaylistsPage })),
 );
 const PlaylistDetailPage = lazy(() =>
     import('./pages/PlaylistDetailPage').then(m => ({
         default: m.PlaylistDetailPage,
-    }))
+    })),
 );
 const PublicPlaylistsPage = lazy(() =>
     import('./pages/PublicPlaylistsPage').then(m => ({
         default: m.PublicPlaylistsPage,
-    }))
+    })),
 );
 const WatchHistoryPage = lazy(() =>
     import('./pages/WatchHistoryPage').then(m => ({
         default: m.WatchHistoryPage,
-    }))
+    })),
 );
 const StreamPage = lazy(() =>
-    import('./pages/StreamPage').then(m => ({ default: m.StreamPage }))
+    import('./pages/StreamPage').then(m => ({ default: m.StreamPage })),
 );
 const ForumModerationPage = lazy(() =>
     import('./pages/admin/ForumModerationPage').then(m => ({
         default: m.ForumModerationPage,
-    }))
+    })),
 );
 const ModerationLogPage = lazy(() =>
     import('./pages/admin/ModerationLogPage').then(m => ({
         default: m.ModerationLogPage,
-    }))
+    })),
 );
 const ModerationUsersPage = lazy(() =>
     import('./pages/ModerationUsersPage').then(m => ({
         default: m.ModerationUsersPage,
-    }))
+    })),
 );
 const ChatPage = lazy(() =>
-    import('./pages/ChatPage').then(m => ({ default: m.ChatPage }))
+    import('./pages/ChatPage').then(m => ({ default: m.ChatPage })),
 );
 const ChannelSettingsPage = lazy(() =>
     import('./pages/ChannelSettingsPage').then(m => ({
         default: m.ChannelSettingsPage,
-    }))
+    })),
 );
 const ForumIndex = lazy(() =>
-    import('./pages/forum/ForumIndex').then(m => ({ default: m.ForumIndex }))
+    import('./pages/forum/ForumIndex').then(m => ({ default: m.ForumIndex })),
 );
 const ThreadDetail = lazy(() =>
     import('./pages/forum/ThreadDetail').then(m => ({
         default: m.ThreadDetail,
-    }))
+    })),
 );
 const CreateThread = lazy(() =>
     import('./pages/forum/CreateThread').then(m => ({
         default: m.CreateThread,
-    }))
+    })),
 );
 const ForumSearchPage = lazy(() =>
     import('./pages/forum/ForumSearchPage').then(m => ({
         default: m.ForumSearchPage,
-    }))
+    })),
 );
 const ForumAnalyticsPage = lazy(() =>
     import('./pages/forum/ForumAnalyticsPage').then(m => ({
         default: m.ForumAnalyticsPage,
-    }))
+    })),
 );
 const WebhookSubscriptionsPage = lazy(() =>
     import('./pages/WebhookSubscriptionsPage').then(m => ({
         default: m.WebhookSubscriptionsPage,
-    }))
+    })),
 );
 const WatchPartyPage = lazy(() =>
-    import('./pages/WatchPartyPage').then(m => ({ default: m.WatchPartyPage }))
+    import('./pages/WatchPartyPage').then(m => ({ default: m.WatchPartyPage })),
 );
 const WatchPartyBrowsePage = lazy(() =>
     import('./pages/WatchPartyBrowsePage').then(m => ({
         default: m.WatchPartyBrowsePage,
-    }))
+    })),
 );
 const WatchPartyCreatePage = lazy(() =>
     import('./pages/WatchPartyCreatePage').then(m => ({
         default: m.WatchPartyCreatePage,
-    }))
+    })),
 );
 const WatchPartySettingsPage = lazy(() =>
     import('./pages/WatchPartySettingsPage').then(m => ({
         default: m.WatchPartySettingsPage,
-    }))
+    })),
 );
 
 // Loading fallback component

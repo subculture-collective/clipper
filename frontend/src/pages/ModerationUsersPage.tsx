@@ -52,7 +52,7 @@ export function ModerationUsersPage() {
             if (search) params.append('search', search);
 
             const response = await axios.get(
-                `/api/v1/admin/users?${params.toString()}`
+                `/api/v1/admin/users?${params.toString()}`,
             );
             return response.data;
         },
@@ -64,12 +64,15 @@ export function ModerationUsersPage() {
     };
 
     // Check if current user is a broadcaster (has a Twitch account)
-    const isBroadcaster = Boolean((currentUser as { is_broadcaster?: boolean } | null)?.is_broadcaster);
+    const isBroadcaster = Boolean(
+        (currentUser as { is_broadcaster?: boolean } | null)?.is_broadcaster,
+    );
 
     // For now, we'll assume false for Twitch moderator status
     // In a real implementation, this would come from the backend
     const isTwitchModerator = Boolean(
-        (currentUser as { is_twitch_moderator?: boolean } | null)?.is_twitch_moderator
+        (currentUser as { is_twitch_moderator?: boolean } | null)
+            ?.is_twitch_moderator,
     );
 
     const users = data?.users || [];
@@ -208,12 +211,12 @@ export function ModerationUsersPage() {
                                                         }
                                                         onModalOpen={() =>
                                                             setActionsLocked(
-                                                                true
+                                                                true,
                                                             )
                                                         }
                                                         onModalClose={() =>
                                                             setActionsLocked(
-                                                                false
+                                                                false,
                                                             )
                                                         }
                                                     />

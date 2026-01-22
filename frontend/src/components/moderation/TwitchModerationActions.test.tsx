@@ -16,6 +16,7 @@ vi.mock('../../context/AuthContext', async () => {
 });
 
 import { ToastProvider } from '../../context/ToastContext';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const mockUser = {
     id: 'user-123',
@@ -30,7 +31,12 @@ const mockUser = {
 
 // Wrapper component that provides ToastContext
 function TestWrapper({ children }: { children: React.ReactNode }) {
-    return <ToastProvider>{children}</ToastProvider>;
+    const client = new QueryClient();
+    return (
+        <QueryClientProvider client={client}>
+            <ToastProvider>{children}</ToastProvider>
+        </QueryClientProvider>
+    );
 }
 
 describe('TwitchModerationActions', () => {
@@ -60,15 +66,15 @@ describe('TwitchModerationActions', () => {
                     isBroadcaster={false}
                     isTwitchModerator={false}
                 />,
-                { wrapper: TestWrapper }
+                { wrapper: TestWrapper },
             );
 
             // Should not render ban/unban buttons
             expect(
-                screen.queryByRole('button', { name: /ban.*on twitch/i })
+                screen.queryByRole('button', { name: /ban.*on twitch/i }),
             ).not.toBeInTheDocument();
             expect(
-                screen.queryByRole('button', { name: /unban.*on twitch/i })
+                screen.queryByRole('button', { name: /unban.*on twitch/i }),
             ).not.toBeInTheDocument();
         });
 
@@ -93,15 +99,15 @@ describe('TwitchModerationActions', () => {
                     isBroadcaster={false}
                     isTwitchModerator={false}
                 />,
-                { wrapper: TestWrapper }
+                { wrapper: TestWrapper },
             );
 
             // Should not render ban/unban buttons
             expect(
-                screen.queryByRole('button', { name: /ban.*on twitch/i })
+                screen.queryByRole('button', { name: /ban.*on twitch/i }),
             ).not.toBeInTheDocument();
             expect(
-                screen.queryByRole('button', { name: /unban.*on twitch/i })
+                screen.queryByRole('button', { name: /unban.*on twitch/i }),
             ).not.toBeInTheDocument();
         });
 
@@ -126,13 +132,13 @@ describe('TwitchModerationActions', () => {
                     isBroadcaster={true}
                     isTwitchModerator={false}
                 />,
-                { wrapper: TestWrapper }
+                { wrapper: TestWrapper },
             );
 
             expect(
                 screen.getByRole('button', {
                     name: /ban targetuser on twitch/i,
-                })
+                }),
             ).toBeInTheDocument();
         });
 
@@ -157,13 +163,13 @@ describe('TwitchModerationActions', () => {
                     isBroadcaster={false}
                     isTwitchModerator={true}
                 />,
-                { wrapper: TestWrapper }
+                { wrapper: TestWrapper },
             );
 
             expect(
                 screen.getByRole('button', {
                     name: /ban targetuser on twitch/i,
-                })
+                }),
             ).toBeInTheDocument();
         });
 
@@ -188,13 +194,13 @@ describe('TwitchModerationActions', () => {
                     isBroadcaster={true}
                     isTwitchModerator={false}
                 />,
-                { wrapper: TestWrapper }
+                { wrapper: TestWrapper },
             );
 
             expect(
                 screen.getByRole('button', {
                     name: /ban targetuser on twitch/i,
-                })
+                }),
             ).toBeInTheDocument();
         });
 
@@ -219,13 +225,13 @@ describe('TwitchModerationActions', () => {
                     isBroadcaster={false}
                     isTwitchModerator={true}
                 />,
-                { wrapper: TestWrapper }
+                { wrapper: TestWrapper },
             );
 
             expect(
                 screen.getByRole('button', {
                     name: /ban targetuser on twitch/i,
-                })
+                }),
             ).toBeInTheDocument();
         });
 
@@ -250,13 +256,13 @@ describe('TwitchModerationActions', () => {
                     isBanned={true}
                     isBroadcaster={true}
                 />,
-                { wrapper: TestWrapper }
+                { wrapper: TestWrapper },
             );
 
             expect(
                 screen.getByRole('button', {
                     name: /unban targetuser on twitch/i,
-                })
+                }),
             ).toBeInTheDocument();
         });
     });
@@ -286,13 +292,13 @@ describe('TwitchModerationActions', () => {
                     username='targetuser'
                     isBroadcaster={true}
                 />,
-                { wrapper: TestWrapper }
+                { wrapper: TestWrapper },
             );
 
             await user.click(
                 screen.getByRole('button', {
                     name: /ban targetuser on twitch/i,
-                })
+                }),
             );
 
             expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -310,7 +316,7 @@ describe('TwitchModerationActions', () => {
             };
 
             vi.mocked(moderationApi.banUserOnTwitch).mockResolvedValue(
-                mockBanResponse
+                mockBanResponse,
             );
 
             render(
@@ -321,22 +327,22 @@ describe('TwitchModerationActions', () => {
                     isBroadcaster={true}
                     onSuccess={onSuccess}
                 />,
-                { wrapper: TestWrapper }
+                { wrapper: TestWrapper },
             );
 
             await user.click(
                 screen.getByRole('button', {
                     name: /ban targetuser on twitch/i,
-                })
+                }),
             );
 
             const modal = screen.getByRole('dialog');
             expect(
-                within(modal).getByLabelText(/permanent ban/i)
+                within(modal).getByLabelText(/permanent ban/i),
             ).toBeChecked();
 
             await user.click(
-                within(modal).getByRole('button', { name: /ban user/i })
+                within(modal).getByRole('button', { name: /ban user/i }),
             );
 
             await waitFor(() => {
@@ -362,7 +368,7 @@ describe('TwitchModerationActions', () => {
             };
 
             vi.mocked(moderationApi.banUserOnTwitch).mockResolvedValue(
-                mockBanResponse
+                mockBanResponse,
             );
 
             render(
@@ -372,18 +378,18 @@ describe('TwitchModerationActions', () => {
                     username='targetuser'
                     isBroadcaster={true}
                 />,
-                { wrapper: TestWrapper }
+                { wrapper: TestWrapper },
             );
 
             await user.click(
                 screen.getByRole('button', {
                     name: /ban targetuser on twitch/i,
-                })
+                }),
             );
 
             const modal = screen.getByRole('dialog');
             await user.click(
-                within(modal).getByLabelText(/timeout \(temporary\)/i)
+                within(modal).getByLabelText(/timeout \(temporary\)/i),
             );
 
             // Click on "Custom duration" button to reveal the input
@@ -398,7 +404,7 @@ describe('TwitchModerationActions', () => {
             await user.type(durationInput, '300');
 
             await user.click(
-                within(modal).getByRole('button', { name: /timeout user/i })
+                within(modal).getByRole('button', { name: /timeout user/i }),
             );
 
             await waitFor(() => {
@@ -421,7 +427,7 @@ describe('TwitchModerationActions', () => {
             };
 
             vi.mocked(moderationApi.banUserOnTwitch).mockResolvedValue(
-                mockBanResponse
+                mockBanResponse,
             );
 
             render(
@@ -431,13 +437,13 @@ describe('TwitchModerationActions', () => {
                     username='targetuser'
                     isBroadcaster={true}
                 />,
-                { wrapper: TestWrapper }
+                { wrapper: TestWrapper },
             );
 
             await user.click(
                 screen.getByRole('button', {
                     name: /ban targetuser on twitch/i,
-                })
+                }),
             );
 
             const modal = screen.getByRole('dialog');
@@ -446,7 +452,7 @@ describe('TwitchModerationActions', () => {
             await user.type(reasonInput, 'Spam in chat');
 
             await user.click(
-                within(modal).getByRole('button', { name: /ban user/i })
+                within(modal).getByRole('button', { name: /ban user/i }),
             );
 
             await waitFor(() => {
@@ -486,18 +492,18 @@ describe('TwitchModerationActions', () => {
                     isBanned={true}
                     isBroadcaster={true}
                 />,
-                { wrapper: TestWrapper }
+                { wrapper: TestWrapper },
             );
 
             await user.click(
                 screen.getByRole('button', {
                     name: /unban targetuser on twitch/i,
-                })
+                }),
             );
 
             expect(screen.getByRole('dialog')).toBeInTheDocument();
             expect(
-                screen.getByText(/unban user on twitch/i)
+                screen.getByText(/unban user on twitch/i),
             ).toBeInTheDocument();
         });
 
@@ -512,7 +518,7 @@ describe('TwitchModerationActions', () => {
             };
 
             vi.mocked(moderationApi.unbanUserOnTwitch).mockResolvedValue(
-                mockUnbanResponse
+                mockUnbanResponse,
             );
 
             render(
@@ -524,18 +530,18 @@ describe('TwitchModerationActions', () => {
                     isBroadcaster={true}
                     onSuccess={onSuccess}
                 />,
-                { wrapper: TestWrapper }
+                { wrapper: TestWrapper },
             );
 
             await user.click(
                 screen.getByRole('button', {
                     name: /unban targetuser on twitch/i,
-                })
+                }),
             );
 
             const modal = screen.getByRole('dialog');
             await user.click(
-                within(modal).getByRole('button', { name: /unban user/i })
+                within(modal).getByRole('button', { name: /unban user/i }),
             );
 
             await waitFor(() => {
@@ -578,7 +584,7 @@ describe('TwitchModerationActions', () => {
             };
 
             vi.mocked(moderationApi.banUserOnTwitch).mockRejectedValue(
-                mockError
+                mockError,
             );
 
             render(
@@ -588,24 +594,24 @@ describe('TwitchModerationActions', () => {
                     username='targetuser'
                     isBroadcaster={true}
                 />,
-                { wrapper: TestWrapper }
+                { wrapper: TestWrapper },
             );
 
             await user.click(
                 screen.getByRole('button', {
                     name: /ban targetuser on twitch/i,
-                })
+                }),
             );
             const modal = screen.getByRole('dialog');
             await user.click(
-                within(modal).getByRole('button', { name: /ban user/i })
+                within(modal).getByRole('button', { name: /ban user/i }),
             );
 
             await waitFor(() => {
                 expect(
-                    screen.getByTestId('twitch-action-error-alert')
+                    screen.getByTestId('twitch-action-error-alert'),
                 ).toHaveTextContent(
-                    /site moderators cannot perform twitch actions/i
+                    /site moderators cannot perform twitch actions/i,
                 );
             });
         });
@@ -623,7 +629,7 @@ describe('TwitchModerationActions', () => {
             };
 
             vi.mocked(moderationApi.banUserOnTwitch).mockRejectedValue(
-                mockError
+                mockError,
             );
 
             render(
@@ -633,24 +639,24 @@ describe('TwitchModerationActions', () => {
                     username='targetuser'
                     isBroadcaster={true}
                 />,
-                { wrapper: TestWrapper }
+                { wrapper: TestWrapper },
             );
 
             await user.click(
                 screen.getByRole('button', {
                     name: /ban targetuser on twitch/i,
-                })
+                }),
             );
             const modal = screen.getByRole('dialog');
             await user.click(
-                within(modal).getByRole('button', { name: /ban user/i })
+                within(modal).getByRole('button', { name: /ban user/i }),
             );
 
             await waitFor(() => {
                 expect(
-                    screen.getByTestId('twitch-action-error-alert')
+                    screen.getByTestId('twitch-action-error-alert'),
                 ).toHaveTextContent(
-                    /do not have the required twitch permissions/i
+                    /do not have the required twitch permissions/i,
                 );
             });
         });
@@ -668,7 +674,7 @@ describe('TwitchModerationActions', () => {
             };
 
             vi.mocked(moderationApi.banUserOnTwitch).mockRejectedValue(
-                mockError
+                mockError,
             );
 
             render(
@@ -678,22 +684,22 @@ describe('TwitchModerationActions', () => {
                     username='targetuser'
                     isBroadcaster={true}
                 />,
-                { wrapper: TestWrapper }
+                { wrapper: TestWrapper },
             );
 
             await user.click(
                 screen.getByRole('button', {
                     name: /ban targetuser on twitch/i,
-                })
+                }),
             );
             const modal = screen.getByRole('dialog');
             await user.click(
-                within(modal).getByRole('button', { name: /ban user/i })
+                within(modal).getByRole('button', { name: /ban user/i }),
             );
 
             await waitFor(() => {
                 expect(
-                    screen.getByTestId('twitch-action-error-alert')
+                    screen.getByTestId('twitch-action-error-alert'),
                 ).toHaveTextContent(/rate limit exceeded/i);
             });
         });
@@ -703,7 +709,7 @@ describe('TwitchModerationActions', () => {
             const mockError = new Error('Network error');
 
             vi.mocked(moderationApi.banUserOnTwitch).mockRejectedValue(
-                mockError
+                mockError,
             );
 
             render(
@@ -713,22 +719,22 @@ describe('TwitchModerationActions', () => {
                     username='targetuser'
                     isBroadcaster={true}
                 />,
-                { wrapper: TestWrapper }
+                { wrapper: TestWrapper },
             );
 
             await user.click(
                 screen.getByRole('button', {
                     name: /ban targetuser on twitch/i,
-                })
+                }),
             );
             const modal = screen.getByRole('dialog');
             await user.click(
-                within(modal).getByRole('button', { name: /ban user/i })
+                within(modal).getByRole('button', { name: /ban user/i }),
             );
 
             await waitFor(() => {
                 expect(
-                    screen.getByTestId('twitch-action-error-alert')
+                    screen.getByTestId('twitch-action-error-alert'),
                 ).toHaveTextContent(/network error/i);
             });
         });
@@ -759,13 +765,13 @@ describe('TwitchModerationActions', () => {
                     username='targetuser'
                     isBroadcaster={true}
                 />,
-                { wrapper: TestWrapper }
+                { wrapper: TestWrapper },
             );
 
             await user.click(
                 screen.getByRole('button', {
                     name: /ban targetuser on twitch/i,
-                })
+                }),
             );
             expect(screen.getByRole('dialog')).toBeInTheDocument();
 
@@ -783,14 +789,14 @@ describe('TwitchModerationActions', () => {
                     username='targetuser'
                     isBroadcaster={true}
                 />,
-                { wrapper: TestWrapper }
+                { wrapper: TestWrapper },
             );
 
             // Open modal and fill form
             await user.click(
                 screen.getByRole('button', {
                     name: /ban targetuser on twitch/i,
-                })
+                }),
             );
             let modal = screen.getByRole('dialog');
 
@@ -800,27 +806,27 @@ describe('TwitchModerationActions', () => {
 
             // Close modal
             await user.click(
-                within(modal).getByRole('button', { name: /cancel/i })
+                within(modal).getByRole('button', { name: /cancel/i }),
             );
 
             // Reopen modal
             await user.click(
                 screen.getByRole('button', {
                     name: /ban targetuser on twitch/i,
-                })
+                }),
             );
             modal = screen.getByRole('dialog');
 
             // Check form is reset
             expect(
-                within(modal).getByLabelText(/reason \(optional\)/i)
+                within(modal).getByLabelText(/reason \(optional\)/i),
             ).toHaveValue('');
         });
 
         it('should prevent closing modal while loading', async () => {
             const user = userEvent.setup();
             vi.mocked(moderationApi.banUserOnTwitch).mockImplementation(
-                () => new Promise(() => {}) // Never resolves
+                () => new Promise(() => {}), // Never resolves
             );
 
             render(
@@ -830,13 +836,13 @@ describe('TwitchModerationActions', () => {
                     username='targetuser'
                     isBroadcaster={true}
                 />,
-                { wrapper: TestWrapper }
+                { wrapper: TestWrapper },
             );
 
             await user.click(
                 screen.getByRole('button', {
                     name: /ban targetuser on twitch/i,
-                })
+                }),
             );
             const modal = screen.getByRole('dialog');
 
@@ -850,7 +856,7 @@ describe('TwitchModerationActions', () => {
 
             // Cancel button should be disabled
             expect(
-                within(modal).getByRole('button', { name: /cancel/i })
+                within(modal).getByRole('button', { name: /cancel/i }),
             ).toBeDisabled();
         });
     });

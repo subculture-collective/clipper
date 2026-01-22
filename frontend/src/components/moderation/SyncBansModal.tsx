@@ -124,7 +124,7 @@ export function SyncBansModal({
             });
         } catch (err: unknown) {
             setError(
-                getErrorMessage(err, 'Failed to start sync. Please try again.')
+                getErrorMessage(err, 'Failed to start sync. Please try again.'),
             );
         } finally {
             setIsSubmitting(false);

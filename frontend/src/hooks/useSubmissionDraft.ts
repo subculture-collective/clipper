@@ -3,10 +3,21 @@ import type { SubmitClipRequest } from '../types/submission';
 import type { Tag } from '../types/tag';
 
 const DRAFT_STORAGE_KEY = 'submission_draft';
-// Allow configuration via environment variable for testing
+
+// Extend Window type for test-only config injected in E2E
+declare global {
+    interface Window {
+        __DRAFT_AUTOSAVE_INTERVAL__?: number;
+    }
+}
+
+// Allow configuration via a test-only global for testing
 const getAutoSaveInterval = () => {
-    if (typeof window !== 'undefined' && (window as any).__DRAFT_AUTOSAVE_INTERVAL__) {
-        return (window as any).__DRAFT_AUTOSAVE_INTERVAL__;
+    if (
+        typeof window !== 'undefined' &&
+        typeof window.__DRAFT_AUTOSAVE_INTERVAL__ === 'number'
+    ) {
+        return window.__DRAFT_AUTOSAVE_INTERVAL__;
     }
     return 30000; // 30 seconds by default
 };
@@ -40,20 +51,23 @@ export function useSubmissionDraft() {
     }, []);
 
     // Save draft to localStorage
-    const saveDraft = useCallback((formData: SubmitClipRequest, selectedTags: Tag[]) => {
-        try {
-            const draft: SubmissionDraft = {
-                formData,
-                selectedTags,
-                lastSaved: Date.now(),
-            };
-            localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
-            setHasDraft(true);
-            setLastSaved(draft.lastSaved);
-        } catch (error) {
-            console.error('Failed to save draft:', error);
-        }
-    }, []);
+    const saveDraft = useCallback(
+        (formData: SubmitClipRequest, selectedTags: Tag[]) => {
+            try {
+                const draft: SubmissionDraft = {
+                    formData,
+                    selectedTags,
+                    lastSaved: Date.now(),
+                };
+                localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+                setHasDraft(true);
+                setLastSaved(draft.lastSaved);
+            } catch (error) {
+                console.error('Failed to save draft:', error);
+            }
+        },
+        [],
+    );
 
     // Clear draft from localStorage
     const clearDraft = useCallback(() => {
@@ -67,30 +81,36 @@ export function useSubmissionDraft() {
     }, []);
 
     // Check if form has meaningful content to save
-    const hasContent = useCallback((formData: SubmitClipRequest, selectedTags: Tag[]): boolean => {
-        return Boolean(
-            formData.clip_url ||
-            formData.custom_title ||
-            formData.submission_reason ||
-            formData.broadcaster_name_override ||
-            selectedTags.length > 0
-        );
-    }, []);
+    const hasContent = useCallback(
+        (formData: SubmitClipRequest, selectedTags: Tag[]): boolean => {
+            return Boolean(
+                formData.clip_url ||
+                formData.custom_title ||
+                formData.submission_reason ||
+                formData.broadcaster_name_override ||
+                selectedTags.length > 0,
+            );
+        },
+        [],
+    );
 
     // Setup auto-save
-    const startAutoSave = useCallback((formData: SubmitClipRequest, selectedTags: Tag[]) => {
-        // Clear existing timer
-        if (autoSaveTimerRef.current) {
-            clearTimeout(autoSaveTimerRef.current);
-        }
+    const startAutoSave = useCallback(
+        (formData: SubmitClipRequest, selectedTags: Tag[]) => {
+            // Clear existing timer
+            if (autoSaveTimerRef.current) {
+                clearTimeout(autoSaveTimerRef.current);
+            }
 
-        // Only auto-save if there's content
-        if (hasContent(formData, selectedTags)) {
-            autoSaveTimerRef.current = setTimeout(() => {
-                saveDraft(formData, selectedTags);
-            }, DRAFT_AUTOSAVE_INTERVAL) as unknown as number;
-        }
-    }, [hasContent, saveDraft]);
+            // Only auto-save if there's content
+            if (hasContent(formData, selectedTags)) {
+                autoSaveTimerRef.current = setTimeout(() => {
+                    saveDraft(formData, selectedTags);
+                }, DRAFT_AUTOSAVE_INTERVAL) as unknown as number;
+            }
+        },
+        [hasContent, saveDraft],
+    );
 
     // Cleanup on unmount
     useEffect(() => {
