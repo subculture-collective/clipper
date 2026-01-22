@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { searchApi } from '../../lib/search-api';
-import type { SavedSearch, SearchFilters } from '../../types/search';
+import type { SavedSearch } from '../../types/search';
 
 interface SavedSearchesProps {
   className?: string;
@@ -12,13 +12,10 @@ export function SavedSearches({ className = '' }: SavedSearchesProps) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    loadSavedSearches();
-  }, []);
-
-  const loadSavedSearches = () => {
+    // Load saved searches from localStorage on mount
     const searches = searchApi.getSavedSearches();
     setSavedSearches(searches);
-  };
+  }, []);
 
   const handleSearchClick = (search: SavedSearch) => {
     const params = new URLSearchParams({ q: search.query });
@@ -41,13 +38,15 @@ export function SavedSearches({ className = '' }: SavedSearchesProps) {
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     searchApi.deleteSavedSearch(id);
-    loadSavedSearches();
+    // Reload saved searches
+    const searches = searchApi.getSavedSearches();
+    setSavedSearches(searches);
   };
 
   const handleClearAll = () => {
     if (confirm('Clear all saved searches?')) {
       searchApi.clearSavedSearches();
-      loadSavedSearches();
+      setSavedSearches([]);
     }
   };
 
