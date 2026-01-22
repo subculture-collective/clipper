@@ -1313,6 +1313,9 @@ func main() {
 			subscriptions.POST("/checkout", middleware.RateLimitMiddleware(redisClient, 5, time.Minute), subscriptionHandler.CreateCheckoutSession)
 			subscriptions.POST("/portal", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), subscriptionHandler.CreatePortalSession)
 			subscriptions.POST("/change-plan", middleware.RateLimitMiddleware(redisClient, 5, time.Minute), subscriptionHandler.ChangeSubscriptionPlan)
+			subscriptions.POST("/cancel", middleware.RateLimitMiddleware(redisClient, 5, time.Minute), subscriptionHandler.CancelSubscription)
+			subscriptions.POST("/reactivate", middleware.RateLimitMiddleware(redisClient, 5, time.Minute), subscriptionHandler.ReactivateSubscription)
+			subscriptions.GET("/invoices", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), subscriptionHandler.GetInvoices)
 		}
 
 		// Outbound webhook subscription routes

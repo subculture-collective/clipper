@@ -80,7 +80,7 @@ test.describe('Premium Subscription - Checkout Flow', () => {
     expect(page.url()).toMatch(/login|auth/);
   });
 
-  test.skip('should complete successful checkout with test card', async ({ authenticatedPage }) => {
+  test('should complete successful checkout with test card', async ({ authenticatedPage }) => {
     // Skip this test if Stripe is not configured
     const stripeKey = process.env.VITE_STRIPE_PUBLISHABLE_KEY;
     if (!stripeKey || !stripeKey.startsWith('pk_test_')) {
@@ -115,7 +115,7 @@ test.describe('Premium Subscription - Checkout Flow', () => {
     await successPage.verifySuccessMessage();
   });
 
-  test.skip('should handle checkout with declined card', async ({ authenticatedPage }) => {
+  test('should handle checkout with declined card', async ({ authenticatedPage }) => {
     // Skip this test if Stripe is not configured
     const stripeKey = process.env.VITE_STRIPE_PUBLISHABLE_KEY;
     if (!stripeKey || !stripeKey.startsWith('pk_test_')) {
@@ -145,7 +145,7 @@ test.describe('Premium Subscription - Checkout Flow', () => {
     await expect(errorMessage).toBeVisible({ timeout: 10000 });
   });
 
-  test.skip('should handle checkout with insufficient funds card', async ({ authenticatedPage }) => {
+  test('should handle checkout with insufficient funds card', async ({ authenticatedPage }) => {
     const stripeKey = process.env.VITE_STRIPE_PUBLISHABLE_KEY;
     if (!stripeKey || !stripeKey.startsWith('pk_test_')) {
       test.skip();
@@ -243,9 +243,14 @@ test.describe('Premium Subscription - Success Page', () => {
 });
 
 test.describe('Premium Subscription - Entitlements', () => {
-  test.skip('should enable pro features after successful purchase', async ({ authenticatedPage }) => {
-    // This test requires a completed subscription
-    // Skip if not in integration test environment
+  test('should enable pro features after successful purchase', async ({ authenticatedPage }) => {
+    // Skip this test if Stripe is not configured
+    // This test requires a completed subscription to verify pro feature access
+    const stripeKey = process.env.VITE_STRIPE_PUBLISHABLE_KEY;
+    if (!stripeKey || !stripeKey.startsWith('pk_test_')) {
+      test.skip();
+    }
+    
     const page = authenticatedPage;
 
     // Navigate to a page with pro features
