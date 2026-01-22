@@ -87,3 +87,39 @@ export interface SearchFilters {
   dateFrom?: string;
   dateTo?: string;
 }
+
+// Advanced search discovery types
+export interface TrendingSearch {
+  query: string;
+  search_count: number;
+  unique_users: number;
+  avg_results: number;
+}
+
+export interface SearchHistoryItem {
+  query: string;
+  result_count: number;
+  created_at: string;
+}
+
+export interface FailedSearch {
+  query: string;
+  search_count: number;
+  last_searched: string;
+}
+
+export interface SearchAnalyticsSummary {
+  total_searches: number;
+  unique_users: number;
+  failed_searches: number;
+  avg_results_per_search: number;
+  success_rate: number;
+}
+
+export interface SavedSearch {
+  id: string;
+  query: string;
+  filters?: SearchFilters;
+  created_at: string;
+  name?: string;
+}

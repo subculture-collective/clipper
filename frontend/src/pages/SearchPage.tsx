@@ -5,9 +5,13 @@ import { Container, SEO } from '../components';
 import { ClipCard } from '../components/clip';
 import { SearchBar, SearchFilters } from '../components/search';
 import { SearchErrorAlert } from '../components/search/SearchErrorAlert';
+import { TrendingSearches } from '../components/search/TrendingSearches';
+import { SearchHistory } from '../components/search/SearchHistory';
+import { SavedSearches } from '../components/search/SavedSearches';
 import { SearchResultSkeleton, EmptyStateWithAction } from '../components/ui';
 import { searchApi } from '../lib/search-api';
 import { useSearchErrorState } from '../hooks/useSearchErrorState';
+import { useSearchHistory } from '../hooks/useSearchHistory';
 import type { SearchRequest, SearchResponse, SearchFilters as SearchFiltersType } from '../types/search';
 
 export function SearchPage() {
@@ -98,6 +102,9 @@ export function SearchPage() {
     // Search error state management
     const { errorState, handleSearchError, handleSearchSuccess, retry, cancelRetry, dismissError } = useSearchErrorState();
 
+    // Search history management
+    const { addToHistory } = useSearchHistory();
+
     // Fetch search results
     const { data, isLoading, error, refetch } = useQuery<SearchResponse>({
         queryKey: ['search', query, activeTab, sortParam, pageParam, filters],
@@ -116,6 +123,13 @@ export function SearchPage() {
                     minVotes: filters.minVotes,
                     tags: filters.tags,
                 });
+                
+                // Add to search history
+                const totalResults = (result.counts.clips || 0) + 
+                    (result.counts.creators || 0) + 
+                    (result.counts.games || 0) + 
+                    (result.counts.tags || 0);
+                addToHistory(query, totalResults);
                 
                 // Check for failover indicators even on successful responses
                 // Note: This requires the API client to expose response headers
@@ -245,6 +259,18 @@ export function SearchPage() {
         setSearchParams(newParams);
     };
 
+    // Handle save search
+    const handleSaveSearch = () => {
+        const name = prompt('Enter a name for this search (optional):');
+        if (name === null) return; // User cancelled
+        
+        const activeFilters = Object.keys(filters).length > 0 ? filters : undefined;
+        searchApi.saveSearch(query, activeFilters, name || undefined);
+        
+        // Show a brief success message (could be replaced with a toast notification)
+        alert('Search saved successfully!');
+    };
+
     const goToNextPage = () => {
         const nextPage = (data?.meta.page || pageParam) + 1;
         const totalPages = data?.meta.total_pages || nextPage;
@@ -331,23 +357,45 @@ export function SearchPage() {
             </div>
 
             {!query ? (
-                <div className='text-center text-muted-foreground py-8 xs:py-12'>
-                    <p className='text-base xs:text-lg px-4'>
-                        Enter a search query to find clips, games, creators, and
-                        tags.
-                    </p>
+                <div className='max-w-4xl mx-auto'>
+                    <div className='text-center text-muted-foreground py-8 xs:py-12 mb-8'>
+                        <p className='text-base xs:text-lg px-4'>
+                            Enter a search query to find clips, games, creators, and
+                            tags.
+                        </p>
+                    </div>
+                    
+                    {/* Search Discovery Components */}
+                    <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-4'>
+                        <TrendingSearches limit={10} days={7} />
+                        <SearchHistory maxItems={10} />
+                        <SavedSearches />
+                    </div>
                 </div>
             ) : (
                 <>
                     {/* Header */}
-                    <div className='mb-4 xs:mb-6'>
-                        <h1 className='text-2xl xs:text-3xl font-bold mb-2'>
-                            Search Results
-                        </h1>
-                        <p className='text-sm xs:text-base text-muted-foreground' data-testid='results-count'>
-                            Found {data?.meta.total_items || 0} results for:{' '}
-                            <span className='font-semibold'>"{query}"</span>
-                        </p>
+                    <div className='mb-4 xs:mb-6 flex items-start justify-between gap-4'>
+                        <div className='flex-1'>
+                            <h1 className='text-2xl xs:text-3xl font-bold mb-2'>
+                                Search Results
+                            </h1>
+                            <p className='text-sm xs:text-base text-muted-foreground' data-testid='results-count'>
+                                Found {data?.meta.total_items || 0} results for:{' '}
+                                <span className='font-semibold'>"{query}"</span>
+                            </p>
+                        </div>
+                        <button
+                            onClick={handleSaveSearch}
+                            className='flex items-center gap-2 px-3 py-2 text-sm rounded-lg border border-border hover:bg-accent transition-colors'
+                            title='Save this search'
+                            data-testid='save-search-button'
+                        >
+                            <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                                <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z' />
+                            </svg>
+                            <span className='hidden xs:inline'>Save</span>
+                        </button>
                     </div>
 
                     {/* Tabs and Sort */}
