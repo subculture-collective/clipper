@@ -107,11 +107,15 @@ export function ChatPage() {
     setIsMobileSidebarOpen(false);
   };
 
-  const handleChannelCreated = (channelId: string) => {
+  const handleChannelCreated = async (channelId: string) => {
     // Refresh channels list and select the new channel
-    fetchChannels().then(() => {
+    try {
+      await fetchChannels();
       setSelectedChannel(channelId);
-    });
+    } catch (err) {
+      console.error('Error refreshing channels after creation:', err);
+      setError(err instanceof Error ? err.message : 'Failed to refresh channel list. Please reload the page.');
+    }
   };
 
   const selectedChannelData = channels.find((ch) => ch.id === selectedChannel);

@@ -21,7 +21,7 @@ export function CreateChannelModal({
 }: CreateChannelModalProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [channelType, setChannelType] = useState<'public' | 'private' | 'direct'>('public');
+  const [channelType, setChannelType] = useState<'public' | 'private'>('public');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,7 +70,7 @@ export function CreateChannelModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="Create Channel">
+    <Modal open={isOpen} onClose={handleClose} title="Create Channel">
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
           <Alert variant="error" title="Error">
@@ -97,13 +97,14 @@ export function CreateChannelModal({
           <label htmlFor="channel-description" className="block text-sm font-medium mb-2">
             Description
           </label>
-          <Input
+          <textarea
             id="channel-description"
-            type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="What is this channel about?"
             disabled={loading}
+            rows={3}
+            className="w-full px-3 py-2 bg-background border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed resize-none"
           />
         </div>
 
@@ -114,18 +115,16 @@ export function CreateChannelModal({
           <select
             id="channel-type"
             value={channelType}
-            onChange={(e) => setChannelType(e.target.value as 'public' | 'private' | 'direct')}
+            onChange={(e) => setChannelType(e.target.value as 'public' | 'private')}
             disabled={loading}
             className="w-full px-3 py-2 bg-background border border-border rounded-md text-foreground"
           >
             <option value="public">Public</option>
             <option value="private">Private</option>
-            <option value="direct">Direct</option>
           </select>
           <p className="text-xs text-muted-foreground mt-1">
             {channelType === 'public' && 'Anyone can join this channel'}
             {channelType === 'private' && 'Only invited members can join this channel'}
-            {channelType === 'direct' && 'One-on-one conversation'}
           </p>
         </div>
 
