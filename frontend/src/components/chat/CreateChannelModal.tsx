@@ -21,7 +21,7 @@ export function CreateChannelModal({
 }: CreateChannelModalProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [channelType, setChannelType] = useState<'public' | 'private'>('public');
+  const [channelType, setChannelType] = useState<'public' | 'private' | 'direct'>('public');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -114,17 +114,18 @@ export function CreateChannelModal({
           <select
             id="channel-type"
             value={channelType}
-            onChange={(e) => setChannelType(e.target.value as 'public' | 'private')}
+            onChange={(e) => setChannelType(e.target.value as 'public' | 'private' | 'direct')}
             disabled={loading}
             className="w-full px-3 py-2 bg-background border border-border rounded-md text-foreground"
           >
             <option value="public">Public</option>
             <option value="private">Private</option>
+            <option value="direct">Direct</option>
           </select>
           <p className="text-xs text-muted-foreground mt-1">
-            {channelType === 'public'
-              ? 'Anyone can join this channel'
-              : 'Only invited members can join this channel'}
+            {channelType === 'public' && 'Anyone can join this channel'}
+            {channelType === 'private' && 'Only invited members can join this channel'}
+            {channelType === 'direct' && 'One-on-one conversation'}
           </p>
         </div>
 

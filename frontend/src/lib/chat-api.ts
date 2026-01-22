@@ -1,5 +1,5 @@
 import apiClient from './api';
-import type { ChannelMember, ChannelRole } from '@/types/chat';
+import type { ChannelMember, ChannelRole, Channel } from '@/types/chat';
 
 export interface ChatChannel {
     id: string;
@@ -254,8 +254,8 @@ export interface CreateChannelRequest {
 
 export async function createChannel(
     request: CreateChannelRequest
-): Promise<ChatChannel> {
-    const response = await apiClient.post<ChatChannel>(
+): Promise<Channel> {
+    const response = await apiClient.post<Channel>(
         '/chat/channels',
         request
     );
