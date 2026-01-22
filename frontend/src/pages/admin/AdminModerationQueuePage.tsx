@@ -44,14 +44,14 @@ export function AdminModerationQueuePage() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
-    
+
     // Filters
     const [statusFilter, setStatusFilter] = useState<string>('pending');
     const [typeFilter, setTypeFilter] = useState<string>('');
-    
+
     // Bulk selection
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-    
+
     // Rejection modal state
     const [rejectModalOpen, setRejectModalOpen] = useState(false);
     const [selectedItemId, setSelectedItemId] = useState<string | null>(null);

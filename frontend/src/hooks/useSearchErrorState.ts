@@ -29,7 +29,7 @@ const CIRCUIT_BREAKER_TIMEOUT = 30000; // Try to close circuit after 30 seconds
 
 /**
  * Custom hook to manage search error states and retry logic
- * 
+ *
  * Features:
  * - Detects failover vs complete failure from API responses
  * - Implements exponential backoff for retries
@@ -38,11 +38,11 @@ const CIRCUIT_BREAKER_TIMEOUT = 30000; // Try to close circuit after 30 seconds
  * - Circuit breaker pattern for service health
  * - Cancel retry functionality
  * - Provides error state management with recovery guidance
- * 
+ *
  * @example
  * ```tsx
  * const { errorState, handleSearchError, cancelRetry, dismissError } = useSearchErrorState();
- * 
+ *
  * const performSearch = async () => {
  *   try {
  *     const result = await searchApi.search(params);
@@ -93,12 +93,12 @@ export function useSearchErrorState(): UseSearchErrorStateReturn {
     if (typeof error === 'object' && error !== null && 'response' in error) {
       const axiosError = error as AxiosError;
       const response = axiosError.response;
-      
+
       if (response) {
         // Check for failover header from backend
         const failoverHeader = response.headers['x-search-failover'];
         const searchStatus = response.headers['x-search-status'];
-        
+
         if (failoverHeader === 'true' || searchStatus === 'degraded') {
           return {
             type: 'failover',
@@ -108,7 +108,7 @@ export function useSearchErrorState(): UseSearchErrorStateReturn {
 
         // Check status codes
         const status = response.status;
-        
+
         // Service Unavailable or Gateway Timeout indicates complete failure
         if (status === 503 || status === 504) {
           return {
@@ -164,7 +164,7 @@ export function useSearchErrorState(): UseSearchErrorStateReturn {
         isCircuitOpen: false,
       }));
       consecutiveFailuresRef.current = 0;
-      
+
       trackEvent('search_circuit_breaker_closed', {});
     }, CIRCUIT_BREAKER_TIMEOUT);
   }, []);
@@ -172,14 +172,14 @@ export function useSearchErrorState(): UseSearchErrorStateReturn {
   /**
    * Handle search error and update state accordingly
    */
-  const handleSearchError = useCallback((error: unknown, options?: { autoRetry?: boolean }) => {
+  const handleSearchError = useCallback((error: unknown) => {
     const { type, message } = analyzeError(error);
-    
+
     // Increment consecutive failures for circuit breaker
     // Count both 'error' and 'failover' types as they both indicate degraded service
     if (type === 'error' || type === 'failover') {
       consecutiveFailuresRef.current++;
-      
+
       // Check if we should open circuit breaker
       if (consecutiveFailuresRef.current >= CIRCUIT_BREAKER_THRESHOLD) {
         openCircuitBreaker();
@@ -211,7 +211,7 @@ export function useSearchErrorState(): UseSearchErrorStateReturn {
   const handleSearchSuccess = useCallback(() => {
     // Reset consecutive failures on success
     consecutiveFailuresRef.current = 0;
-    
+
     // Clear circuit breaker timeout if it exists
     if (circuitBreakerTimeoutRef.current) {
       clearTimeout(circuitBreakerTimeoutRef.current);
@@ -232,7 +232,7 @@ export function useSearchErrorState(): UseSearchErrorStateReturn {
       clearTimeout(retryTimeoutRef.current);
       retryTimeoutRef.current = undefined;
     }
-    
+
     // Clear pending retry function
     pendingRetryRef.current = null;
     isCancelledRef.current = false;
@@ -251,16 +251,16 @@ export function useSearchErrorState(): UseSearchErrorStateReturn {
 
     // Reset cancellation flag
     isCancelledRef.current = false;
-    
+
     // Store the search function for potential cancellation
     pendingRetryRef.current = searchFn;
 
     // Use functional update to get current retry count
     let currentRetryCount = 0;
-    
+
     setErrorState(prev => {
       currentRetryCount = prev.retryCount;
-      
+
       // Check if max retries exceeded
       if (currentRetryCount >= MAX_RETRY_ATTEMPTS) {
         return {
@@ -292,7 +292,7 @@ export function useSearchErrorState(): UseSearchErrorStateReturn {
 
     // Apply exponential backoff delay
     const delay = RETRY_DELAYS[Math.min(currentRetryCount, RETRY_DELAYS.length - 1)];
-    
+
     await new Promise(resolve => {
       retryTimeoutRef.current = setTimeout(resolve, delay);
     });
@@ -328,13 +328,13 @@ export function useSearchErrorState(): UseSearchErrorStateReturn {
   const cancelRetry = useCallback(() => {
     // Set cancellation flag
     isCancelledRef.current = true;
-    
+
     // Clear retry timeout
     if (retryTimeoutRef.current) {
       clearTimeout(retryTimeoutRef.current);
       retryTimeoutRef.current = undefined;
     }
-    
+
     // Clear pending retry function
     pendingRetryRef.current = null;
 
@@ -361,7 +361,7 @@ export function useSearchErrorState(): UseSearchErrorStateReturn {
       clearTimeout(retryTimeoutRef.current);
       retryTimeoutRef.current = undefined;
     }
-    
+
     isCancelledRef.current = true;
     pendingRetryRef.current = null;
 

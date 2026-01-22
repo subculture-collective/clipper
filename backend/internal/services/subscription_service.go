@@ -839,9 +839,8 @@ func (s *SubscriptionService) CancelSubscription(ctx context.Context, user *mode
 		canceledSub, err = subscription.Cancel(*sub.StripeSubscriptionID, cancelParams)
 	} else {
 		// Cancel at period end
-		params := &stripe.SubscriptionParams{}
-		params.CancelAtPeriodEnd = stripe.Bool(true)
-		canceledSub, err = subscription.Update(*sub.StripeSubscriptionID, params)
+		updateParams := &stripe.SubscriptionParams{CancelAtPeriodEnd: stripe.Bool(true)}
+		canceledSub, err = subscription.Update(*sub.StripeSubscriptionID, updateParams)
 	}
 
 	if err != nil {

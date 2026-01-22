@@ -27,7 +27,7 @@ func NewServiceStatusService(db *database.DB) *ServiceStatusService {
 // GetAllServiceStatus returns the current status of all services
 func (s *ServiceStatusService) GetAllServiceStatus(ctx context.Context) ([]models.ServiceStatus, error) {
 	query := `
-		SELECT id, service_name, status, status_message, last_check_at, 
+		SELECT id, service_name, status, status_message, last_check_at,
 		       response_time_ms, error_rate, metadata, created_at, updated_at
 		FROM service_status
 		ORDER BY service_name ASC
@@ -82,7 +82,7 @@ func (s *ServiceStatusService) GetAllServiceStatus(ctx context.Context) ([]model
 // GetServiceStatus returns the status of a specific service
 func (s *ServiceStatusService) GetServiceStatus(ctx context.Context, serviceName string) (*models.ServiceStatus, error) {
 	query := `
-		SELECT id, service_name, status, status_message, last_check_at, 
+		SELECT id, service_name, status, status_message, last_check_at,
 		       response_time_ms, error_rate, metadata, created_at, updated_at
 		FROM service_status
 		WHERE service_name = $1
@@ -139,11 +139,11 @@ func (s *ServiceStatusService) UpdateServiceStatus(
 	}
 
 	query := `
-		INSERT INTO service_status (service_name, status, status_message, last_check_at, 
+		INSERT INTO service_status (service_name, status, status_message, last_check_at,
 		                            response_time_ms, error_rate, metadata)
 		VALUES ($1, $2, $3, NOW(), $4, $5, $6)
-		ON CONFLICT (service_name) 
-		DO UPDATE SET 
+		ON CONFLICT (service_name)
+		DO UPDATE SET
 			status = EXCLUDED.status,
 			status_message = EXCLUDED.status_message,
 			last_check_at = EXCLUDED.last_check_at,
@@ -316,6 +316,7 @@ func (s *ServiceStatusService) CleanupOldHistory(ctx context.Context, olderThan 
 //   - If >30% of services are degraded or unhealthy, overall status is "degraded"
 //   - Otherwise, overall status is "healthy"
 //   - If no services are tracked, returns "unhealthy" to indicate missing monitoring
+//
 // These thresholds ensure that the system reports degraded status before complete failure,
 // allowing operators time to respond to issues.
 func (s *ServiceStatusService) GetOverallStatus(ctx context.Context) (string, error) {

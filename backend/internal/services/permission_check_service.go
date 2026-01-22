@@ -270,16 +270,16 @@ func (s *PermissionCheckService) ValidateModeratorScope(ctx context.Context, act
 		// Validate each requested channel is in the moderator's scope
 		unauthorized := s.findUnauthorizedChannels(channelIDs, actor.ModerationChannels)
 		if len(unauthorized) > 0 {
-				return NewPermissionDenied(
-					"SCOPE_VIOLATION",
-					"moderator does not have access to all specified channels",
-					map[string]interface{}{
-						"user_id":               actor.ID.String(),
-						"unauthorized_channels": unauthorized,
-						"requested_channels":    channelIDs,
-						"authorized_channels":   actor.ModerationChannels,
-					},
-				)
+			return NewPermissionDenied(
+				"SCOPE_VIOLATION",
+				"moderator does not have access to all specified channels",
+				map[string]interface{}{
+					"user_id":               actor.ID.String(),
+					"unauthorized_channels": unauthorized,
+					"requested_channels":    channelIDs,
+					"authorized_channels":   actor.ModerationChannels,
+				},
+			)
 		}
 		return nil
 	}
