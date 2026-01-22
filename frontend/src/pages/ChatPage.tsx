@@ -1,8 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ChannelSidebar, ChatView, EmptyState } from '@/components/chat';
+import { CreateChannelModal } from '@/components/chat/CreateChannelModal';
 import type { Channel } from '@/types/chat';
 import { Spinner } from '@/components/ui/Spinner';
 import { Alert } from '@/components/ui/Alert';
+import { Button } from '@/components/ui/Button';
+import { Plus } from 'lucide-react';
 
 /**
  * ChatPage - Main page for the live chat system
@@ -21,6 +24,7 @@ export function ChatPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   // Fetch channels on mount
   const fetchChannels = useCallback(async () => {
@@ -103,6 +107,13 @@ export function ChatPage() {
     setIsMobileSidebarOpen(false);
   };
 
+  const handleChannelCreated = (channelId: string) => {
+    // Refresh channels list and select the new channel
+    fetchChannels().then(() => {
+      setSelectedChannel(channelId);
+    });
+  };
+
   const selectedChannelData = channels.find((ch) => ch.id === selectedChannel);
 
   if (loading) {
@@ -115,6 +126,13 @@ export function ChatPage() {
 
   return (
     <div className="flex h-screen overflow-hidden">
+      {/* Create Channel Modal */}
+      <CreateChannelModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onChannelCreated={handleChannelCreated}
+      />
+
       {/* Mobile sidebar toggle button */}
       <button
         onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
@@ -144,11 +162,23 @@ export function ChatPage() {
           ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         `}
       >
-        <ChannelSidebar
-          channels={channels}
-          selectedChannel={selectedChannel}
-          onSelectChannel={handleSelectChannel}
-        />
+        <div className="flex flex-col h-full">
+          <ChannelSidebar
+            channels={channels}
+            selectedChannel={selectedChannel}
+            onSelectChannel={handleSelectChannel}
+          />
+          <div className="p-4 border-t border-neutral-800 bg-neutral-900 dark:bg-neutral-950">
+            <Button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="w-full"
+              size="sm"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Create Channel
+            </Button>
+          </div>
+        </div>
       </div>
 
       {/* Overlay for mobile sidebar */}

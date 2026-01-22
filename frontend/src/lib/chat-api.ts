@@ -245,6 +245,23 @@ export async function getAllBans(
     return response.data;
 }
 
+// Create a new channel
+export interface CreateChannelRequest {
+    name: string;
+    description?: string;
+    channel_type?: 'public' | 'private' | 'direct';
+}
+
+export async function createChannel(
+    request: CreateChannelRequest
+): Promise<ChatChannel> {
+    const response = await apiClient.post<ChatChannel>(
+        '/chat/channels',
+        request
+    );
+    return response.data;
+}
+
 // Get current user's role in a channel
 export async function getCurrentUserRole(
     channelId: string
