@@ -26,7 +26,7 @@ export interface BanTemplateManagerProps {
 
 /**
  * BanTemplateManager component for managing ban reason templates
- * 
+ *
  * Features:
  * - View all templates (default + custom)
  * - Create new templates
@@ -42,21 +42,21 @@ export function BanTemplateManager({
     const [templates, setTemplates] = useState<BanReasonTemplate[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    
+
     // Modal states
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showStatsModal, setShowStatsModal] = useState(false);
     const [selectedTemplate, setSelectedTemplate] = useState<BanReasonTemplate | null>(null);
-    
+
     // Form states
     const [formName, setFormName] = useState('');
     const [formReason, setFormReason] = useState('');
     const [formDuration, setFormDuration] = useState<string>('');
     const [formIsPermanent, setFormIsPermanent] = useState(true);
     const [submitting, setSubmitting] = useState(false);
-    
+
     // Stats
     const [stats, setStats] = useState<BanReasonTemplate[]>([]);
 
@@ -65,12 +65,12 @@ export function BanTemplateManager({
         setLoading(true);
         setError(null);
         try {
-            const response = await getBanReasonTemplates(broadcasterID, true);
-            setTemplates(response.templates);
-        } catch (err) {
-            setError('Failed to load templates');
-            toast.error('Failed to load ban templates');
-        } finally {
+                const response = await getBanReasonTemplates(broadcasterID, true);
+                setTemplates(response.templates);
+            } catch {
+                setError('Failed to load templates');
+                toast.error('Failed to load ban templates');
+            } finally {
             setLoading(false);
         }
     }, [broadcasterID, toast]);
@@ -80,7 +80,7 @@ export function BanTemplateManager({
         try {
             const response = await getBanReasonTemplateStats(broadcasterID);
             setStats(response.templates);
-        } catch (err) {
+        } catch {
             toast.error('Failed to load template statistics');
         }
     };
@@ -112,7 +112,7 @@ export function BanTemplateManager({
                 }
                 durationSeconds = parsed;
             }
-            
+
             const request: CreateBanReasonTemplateRequest = {
                 name: formName,
                 reason: formReason,
@@ -124,7 +124,7 @@ export function BanTemplateManager({
             setShowCreateModal(false);
             resetForm();
             loadTemplates();
-        } catch (err) {
+        } catch {
             toast.error('Failed to create template');
         } finally {
             setSubmitting(false);
@@ -133,7 +133,7 @@ export function BanTemplateManager({
 
     const handleEdit = async () => {
         if (!selectedTemplate) return;
-        
+
         setSubmitting(true);
         try {
             // Validate duration for non-permanent bans
@@ -148,7 +148,7 @@ export function BanTemplateManager({
                 }
                 durationSeconds = parsed;
             }
-            
+
             const request: UpdateBanReasonTemplateRequest = {
                 name: formName,
                 reason: formReason,
@@ -159,7 +159,7 @@ export function BanTemplateManager({
             setShowEditModal(false);
             resetForm();
             loadTemplates();
-        } catch (err) {
+        } catch {
             toast.error('Failed to update template');
         } finally {
             setSubmitting(false);
@@ -168,7 +168,7 @@ export function BanTemplateManager({
 
     const handleDelete = async () => {
         if (!selectedTemplate) return;
-        
+
         setSubmitting(true);
         try {
             await deleteBanReasonTemplate(selectedTemplate.id);
@@ -176,7 +176,7 @@ export function BanTemplateManager({
             setShowDeleteModal(false);
             resetForm();
             loadTemplates();
-        } catch (err) {
+        } catch {
             toast.error('Failed to delete template');
         } finally {
             setSubmitting(false);
@@ -526,7 +526,7 @@ export function BanTemplateManager({
                 title="Delete Template"
             >
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Are you sure you want to delete the template &quot;{selectedTemplate?.name}&quot;? 
+                    Are you sure you want to delete the template &quot;{selectedTemplate?.name}&quot;?
                     This action cannot be undone.
                 </p>
 

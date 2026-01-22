@@ -831,16 +831,16 @@ func (s *SubscriptionService) CancelSubscription(ctx context.Context, user *mode
 	}
 
 	// Cancel the subscription in Stripe
-	params := &stripe.SubscriptionParams{}
 	var canceledSub *stripe.Subscription
 
 	if immediate {
 		// Cancel immediately
-		canceledSub, err = subscription.Cancel(*sub.StripeSubscriptionID, params)
+		cancelParams := &stripe.SubscriptionCancelParams{}
+		canceledSub, err = subscription.Cancel(*sub.StripeSubscriptionID, cancelParams)
 	} else {
 		// Cancel at period end
-		params.CancelAtPeriodEnd = stripe.Bool(true)
-		canceledSub, err = subscription.Update(*sub.StripeSubscriptionID, params)
+		updateParams := &stripe.SubscriptionParams{CancelAtPeriodEnd: stripe.Bool(true)}
+		canceledSub, err = subscription.Update(*sub.StripeSubscriptionID, updateParams)
 	}
 
 	if err != nil {

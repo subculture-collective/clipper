@@ -5,8 +5,8 @@ import type { Tag } from '../types/tag';
 const DRAFT_STORAGE_KEY = 'submission_draft';
 // Allow configuration via environment variable for testing
 const getAutoSaveInterval = () => {
-    if (typeof window !== 'undefined' && (window as any).__DRAFT_AUTOSAVE_INTERVAL__) {
-        return (window as any).__DRAFT_AUTOSAVE_INTERVAL__;
+    if (typeof window !== 'undefined' && (window as Window & { __DRAFT_AUTOSAVE_INTERVAL__?: number }).__DRAFT_AUTOSAVE_INTERVAL__) {
+        return (window as Window & { __DRAFT_AUTOSAVE_INTERVAL__?: number }).__DRAFT_AUTOSAVE_INTERVAL__ || 30000;
     }
     return 30000; // 30 seconds by default
 };
