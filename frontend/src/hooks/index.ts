@@ -19,3 +19,7 @@ export { useChatWebSocket } from './useChatWebSocket';
 export { useDesktopNotifications } from './useDesktopNotifications';
 export { useCheckBanStatus } from './useCheckBanStatus';
 export type { UseBanStatusReturn } from './useCheckBanStatus';
+export { useSubmissionDraft } from './useSubmissionDraft';
+export type { SubmissionDraft } from './useSubmissionDraft';
+export { useAutoSave, useDraftStorage } from './useAutoSave';
+export type { AutoSaveStatus } from './useAutoSave';

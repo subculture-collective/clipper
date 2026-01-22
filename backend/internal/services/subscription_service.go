@@ -14,6 +14,7 @@ import (
 	portalsession "github.com/stripe/stripe-go/v81/billingportal/session"
 	"github.com/stripe/stripe-go/v81/checkout/session"
 	"github.com/stripe/stripe-go/v81/customer"
+	"github.com/stripe/stripe-go/v81/invoice"
 	"github.com/stripe/stripe-go/v81/subscription"
 	"github.com/stripe/stripe-go/v81/webhook"
 	"github.com/subculture-collective/clipper/config"
@@ -810,6 +811,144 @@ func (s *SubscriptionService) ChangeSubscriptionPlan(ctx context.Context, user *
 			"old_price_id": stripeSubscription.Items.Data[0].Price.ID,
 			"new_price_id": newPriceID,
 			"proration":    "always_invoice",
+		})
+	}
+
+	return nil
+}
+
+// CancelSubscription cancels a user's subscription
+// If immediate is true, cancels immediately. Otherwise, cancels at period end.
+func (s *SubscriptionService) CancelSubscription(ctx context.Context, user *models.User, immediate bool) error {
+	// Get existing subscription
+	sub, err := s.repo.GetByUserID(ctx, user.ID)
+	if err != nil {
+		return fmt.Errorf("failed to get subscription: %w", err)
+	}
+
+	if sub.StripeSubscriptionID == nil || *sub.StripeSubscriptionID == "" {
+		return errors.New("no active stripe subscription found")
+	}
+
+	// Cancel the subscription in Stripe
+	params := &stripe.SubscriptionParams{}
+	var canceledSub *stripe.Subscription
+
+	if immediate {
+		// Cancel immediately
+		canceledSub, err = subscription.Cancel(*sub.StripeSubscriptionID, params)
+	} else {
+		// Cancel at period end
+		params.CancelAtPeriodEnd = stripe.Bool(true)
+		canceledSub, err = subscription.Update(*sub.StripeSubscriptionID, params)
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to cancel subscription: %w", err)
+	}
+
+	// Update local subscription record
+	sub.CancelAtPeriodEnd = canceledSub.CancelAtPeriodEnd
+	if canceledSub.Status == "canceled" {
+		sub.Status = "canceled"
+		sub.CanceledAt = timePtr(time.Now())
+	}
+
+	if err := s.repo.Update(ctx, sub); err != nil {
+		log.Printf("Failed to update subscription after cancellation: %v", err)
+		return fmt.Errorf("subscription cancelled in Stripe but failed to update local record: %w", err)
+	}
+
+	// Log audit event
+	if s.auditLogSvc != nil {
+		_ = s.auditLogSvc.LogSubscriptionEvent(ctx, user.ID, "subscription_canceled", map[string]interface{}{
+			"subscription_id":      *sub.StripeSubscriptionID,
+			"immediate":            immediate,
+			"cancel_at_period_end": canceledSub.CancelAtPeriodEnd,
+		})
+	}
+
+	return nil
+}
+
+// GetInvoices retrieves a user's invoices from Stripe
+func (s *SubscriptionService) GetInvoices(ctx context.Context, user *models.User, limit int64) ([]*stripe.Invoice, error) {
+	// Get subscription to find customer ID
+	sub, err := s.repo.GetByUserID(ctx, user.ID)
+	if err != nil {
+		return nil, ErrSubscriptionNotFound
+	}
+
+	if sub.StripeCustomerID == "" {
+		return nil, ErrStripeCustomerNotFound
+	}
+
+	// Set default limit if not provided
+	if limit <= 0 {
+		limit = 10
+	}
+	if limit > 100 {
+		limit = 100 // Cap at 100 invoices
+	}
+
+	// Fetch invoices from Stripe
+	params := &stripe.InvoiceListParams{
+		Customer: stripe.String(sub.StripeCustomerID),
+	}
+	params.Limit = stripe.Int64(limit)
+
+	invoices := []*stripe.Invoice{}
+	iter := invoice.List(params)
+	for iter.Next() {
+		invoices = append(invoices, iter.Invoice())
+	}
+
+	if err := iter.Err(); err != nil {
+		return nil, fmt.Errorf("failed to fetch invoices: %w", err)
+	}
+
+	return invoices, nil
+}
+
+// ReactivateSubscription reactivates a subscription that was set to cancel at period end
+func (s *SubscriptionService) ReactivateSubscription(ctx context.Context, user *models.User) error {
+	// Get existing subscription
+	sub, err := s.repo.GetByUserID(ctx, user.ID)
+	if err != nil {
+		return fmt.Errorf("failed to get subscription: %w", err)
+	}
+
+	if sub.StripeSubscriptionID == nil || *sub.StripeSubscriptionID == "" {
+		return errors.New("no active stripe subscription found")
+	}
+
+	if !sub.CancelAtPeriodEnd {
+		return errors.New("subscription is not scheduled for cancellation")
+	}
+
+	// Reactivate the subscription in Stripe
+	params := &stripe.SubscriptionParams{
+		CancelAtPeriodEnd: stripe.Bool(false),
+	}
+
+	reactivatedSub, err := subscription.Update(*sub.StripeSubscriptionID, params)
+	if err != nil {
+		return fmt.Errorf("failed to reactivate subscription: %w", err)
+	}
+
+	// Update local subscription record
+	sub.CancelAtPeriodEnd = false
+	sub.Status = string(reactivatedSub.Status)
+
+	if err := s.repo.Update(ctx, sub); err != nil {
+		log.Printf("Failed to update subscription after reactivation: %v", err)
+		return fmt.Errorf("subscription reactivated in Stripe but failed to update local record: %w", err)
+	}
+
+	// Log audit event
+	if s.auditLogSvc != nil {
+		_ = s.auditLogSvc.LogSubscriptionEvent(ctx, user.ID, "subscription_reactivated", map[string]interface{}{
+			"subscription_id": *sub.StripeSubscriptionID,
 		})
 	}
 

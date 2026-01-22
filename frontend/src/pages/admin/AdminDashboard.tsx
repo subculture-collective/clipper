@@ -257,6 +257,21 @@ export function AdminDashboard() {
                         </CardBody>
                     </Card>
                 </Link>
+
+                <Link to='/admin/status' className='touch-target'>
+                    <Card hover clickable>
+                        <CardHeader>
+                            <h3 className='text-lg xs:text-xl font-semibold'>
+                                🔧 Service Status
+                            </h3>
+                        </CardHeader>
+                        <CardBody>
+                            <p className='text-sm xs:text-base text-muted-foreground'>
+                                Monitor system health and service status
+                            </p>
+                        </CardBody>
+                    </Card>
+                </Link>
             </Grid>
         </Container>
     );

@@ -56,6 +56,7 @@ export function ClipDetailPage() {
             </>
         );
     }
+
     const handleNativeShare = async () => {
         const clipUrl = `${window.location.origin}/clip/${clip?.id}`;
         await share({
@@ -130,13 +131,14 @@ export function ClipDetailPage() {
             <>
                 <SEO title='Loading Clip...' noindex />
                 <Container className='py-8'>
-                    <div className='flex justify-center items-center min-h-100'>
+                    <div className='flex justify-center items-center min-h-[400px]'>
                         <Spinner size='lg' />
                     </div>
                 </Container>
             </>
         );
     }
+
 
     if (error) {
         return (
@@ -171,6 +173,7 @@ export function ClipDetailPage() {
             </>
         );
     }
+
 
     // Format duration for display
     const formatDuration = (seconds: number | null | undefined) => {
@@ -239,7 +242,7 @@ export function ClipDetailPage() {
                         {isBanned && (
                             <div
                                 role='alert'
-                                className='mb-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800'
+                                className='mb-3 rounded-lg border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800 p-3 text-sm text-red-800 dark:text-red-300'
                             >
                                 You are banned and cannot interact with clips
                                 {banReason ? `: ${banReason}` : ''}.

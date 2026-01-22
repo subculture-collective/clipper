@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { CommentSection } from './CommentSection';
 import * as commentApi from '@/lib/comment-api';
+import { useIsAuthenticated } from '@/hooks';
 import type { Comment, CommentFeedResponse } from '@/types/comment';
 
 // Mock the API and auth hooks
@@ -68,6 +69,8 @@ const renderWithClient = (ui: React.ReactElement) => {
 describe('CommentSection', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset useIsAuthenticated to default unauthenticated state
+    vi.mocked(useIsAuthenticated).mockReturnValue(false);
   });
 
   describe('Loading and error states', () => {
@@ -116,7 +119,7 @@ describe('CommentSection', () => {
       });
     });
 
-    it('should show "Add Comment" button in empty state', async () => {
+    it('should show login prompt when unauthenticated in empty state', async () => {
       const mockResponse: CommentFeedResponse = {
         comments: [],
         total: 0,
@@ -130,8 +133,7 @@ describe('CommentSection', () => {
       renderWithClient(<CommentSection clipId="clip-1" />);
 
       await waitFor(() => {
-        const buttons = screen.getAllByText(/Add Comment/i);
-        expect(buttons.length).toBeGreaterThan(0);
+        expect(screen.getByText(/Please log in to comment/i)).toBeInTheDocument();
       });
     });
   });
@@ -278,10 +280,8 @@ describe('CommentSection', () => {
     });
   });
 
-  describe('Add comment interaction', () => {
-    it('should show comment form when "Add Comment" button is clicked', async () => {
-      const user = userEvent.setup();
-
+  describe('Authentication-based form visibility', () => {
+    it('should show login prompt when unauthenticated', async () => {
       const mockResponse: CommentFeedResponse = {
         comments: [],
         total: 0,
@@ -295,20 +295,35 @@ describe('CommentSection', () => {
       renderWithClient(<CommentSection clipId="clip-1" />);
 
       await waitFor(() => {
-        const buttons = screen.getAllByText(/Add Comment/i);
-        expect(buttons.length).toBeGreaterThan(0);
+        expect(screen.getByText(/Please log in to comment/i)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Log In/i })).toBeInTheDocument();
       });
+    });
 
-      const addButton = screen.getAllByText(/Add Comment/i)[0];
-      await user.click(addButton);
+    it('should show comment form when authenticated', async () => {
+      // Mock authenticated state
+      vi.mocked(useIsAuthenticated).mockReturnValue(true);
+
+      const mockResponse: CommentFeedResponse = {
+        comments: [],
+        total: 0,
+        page: 1,
+        limit: 10,
+        has_more: false,
+      };
+
+      vi.mocked(commentApi.fetchComments).mockResolvedValue(mockResponse);
+
+      renderWithClient(<CommentSection clipId="clip-1" />);
 
       await waitFor(() => {
         expect(screen.getByPlaceholderText(/What are your thoughts?/i)).toBeInTheDocument();
       });
     });
 
-    it('should hide form when cancel is clicked', async () => {
-      const user = userEvent.setup();
+    it('should not show form when user is banned', async () => {
+      // Mock authenticated state
+      vi.mocked(useIsAuthenticated).mockReturnValue(true);
 
       const mockResponse: CommentFeedResponse = {
         comments: [],
@@ -320,29 +335,14 @@ describe('CommentSection', () => {
 
       vi.mocked(commentApi.fetchComments).mockResolvedValue(mockResponse);
 
-      renderWithClient(<CommentSection clipId="clip-1" />);
+      renderWithClient(<CommentSection clipId="clip-1" isBanned={true} banReason="Violation of terms" />);
 
       await waitFor(() => {
-        const buttons = screen.getAllByText(/Add Comment/i);
-        expect(buttons.length).toBeGreaterThan(0);
+        expect(screen.getByText(/You are banned and cannot comment/i)).toBeInTheDocument();
       });
 
-      // Click "Add Comment" to show form
-      const addButton = screen.getAllByText(/Add Comment/i)[0];
-      await user.click(addButton);
-
-      await waitFor(() => {
-        expect(screen.getByPlaceholderText(/What are your thoughts?/i)).toBeInTheDocument();
-      });
-
-      // Click Cancel
-      const cancelButton = screen.getByText(/Cancel/i);
-      await user.click(cancelButton);
-
-      // Form should be hidden
-      await waitFor(() => {
-        expect(screen.queryByPlaceholderText(/What are your thoughts?/i)).not.toBeInTheDocument();
-      });
+      // Form should not be visible
+      expect(screen.queryByPlaceholderText(/What are your thoughts?/i)).not.toBeInTheDocument();
     });
   });
 

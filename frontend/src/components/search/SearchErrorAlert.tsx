@@ -11,6 +11,14 @@ export interface SearchErrorAlertProps {
      */
     message?: string;
     /**
+     * Current retry count
+     */
+    retryCount?: number;
+    /**
+     * Maximum retry attempts
+     */
+    maxRetries?: number;
+    /**
      * Callback when retry button is clicked
      */
     onRetry?: () => void;
@@ -18,6 +26,10 @@ export interface SearchErrorAlertProps {
      * Whether retry is in progress
      */
     isRetrying?: boolean;
+    /**
+     * Callback when cancel retry button is clicked
+     */
+    onCancelRetry?: () => void;
     /**
      * Callback when alert is dismissed
      */
@@ -27,6 +39,10 @@ export interface SearchErrorAlertProps {
      * @default 10000 for failover, never for errors
      */
     autoDismissMs?: number;
+    /**
+     * Whether circuit breaker is open
+     */
+    isCircuitOpen?: boolean;
 }
 
 const ERROR_MESSAGES = {
@@ -40,23 +56,39 @@ const ERROR_MESSAGES = {
         description:
             'Search is currently unavailable. Please try again in a moment.',
     },
+    circuit_breaker: {
+        title: 'Search Service Unavailable',
+        description:
+            "The search service is experiencing persistent issues. We've paused automatic retries to prevent overload. We'll try again automatically in 30 seconds.",
+    },
 };
 
 /**
- * SearchErrorAlert - Displays search failover and error states
+ * SearchErrorAlert - Displays search failover and error states with retry functionality
  *
  * Handles different error states:
  * - failover: Warning when backup search is being used (auto-dismisses)
- * - error: Error when search is completely unavailable (manual retry)
+ * - error: Error when search is completely unavailable (manual/automatic retry)
  * - none: No error (component hidden)
+ * 
+ * Features:
+ * - Retry count indicator (e.g., "Retry 1/3")
+ * - Visual progress indicator during retry
+ * - Cancel retry button for automatic retries
+ * - Circuit breaker status indication
+ * - Clear recovery guidance after max retries
  */
 export function SearchErrorAlert({
     type,
     message,
+    retryCount = 0,
+    maxRetries = 3,
     onRetry,
     isRetrying = false,
+    onCancelRetry,
     onDismiss,
     autoDismissMs = 10000,
+    isCircuitOpen = false,
 }: SearchErrorAlertProps) {
     const [isDismissed, setIsDismissed] = useState(type === 'none');
 
@@ -92,8 +124,22 @@ export function SearchErrorAlert({
         }
     };
 
-    const errorConfig = ERROR_MESSAGES[type];
+    const handleCancelRetry = () => {
+        if (onCancelRetry) {
+            onCancelRetry();
+        }
+    };
+
+    const errorConfig = isCircuitOpen 
+        ? ERROR_MESSAGES.circuit_breaker 
+        : ERROR_MESSAGES[type];
     const displayMessage = message || errorConfig.description;
+
+    // Show retry count if retrying or if count > 0, but hide once max retries are reached
+    const showRetryCount = (isRetrying || retryCount > 0) && retryCount < maxRetries;
+
+    // Determine Alert variant - circuit breaker always shows as error
+    const alertVariant = isCircuitOpen ? 'error' : (type === 'failover' ? 'warning' : 'error');
 
     return (
         <div
@@ -107,15 +153,49 @@ export function SearchErrorAlert({
             aria-live='polite'
         >
             <Alert
-                variant={type === 'failover' ? 'warning' : 'error'}
+                variant={alertVariant}
                 title={errorConfig.title}
-                dismissible={type === 'failover'}
+                dismissible={type === 'failover' && !isCircuitOpen}
                 onDismiss={handleDismiss}
             >
                 <div className='space-y-3'>
-                    <p>{displayMessage}</p>
+                    <div>
+                        <p>{displayMessage}</p>
+                        
+                        {/* Retry Count Indicator */}
+                        {showRetryCount && (
+                            <p className='mt-2 text-sm font-medium' data-testid='retry-count-indicator'>
+                                {isRetrying ? 'Retrying' : 'Retry'} attempt {retryCount}/{maxRetries}
+                            </p>
+                        )}
 
-                    {type === 'error' && onRetry && (
+                        {/* Circuit Breaker Status */}
+                        {isCircuitOpen && (
+                            <p className='mt-2 text-sm text-muted-foreground' data-testid='circuit-breaker-status'>
+                                ⚡ Service protection active - automatic retries paused
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Retry Progress Bar */}
+                    {isRetrying && (
+                        <div className='w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden' data-testid='retry-progress-bar'>
+                            <div 
+                                className='h-full bg-primary animate-pulse'
+                                style={{ width: `${((retryCount - 1) / maxRetries) * 100}%` }}
+                                role='progressbar'
+                                aria-valuenow={retryCount - 1}
+                                aria-valuemin={0}
+                                aria-valuemax={maxRetries}
+                                aria-label={`Retry progress: attempt ${retryCount} of ${maxRetries}`}
+                            />
+                        </div>
+                    )}
+
+                    {/* Action Buttons */}
+                    {type === 'error' && !isCircuitOpen && (onRetry || (isRetrying && onCancelRetry)) && (
+                        <div className='flex gap-2 flex-wrap'>
+                        {onRetry && (
                         <button
                             onClick={handleRetry}
                             disabled={isRetrying}
@@ -171,6 +251,34 @@ export function SearchErrorAlert({
                                 </>
                             )}
                         </button>
+                        )}
+
+                        {/* Cancel Retry Button - shown when retrying */}
+                        {isRetrying && onCancelRetry && (
+                            <button
+                                onClick={handleCancelRetry}
+                                className='inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors'
+                                data-testid='cancel-retry'
+                                aria-label='Cancel retry'
+                            >
+                                <svg
+                                    className='h-4 w-4'
+                                    fill='none'
+                                    stroke='currentColor'
+                                    viewBox='0 0 24 24'
+                                    aria-hidden='true'
+                                >
+                                    <path
+                                        strokeLinecap='round'
+                                        strokeLinejoin='round'
+                                        strokeWidth={2}
+                                        d='M6 18L18 6M6 6l12 12'
+                                    />
+                                </svg>
+                                <span>Cancel</span>
+                            </button>
+                        )}
+                        </div>
                     )}
                 </div>
             </Alert>

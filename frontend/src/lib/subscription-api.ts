@@ -31,6 +31,20 @@ export interface CreatePortalSessionResponse {
   portal_url: string;
 }
 
+export interface Invoice {
+  id: string;
+  number?: string;
+  status: string;
+  amount_due: number;
+  amount_paid: number;
+  currency: string;
+  created: number;
+  period_start: number;
+  period_end: number;
+  invoice_pdf?: string;
+  hosted_invoice_url?: string;
+}
+
 /**
  * Get the current user's subscription
  */
@@ -68,6 +82,37 @@ export async function createCheckoutSession(
 export async function createPortalSession(): Promise<CreatePortalSessionResponse> {
   const response = await apiClient.post('/subscriptions/portal', {});
   return response.data;
+}
+
+/**
+ * Cancel a subscription
+ */
+export async function cancelSubscription(immediate: boolean = false): Promise<void> {
+  await apiClient.post('/subscriptions/cancel', { immediate });
+}
+
+/**
+ * Reactivate a subscription scheduled for cancellation
+ */
+export async function reactivateSubscription(): Promise<void> {
+  await apiClient.post('/subscriptions/reactivate', {});
+}
+
+/**
+ * Get user's invoices
+ */
+export async function getInvoices(limit: number = 10): Promise<Invoice[]> {
+  const response = await apiClient.get('/subscriptions/invoices', {
+    params: { limit },
+  });
+  return response.data;
+}
+
+/**
+ * Change subscription plan
+ */
+export async function changeSubscriptionPlan(priceId: string): Promise<void> {
+  await apiClient.post('/subscriptions/change-plan', { price_id: priceId });
 }
 
 /**

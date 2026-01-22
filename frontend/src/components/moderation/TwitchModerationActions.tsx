@@ -3,12 +3,15 @@ import { Button, Modal, ModalFooter, Alert, Input, TextArea } from '../ui';
 import {
     banUserOnTwitch,
     unbanUserOnTwitch,
+    getBanReasonTemplates,
     type TwitchModerationError,
+    type BanReasonTemplate,
 } from '../../lib/moderation-api';
 import { getErrorMessage } from '../../lib/error-utils';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { Ban, ShieldCheck } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 
 export interface TwitchModerationActionsProps {
     /**
@@ -119,8 +122,9 @@ export function TwitchModerationActions({
     onModalOpen,
     onModalClose,
 }: TwitchModerationActionsProps) {
-    const { user } = useAuth();
+    const { user, refreshUser } = useAuth();
     const toast = useToast();
+    const queryClient = useQueryClient();
     const [showBanModal, setShowBanModal] = useState(false);
     const [showUnbanModal, setShowUnbanModal] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -140,6 +144,45 @@ export function TwitchModerationActions({
     const [isPermanent, setIsPermanent] = useState(true);
     const [duration, setDuration] = useState('600'); // Default 10 minutes in seconds
     const [customDuration, setCustomDuration] = useState(false);
+    
+    // Template state
+    const [templates, setTemplates] = useState<BanReasonTemplate[]>([]);
+    const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+    const [templatesLoading, setTemplatesLoading] = useState(false);
+
+    // Fetch templates when ban modal opens
+    useEffect(() => {
+        if (showBanModal && templates.length === 0) {
+            setTemplatesLoading(true);
+            getBanReasonTemplates(broadcasterID, true)
+                .then(response => {
+                    setTemplates(response.templates);
+                })
+                .catch(err => {
+                    console.error('Failed to load templates:', err);
+                })
+                .finally(() => {
+                    setTemplatesLoading(false);
+                });
+        }
+    }, [showBanModal, broadcasterID, templates.length]);
+    
+    // Apply template when selected
+    useEffect(() => {
+        if (selectedTemplate && templates.length > 0) {
+            const template = templates.find(t => t.id === selectedTemplate);
+            if (template) {
+                setReason(template.reason);
+                if (template.duration_seconds === null || template.duration_seconds === undefined) {
+                    setIsPermanent(true);
+                } else {
+                    setIsPermanent(false);
+                    setDuration(template.duration_seconds.toString());
+                    setCustomDuration(false);
+                }
+            }
+        }
+    }, [selectedTemplate, templates]);
 
     // Permission check
     const canPerformTwitchActions = canUserPerformTwitchActions(
@@ -216,6 +259,13 @@ export function TwitchModerationActions({
             toast.success(successText);
             setActionAlert({ type: 'success', message: successText });
 
+            // Invalidate relevant queries to update UI
+            queryClient.invalidateQueries({ queryKey: ['banStatus', broadcasterID] });
+            queryClient.invalidateQueries({ queryKey: ['user-profile-by-username'] });
+            
+            // Refresh user data from auth context
+            await refreshUser();
+
             if (onSuccess) {
                 onSuccess();
             }
@@ -250,6 +300,13 @@ export function TwitchModerationActions({
             toast.success(successText);
             setActionAlert({ type: 'success', message: successText });
 
+            // Invalidate relevant queries to update UI
+            queryClient.invalidateQueries({ queryKey: ['banStatus', broadcasterID] });
+            queryClient.invalidateQueries({ queryKey: ['user-profile-by-username'] });
+            
+            // Refresh user data from auth context
+            await refreshUser();
+
             if (onSuccess) {
                 onSuccess();
             }
@@ -268,6 +325,7 @@ export function TwitchModerationActions({
         setDuration('600');
         setCustomDuration(false);
         setError(null);
+        setSelectedTemplate('');
     };
 
     return (
@@ -345,6 +403,35 @@ export function TwitchModerationActions({
                         </p>
 
                         <div className='space-y-4'>
+                            {/* Template Selection */}
+                            <div>
+                                <label 
+                                    htmlFor='template-select'
+                                    className='mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300'
+                                >
+                                    Ban Reason Template (Optional)
+                                </label>
+                                <select
+                                    id='template-select'
+                                    value={selectedTemplate}
+                                    onChange={(e) => setSelectedTemplate(e.target.value)}
+                                    disabled={loading || templatesLoading}
+                                    className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white'
+                                >
+                                    <option value=''>-- Select a template --</option>
+                                    {templates.map((template) => (
+                                        <option key={template.id} value={template.id}>
+                                            {template.name} {template.is_default ? '(Default)' : ''}
+                                        </option>
+                                    ))}
+                                </select>
+                                {templatesLoading && (
+                                    <p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
+                                        Loading templates...
+                                    </p>
+                                )}
+                            </div>
+                            
                             <div>
                                 <label className='mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300'>
                                     Ban Type

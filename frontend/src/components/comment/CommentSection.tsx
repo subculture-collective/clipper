@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 import { Button, Spinner } from '@/components/ui';
 import { CommentTree } from './CommentTree';
 import { CommentForm } from './CommentForm';
-import { useComments } from '@/hooks';
+import { useComments, useIsAuthenticated } from '@/hooks';
 import type { CommentSortOption } from '@/types/comment';
 
 interface CommentSectionProps {
@@ -24,7 +24,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
     banReason,
 }) => {
     const [sort, setSort] = React.useState<CommentSortOption>('best');
-    const [showCommentForm, setShowCommentForm] = React.useState(false);
+    const isAuthenticated = useIsAuthenticated();
 
     const {
         data,
@@ -101,22 +101,24 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
 
             {/* Add comment button/form */}
             <div>
-                {showCommentForm ? (
+                {!isAuthenticated ? (
+                    <div className='text-center py-6 border border-border rounded-lg'>
+                        <p className='text-muted-foreground mb-3'>
+                            Please log in to comment
+                        </p>
+                        <Button
+                            onClick={() => (window.location.href = '/login')}
+                            variant='primary'
+                        >
+                            Log In
+                        </Button>
+                    </div>
+                ) : !isBanned ? (
                     <CommentForm
                         clipId={clipId}
-                        onCancel={() => setShowCommentForm(false)}
-                        onSuccess={() => setShowCommentForm(false)}
                         placeholder='What are your thoughts?'
                     />
-                ) : (
-                    <Button
-                        onClick={() => setShowCommentForm(true)}
-                        fullWidth
-                        disabled={isBanned}
-                    >
-                        Add Comment
-                    </Button>
-                )}
+                ) : null}
             </div>
 
             {/* Loading state */}
@@ -133,13 +135,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
                     <p className='text-muted-foreground mb-4'>
                         Be the first to comment!
                     </p>
-                    <Button
-                        onClick={() => setShowCommentForm(true)}
-                        variant='primary'
-                        size='lg'
-                    >
-                        Add Comment
-                    </Button>
+
                 </div>
             ) : (
                 <>
