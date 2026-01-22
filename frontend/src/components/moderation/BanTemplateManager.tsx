@@ -48,8 +48,7 @@ export function BanTemplateManager({
     const [showEditModal, setShowEditModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showStatsModal, setShowStatsModal] = useState(false);
-    const [selectedTemplate, setSelectedTemplate] =
-        useState<BanReasonTemplate | null>(null);
+    const [selectedTemplate, setSelectedTemplate] = useState<BanReasonTemplate | null>(null);
 
     // Form states
     const [formName, setFormName] = useState('');
@@ -66,12 +65,12 @@ export function BanTemplateManager({
         setLoading(true);
         setError(null);
         try {
-            const response = await getBanReasonTemplates(broadcasterID, true);
-            setTemplates(response.templates);
-        } catch {
-            setError('Failed to load templates');
-            toast.error('Failed to load ban templates');
-        } finally {
+                const response = await getBanReasonTemplates(broadcasterID, true);
+                setTemplates(response.templates);
+            } catch {
+                setError('Failed to load templates');
+                toast.error('Failed to load ban templates');
+            } finally {
             setLoading(false);
         }
     }, [broadcasterID, toast]);
@@ -107,9 +106,7 @@ export function BanTemplateManager({
                 const trimmed = formDuration.trim();
                 const parsed = parseInt(trimmed, 10);
                 if (!trimmed || Number.isNaN(parsed) || parsed <= 0) {
-                    toast.error(
-                        'Please enter a valid duration for non-permanent bans.',
-                    );
+                    toast.error('Please enter a valid duration for non-permanent bans.');
                     setSubmitting(false);
                     return;
                 }
@@ -145,9 +142,7 @@ export function BanTemplateManager({
                 const trimmed = formDuration.trim();
                 const parsed = parseInt(trimmed, 10);
                 if (!trimmed || Number.isNaN(parsed) || parsed <= 0) {
-                    toast.error(
-                        'Please enter a valid duration for non-permanent bans.',
-                    );
+                    toast.error('Please enter a valid duration for non-permanent bans.');
                     setSubmitting(false);
                     return;
                 }
@@ -192,10 +187,7 @@ export function BanTemplateManager({
         setSelectedTemplate(template);
         setFormName(template.name);
         setFormReason(template.reason);
-        if (
-            template.duration_seconds === null ||
-            template.duration_seconds === undefined
-        ) {
+        if (template.duration_seconds === null || template.duration_seconds === undefined) {
             setFormIsPermanent(true);
             setFormDuration('');
         } else {
@@ -224,24 +216,24 @@ export function BanTemplateManager({
     };
 
     return (
-        <div className='space-y-4'>
-            <div className='flex justify-between items-center'>
-                <h2 className='text-xl font-semibold'>Ban Reason Templates</h2>
-                <div className='flex gap-2'>
+        <div className="space-y-4">
+            <div className="flex justify-between items-center">
+                <h2 className="text-xl font-semibold">Ban Reason Templates</h2>
+                <div className="flex gap-2">
                     {showStats && (
                         <Button
-                            variant='secondary'
-                            size='sm'
-                            leftIcon={<BarChart3 className='h-4 w-4' />}
+                            variant="secondary"
+                            size="sm"
+                            leftIcon={<BarChart3 className="h-4 w-4" />}
                             onClick={openStatsModal}
                         >
                             View Stats
                         </Button>
                     )}
                     <Button
-                        variant='primary'
-                        size='sm'
-                        leftIcon={<Plus className='h-4 w-4' />}
+                        variant="primary"
+                        size="sm"
+                        leftIcon={<Plus className="h-4 w-4" />}
                         onClick={() => {
                             resetForm();
                             setShowCreateModal(true);
@@ -253,72 +245,65 @@ export function BanTemplateManager({
             </div>
 
             {error && (
-                <Alert variant='error' role='alert'>
+                <Alert variant="error" role="alert">
                     {error}
                 </Alert>
             )}
 
-            {loading ?
-                <div className='text-center py-8'>Loading templates...</div>
-            : templates.length === 0 ?
-                <div className='text-center py-8 text-gray-500'>
-                    No templates found. Create your first template to get
-                    started.
+            {loading ? (
+                <div className="text-center py-8">Loading templates...</div>
+            ) : templates.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                    No templates found. Create your first template to get started.
                 </div>
-            :   <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-3'>
-                    {templates.map(template => (
+            ) : (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {templates.map((template) => (
                         <div
                             key={template.id}
-                            className='border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-2'
+                            className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-2"
                         >
-                            <div className='flex justify-between items-start'>
+                            <div className="flex justify-between items-start">
                                 <div>
-                                    <h3 className='font-medium text-gray-900 dark:text-white'>
+                                    <h3 className="font-medium text-gray-900 dark:text-white">
                                         {template.name}
                                     </h3>
                                     {template.is_default && (
-                                        <span className='text-xs text-blue-600 dark:text-blue-400'>
+                                        <span className="text-xs text-blue-600 dark:text-blue-400">
                                             Default
                                         </span>
                                     )}
                                 </div>
                                 {!template.is_default && (
-                                    <div className='flex gap-1'>
+                                    <div className="flex gap-1">
                                         <button
-                                            onClick={() =>
-                                                openEditModal(template)
-                                            }
-                                            className='p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-                                            aria-label='Edit template'
+                                            onClick={() => openEditModal(template)}
+                                            className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                            aria-label="Edit template"
                                         >
-                                            <Edit2 className='h-4 w-4' />
+                                            <Edit2 className="h-4 w-4" />
                                         </button>
                                         <button
-                                            onClick={() =>
-                                                openDeleteModal(template)
-                                            }
-                                            className='p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400'
-                                            aria-label='Delete template'
+                                            onClick={() => openDeleteModal(template)}
+                                            className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                                            aria-label="Delete template"
                                         >
-                                            <Trash2 className='h-4 w-4' />
+                                            <Trash2 className="h-4 w-4" />
                                         </button>
                                     </div>
                                 )}
                             </div>
-                            <p className='text-sm text-gray-600 dark:text-gray-400'>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
                                 {template.reason}
                             </p>
-                            <div className='flex justify-between items-center text-xs text-gray-500'>
-                                <span>
-                                    Duration:{' '}
-                                    {formatDuration(template.duration_seconds)}
-                                </span>
+                            <div className="flex justify-between items-center text-xs text-gray-500">
+                                <span>Duration: {formatDuration(template.duration_seconds)}</span>
                                 <span>Used: {template.usage_count} times</span>
                             </div>
                         </div>
                     ))}
                 </div>
-            }
+            )}
 
             {/* Create Modal */}
             <Modal
@@ -327,38 +312,32 @@ export function BanTemplateManager({
                     setShowCreateModal(false);
                     resetForm();
                 }}
-                title='Create Ban Reason Template'
+                title="Create Ban Reason Template"
             >
-                <div className='space-y-4'>
+                <div className="space-y-4">
                     <div>
-                        <label
-                            htmlFor='template-name'
-                            className='block text-sm font-medium mb-2'
-                        >
+                        <label htmlFor="template-name" className="block text-sm font-medium mb-2">
                             Template Name
                         </label>
                         <Input
-                            id='template-name'
+                            id="template-name"
                             value={formName}
-                            onChange={e => setFormName(e.target.value)}
-                            placeholder='e.g., Spam'
+                            onChange={(e) => setFormName(e.target.value)}
+                            placeholder="e.g., Spam"
                             maxLength={100}
                             disabled={submitting}
                         />
                     </div>
 
                     <div>
-                        <label
-                            htmlFor='template-reason'
-                            className='block text-sm font-medium mb-2'
-                        >
+                        <label htmlFor="template-reason" className="block text-sm font-medium mb-2">
                             Ban Reason
                         </label>
                         <TextArea
-                            id='template-reason'
+                            id="template-reason"
                             value={formReason}
-                            onChange={e => setFormReason(e.target.value)}
-                            placeholder='Enter the ban reason text...'
+                            onChange={(e) => setFormReason(e.target.value)}
+                            placeholder="Enter the ban reason text..."
                             rows={3}
                             maxLength={1000}
                             disabled={submitting}
@@ -366,51 +345,45 @@ export function BanTemplateManager({
                     </div>
 
                     <div>
-                        <label className='block text-sm font-medium mb-2'>
+                        <label className="block text-sm font-medium mb-2">
                             Ban Duration
                         </label>
-                        <div className='space-y-2'>
-                            <div className='flex items-center space-x-2'>
+                        <div className="space-y-2">
+                            <div className="flex items-center space-x-2">
                                 <input
-                                    type='radio'
-                                    id='permanent-create'
-                                    name='ban-duration-create'
+                                    type="radio"
+                                    id="permanent-create"
+                                    name="ban-duration-create"
                                     checked={formIsPermanent}
                                     onChange={() => setFormIsPermanent(true)}
                                     disabled={submitting}
                                 />
-                                <label htmlFor='permanent-create'>
-                                    Permanent
-                                </label>
+                                <label htmlFor="permanent-create">Permanent</label>
                             </div>
-                            <div className='flex items-center space-x-2'>
+                            <div className="flex items-center space-x-2">
                                 <input
-                                    type='radio'
-                                    id='temporary-create'
-                                    name='ban-duration-create'
+                                    type="radio"
+                                    id="temporary-create"
+                                    name="ban-duration-create"
                                     checked={!formIsPermanent}
                                     onChange={() => setFormIsPermanent(false)}
                                     disabled={submitting}
                                 />
-                                <label htmlFor='temporary-create'>
-                                    Temporary
-                                </label>
+                                <label htmlFor="temporary-create">Temporary</label>
                             </div>
                         </div>
                         {!formIsPermanent && (
-                            <div className='mt-2'>
+                            <div className="mt-2">
                                 <Input
-                                    type='number'
+                                    type="number"
                                     value={formDuration}
-                                    onChange={e =>
-                                        setFormDuration(e.target.value)
-                                    }
-                                    placeholder='Duration in seconds'
+                                    onChange={(e) => setFormDuration(e.target.value)}
+                                    placeholder="Duration in seconds"
                                     min={1}
                                     max={1209600}
                                     disabled={submitting}
                                 />
-                                <p className='text-xs text-gray-500 mt-1'>
+                                <p className="text-xs text-gray-500 mt-1">
                                     Max: 1,209,600 seconds (14 days)
                                 </p>
                             </div>
@@ -420,7 +393,7 @@ export function BanTemplateManager({
 
                 <ModalFooter>
                     <Button
-                        variant='ghost'
+                        variant="ghost"
                         onClick={() => {
                             setShowCreateModal(false);
                             resetForm();
@@ -430,14 +403,10 @@ export function BanTemplateManager({
                         Cancel
                     </Button>
                     <Button
-                        variant='primary'
+                        variant="primary"
                         onClick={handleCreate}
                         loading={submitting}
-                        disabled={
-                            !formName ||
-                            !formReason ||
-                            (!formIsPermanent && !formDuration)
-                        }
+                        disabled={!formName || !formReason || (!formIsPermanent && !formDuration)}
                     >
                         Create Template
                     </Button>
@@ -451,36 +420,30 @@ export function BanTemplateManager({
                     setShowEditModal(false);
                     resetForm();
                 }}
-                title='Edit Ban Reason Template'
+                title="Edit Ban Reason Template"
             >
-                <div className='space-y-4'>
+                <div className="space-y-4">
                     <div>
-                        <label
-                            htmlFor='template-name-edit'
-                            className='block text-sm font-medium mb-2'
-                        >
+                        <label htmlFor="template-name-edit" className="block text-sm font-medium mb-2">
                             Template Name
                         </label>
                         <Input
-                            id='template-name-edit'
+                            id="template-name-edit"
                             value={formName}
-                            onChange={e => setFormName(e.target.value)}
+                            onChange={(e) => setFormName(e.target.value)}
                             maxLength={100}
                             disabled={submitting}
                         />
                     </div>
 
                     <div>
-                        <label
-                            htmlFor='template-reason-edit'
-                            className='block text-sm font-medium mb-2'
-                        >
+                        <label htmlFor="template-reason-edit" className="block text-sm font-medium mb-2">
                             Ban Reason
                         </label>
                         <TextArea
-                            id='template-reason-edit'
+                            id="template-reason-edit"
                             value={formReason}
-                            onChange={e => setFormReason(e.target.value)}
+                            onChange={(e) => setFormReason(e.target.value)}
                             rows={3}
                             maxLength={1000}
                             disabled={submitting}
@@ -488,46 +451,40 @@ export function BanTemplateManager({
                     </div>
 
                     <div>
-                        <label className='block text-sm font-medium mb-2'>
+                        <label className="block text-sm font-medium mb-2">
                             Ban Duration
                         </label>
-                        <div className='space-y-2'>
-                            <div className='flex items-center space-x-2'>
+                        <div className="space-y-2">
+                            <div className="flex items-center space-x-2">
                                 <input
-                                    type='radio'
-                                    id='permanent-edit'
-                                    name='ban-duration-edit'
+                                    type="radio"
+                                    id="permanent-edit"
+                                    name="ban-duration-edit"
                                     checked={formIsPermanent}
                                     onChange={() => setFormIsPermanent(true)}
                                     disabled={submitting}
                                 />
-                                <label htmlFor='permanent-edit'>
-                                    Permanent
-                                </label>
+                                <label htmlFor="permanent-edit">Permanent</label>
                             </div>
-                            <div className='flex items-center space-x-2'>
+                            <div className="flex items-center space-x-2">
                                 <input
-                                    type='radio'
-                                    id='temporary-edit'
-                                    name='ban-duration-edit'
+                                    type="radio"
+                                    id="temporary-edit"
+                                    name="ban-duration-edit"
                                     checked={!formIsPermanent}
                                     onChange={() => setFormIsPermanent(false)}
                                     disabled={submitting}
                                 />
-                                <label htmlFor='temporary-edit'>
-                                    Temporary
-                                </label>
+                                <label htmlFor="temporary-edit">Temporary</label>
                             </div>
                         </div>
                         {!formIsPermanent && (
-                            <div className='mt-2'>
+                            <div className="mt-2">
                                 <Input
-                                    type='number'
+                                    type="number"
                                     value={formDuration}
-                                    onChange={e =>
-                                        setFormDuration(e.target.value)
-                                    }
-                                    placeholder='Duration in seconds'
+                                    onChange={(e) => setFormDuration(e.target.value)}
+                                    placeholder="Duration in seconds"
                                     min={1}
                                     max={1209600}
                                     disabled={submitting}
@@ -539,7 +496,7 @@ export function BanTemplateManager({
 
                 <ModalFooter>
                     <Button
-                        variant='ghost'
+                        variant="ghost"
                         onClick={() => {
                             setShowEditModal(false);
                             resetForm();
@@ -549,14 +506,10 @@ export function BanTemplateManager({
                         Cancel
                     </Button>
                     <Button
-                        variant='primary'
+                        variant="primary"
                         onClick={handleEdit}
                         loading={submitting}
-                        disabled={
-                            !formName ||
-                            !formReason ||
-                            (!formIsPermanent && !formDuration)
-                        }
+                        disabled={!formName || !formReason || (!formIsPermanent && !formDuration)}
                     >
                         Save Changes
                     </Button>
@@ -570,17 +523,16 @@ export function BanTemplateManager({
                     setShowDeleteModal(false);
                     resetForm();
                 }}
-                title='Delete Template'
+                title="Delete Template"
             >
-                <p className='text-sm text-gray-600 dark:text-gray-400'>
-                    Are you sure you want to delete the template &quot;
-                    {selectedTemplate?.name}&quot;? This action cannot be
-                    undone.
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Are you sure you want to delete the template &quot;{selectedTemplate?.name}&quot;?
+                    This action cannot be undone.
                 </p>
 
                 <ModalFooter>
                     <Button
-                        variant='ghost'
+                        variant="ghost"
                         onClick={() => {
                             setShowDeleteModal(false);
                             resetForm();
@@ -590,7 +542,7 @@ export function BanTemplateManager({
                         Cancel
                     </Button>
                     <Button
-                        variant='danger'
+                        variant="danger"
                         onClick={handleDelete}
                         loading={submitting}
                     >
@@ -603,49 +555,41 @@ export function BanTemplateManager({
             <Modal
                 open={showStatsModal}
                 onClose={() => setShowStatsModal(false)}
-                title='Template Usage Statistics'
+                title="Template Usage Statistics"
             >
-                <div className='space-y-4'>
-                    {stats.length === 0 ?
-                        <p className='text-sm text-gray-600 dark:text-gray-400'>
+                <div className="space-y-4">
+                    {stats.length === 0 ? (
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
                             No usage statistics available yet.
                         </p>
-                    :   <div className='space-y-2'>
-                            {stats.map(template => (
+                    ) : (
+                        <div className="space-y-2">
+                            {stats.map((template) => (
                                 <div
                                     key={template.id}
-                                    className='flex justify-between items-center p-3 border border-gray-200 dark:border-gray-700 rounded'
+                                    className="flex justify-between items-center p-3 border border-gray-200 dark:border-gray-700 rounded"
                                 >
                                     <div>
-                                        <p className='font-medium'>
-                                            {template.name}
-                                        </p>
+                                        <p className="font-medium">{template.name}</p>
                                         {template.last_used_at && (
-                                            <p className='text-xs text-gray-500'>
-                                                Last used:{' '}
-                                                {new Date(
-                                                    template.last_used_at,
-                                                ).toLocaleDateString()}
+                                            <p className="text-xs text-gray-500">
+                                                Last used: {new Date(template.last_used_at).toLocaleDateString()}
                                             </p>
                                         )}
                                     </div>
-                                    <div className='text-right'>
-                                        <p className='font-semibold'>
-                                            {template.usage_count}
-                                        </p>
-                                        <p className='text-xs text-gray-500'>
-                                            times used
-                                        </p>
+                                    <div className="text-right">
+                                        <p className="font-semibold">{template.usage_count}</p>
+                                        <p className="text-xs text-gray-500">times used</p>
                                     </div>
                                 </div>
                             ))}
                         </div>
-                    }
+                    )}
                 </div>
 
                 <ModalFooter>
                     <Button
-                        variant='ghost'
+                        variant="ghost"
                         onClick={() => setShowStatsModal(false)}
                     >
                         Close

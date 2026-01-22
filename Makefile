@@ -1,5 +1,9 @@
 .PHONY: help install dev build test test-help test-setup test-teardown test-unit test-integration clean docker-up docker-down backend-dev frontend-dev migrate-up migrate-down migrate-create migrate-seed migrate-status test-security test-idor k8s-provision k8s-setup k8s-verify k8s-deploy-prod k8s-deploy-staging
 
+# Compose project + network names stay in sync across targets
+PROJECT_NAME := $(if $(COMPOSE_PROJECT_NAME),$(COMPOSE_PROJECT_NAME),$(notdir $(CURDIR)))
+DEV_NETWORK := $(PROJECT_NAME)_default
+
 help: ## Show this help message
 	@echo 'Usage: make [target]'
 	@echo ''
@@ -583,13 +587,39 @@ docker-logs: ## View Docker service logs
 	@echo "✓ Docker logs ended"
 
 docker-dev-up: ## Start Docker services for development (PostgreSQL + Redis)
+	@echo "Ensuring Docker network $(DEV_NETWORK) exists with correct labels..."
+	@if docker network inspect $(DEV_NETWORK) >/dev/null 2>&1; then \
+		PROJECT_LABEL=$$(docker network inspect -f '{{ index .Labels "com.docker.compose.project" }}' $(DEV_NETWORK)); \
+		NETWORK_LABEL=$$(docker network inspect -f '{{ index .Labels "com.docker.compose.network" }}' $(DEV_NETWORK)); \
+		if [ "$$PROJECT_LABEL" != "$(PROJECT_NAME)" ] || [ "$$NETWORK_LABEL" != "default" ]; then \
+			echo "Found stale network $(DEV_NETWORK) with mismatched labels ($$PROJECT_LABEL/$$NETWORK_LABEL); recreating..."; \
+			docker network rm $(DEV_NETWORK); \
+			docker network create --label com.docker.compose.project=$(PROJECT_NAME) --label com.docker.compose.network=default $(DEV_NETWORK); \
+		fi; \
+	else \
+		docker network create --label com.docker.compose.project=$(PROJECT_NAME) --label com.docker.compose.network=default $(DEV_NETWORK); \
+	fi
 	@echo "Starting Docker services..."
-	docker compose -f docker-compose.yml up -d
+	docker compose -p $(PROJECT_NAME) -f docker-compose.yml up -d
 	@echo "✓ Docker services started"
 
 docker-dev-build: ## Build & start Docker services for development (PostgreSQL + Redis)
+	@echo "Cleaning up any stale dev containers..."
+	@docker compose -p $(PROJECT_NAME) -f docker-compose.yml down --remove-orphans >/dev/null 2>&1 || true
+	@echo "Ensuring Docker network $(DEV_NETWORK) exists with correct labels..."
+	@if docker network inspect $(DEV_NETWORK) >/dev/null 2>&1; then \
+		PROJECT_LABEL=$$(docker network inspect -f '{{ index .Labels "com.docker.compose.project" }}' $(DEV_NETWORK)); \
+		NETWORK_LABEL=$$(docker network inspect -f '{{ index .Labels "com.docker.compose.network" }}' $(DEV_NETWORK)); \
+		if [ "$$PROJECT_LABEL" != "$(PROJECT_NAME)" ] || [ "$$NETWORK_LABEL" != "default" ]; then \
+			echo "Found stale network $(DEV_NETWORK) with mismatched labels ($$PROJECT_LABEL/$$NETWORK_LABEL); recreating..."; \
+			docker network rm $(DEV_NETWORK); \
+			docker network create --label com.docker.compose.project=$(PROJECT_NAME) --label com.docker.compose.network=default $(DEV_NETWORK); \
+		fi; \
+	else \
+		docker network create --label com.docker.compose.project=$(PROJECT_NAME) --label com.docker.compose.network=default $(DEV_NETWORK); \
+	fi
 	@echo "Starting Docker build..."
-	docker compose -f docker-compose.yml up -d --build --remove-orphans
+	docker compose -p $(PROJECT_NAME) -f docker-compose.yml up -d --build --remove-orphans
 	@echo "✓ Docker build complete, and services started"
 
 docker-dev-down: ## Stop Docker services for development

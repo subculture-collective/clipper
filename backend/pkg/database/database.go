@@ -2,18 +2,21 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"time"
 
 	"github.com/exaring/otelpgx"
 	"github.com/jackc/pgx/v5/pgxpool"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/subculture-collective/clipper/config"
 )
 
 // DB holds the database connection pool
 type DB struct {
 	Pool *pgxpool.Pool
+	SQL  *sql.DB
 }
 
 // NewDB creates a new database connection pool
@@ -59,13 +62,38 @@ func NewDBWithTracing(cfg *config.DatabaseConfig, enableTracing bool) (*DB, erro
 
 	log.Println("Database connection pool established successfully")
 
-	return &DB{Pool: pool}, nil
+	// Also create a database/sql DB using pgx stdlib for compatibility with
+	// code that expects database/sql interfaces (ExecContext, QueryContext, Tx, etc).
+	sqlDB, err := sql.Open("pgx", cfg.GetDatabaseURL())
+	if err != nil {
+		pool.Close()
+		return nil, fmt.Errorf("unable to open database/sql connection: %w", err)
+	}
+
+	// Configure sql.DB pool settings to match pgxpool where reasonable
+	sqlDB.SetMaxOpenConns(int(poolConfig.MaxConns))
+	sqlDB.SetMaxIdleConns(int(poolConfig.MinConns))
+	sqlDB.SetConnMaxLifetime(poolConfig.MaxConnLifetime)
+
+	// Verify sql.DB connection
+	if err := sqlDB.PingContext(ctx); err != nil {
+		sqlDB.Close()
+		pool.Close()
+		return nil, fmt.Errorf("unable to ping database/sql DB: %w", err)
+	}
+
+	return &DB{Pool: pool, SQL: sqlDB}, nil
 }
 
 // Close closes the database connection pool
 func (db *DB) Close() {
-	db.Pool.Close()
-	log.Println("Database connection pool closed")
+	if db.SQL != nil {
+		db.SQL.Close()
+	}
+	if db.Pool != nil {
+		db.Pool.Close()
+	}
+	log.Println("Database connection pools closed")
 }
 
 // HealthCheck checks if the database is accessible
@@ -83,4 +111,33 @@ func (db *DB) HealthCheck(ctx context.Context) error {
 // GetStats returns connection pool statistics
 func (db *DB) GetStats() *pgxpool.Stat {
 	return db.Pool.Stat()
+}
+
+// ExecContext delegates to the database/sql DB to return sql.Result-compatible values.
+func (db *DB) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
+	if db.SQL == nil {
+		return nil, fmt.Errorf("sql DB not initialized")
+	}
+	return db.SQL.ExecContext(ctx, query, args...)
+}
+
+// QueryContext delegates to database/sql
+func (db *DB) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
+	if db.SQL == nil {
+		return nil, fmt.Errorf("sql DB not initialized")
+	}
+	return db.SQL.QueryContext(ctx, query, args...)
+}
+
+// QueryRowContext delegates to database/sql
+func (db *DB) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
+	return db.SQL.QueryRowContext(ctx, query, args...)
+}
+
+// BeginTx delegates to database/sql
+func (db *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error) {
+	if db.SQL == nil {
+		return nil, fmt.Errorf("sql DB not initialized")
+	}
+	return db.SQL.BeginTx(ctx, opts)
 }

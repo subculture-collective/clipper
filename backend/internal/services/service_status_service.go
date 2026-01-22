@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/pkg/database"
 	"github.com/subculture-collective/clipper/pkg/utils"
@@ -28,13 +27,13 @@ func NewServiceStatusService(db *database.DB) *ServiceStatusService {
 // GetAllServiceStatus returns the current status of all services
 func (s *ServiceStatusService) GetAllServiceStatus(ctx context.Context) ([]models.ServiceStatus, error) {
 	query := `
-		SELECT id, service_name, status, status_message, last_check_at, 
+		SELECT id, service_name, status, status_message, last_check_at,
 		       response_time_ms, error_rate, metadata, created_at, updated_at
 		FROM service_status
 		ORDER BY service_name ASC
 	`
 
-	rows, err := s.db.QueryContext(ctx, query)
+	rows, err := s.db.Pool.Query(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query service status: %w", err)
 	}
@@ -83,7 +82,7 @@ func (s *ServiceStatusService) GetAllServiceStatus(ctx context.Context) ([]model
 // GetServiceStatus returns the status of a specific service
 func (s *ServiceStatusService) GetServiceStatus(ctx context.Context, serviceName string) (*models.ServiceStatus, error) {
 	query := `
-		SELECT id, service_name, status, status_message, last_check_at, 
+		SELECT id, service_name, status, status_message, last_check_at,
 		       response_time_ms, error_rate, metadata, created_at, updated_at
 		FROM service_status
 		WHERE service_name = $1
@@ -92,7 +91,7 @@ func (s *ServiceStatusService) GetServiceStatus(ctx context.Context, serviceName
 	var status models.ServiceStatus
 	var metadataJSON []byte
 
-	err := s.db.QueryRowContext(ctx, query, serviceName).Scan(
+	err := s.db.Pool.QueryRow(ctx, query, serviceName).Scan(
 		&status.ID,
 		&status.ServiceName,
 		&status.Status,
@@ -140,11 +139,11 @@ func (s *ServiceStatusService) UpdateServiceStatus(
 	}
 
 	query := `
-		INSERT INTO service_status (service_name, status, status_message, last_check_at, 
+		INSERT INTO service_status (service_name, status, status_message, last_check_at,
 		                            response_time_ms, error_rate, metadata)
 		VALUES ($1, $2, $3, NOW(), $4, $5, $6)
-		ON CONFLICT (service_name) 
-		DO UPDATE SET 
+		ON CONFLICT (service_name)
+		DO UPDATE SET
 			status = EXCLUDED.status,
 			status_message = EXCLUDED.status_message,
 			last_check_at = EXCLUDED.last_check_at,
@@ -154,7 +153,7 @@ func (s *ServiceStatusService) UpdateServiceStatus(
 			updated_at = NOW()
 	`
 
-	_, err = s.db.ExecContext(ctx, query, serviceName, status, statusMessage, responseTimeMs, errorRate, metadataJSON)
+	_, err = s.db.Pool.Exec(ctx, query, serviceName, status, statusMessage, responseTimeMs, errorRate, metadataJSON)
 	if err != nil {
 		return fmt.Errorf("failed to update service status: %w", err)
 	}
@@ -167,7 +166,7 @@ func (s *ServiceStatusService) UpdateServiceStatus(
 		VALUES ($1, $2, $3, $4, NOW(), $5)
 	`
 
-	_, err = s.db.ExecContext(ctx, historyQuery, serviceName, status, responseTimeMs, errorRate, metadataJSON)
+	_, err = s.db.Pool.Exec(ctx, historyQuery, serviceName, status, responseTimeMs, errorRate, metadataJSON)
 	if err != nil {
 		utils.GetLogger().Warn("Failed to record status history", map[string]interface{}{
 			"service": serviceName,
@@ -191,7 +190,7 @@ func (s *ServiceStatusService) GetStatusHistory(
 		ORDER BY checked_at ASC
 	`
 
-	rows, err := s.db.QueryContext(ctx, query, serviceName, since)
+	rows, err := s.db.Pool.Query(ctx, query, serviceName, since)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query status history: %w", err)
 	}
@@ -246,7 +245,7 @@ func (s *ServiceStatusService) GetAllStatusHistory(
 		ORDER BY service_name ASC, checked_at ASC
 	`
 
-	rows, err := s.db.QueryContext(ctx, query, since)
+	rows, err := s.db.Pool.Query(ctx, query, since)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query status history: %w", err)
 	}
@@ -295,12 +294,12 @@ func (s *ServiceStatusService) CleanupOldHistory(ctx context.Context, olderThan 
 
 	query := `DELETE FROM status_history WHERE checked_at < $1`
 
-	result, err := s.db.ExecContext(ctx, query, cutoff)
+	result, err := s.db.Pool.Exec(ctx, query, cutoff)
 	if err != nil {
 		return fmt.Errorf("failed to cleanup old history: %w", err)
 	}
 
-	rowsAffected, _ := result.RowsAffected()
+	rowsAffected := result.RowsAffected()
 	if rowsAffected > 0 {
 		utils.GetLogger().Info("Cleaned up old status history", map[string]interface{}{
 			"rows_deleted": rowsAffected,
@@ -317,6 +316,7 @@ func (s *ServiceStatusService) CleanupOldHistory(ctx context.Context, olderThan 
 //   - If >30% of services are degraded or unhealthy, overall status is "degraded"
 //   - Otherwise, overall status is "healthy"
 //   - If no services are tracked, returns "unhealthy" to indicate missing monitoring
+//
 // These thresholds ensure that the system reports degraded status before complete failure,
 // allowing operators time to respond to issues.
 func (s *ServiceStatusService) GetOverallStatus(ctx context.Context) (string, error) {
@@ -326,7 +326,7 @@ func (s *ServiceStatusService) GetOverallStatus(ctx context.Context) (string, er
 		GROUP BY status
 	`
 
-	rows, err := s.db.QueryContext(ctx, query)
+	rows, err := s.db.Pool.Query(ctx, query)
 	if err != nil {
 		return "", fmt.Errorf("failed to query overall status: %w", err)
 	}

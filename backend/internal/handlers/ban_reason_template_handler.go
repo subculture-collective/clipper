@@ -26,13 +26,13 @@ func NewBanReasonTemplateHandler(service *services.BanReasonTemplateService, log
 // GET /api/v1/moderation/ban-templates/:id
 func (h *BanReasonTemplateHandler) GetTemplate(c *gin.Context) {
 	ctx := c.Request.Context()
-	
+
 	templateID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid template ID"})
 		return
 	}
-	
+
 	template, err := h.service.GetTemplate(ctx, templateID)
 	if err != nil {
 		if err == services.ErrTemplateNotFound {
@@ -45,7 +45,7 @@ func (h *BanReasonTemplateHandler) GetTemplate(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get template"})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, template)
 }
 
@@ -53,25 +53,25 @@ func (h *BanReasonTemplateHandler) GetTemplate(c *gin.Context) {
 // GET /api/v1/moderation/ban-templates?broadcasterID=...&includeDefaults=true
 func (h *BanReasonTemplateHandler) ListTemplates(c *gin.Context) {
 	ctx := c.Request.Context()
-	
+
 	broadcasterID := c.Query("broadcasterID")
 	includeDefaults := c.DefaultQuery("includeDefaults", "true") == "true"
-	
+
 	var broadcasterIDPtr *string
 	if broadcasterID != "" {
 		broadcasterIDPtr = &broadcasterID
 	}
-	
+
 	templates, err := h.service.ListTemplates(ctx, broadcasterIDPtr, includeDefaults)
 	if err != nil {
 		h.logger.Error("Failed to list templates", err, map[string]interface{}{
-			"broadcaster_id":    broadcasterID,
+			"broadcaster_id":   broadcasterID,
 			"include_defaults": includeDefaults,
 		})
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list templates"})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{"templates": templates})
 }
 
@@ -79,20 +79,20 @@ func (h *BanReasonTemplateHandler) ListTemplates(c *gin.Context) {
 // POST /api/v1/moderation/ban-templates
 func (h *BanReasonTemplateHandler) CreateTemplate(c *gin.Context) {
 	ctx := c.Request.Context()
-	
+
 	userIDVal, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
 	userID := userIDVal.(uuid.UUID)
-	
+
 	var req models.CreateBanReasonTemplateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: " + err.Error()})
 		return
 	}
-	
+
 	template, err := h.service.CreateTemplate(ctx, userID, &req)
 	if err != nil {
 		if err == services.ErrTemplateNameExists {
@@ -106,7 +106,7 @@ func (h *BanReasonTemplateHandler) CreateTemplate(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create template"})
 		return
 	}
-	
+
 	c.JSON(http.StatusCreated, template)
 }
 
@@ -114,26 +114,26 @@ func (h *BanReasonTemplateHandler) CreateTemplate(c *gin.Context) {
 // PATCH /api/v1/moderation/ban-templates/:id
 func (h *BanReasonTemplateHandler) UpdateTemplate(c *gin.Context) {
 	ctx := c.Request.Context()
-	
+
 	userIDVal, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
 	userID := userIDVal.(uuid.UUID)
-	
+
 	templateID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid template ID"})
 		return
 	}
-	
+
 	var req models.UpdateBanReasonTemplateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: " + err.Error()})
 		return
 	}
-	
+
 	template, err := h.service.UpdateTemplate(ctx, userID, templateID, &req)
 	if err != nil {
 		if err == services.ErrTemplateNotFound {
@@ -155,7 +155,7 @@ func (h *BanReasonTemplateHandler) UpdateTemplate(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update template"})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, template)
 }
 
@@ -163,20 +163,20 @@ func (h *BanReasonTemplateHandler) UpdateTemplate(c *gin.Context) {
 // DELETE /api/v1/moderation/ban-templates/:id
 func (h *BanReasonTemplateHandler) DeleteTemplate(c *gin.Context) {
 	ctx := c.Request.Context()
-	
+
 	userIDVal, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
 	userID := userIDVal.(uuid.UUID)
-	
+
 	templateID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid template ID"})
 		return
 	}
-	
+
 	err = h.service.DeleteTemplate(ctx, userID, templateID)
 	if err != nil {
 		if err == services.ErrTemplateNotFound {
@@ -198,7 +198,7 @@ func (h *BanReasonTemplateHandler) DeleteTemplate(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete template"})
 		return
 	}
-	
+
 	c.JSON(http.StatusNoContent, nil)
 }
 
@@ -206,13 +206,13 @@ func (h *BanReasonTemplateHandler) DeleteTemplate(c *gin.Context) {
 // GET /api/v1/moderation/ban-templates/stats?broadcasterID=...
 func (h *BanReasonTemplateHandler) GetUsageStats(c *gin.Context) {
 	ctx := c.Request.Context()
-	
+
 	broadcasterID := c.Query("broadcasterID")
 	var broadcasterIDPtr *string
 	if broadcasterID != "" {
 		broadcasterIDPtr = &broadcasterID
 	}
-	
+
 	stats, err := h.service.GetUsageStats(ctx, broadcasterIDPtr)
 	if err != nil {
 		h.logger.Error("Failed to get usage stats", err, map[string]interface{}{
@@ -221,6 +221,6 @@ func (h *BanReasonTemplateHandler) GetUsageStats(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get usage stats"})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{"templates": stats})
 }
