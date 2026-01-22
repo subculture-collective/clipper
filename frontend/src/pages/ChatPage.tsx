@@ -158,26 +158,24 @@ export function ChatPage() {
       {/* Channel Sidebar - Hidden on mobile unless toggled */}
       <div
         className={`
-          fixed md:relative inset-y-0 left-0 z-40 transform transition-transform duration-300 ease-in-out
+          fixed md:relative inset-y-0 left-0 z-40 transform transition-transform duration-300 ease-in-out flex flex-col
           ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         `}
       >
-        <div className="flex flex-col h-full">
-          <ChannelSidebar
-            channels={channels}
-            selectedChannel={selectedChannel}
-            onSelectChannel={handleSelectChannel}
-          />
-          <div className="p-4 border-t border-neutral-800 bg-neutral-900 dark:bg-neutral-950">
-            <Button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="w-full"
-              size="sm"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Create Channel
-            </Button>
-          </div>
+        <ChannelSidebar
+          channels={channels}
+          selectedChannel={selectedChannel}
+          onSelectChannel={handleSelectChannel}
+        />
+        <div className="p-4 border-t border-neutral-800 bg-neutral-900 dark:bg-neutral-950">
+          <Button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="w-full"
+            size="sm"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Create Channel
+          </Button>
         </div>
       </div>
 
