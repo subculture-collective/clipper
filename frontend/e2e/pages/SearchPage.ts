@@ -72,6 +72,16 @@ export class SearchPage extends BasePage {
   private readonly searchHistoryItems: Locator;
   private readonly clearHistoryButton: Locator;
 
+  // Trending Searches
+  private readonly trendingSearchesContainer: Locator;
+  private readonly trendingSearchItems: Locator;
+
+  // Saved Searches
+  private readonly savedSearchesContainer: Locator;
+  private readonly savedSearchItems: Locator;
+  private readonly clearSavedSearchesButton: Locator;
+  private readonly saveSearchButton: Locator;
+
   constructor(page: Page) {
     super(page, '/search');
 
@@ -123,8 +133,18 @@ export class SearchPage extends BasePage {
 
     // Search History
     this.searchHistoryContainer = page.locator('.search-history, [data-testid="search-history"]').first();
-    this.searchHistoryItems = this.searchHistoryContainer.locator('li, .history-item');
-    this.clearHistoryButton = page.locator('button').filter({ hasText: /clear.*history/i });
+    this.searchHistoryItems = this.searchHistoryContainer.locator('li, .history-item, button[data-testid^="history-item"]');
+    this.clearHistoryButton = page.getByTestId('clear-history-button');
+
+    // Trending Searches
+    this.trendingSearchesContainer = page.getByTestId('trending-searches');
+    this.trendingSearchItems = this.trendingSearchesContainer.locator('button[data-testid^="trending-search"]');
+
+    // Saved Searches
+    this.savedSearchesContainer = page.getByTestId('saved-searches');
+    this.savedSearchItems = this.savedSearchesContainer.locator('div[data-testid^="saved-search"]');
+    this.clearSavedSearchesButton = page.getByTestId('clear-saved-searches');
+    this.saveSearchButton = page.getByTestId('save-search-button');
   }
 
   // ============================================================================
@@ -832,5 +852,128 @@ export class SearchPage extends BasePage {
     }
 
     return true;
+  }
+
+  // ============================================================================
+  // Trending Searches
+  // ============================================================================
+
+  /**
+   * Get trending searches from the discovery section
+   */
+  async getTrendingSearches(): Promise<string[]> {
+    await this.trendingSearchesContainer.waitFor({ state: 'visible', timeout: 5000 });
+    const items = await this.trendingSearchItems.all();
+    const searches: string[] = [];
+    for (const item of items) {
+      const text = await item.textContent();
+      if (text) searches.push(text.trim());
+    }
+    return searches;
+  }
+
+  /**
+   * Click on a trending search item
+   */
+  async clickTrendingSearch(index: number): Promise<void> {
+    await this.trendingSearchItems.nth(index).click();
+    await this.waitForResults();
+  }
+
+  /**
+   * Check if trending searches are visible
+   */
+  async hasTrendingSearches(): Promise<boolean> {
+    try {
+      await this.trendingSearchesContainer.waitFor({ state: 'visible', timeout: 2000 });
+      const count = await this.trendingSearchItems.count();
+      return count > 0;
+    } catch {
+      return false;
+    }
+  }
+
+  // ============================================================================
+  // Saved Searches
+  // ============================================================================
+
+  /**
+   * Save the current search
+   */
+  async saveCurrentSearch(name?: string): Promise<void> {
+    // Handle both the prompt dialog and the success alert dialog
+    let dialogCount = 0;
+    const dialogHandler = async (dialog: any) => {
+      dialogCount++;
+      if (dialogCount === 1) {
+        // First dialog is the prompt for name
+        if (name) {
+          await dialog.accept(name);
+        } else {
+          await dialog.dismiss();
+        }
+      } else {
+        // Second dialog is the success alert
+        await dialog.accept();
+      }
+    };
+    
+    this.page.on('dialog', dialogHandler);
+    
+    try {
+      await this.saveSearchButton.click();
+      // Wait a bit for both dialogs to complete
+      await this.page.waitForTimeout(500);
+    } finally {
+      this.page.off('dialog', dialogHandler);
+    }
+  }
+
+  /**
+   * Get saved searches
+   */
+  async getSavedSearches(): Promise<string[]> {
+    try {
+      await this.savedSearchesContainer.waitFor({ state: 'visible', timeout: 2000 });
+      const items = await this.savedSearchItems.all();
+      const searches: string[] = [];
+      for (const item of items) {
+        const text = await item.textContent();
+        if (text) searches.push(text.trim());
+      }
+      return searches;
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Clear all saved searches
+   */
+  async clearSavedSearches(): Promise<void> {
+    // Handle browser confirm dialog before clicking
+    this.page.once('dialog', dialog => dialog.accept());
+    await this.clearSavedSearchesButton.click();
+  }
+
+  /**
+   * Delete a specific saved search by index
+   */
+  async deleteSavedSearch(index: number): Promise<void> {
+    const deleteButton = this.savedSearchItems.nth(index).locator('button[data-testid^="delete-saved-search"]');
+    await deleteButton.click();
+  }
+
+  /**
+   * Check if saved searches are visible
+   */
+  async hasSavedSearches(): Promise<boolean> {
+    try {
+      await this.savedSearchesContainer.waitFor({ state: 'visible', timeout: 2000 });
+      const count = await this.savedSearchItems.count();
+      return count > 0;
+    } catch {
+      return false;
+    }
   }
 }
