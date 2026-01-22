@@ -261,13 +261,14 @@ export function SearchPage() {
 
     // Handle save search
     const handleSaveSearch = () => {
+        // TODO: Replace with proper modal component for better UX
         const name = prompt('Enter a name for this search (optional):');
         if (name === null) return; // User cancelled
         
         const activeFilters = Object.keys(filters).length > 0 ? filters : undefined;
         searchApi.saveSearch(query, activeFilters, name || undefined);
         
-        // Show a brief success message (could be replaced with a toast notification)
+        // TODO: Replace with toast notification for better UX
         alert('Search saved successfully!');
     };
 

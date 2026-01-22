@@ -901,14 +901,13 @@ export class SearchPage extends BasePage {
    * Save the current search
    */
   async saveCurrentSearch(name?: string): Promise<void> {
-    await this.saveSearchButton.click();
-    // Handle browser prompt if name is provided
+    // Handle browser prompt if name will be provided
     if (name) {
-      await this.page.evaluate((n) => {
-        // Mock prompt to return the name
-        window.prompt = () => n;
-      }, name);
+      this.page.once('dialog', dialog => dialog.accept(name));
+    } else {
+      this.page.once('dialog', dialog => dialog.dismiss());
     }
+    await this.saveSearchButton.click();
   }
 
   /**
@@ -933,9 +932,9 @@ export class SearchPage extends BasePage {
    * Clear all saved searches
    */
   async clearSavedSearches(): Promise<void> {
+    // Handle browser confirm dialog before clicking
+    this.page.once('dialog', dialog => dialog.accept());
     await this.clearSavedSearchesButton.click();
-    // Handle browser confirm dialog
-    await this.page.on('dialog', dialog => dialog.accept());
   }
 
   /**

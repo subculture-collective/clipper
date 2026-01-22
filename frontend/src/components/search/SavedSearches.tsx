@@ -44,6 +44,7 @@ export function SavedSearches({ className = '' }: SavedSearchesProps) {
   };
 
   const handleClearAll = () => {
+    // TODO: Replace with proper modal component for better UX
     if (confirm('Clear all saved searches?')) {
       searchApi.clearSavedSearches();
       setSavedSearches([]);

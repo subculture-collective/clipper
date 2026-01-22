@@ -15,6 +15,7 @@ export function SearchHistory({ className = '', maxItems = 10 }: SearchHistoryPr
   };
 
   const handleClearHistory = async () => {
+    // TODO: Replace with proper modal component for better UX
     if (confirm('Clear search history?')) {
       await clearHistory();
     }

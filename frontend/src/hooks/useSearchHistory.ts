@@ -46,7 +46,12 @@ export function useSearchHistory() {
         setHistory(parsed);
       }
       
-      if (err instanceof Error && !err.message.includes('401')) {
+      // Only set error if it's not an auth error (401/403)
+      const isAuthError = err instanceof Error && 
+        (err.message.includes('401') || err.message.includes('403') || 
+         err.message.includes('Unauthorized') || err.message.includes('Forbidden'));
+      
+      if (!isAuthError) {
         setError('Failed to load search history');
         console.error('Error loading search history:', err);
       }
