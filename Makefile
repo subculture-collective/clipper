@@ -132,17 +132,8 @@ test-unit: ## Run unit tests only (fast, verbose)
 test-integration: ## Run integration tests (requires Docker, verbose)
 	@$(MAKE) test-setup
 	@echo "Running backend integration tests..."
-	cd backend && INTEGRATION=1 bash run-tests-verbose.sh
-	@$(MAKE) test-teardown
-	@echo "✓ Integration tests complete"
-	@echo "Waiting for database to be ready..."
-	@sleep 5
-	@echo "Running database migrations..."
-	migrate -path backend/migrations -database "postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable" up || true
-	@echo "Running integration tests..."
 	cd backend && go test -v -tags=integration -race -parallel=4 ./tests/integration/...
-	@echo "Stopping test database..."
-	docker compose -f docker-compose.test.yml down
+	@$(MAKE) test-teardown
 	@echo "✓ Integration tests complete"
 
 test-integration-coverage: ## Run integration tests with coverage report

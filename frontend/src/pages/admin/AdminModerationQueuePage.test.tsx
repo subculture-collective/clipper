@@ -14,9 +14,13 @@ vi.mock('../../lib/moderation-api', () => ({
 }));
 
 // Mock the AuthContext
-vi.mock('../../context/AuthContext', () => ({
-    useAuth: vi.fn(),
-}));
+vi.mock('../../context/AuthContext', async () => {
+    const actual = await vi.importActual('../../context/AuthContext');
+    return {
+        ...actual,
+        useAuth: vi.fn(),
+    };
+});
 
 // Mock react-router-dom
 const mockNavigate = vi.fn();
@@ -101,7 +105,9 @@ describe('AdminModerationQueuePage', () => {
 
             // Wait for the page title to appear
             await waitFor(() => {
-                expect(screen.getByText('Moderation Queue')).toBeInTheDocument();
+                expect(
+                    screen.getByText('Moderation Queue')
+                ).toBeInTheDocument();
             });
 
             // Page should render without errors
@@ -137,7 +143,9 @@ describe('AdminModerationQueuePage', () => {
             render(<AdminModerationQueuePage />);
 
             await waitFor(() => {
-                expect(screen.getByText('No items in the queue.')).toBeInTheDocument();
+                expect(
+                    screen.getByText('No items in the queue.')
+                ).toBeInTheDocument();
             });
         });
 
@@ -168,7 +176,9 @@ describe('AdminModerationQueuePage', () => {
             render(<AdminModerationQueuePage />);
 
             await waitFor(() => {
-                expect(screen.getByText('Failed to load queue')).toBeInTheDocument();
+                expect(
+                    screen.getByText('Failed to load queue')
+                ).toBeInTheDocument();
             });
         });
     });
@@ -216,7 +226,9 @@ describe('AdminModerationQueuePage', () => {
             render(<AdminModerationQueuePage />);
 
             await waitFor(() => {
-                expect(screen.getByText('Moderation Queue')).toBeInTheDocument();
+                expect(
+                    screen.getByText('Moderation Queue')
+                ).toBeInTheDocument();
             });
 
             // Should not show bulk actions bar initially

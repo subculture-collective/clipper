@@ -3,12 +3,16 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import { ConsentProvider, useConsent } from './ConsentContext';
 
 // Mock useAuth hook from AuthContext
-vi.mock('./AuthContext', () => ({
-    useAuth: () => ({
-        user: null,
-        isAuthenticated: false,
-    }),
-}));
+vi.mock('./AuthContext', async () => {
+    const actual = await vi.importActual('./AuthContext');
+    return {
+        ...actual,
+        useAuth: () => ({
+            user: null,
+            isAuthenticated: false,
+        }),
+    };
+});
 
 // Test component that uses the consent context
 function TestConsumer() {
