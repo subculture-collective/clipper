@@ -21,7 +21,7 @@ import type { ClipSubmissionWithUser } from '../../types/submission';
 import type { UserRole } from '../../lib/roles';
 
 export function ModerationQueuePage() {
-    const { isAuthenticated, isAdmin } = useAuth();
+    const { isAuthenticated, isAdmin, isModeratorOrAdmin } = useAuth();
     const navigate = useNavigate();
     const [submissions, setSubmissions] = useState<ClipSubmissionWithUser[]>(
         []
@@ -59,14 +59,14 @@ export function ModerationQueuePage() {
     };
 
     useEffect(() => {
-        if (!isAuthenticated || !isAdmin) {
+        if (!isAuthenticated || !isModeratorOrAdmin) {
             navigate('/');
             return;
         }
 
         loadSubmissions();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isAuthenticated, isAdmin, navigate, page]);
+    }, [isAuthenticated, isModeratorOrAdmin, navigate, page]);
 
     const handleApprove = async (submissionId: string) => {
         try {
@@ -108,7 +108,7 @@ export function ModerationQueuePage() {
         }
     };
 
-    if (!isAuthenticated || !isAdmin) {
+    if (!isAuthenticated || !isModeratorOrAdmin) {
         return null;
     }
 
@@ -419,13 +419,19 @@ export function ModerationQueuePage() {
                             Please provide a reason for rejecting this
                             submission. This will be shown to the user.
                         </p>
-                        <TextArea
-                            value={rejectionReason}
-                            onChange={(e) => setRejectionReason(e.target.value)}
-                            placeholder='Reason for rejection...'
-                            rows={4}
-                            required
-                        />
+                        <div>
+                            <label htmlFor='rejection-reason' className='block mb-2 text-sm font-medium'>
+                                Rejection Reason
+                            </label>
+                            <TextArea
+                                id='rejection-reason'
+                                value={rejectionReason}
+                                onChange={(e) => setRejectionReason(e.target.value)}
+                                placeholder='Reason for rejection...'
+                                rows={4}
+                                required
+                            />
+                        </div>
                         <div className='flex gap-3'>
                             <Button
                                 onClick={handleReject}

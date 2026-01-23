@@ -408,7 +408,7 @@ test.describe('Moderation Workflow E2E', () => {
       });
 
       // Try to navigate to moderation queue
-      await page.goto('/admin/moderation');
+      await page.goto('/admin/submissions');
 
       // Should see access denied message
       await page.waitForLoadState('networkidle');
@@ -435,15 +435,15 @@ test.describe('Moderation Workflow E2E', () => {
       mocks.seedSubmissions(3);
 
       // Navigate to moderation queue
-      await page.goto('/admin/moderation');
+      await page.goto('/admin/submissions');
       await page.waitForLoadState('networkidle');
 
       // Verify we're on the moderation page
-      await expect(page).toHaveURL(/\/admin\/moderation/);
+      await expect(page).toHaveURL(/\/admin\/submissions/);
       await expect(page.getByRole('heading', { name: /moderation queue/i })).toBeVisible();
     });
 
-    test.skip('should allow moderator users to access moderation queue', async ({ page }) => {
+    test('should allow moderator users to access moderation queue', async ({ page }) => {
       const mocks = await setupModerationMocks(page);
 
       // Set current user as moderator
@@ -452,7 +452,6 @@ test.describe('Moderation Workflow E2E', () => {
         username: 'moderatoruser',
         email: 'moderator@example.com',
         role: 'moderator',
-        is_moderator: true,
         karma_points: 300,
         is_banned: false,
       });
@@ -461,17 +460,17 @@ test.describe('Moderation Workflow E2E', () => {
       mocks.seedSubmissions(2);
 
       // Navigate to moderation queue
-      await page.goto('/admin/moderation');
+      await page.goto('/admin/submissions');
       await page.waitForLoadState('networkidle');
 
       // Verify we're on the moderation page
-      await expect(page).toHaveURL(/\/admin\/moderation/);
+      await expect(page).toHaveURL(/\/admin\/submissions/);
       await expect(page.getByRole('heading', { name: /moderation queue/i })).toBeVisible();
     });
   });
 
   test.describe('Single Submission Actions', () => {
-    test.skip('should approve submission and create audit log', async ({ page }) => {
+    test('should approve submission and create audit log', async ({ page }) => {
       const mocks = await setupModerationMocks(page);
 
       // Set admin user
@@ -491,7 +490,7 @@ test.describe('Moderation Workflow E2E', () => {
       });
 
       // Navigate to moderation queue
-      await page.goto('/admin/moderation');
+      await page.goto('/admin/submissions');
       await page.waitForLoadState('networkidle');
 
       // Find and click approve button for the submission
@@ -516,7 +515,7 @@ test.describe('Moderation Workflow E2E', () => {
       expect(approveLog?.actor_id).toBe('admin-1');
     });
 
-    test.skip('should reject submission with reason and create audit log', async ({ page }) => {
+    test('should reject submission with reason and create audit log', async ({ page }) => {
       const mocks = await setupModerationMocks(page);
 
       // Set admin user
@@ -536,7 +535,7 @@ test.describe('Moderation Workflow E2E', () => {
       });
 
       // Navigate to moderation queue
-      await page.goto('/admin/moderation');
+      await page.goto('/admin/submissions');
       await page.waitForLoadState('networkidle');
 
       // Find and click reject button
@@ -609,7 +608,7 @@ test.describe('Moderation Workflow E2E', () => {
   });
 
   test.describe('Bulk Actions', () => {
-    test.skip('should bulk approve multiple submissions and create audit logs', async ({ page }) => {
+    test('should bulk approve multiple submissions and create audit logs', async ({ page }) => {
       const mocks = await setupModerationMocks(page);
 
       // Set admin user
@@ -654,7 +653,7 @@ test.describe('Moderation Workflow E2E', () => {
       expect(bulkApproveLogs.length).toBe(3);
     });
 
-    test.skip('should bulk reject multiple submissions with reason and create audit logs', async ({ page }) => {
+    test('should bulk reject multiple submissions with reason and create audit logs', async ({ page }) => {
       const mocks = await setupModerationMocks(page);
 
       // Set admin user
@@ -703,7 +702,7 @@ test.describe('Moderation Workflow E2E', () => {
   });
 
   test.describe('Performance Baseline', () => {
-    test.skip('should measure p95 page load time for moderation queue', async ({ page }) => {
+    test('should measure p95 page load time for moderation queue', async ({ page }) => {
       const mocks = await setupModerationMocks(page);
 
       // Set admin user
@@ -726,7 +725,7 @@ test.describe('Moderation Workflow E2E', () => {
 
       for (let i = 0; i < iterations; i++) {
         const startTime = Date.now();
-        await page.goto('/admin/moderation');
+        await page.goto('/admin/submissions');
         await page.waitForLoadState('networkidle');
 
         // Wait for submissions to be visible using a more stable selector
@@ -761,7 +760,7 @@ test.describe('Moderation Workflow E2E', () => {
   });
 
   test.describe('Audit Logging', () => {
-    test.skip('should create audit logs for all moderation actions', async ({ page }) => {
+    test('should create audit logs for all moderation actions', async ({ page }) => {
       const mocks = await setupModerationMocks(page);
 
       // Set admin user
@@ -803,7 +802,7 @@ test.describe('Moderation Workflow E2E', () => {
       expect(rejectLog?.details?.rejection_reason).toBe('Test rejection');
     });
 
-    test.skip('should retrieve audit logs via API with filters', async ({ page }) => {
+    test('should retrieve audit logs via API with filters', async ({ page }) => {
       const mocks = await setupModerationMocks(page);
 
       // Set admin user
