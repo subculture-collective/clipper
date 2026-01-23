@@ -21,7 +21,7 @@ import type { ClipSubmissionWithUser } from '../../types/submission';
 import type { UserRole } from '../../lib/roles';
 
 export function ModerationQueuePage() {
-    const { isAuthenticated, isAdmin, isModeratorOrAdmin } = useAuth();
+    const { isAuthenticated, isModeratorOrAdmin } = useAuth();
     const navigate = useNavigate();
     const [submissions, setSubmissions] = useState<ClipSubmissionWithUser[]>(
         []
