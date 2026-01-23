@@ -23,16 +23,16 @@ import { Page, BrowserContext, Route } from '@playwright/test';
  */
 
 export interface SessionTokens {
-  accessToken: string;
-  refreshToken?: string;
-  expiresAt?: number;
-  tokenType?: string;
+    accessToken: string;
+    refreshToken?: string;
+    expiresAt?: number;
+    tokenType?: string;
 }
 
 export interface SessionData {
-  tokens: SessionTokens;
-  user?: any;
-  lastActivity?: number;
+    tokens: SessionTokens;
+    user?: any;
+    lastActivity?: number;
 }
 
 /**
@@ -45,71 +45,71 @@ export interface SessionData {
  * @param storage - Storage type ('local', 'session', 'cookie', 'all')
  */
 export async function setSessionTokens(
-  page: Page,
-  tokens: SessionTokens,
-  storage: 'local' | 'session' | 'cookie' | 'all' = 'all'
+    page: Page,
+    tokens: SessionTokens,
+    storage: 'local' | 'session' | 'cookie' | 'all' = 'all',
 ): Promise<void> {
-  // Ensure the page is on an origin where localStorage/sessionStorage are accessible
-  // Playwright pages start at about:blank; accessing storage there throws SecurityError
-  const url = page.url();
-  if (!url || url.startsWith('about:') || url.startsWith('data:')) {
-    try {
-      await page.goto('/');
-      await page.waitForLoadState('domcontentloaded');
-    } catch {
-      // If navigation fails, continue; cookie setting will still work with domain fallback
+    // Ensure the page is on an origin where localStorage/sessionStorage are accessible
+    // Playwright pages start at about:blank; accessing storage there throws SecurityError
+    const url = page.url();
+    if (!url || url.startsWith('about:') || url.startsWith('data:')) {
+        try {
+            await page.goto('/');
+            await page.waitForLoadState('domcontentloaded');
+        } catch {
+            // If navigation fails, continue; cookie setting will still work with domain fallback
+        }
     }
-  }
 
-  const tokenData = JSON.stringify(tokens);
+    const tokenData = JSON.stringify(tokens);
 
-  if (storage === 'local' || storage === 'all') {
-    await page.evaluate(
-      (data) => {
-        localStorage.setItem('auth_tokens', data);
-        localStorage.setItem('auth_token', JSON.parse(data).accessToken || '');
-      },
-      tokenData
-    );
-  }
-
-  if (storage === 'session' || storage === 'all') {
-    await page.evaluate(
-      (data) => {
-        sessionStorage.setItem('auth_tokens', data);
-        sessionStorage.setItem('auth_token', JSON.parse(data).accessToken || '');
-      },
-      tokenData
-    );
-  }
-
-  if (storage === 'cookie' || storage === 'all') {
-    await page.context().addCookies([
-      {
-        name: 'access_token',
-        value: tokens.accessToken,
-        domain: new URL(page.url()).hostname || 'localhost',
-        path: '/',
-        httpOnly: true,
-        secure: false,
-        sameSite: 'Lax',
-      },
-    ]);
-
-    if (tokens.refreshToken) {
-      await page.context().addCookies([
-        {
-          name: 'refresh_token',
-          value: tokens.refreshToken,
-          domain: new URL(page.url()).hostname || 'localhost',
-          path: '/',
-          httpOnly: true,
-          secure: false,
-          sameSite: 'Lax',
-        },
-      ]);
+    if (storage === 'local' || storage === 'all') {
+        await page.evaluate(data => {
+            localStorage.setItem('auth_tokens', data);
+            localStorage.setItem(
+                'auth_token',
+                JSON.parse(data).accessToken || '',
+            );
+        }, tokenData);
     }
-  }
+
+    if (storage === 'session' || storage === 'all') {
+        await page.evaluate(data => {
+            sessionStorage.setItem('auth_tokens', data);
+            sessionStorage.setItem(
+                'auth_token',
+                JSON.parse(data).accessToken || '',
+            );
+        }, tokenData);
+    }
+
+    if (storage === 'cookie' || storage === 'all') {
+        await page.context().addCookies([
+            {
+                name: 'access_token',
+                value: tokens.accessToken,
+                domain: new URL(page.url()).hostname || 'localhost',
+                path: '/',
+                httpOnly: true,
+                secure: false,
+                sameSite: 'Lax',
+            },
+        ]);
+
+        if (tokens.refreshToken) {
+            await page.context().addCookies([
+                {
+                    name: 'refresh_token',
+                    value: tokens.refreshToken,
+                    domain: new URL(page.url()).hostname || 'localhost',
+                    path: '/',
+                    httpOnly: true,
+                    secure: false,
+                    sameSite: 'Lax',
+                },
+            ]);
+        }
+    }
 }
 
 /**
@@ -118,62 +118,64 @@ export async function setSessionTokens(
  * @param page - Playwright Page object
  * @returns Session tokens or null if not found
  */
-export async function getSessionTokens(page: Page): Promise<SessionTokens | null> {
-  try {
-    // Ensure we have navigated to an origin before accessing storage
-    const url = page.url();
-    if (!url || url.startsWith('about:') || url.startsWith('data:')) {
-      try {
-        await page.goto('/');
-        await page.waitForLoadState('domcontentloaded');
-      } catch {
-        // Navigation may fail in certain contexts, which is acceptable
-      }
-    }
+export async function getSessionTokens(
+    page: Page,
+): Promise<SessionTokens | null> {
+    try {
+        // Ensure we have navigated to an origin before accessing storage
+        const url = page.url();
+        if (!url || url.startsWith('about:') || url.startsWith('data:')) {
+            try {
+                await page.goto('/');
+                await page.waitForLoadState('domcontentloaded');
+            } catch {
+                // Navigation may fail in certain contexts, which is acceptable
+            }
+        }
 
-    // Try localStorage first
-    const localTokens = await page.evaluate(() => {
-      const data = localStorage.getItem('auth_tokens');
-      if (!data) return null;
-      try {
-        return JSON.parse(data);
-      } catch {
+        // Try localStorage first
+        const localTokens = await page.evaluate(() => {
+            const data = localStorage.getItem('auth_tokens');
+            if (!data) return null;
+            try {
+                return JSON.parse(data);
+            } catch {
+                return null;
+            }
+        });
+
+        if (localTokens) return localTokens;
+
+        // Try sessionStorage
+        const sessionTokens = await page.evaluate(() => {
+            const data = sessionStorage.getItem('auth_tokens');
+            if (!data) return null;
+            try {
+                return JSON.parse(data);
+            } catch {
+                return null;
+            }
+        });
+
+        if (sessionTokens) return sessionTokens;
+
+        // Try cookies
+        const cookies = await page.context().cookies();
+        const accessToken = cookies.find(c => c.name === 'access_token');
+        const refreshToken = cookies.find(c => c.name === 'refresh_token');
+
+        if (accessToken) {
+            return {
+                accessToken: accessToken.value,
+                refreshToken: refreshToken?.value,
+            };
+        }
+
         return null;
-      }
-    });
-
-    if (localTokens) return localTokens;
-
-    // Try sessionStorage
-    const sessionTokens = await page.evaluate(() => {
-      const data = sessionStorage.getItem('auth_tokens');
-      if (!data) return null;
-      try {
-        return JSON.parse(data);
-      } catch {
+    } catch (error) {
+        console.error('Failed to get session tokens:', error);
         return null;
-      }
-    });
-
-    if (sessionTokens) return sessionTokens;
-
-    // Try cookies
-    const cookies = await page.context().cookies();
-    const accessToken = cookies.find((c) => c.name === 'access_token');
-    const refreshToken = cookies.find((c) => c.name === 'refresh_token');
-
-    if (accessToken) {
-      return {
-        accessToken: accessToken.value,
-        refreshToken: refreshToken?.value,
-      };
     }
-
-    return null;
-  } catch (error) {
-    console.error('Failed to get session tokens:', error);
-    return null;
-  }
 }
 
 /**
@@ -182,25 +184,25 @@ export async function getSessionTokens(page: Page): Promise<SessionTokens | null
  * @param page - Playwright Page object
  */
 export async function clearSessionTokens(page: Page): Promise<void> {
-  // Ensure we have navigated to a valid origin so storage APIs are available
-  const url = page.url();
-  if (!url || url.startsWith('about:') || url.startsWith('data:')) {
-    try {
-      await page.goto('/');
-      await page.waitForLoadState('domcontentloaded');
-    } catch {
-      // Navigation may fail in certain contexts, which is acceptable
+    // Ensure we have navigated to a valid origin so storage APIs are available
+    const url = page.url();
+    if (!url || url.startsWith('about:') || url.startsWith('data:')) {
+        try {
+            await page.goto('/');
+            await page.waitForLoadState('domcontentloaded');
+        } catch {
+            // Navigation may fail in certain contexts, which is acceptable
+        }
     }
-  }
 
-  await page.evaluate(() => {
-    localStorage.removeItem('auth_tokens');
-    sessionStorage.removeItem('auth_tokens');
-    localStorage.clear();
-    sessionStorage.clear();
-  });
+    await page.evaluate(() => {
+        localStorage.removeItem('auth_tokens');
+        sessionStorage.removeItem('auth_tokens');
+        localStorage.clear();
+        sessionStorage.clear();
+    });
 
-  await page.context().clearCookies();
+    await page.context().clearCookies();
 }
 
 /**
@@ -211,20 +213,20 @@ export async function clearSessionTokens(page: Page): Promise<void> {
  * @returns true if session persisted
  */
 export async function verifySessionPersistence(
-  page: Page,
-  navigateTo: string = '/'
+    page: Page,
+    navigateTo: string = '/',
 ): Promise<boolean> {
-  const tokensBefore = await getSessionTokens(page);
+    const tokensBefore = await getSessionTokens(page);
 
-  await page.goto(navigateTo);
-  await page.waitForLoadState('networkidle');
+    await page.goto(navigateTo);
+    await page.waitForLoadState('networkidle');
 
-  const tokensAfter = await getSessionTokens(page);
+    const tokensAfter = await getSessionTokens(page);
 
-  return (
-    tokensBefore?.accessToken === tokensAfter?.accessToken &&
-    tokensBefore?.refreshToken === tokensAfter?.refreshToken
-  );
+    return (
+        tokensBefore?.accessToken === tokensAfter?.accessToken &&
+        tokensBefore?.refreshToken === tokensAfter?.refreshToken
+    );
 }
 
 /**
@@ -233,18 +235,20 @@ export async function verifySessionPersistence(
  * @param page - Playwright Page object
  * @returns true if session persisted
  */
-export async function verifySessionPersistsOnReload(page: Page): Promise<boolean> {
-  const tokensBefore = await getSessionTokens(page);
+export async function verifySessionPersistsOnReload(
+    page: Page,
+): Promise<boolean> {
+    const tokensBefore = await getSessionTokens(page);
 
-  await page.reload();
-  await page.waitForLoadState('networkidle');
+    await page.reload();
+    await page.waitForLoadState('networkidle');
 
-  const tokensAfter = await getSessionTokens(page);
+    const tokensAfter = await getSessionTokens(page);
 
-  return (
-    tokensBefore?.accessToken === tokensAfter?.accessToken &&
-    tokensBefore?.refreshToken === tokensAfter?.refreshToken
-  );
+    return (
+        tokensBefore?.accessToken === tokensAfter?.accessToken &&
+        tokensBefore?.refreshToken === tokensAfter?.refreshToken
+    );
 }
 
 /**
@@ -255,35 +259,35 @@ export async function verifySessionPersistsOnReload(page: Page): Promise<boolean
  * @returns true if session shared across tabs
  */
 export async function verifySessionAcrossTabs(
-  context: BrowserContext,
-  baseUrl: string = 'http://127.0.0.1:5173'
+    context: BrowserContext,
+    baseUrl: string = 'http://127.0.0.1:5173',
 ): Promise<boolean> {
-  // Create first page and set session
-  const page1 = await context.newPage();
-  await page1.goto(baseUrl);
+    // Create first page and set session
+    const page1 = await context.newPage();
+    await page1.goto(baseUrl);
 
-  const tokens: SessionTokens = {
-    accessToken: `token_${Date.now()}`,
-    refreshToken: `refresh_${Date.now()}`,
-    expiresAt: Date.now() + 3600000,
-  };
+    const tokens: SessionTokens = {
+        accessToken: `token_${Date.now()}`,
+        refreshToken: `refresh_${Date.now()}`,
+        expiresAt: Date.now() + 3600000,
+    };
 
-  await setSessionTokens(page1, tokens);
+    await setSessionTokens(page1, tokens);
 
-  // Create second page
-  const page2 = await context.newPage();
-  await page2.goto(baseUrl);
+    // Create second page
+    const page2 = await context.newPage();
+    await page2.goto(baseUrl);
 
-  // Check if session is shared
-  const tokens2 = await getSessionTokens(page2);
+    // Check if session is shared
+    const tokens2 = await getSessionTokens(page2);
 
-  const sessionShared = tokens.accessToken === tokens2?.accessToken;
+    const sessionShared = tokens.accessToken === tokens2?.accessToken;
 
-  // Cleanup
-  await page1.close();
-  await page2.close();
+    // Cleanup
+    await page1.close();
+    await page2.close();
 
-  return sessionShared;
+    return sessionShared;
 }
 
 /**
@@ -293,58 +297,71 @@ export async function verifySessionAcrossTabs(
  * @param options - Refresh options
  */
 export async function mockTokenRefresh(
-  page: Page,
-  options: {
-    shouldSucceed?: boolean;
-    newTokens?: Partial<SessionTokens>;
-    delay?: number;
-  } = {}
+    page: Page,
+    options: {
+        shouldSucceed?: boolean;
+        newTokens?: Partial<SessionTokens>;
+        delay?: number;
+    } = {},
 ): Promise<void> {
-  const { shouldSucceed = true, newTokens = {}, delay = 0 } = options;
+    const { shouldSucceed = true, newTokens = {}, delay = 0 } = options;
 
-  await page.route('**/api/v1/auth/refresh', async (route: Route) => {
-    if (delay > 0) {
-      await new Promise((resolve) => setTimeout(resolve, delay));
-    }
+    await page.route('**/api/v1/auth/refresh', async (route: Route) => {
+        if (delay > 0) {
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
 
-    if (shouldSucceed) {
-      const tokens: SessionTokens = {
-        accessToken: newTokens.accessToken || `new_access_${Date.now()}`,
-        refreshToken: newTokens.refreshToken || `new_refresh_${Date.now()}`,
-        expiresAt: newTokens.expiresAt || Date.now() + 3600000,
-        tokenType: newTokens.tokenType || 'Bearer',
-      };
+        if (shouldSucceed) {
+            const tokens: SessionTokens = {
+                accessToken:
+                    newTokens.accessToken || `new_access_${Date.now()}`,
+                refreshToken:
+                    newTokens.refreshToken || `new_refresh_${Date.now()}`,
+                expiresAt: newTokens.expiresAt || Date.now() + 3600000,
+                tokenType: newTokens.tokenType || 'Bearer',
+            };
 
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          tokens,
-        }),
-      });
-    } else {
-      await route.fulfill({
-        status: 401,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: false,
-          error: 'Invalid refresh token',
-        }),
-      });
-    }
-  });
-
-  // When refresh fails, ensure subsequent auth checks reflect unauthenticated state
-  if (!shouldSucceed) {
-    await page.route('**/api/v1/auth/me', async (route: Route) => {
-      await route.fulfill({
-        status: 401,
-        contentType: 'application/json',
-        body: JSON.stringify({ success: false, error: 'Unauthorized' }),
-      });
+            await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    success: true,
+                    tokens,
+                }),
+            });
+        } else {
+            await route.fulfill({
+                status: 401,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    success: false,
+                    error: 'Invalid refresh token',
+                }),
+            });
+        }
     });
-  }
+
+    // When refresh fails, ensure subsequent auth checks reflect unauthenticated state
+    if (!shouldSucceed) {
+        await page.route('**/api/v1/auth/me', async (route: Route) => {
+            await route.fulfill({
+                status: 401,
+                contentType: 'application/json',
+                body: JSON.stringify({ success: false, error: 'Unauthorized' }),
+            });
+        });
+        // Block test-login to prevent auto-login from re-authenticating
+        await page.route('**/api/v1/auth/test-login', async (route: Route) => {
+            await route.fulfill({
+                status: 401,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    success: false,
+                    error: 'Test login disabled',
+                }),
+            });
+        });
+    }
 }
 
 /**
@@ -355,13 +372,13 @@ export async function mockTokenRefresh(
  * @param page - Playwright Page object
  */
 export async function simulateTokenExpiry(page: Page): Promise<void> {
-  const expiredTokens: SessionTokens = {
-    accessToken: `expired_token_${Date.now()}`,
-    refreshToken: `refresh_${Date.now()}`,
-    expiresAt: Date.now() - 60000, // Expired 1 minute ago
-  };
+    const expiredTokens: SessionTokens = {
+        accessToken: `expired_token_${Date.now()}`,
+        refreshToken: `refresh_${Date.now()}`,
+        expiresAt: Date.now() - 60000, // Expired 1 minute ago
+    };
 
-  await setSessionTokens(page, expiredTokens);
+    await setSessionTokens(page, expiredTokens);
 }
 
 /**
@@ -373,20 +390,20 @@ export async function simulateTokenExpiry(page: Page): Promise<void> {
  * @param endpoint - API endpoint to mock
  */
 export async function mock401Response(
-  page: Page,
-  endpoint: string | RegExp = '**/api/v1/**'
+    page: Page,
+    endpoint: string | RegExp = '**/api/v1/**',
 ): Promise<void> {
-  await page.route(endpoint, async (route: Route) => {
-    await route.fulfill({
-      status: 401,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        success: false,
-        error: 'Unauthorized',
-        message: 'Token expired or invalid',
-      }),
+    await page.route(endpoint, async (route: Route) => {
+        await route.fulfill({
+            status: 401,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                success: false,
+                error: 'Unauthorized',
+                message: 'Token expired or invalid',
+            }),
+        });
     });
-  });
 }
 
 /**
@@ -397,37 +414,37 @@ export async function mock401Response(
  * @param page - Playwright Page object
  */
 export async function mockTokenRefreshOn401(page: Page): Promise<void> {
-  let requestCount = 0;
+    let requestCount = 0;
 
-  await page.route('**/api/v1/auth/me', async (route: Route) => {
-    requestCount++;
+    await page.route('**/api/v1/auth/me', async (route: Route) => {
+        requestCount++;
 
-    if (requestCount === 1) {
-      // First request: return 401
-      await route.fulfill({
-        status: 401,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: false,
-          error: 'Unauthorized',
-        }),
-      });
-    } else {
-      // After refresh: return success
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          id: 'user123',
-          username: 'testuser',
-          email: 'test@example.com',
-        }),
-      });
-    }
-  });
+        if (requestCount === 1) {
+            // First request: return 401
+            await route.fulfill({
+                status: 401,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    success: false,
+                    error: 'Unauthorized',
+                }),
+            });
+        } else {
+            // After refresh: return success
+            await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    id: 'user123',
+                    username: 'testuser',
+                    email: 'test@example.com',
+                }),
+            });
+        }
+    });
 
-  // Mock refresh endpoint
-  await mockTokenRefresh(page, { shouldSucceed: true });
+    // Mock refresh endpoint
+    await mockTokenRefresh(page, { shouldSucceed: true });
 }
 
 /**
@@ -437,35 +454,35 @@ export async function mockTokenRefreshOn401(page: Page): Promise<void> {
  * @param options - Logout options
  */
 export async function mockLogout(
-  page: Page,
-  options: {
-    shouldSucceed?: boolean;
-    revokeTokens?: boolean;
-  } = {}
+    page: Page,
+    options: {
+        shouldSucceed?: boolean;
+        revokeTokens?: boolean;
+    } = {},
 ): Promise<void> {
-  const { shouldSucceed = true, revokeTokens = true } = options;
+    const { shouldSucceed = true, revokeTokens = true } = options;
 
-  await page.route('**/api/v1/auth/logout', async (route: Route) => {
-    if (shouldSucceed) {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          tokensRevoked: revokeTokens,
-        }),
-      });
-    } else {
-      await route.fulfill({
-        status: 500,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: false,
-          error: 'Logout failed',
-        }),
-      });
-    }
-  });
+    await page.route('**/api/v1/auth/logout', async (route: Route) => {
+        if (shouldSucceed) {
+            await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    success: true,
+                    tokensRevoked: revokeTokens,
+                }),
+            });
+        } else {
+            await route.fulfill({
+                status: 500,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    success: false,
+                    error: 'Logout failed',
+                }),
+            });
+        }
+    });
 }
 
 /**
@@ -475,42 +492,42 @@ export async function mockLogout(
  * @returns true if all session data cleared
  */
 export async function verifyLogoutClearsSession(page: Page): Promise<boolean> {
-  // Ensure origin before accessing storage
-  const url = page.url();
-  if (!url || url.startsWith('about:') || url.startsWith('data:')) {
-    try {
-      await page.goto('/');
-      await page.waitForLoadState('domcontentloaded');
-    } catch {
-      // Navigation may fail in certain contexts, which is acceptable
+    // Ensure origin before accessing storage
+    const url = page.url();
+    if (!url || url.startsWith('about:') || url.startsWith('data:')) {
+        try {
+            await page.goto('/');
+            await page.waitForLoadState('domcontentloaded');
+        } catch {
+            // Navigation may fail in certain contexts, which is acceptable
+        }
     }
-  }
 
-  const tokens = await getSessionTokens(page);
+    const tokens = await getSessionTokens(page);
 
-  if (tokens) {
-    return false;
-  }
+    if (tokens) {
+        return false;
+    }
 
-  // Check localStorage
-  const hasLocalStorage = await page.evaluate(() => {
-    return localStorage.getItem('auth_tokens') !== null;
-  });
+    // Check localStorage
+    const hasLocalStorage = await page.evaluate(() => {
+        return localStorage.getItem('auth_tokens') !== null;
+    });
 
-  if (hasLocalStorage) {
-    return false;
-  }
+    if (hasLocalStorage) {
+        return false;
+    }
 
-  // Check sessionStorage
-  const hasSessionStorage = await page.evaluate(() => {
-    return sessionStorage.getItem('auth_tokens') !== null;
-  });
+    // Check sessionStorage
+    const hasSessionStorage = await page.evaluate(() => {
+        return sessionStorage.getItem('auth_tokens') !== null;
+    });
 
-  if (hasSessionStorage) {
-    return false;
-  }
+    if (hasSessionStorage) {
+        return false;
+    }
 
-  return true;
+    return true;
 }
 
 /**
@@ -523,26 +540,26 @@ export async function verifyLogoutClearsSession(page: Page): Promise<boolean> {
  * @returns Array of pages with sessions
  */
 export async function simulateConcurrentSessions(
-  contexts: BrowserContext[],
-  baseUrl: string = 'http://127.0.0.1:5173'
+    contexts: BrowserContext[],
+    baseUrl: string = 'http://127.0.0.1:5173',
 ): Promise<Page[]> {
-  const pages: Page[] = [];
+    const pages: Page[] = [];
 
-  for (let i = 0; i < contexts.length; i++) {
-    const page = await contexts[i].newPage();
-    await page.goto(baseUrl);
+    for (let i = 0; i < contexts.length; i++) {
+        const page = await contexts[i].newPage();
+        await page.goto(baseUrl);
 
-    const tokens: SessionTokens = {
-      accessToken: `token_session_${i}_${Date.now()}`,
-      refreshToken: `refresh_session_${i}_${Date.now()}`,
-      expiresAt: Date.now() + 3600000,
-    };
+        const tokens: SessionTokens = {
+            accessToken: `token_session_${i}_${Date.now()}`,
+            refreshToken: `refresh_session_${i}_${Date.now()}`,
+            expiresAt: Date.now() + 3600000,
+        };
 
-    await setSessionTokens(page, tokens);
-    pages.push(page);
-  }
+        await setSessionTokens(page, tokens);
+        pages.push(page);
+    }
 
-  return pages;
+    return pages;
 }
 
 /**
@@ -551,7 +568,7 @@ export async function simulateConcurrentSessions(
  * @param page - Playwright Page object
  */
 export async function clearSessionMocks(page: Page): Promise<void> {
-  await page.unroute('**/api/v1/auth/refresh');
-  await page.unroute('**/api/v1/auth/logout');
-  await page.unroute('**/api/v1/auth/me');
+    await page.unroute('**/api/v1/auth/refresh');
+    await page.unroute('**/api/v1/auth/logout');
+    await page.unroute('**/api/v1/auth/me');
 }

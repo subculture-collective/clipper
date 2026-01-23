@@ -1104,20 +1104,28 @@ test.describe('Moderation E2E', () => {
             };
             mocks.setCurrentUser(adminUser);
 
-            // Create some audit logs via API
-            await page.request.post('/api/admin/moderators', {
-                data: {
-                    user_id: 'user-1',
-                    channel_id: 'channel-1',
-                    role: 'moderator',
-                },
+            // Create some audit logs via API using page.evaluate to go through route handlers
+            await page.evaluate(async () => {
+                await fetch('/api/admin/moderators', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: 'user-1',
+                        channel_id: 'channel-1',
+                        role: 'moderator',
+                    }),
+                });
             });
 
-            await page.request.post('/api/chat/sync-bans', {
-                data: {
-                    channel_id: 'channel-1',
-                    channel_name: 'testchannel',
-                },
+            await page.evaluate(async () => {
+                await fetch('/api/chat/sync-bans', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        channel_id: 'channel-1',
+                        channel_name: 'testchannel',
+                    }),
+                });
             });
 
             // Navigate to audit logs page
@@ -1215,12 +1223,16 @@ test.describe('Moderation E2E', () => {
             };
             mocks.setCurrentUser(moderatorUser);
 
-            // Create an audit log
-            await page.request.post('/api/chat/sync-bans', {
-                data: {
-                    channel_id: 'channel-1',
-                    channel_name: 'testchannel',
-                },
+            // Create an audit log using page.evaluate to go through route handlers
+            await page.evaluate(async () => {
+                await fetch('/api/chat/sync-bans', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        channel_id: 'channel-1',
+                        channel_name: 'testchannel',
+                    }),
+                });
             });
 
             // Navigate to audit logs
@@ -1671,27 +1683,34 @@ test.describe('Moderation E2E', () => {
                 is_banned: false,
             });
 
-            // Make concurrent requests to add moderators
-            const [response1, response2] = await Promise.all([
-                page.request.post('/api/admin/moderators', {
-                    data: {
-                        user_id: 'user-1',
-                        channel_id: 'channel-1',
-                        role: 'moderator',
-                    },
-                }),
-                page.request.post('/api/admin/moderators', {
-                    data: {
-                        user_id: 'user-2',
-                        channel_id: 'channel-1',
-                        role: 'moderator',
-                    },
-                }),
-            ]);
+            // Make concurrent requests to add moderators using page.evaluate to go through route handlers
+            const responses = await page.evaluate(async () => {
+                const results = await Promise.all([
+                    fetch('/api/admin/moderators', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            user_id: 'user-1',
+                            channel_id: 'channel-1',
+                            role: 'moderator',
+                        }),
+                    }),
+                    fetch('/api/admin/moderators', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            user_id: 'user-2',
+                            channel_id: 'channel-1',
+                            role: 'moderator',
+                        }),
+                    }),
+                ]);
+                return results.map(r => ({ status: r.status }));
+            });
 
             // Verify both requests succeeded
-            expect(response1.status()).toBe(201);
-            expect(response2.status()).toBe(201);
+            expect(responses[0].status).toBe(201);
+            expect(responses[1].status).toBe(201);
 
             // Verify both audit logs were created
             const logs = mocks.getAuditLogs();
@@ -2234,8 +2253,10 @@ test.describe('Moderation E2E', () => {
             // Test different viewport sizes
             await page.setViewportSize({ width: 375, height: 667 }); // Mobile
 
-            // Verify UI is still accessible
-            const heading = page.getByRole('heading', { name: /moderator/i });
+            // Verify UI is still accessible - use first() to avoid strict mode violation with multiple headings
+            const heading = page
+                .getByRole('heading', { name: /moderator/i })
+                .first();
             await expect(heading).toBeVisible();
 
             await page.setViewportSize({ width: 1920, height: 1080 }); // Desktop

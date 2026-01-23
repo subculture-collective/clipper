@@ -83,7 +83,7 @@ async function setupTwitchModerationMocks(page: Page) {
         resourceType: string,
         resourceId: string,
         actorId: string,
-        details: any = {}
+        details: any = {},
     ) => {
         const log: AuditLogEntry = {
             id: `audit-${auditIdCounter++}`,
@@ -148,18 +148,18 @@ async function setupTwitchModerationMocks(page: Page) {
                 ).toLowerCase();
                 const pageNum = parseInt(
                     url.searchParams.get('page') || '1',
-                    10
+                    10,
                 );
                 const perPage = parseInt(
                     url.searchParams.get('per_page') || '25',
-                    10
+                    10,
                 );
 
                 const allUsers = Array.from(users.values()).filter(
                     u =>
                         !search ||
                         u.username.toLowerCase().includes(search) ||
-                        u.display_name?.toLowerCase().includes(search)
+                        u.display_name?.toLowerCase().includes(search),
                 );
 
                 const start = (pageNum - 1) * perPage;
@@ -271,9 +271,12 @@ async function setupTwitchModerationMocks(page: Page) {
 
                 // Perform ban
                 const banId = `ban-${Date.now()}`;
-                const expiresAt = body.duration
-                    ? new Date(Date.now() + body.duration * 1000).toISOString()
-                    : undefined;
+                const expiresAt =
+                    body.duration ?
+                        new Date(
+                            Date.now() + body.duration * 1000,
+                        ).toISOString()
+                    :   undefined;
 
                 bannedUsers.set(body.userID, {
                     banId,
@@ -293,14 +296,15 @@ async function setupTwitchModerationMocks(page: Page) {
                         reason: body.reason,
                         duration: body.duration,
                         is_timeout: !!body.duration,
-                    }
+                    },
                 );
 
                 return respond(route, 200, {
                     success: true,
-                    message: body.duration
-                        ? `User timed out on Twitch for ${body.duration} seconds`
-                        : 'User banned on Twitch successfully',
+                    message:
+                        body.duration ?
+                            `User timed out on Twitch for ${body.duration} seconds`
+                        :   'User banned on Twitch successfully',
                     broadcasterID: body.broadcasterID,
                     userID: body.userID,
                 });
@@ -394,7 +398,7 @@ async function setupTwitchModerationMocks(page: Page) {
                         {
                             broadcaster_id: broadcasterID,
                             user_id: userID,
-                        }
+                        },
                     );
                 }
 
@@ -423,7 +427,7 @@ async function setupTwitchModerationMocks(page: Page) {
 
                 if (action) {
                     filteredLogs = filteredLogs.filter(
-                        log => log.action === action
+                        log => log.action === action,
                     );
                 }
 
@@ -432,7 +436,7 @@ async function setupTwitchModerationMocks(page: Page) {
                     data: filteredLogs.sort(
                         (a, b) =>
                             new Date(b.timestamp).getTime() -
-                            new Date(a.timestamp).getTime()
+                            new Date(a.timestamp).getTime(),
                     ),
                     meta: {
                         total: filteredLogs.length,
@@ -505,11 +509,11 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
                 .or(page.locator('.modal'));
             await expect(modal.first()).toBeVisible({ timeout: 5000 });
 
-            // Fill ban reason
+            // Fill ban reason - use textbox role to avoid matching the select dropdown
             const reasonInput = page
-                .getByLabel(/reason/i)
+                .getByRole('textbox', { name: /reason/i })
                 .or(page.getByPlaceholder(/reason/i));
-            await reasonInput.fill('Violation of community guidelines');
+            await reasonInput.first().fill('Violation of community guidelines');
 
             // Select permanent ban (no duration)
             const permanentRadio = page
@@ -529,7 +533,7 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
 
             // Verify success message
             await expect(
-                page.getByTestId('twitch-action-success-alert')
+                page.getByTestId('twitch-action-success-alert'),
             ).toBeVisible({ timeout: 5000 });
 
             // Verify audit log was created
@@ -538,7 +542,7 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
             expect(banLog).toBeDefined();
             expect(banLog?.actor_id).toBe('broadcaster-1');
             expect(banLog?.details?.reason).toBe(
-                'Violation of community guidelines'
+                'Violation of community guidelines',
             );
             expect(banLog?.details?.is_timeout).toBe(false);
         });
@@ -573,11 +577,11 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
                     .or(page.locator('.modal'));
                 await expect(modal.first()).toBeVisible({ timeout: 5000 });
 
-                // Fill reason
+                // Fill reason - use textbox role to avoid matching the select dropdown
                 const reasonInput = page
-                    .getByLabel(/reason/i)
+                    .getByRole('textbox', { name: /reason/i })
                     .or(page.getByPlaceholder(/reason/i));
-                await reasonInput.fill('Spam');
+                await reasonInput.first().fill('Spam');
 
                 // Select timeout option
                 const timeoutRadio = page
@@ -604,17 +608,17 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
                 }
 
                 const confirmButton = page.getByTestId(
-                    'confirm-ban-action-button'
+                    'confirm-ban-action-button',
                 );
                 await confirmButton.click();
 
                 await expect(
-                    page.getByTestId('twitch-action-success-alert')
+                    page.getByTestId('twitch-action-success-alert'),
                 ).toBeVisible({ timeout: 5000 });
 
                 const logs = mocks.getAuditLogs();
                 const banLog = logs.find(
-                    log => log.action === 'twitch_ban_user'
+                    log => log.action === 'twitch_ban_user',
                 );
                 expect(banLog).toBeDefined();
                 expect(banLog?.details?.duration).toBe(600);
@@ -663,12 +667,12 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
                 }
 
                 await expect(
-                    page.getByTestId('twitch-action-success-alert')
+                    page.getByTestId('twitch-action-success-alert'),
                 ).toBeVisible({ timeout: 5000 });
 
                 const logs = mocks.getAuditLogs();
                 const unbanLog = logs.find(
-                    log => log.action === 'twitch_unban_user'
+                    log => log.action === 'twitch_unban_user',
                 );
                 expect(unbanLog).toBeDefined();
                 expect(unbanLog?.actor_id).toBe('broadcaster-1');
@@ -708,23 +712,24 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
                     .or(page.locator('.modal'));
                 await expect(modal.first()).toBeVisible({ timeout: 5000 });
 
+                // Use textbox role to avoid matching the select dropdown
                 const reasonInput = page
-                    .getByLabel(/reason/i)
+                    .getByRole('textbox', { name: /reason/i })
                     .or(page.getByPlaceholder(/reason/i));
-                await reasonInput.fill('Moderator action');
+                await reasonInput.first().fill('Moderator action');
 
                 const confirmButton = page.getByTestId(
-                    'confirm-ban-action-button'
+                    'confirm-ban-action-button',
                 );
                 await confirmButton.click();
 
                 await expect(
-                    page.getByTestId('twitch-action-success-alert')
+                    page.getByTestId('twitch-action-success-alert'),
                 ).toBeVisible({ timeout: 5000 });
 
                 const logs = mocks.getAuditLogs();
                 const banLog = logs.find(
-                    log => log.action === 'twitch_ban_user'
+                    log => log.action === 'twitch_ban_user',
                 );
                 expect(banLog).toBeDefined();
                 expect(banLog?.actor_id).toBe('moderator-1');
@@ -771,12 +776,12 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
                 }
 
                 await expect(
-                    page.getByTestId('twitch-action-success-alert')
+                    page.getByTestId('twitch-action-success-alert'),
                 ).toBeVisible({ timeout: 5000 });
 
                 const logs = mocks.getAuditLogs();
                 const unbanLog = logs.find(
-                    log => log.action === 'twitch_unban_user'
+                    log => log.action === 'twitch_unban_user',
                 );
                 expect(unbanLog).toBeDefined();
             }
@@ -819,7 +824,7 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
                 await expect(
                     page.locator('[role="alert"]').filter({
                         hasText: /site moderator|read.*only|cannot perform/i,
-                    })
+                    }),
                 ).toBeVisible({ timeout: 5000 });
             } else {
                 // Button should not be visible - this is the expected behavior
@@ -858,7 +863,7 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
                 await expect(
                     page.locator('[role="alert"]').filter({
                         hasText: /site moderator|read.*only|cannot perform/i,
-                    })
+                    }),
                 ).toBeVisible({ timeout: 5000 });
             } else {
                 expect(isVisible).toBe(false);
@@ -903,19 +908,20 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
                         .isVisible({ timeout: 2000 })
                         .catch(() => false)
                 ) {
+                    // Use textbox role specifically to avoid matching the select dropdown
                     const reasonInput = page
-                        .getByLabel(/reason/i)
+                        .getByRole('textbox', { name: /reason/i })
                         .or(page.getByPlaceholder(/reason/i));
-                    await reasonInput.fill('Test ban');
+                    await reasonInput.first().fill('Test ban');
 
                     const confirmButton = page.getByTestId(
-                        'confirm-ban-action-button'
+                        'confirm-ban-action-button',
                     );
                     await confirmButton.click();
 
                     // Use data-testid to specifically get the modal inline error alert, avoiding strict mode
                     await expect(
-                        page.getByTestId('twitch-action-error-alert')
+                        page.getByTestId('twitch-action-error-alert'),
                     ).toBeVisible({ timeout: 5000 });
                 }
             }
@@ -958,18 +964,18 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
                         .catch(() => false)
                 ) {
                     const reasonInput = page
-                        .getByLabel(/reason/i)
+                        .getByRole('textbox', { name: /reason/i })
                         .or(page.getByPlaceholder(/reason/i));
-                    await reasonInput.fill('Test ban');
+                    await reasonInput.first().fill('Test ban');
 
                     const confirmButton = page.getByTestId(
-                        'confirm-ban-action-button'
+                        'confirm-ban-action-button',
                     );
                     await confirmButton.click();
 
                     // Use data-testid to specifically get the modal inline error alert, avoiding strict mode
                     await expect(
-                        page.getByTestId('twitch-action-error-alert')
+                        page.getByTestId('twitch-action-error-alert'),
                     ).toBeVisible({ timeout: 5000 });
                 }
             }
@@ -1012,19 +1018,20 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
                         .isVisible({ timeout: 2000 })
                         .catch(() => false)
                 ) {
+                    // Use textbox role specifically to avoid matching the select dropdown
                     const reasonInput = page
-                        .getByLabel(/reason/i)
+                        .getByRole('textbox', { name: /reason/i })
                         .or(page.getByPlaceholder(/reason/i));
-                    await reasonInput.fill('Test ban');
+                    await reasonInput.first().fill('Test ban');
 
                     const confirmButton = page.getByTestId(
-                        'confirm-ban-action-button'
+                        'confirm-ban-action-button',
                     );
                     await confirmButton.click();
 
                     // Use data-testid to specifically get the modal inline error alert, avoiding strict mode
                     await expect(
-                        page.getByTestId('twitch-action-error-alert')
+                        page.getByTestId('twitch-action-error-alert'),
                     ).toBeVisible({ timeout: 5000 });
                 }
             }
@@ -1046,13 +1053,17 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
             };
             mocks.setCurrentUser(broadcaster);
 
-            // Perform a ban action via API
-            await page.request.post('/api/v1/moderation/twitch/ban', {
-                data: {
-                    broadcasterID: '12345',
-                    userID: '99999',
-                    reason: 'Test ban for audit',
-                },
+            // Perform a ban action via API using page.evaluate to go through route handlers
+            await page.evaluate(async () => {
+                await fetch('/api/v1/moderation/twitch/ban', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        broadcasterID: '12345',
+                        userID: '99999',
+                        reason: 'Test ban for audit',
+                    }),
+                });
             });
 
             // Navigate to audit logs
@@ -1082,14 +1093,19 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
             };
             mocks.setCurrentUser(broadcaster);
 
-            // Perform an unban action via API
-            await page.request.delete(
-                '/api/v1/moderation/twitch/ban?broadcasterID=12345&userID=99999'
-            );
+            // Perform an unban action via API using page.evaluate to go through route handlers
+            await page.evaluate(async () => {
+                await fetch(
+                    '/api/v1/moderation/twitch/ban?broadcasterID=12345&userID=99999',
+                    {
+                        method: 'DELETE',
+                    },
+                );
+            });
 
             const logs = mocks.getAuditLogs();
             const unbanLog = logs.find(
-                log => log.action === 'twitch_unban_user'
+                log => log.action === 'twitch_unban_user',
             );
             expect(unbanLog).toBeDefined();
             expect(unbanLog?.actor_id).toBe('broadcaster-1');

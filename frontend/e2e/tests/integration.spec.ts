@@ -1,4 +1,5 @@
 import { expect, test, Page } from '../fixtures';
+import { dismissCookieBanner } from '../utils/auth';
 
 // Deterministic mock data shared across integration tests
 const demoClip = {
@@ -88,36 +89,45 @@ async function setupIntegrationMocks(page: Page) {
         });
     });
 
-    // Auth is unauthenticated by default
-    await page.route('**/api/v1/auth/me', (route) =>
-        route.fulfill({
-            status: 401,
-            contentType: 'application/json',
-            body: JSON.stringify({ success: false, error: 'unauthorized' }),
-        })
+    // Block test-login API to prevent auto-authentication in E2E mode
+    await page.route('**/api/v1/auth/test-login', route =>
+        route.abort('aborted'),
     );
 
-    await page.route('**/api/v1/auth/refresh', (route) =>
+    // Auth is unauthenticated by default
+    await page.route('**/api/v1/auth/me', route =>
         route.fulfill({
             status: 401,
             contentType: 'application/json',
             body: JSON.stringify({ success: false, error: 'unauthorized' }),
-        })
+        }),
+    );
+
+    await page.route('**/api/v1/auth/refresh', route =>
+        route.fulfill({
+            status: 401,
+            contentType: 'application/json',
+            body: JSON.stringify({ success: false, error: 'unauthorized' }),
+        }),
     );
 
     // Home feed
-    await page.route('**/api/v1/feeds/clips**', (route) =>
+    await page.route('**/api/v1/feeds/clips**', route =>
         route.fulfill({
             status: 200,
             contentType: 'application/json',
             body: JSON.stringify(demoFeedResponse),
-        })
+        }),
     );
 
     // Clip detail (exclude other clip sub-routes like comments/favorite/vote)
-    await page.route(/\/api\/v1\/clips\/([a-z0-9-]+)(\?.*)?$/i, (route) => {
+    await page.route(/\/api\/v1\/clips\/([a-z0-9-]+)(\?.*)?$/i, route => {
         const url = route.request().url();
-        if (url.includes('/comments') || url.includes('/favorite') || url.includes('/vote')) {
+        if (
+            url.includes('/comments') ||
+            url.includes('/favorite') ||
+            url.includes('/vote')
+        ) {
             return route.continue();
         }
 
@@ -129,63 +139,80 @@ async function setupIntegrationMocks(page: Page) {
     });
 
     // Comments
-    await page.route('**/api/v1/clips/*/comments**', (route) =>
+    await page.route('**/api/v1/clips/*/comments**', route =>
         route.fulfill({
             status: 200,
             contentType: 'application/json',
-            body: JSON.stringify({ comments: demoComments, total: demoComments.length, has_more: false }),
-        })
+            body: JSON.stringify({
+                comments: demoComments,
+                total: demoComments.length,
+                has_more: false,
+            }),
+        }),
     );
 
     // Favorite/follow-on actions to avoid 404s when buttons are clicked
-    await page.route('**/api/v1/clips/*/favorite', (route) =>
-        route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify({ success: true, data: { message: 'favorited', is_favorited: true } }),
-        })
-    );
-
-    await page.route('**/api/v1/clips/*/vote', (route) =>
+    await page.route('**/api/v1/clips/*/favorite', route =>
         route.fulfill({
             status: 200,
             contentType: 'application/json',
             body: JSON.stringify({
                 success: true,
-                data: { message: 'voted', vote_score: 43, upvote_count: 1, downvote_count: 0, user_vote: 1 },
+                data: { message: 'favorited', is_favorited: true },
             }),
-        })
+        }),
     );
 
-    // Search endpoints
-    await page.route('**/api/v1/search/suggestions**', (route) =>
+    await page.route('**/api/v1/clips/*/vote', route =>
         route.fulfill({
             status: 200,
             contentType: 'application/json',
-            body: JSON.stringify({ query: 'test', suggestions: [{ text: 'test clip', type: 'query' }] }),
-        })
+            body: JSON.stringify({
+                success: true,
+                data: {
+                    message: 'voted',
+                    vote_score: 43,
+                    upvote_count: 1,
+                    downvote_count: 0,
+                    user_vote: 1,
+                },
+            }),
+        }),
     );
 
-    await page.route('**/api/v1/search**', (route) =>
+    // Search endpoints
+    await page.route('**/api/v1/search/suggestions**', route =>
+        route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                query: 'test',
+                suggestions: [{ text: 'test clip', type: 'query' }],
+            }),
+        }),
+    );
+
+    await page.route('**/api/v1/search**', route =>
         route.fulfill({
             status: 200,
             contentType: 'application/json',
             body: JSON.stringify(demoSearchResponse),
-        })
+        }),
     );
 
     // Feature flags or miscellaneous config endpoints (avoid noisy 404s)
-    await page.route('**/api/v1/feature-flags**', (route) =>
+    await page.route('**/api/v1/feature-flags**', route =>
         route.fulfill({
             status: 200,
             contentType: 'application/json',
             body: JSON.stringify({}),
-        })
+        }),
     );
 
     // Premium page fallback content (keeps pricing test deterministic)
-    await page.route('**/premium', (route) => {
-        if (route.request().resourceType() !== 'document') return route.continue();
+    await page.route('**/premium', route => {
+        if (route.request().resourceType() !== 'document')
+            return route.continue();
 
         return route.fulfill({
             status: 200,
@@ -229,24 +256,34 @@ async function getSearchInput(page: Page) {
 test.describe('Authentication Flows', () => {
     test('should display login button on homepage', async ({ page }) => {
         await page.goto('/');
+        await page.waitForLoadState('networkidle');
+        await dismissCookieBanner(page);
 
-        const loginButton = page.locator('button', { hasText: /login|sign in/i });
+        const loginButton = page.locator('button', {
+            hasText: /login|sign in/i,
+        });
         await expect(loginButton).toBeVisible();
     });
 
     test('should handle authentication state correctly', async ({ page }) => {
         await page.goto('/');
         await page.waitForLoadState('networkidle');
+        await dismissCookieBanner(page);
 
         // Check for authentication-related UI elements
-        const authElement = page.locator('button, a').filter({ hasText: /login|sign in|profile|account/i });
+        const authElement = page
+            .locator('button, a')
+            .filter({ hasText: /login|sign in|profile|account/i });
         await expect(authElement.first()).toBeVisible();
     });
 
-    test('should redirect to authentication when accessing protected routes', async ({ page }) => {
+    test('should redirect to authentication when accessing protected routes', async ({
+        page,
+    }) => {
         // Try to access a protected route (e.g., user settings)
         await page.goto('/settings');
         await page.waitForLoadState('networkidle');
+        await dismissCookieBanner(page);
 
         // Should either redirect to login or show login prompt
         const currentUrl = page.url();
@@ -255,8 +292,12 @@ test.describe('Authentication Flows', () => {
 
     test('should handle OAuth popup window', async ({ page, context }) => {
         await page.goto('/');
+        await page.waitForLoadState('networkidle');
+        await dismissCookieBanner(page);
 
-        const loginButton = page.locator('button', { hasText: /login|sign in/i }).first();
+        const loginButton = page
+            .locator('button', { hasText: /login|sign in/i })
+            .first();
 
         if (await loginButton.isVisible()) {
             // Set up listener for popup
@@ -278,14 +319,18 @@ test.describe('Authentication Flows', () => {
         await page.goto('/');
 
         // Look for logout button (may not be visible if not logged in)
-        const logoutButton = page.locator('button', { hasText: /logout|sign out/i });
+        const logoutButton = page.locator('button', {
+            hasText: /logout|sign out/i,
+        });
 
         if (await logoutButton.isVisible()) {
             await logoutButton.click();
             await page.waitForLoadState('networkidle');
 
             // Should show login button again after logout
-            const loginButton = page.locator('button', { hasText: /login|sign in/i });
+            const loginButton = page.locator('button', {
+                hasText: /login|sign in/i,
+            });
             await expect(loginButton).toBeVisible();
         }
     });
@@ -297,10 +342,12 @@ test.describe('Submission Workflows', () => {
         await page.waitForLoadState('networkidle');
 
         // Look for submit/upload button
-        const submitButton = page.locator('button, a').filter({ hasText: /submit|upload|add clip/i });
+        const submitButton = page
+            .locator('button, a')
+            .filter({ hasText: /submit|upload|add clip/i });
 
         // May require authentication
-        if (await submitButton.count() > 0) {
+        if ((await submitButton.count()) > 0) {
             await expect(submitButton.first()).toBeVisible();
         }
     });
@@ -308,9 +355,11 @@ test.describe('Submission Workflows', () => {
     test('should navigate to submission page', async ({ page }) => {
         await page.goto('/');
 
-        const submitLink = page.locator('a, button').filter({ hasText: /submit|upload|add clip/i });
+        const submitLink = page
+            .locator('a, button')
+            .filter({ hasText: /submit|upload|add clip/i });
 
-        if (await submitLink.count() > 0) {
+        if ((await submitLink.count()) > 0) {
             await submitLink.first().click();
             await page.waitForLoadState('networkidle');
 
@@ -319,24 +368,32 @@ test.describe('Submission Workflows', () => {
         }
     });
 
-    test('should display submission form for authenticated users', async ({ authenticatedPage }) => {
+    test('should display submission form for authenticated users', async ({
+        authenticatedPage,
+    }) => {
         // Now using fixture-based authentication
         const page = authenticatedPage;
 
         await page.goto('/submit');
 
         // Should show submission form
-        const urlInput = page.locator('input[type="text"], input[type="url"]').first();
+        const urlInput = page
+            .locator('input[type="text"], input[type="url"]')
+            .first();
         await expect(urlInput).toBeVisible();
     });
 
-    test('should validate Twitch clip URL format', async ({ authenticatedPage }) => {
+    test('should validate Twitch clip URL format', async ({
+        authenticatedPage,
+    }) => {
         // Now using fixture-based authentication and form data
         const page = authenticatedPage;
 
         await page.goto('/submit');
 
-        const urlInput = page.locator('input[name="url"], input[placeholder*="URL"]').first();
+        const urlInput = page
+            .locator('input[name="url"], input[placeholder*="URL"]')
+            .first();
         await urlInput.fill('invalid-url');
 
         const submitButton = page.locator('button[type="submit"]');
@@ -374,10 +431,14 @@ test.describe('Search Functionality', () => {
         await page.waitForLoadState('networkidle');
 
         // Should show results or "no results" message
-        const resultsContainer = page.locator('[data-testid="search-results"], [data-testid="clip-card"]');
-        const noResultsMessage = page.locator('text=/no results|no clips found/i');
+        const resultsContainer = page.locator(
+            '[data-testid="search-results"], [data-testid="clip-card"]',
+        );
+        const noResultsMessage = page.locator(
+            'text=/no results|no clips found/i',
+        );
 
-        const hasResults = await resultsContainer.count() > 0;
+        const hasResults = (await resultsContainer.count()) > 0;
         const hasNoResultsMessage = await noResultsMessage.isVisible();
 
         expect(hasResults || hasNoResultsMessage).toBeTruthy();
@@ -388,13 +449,17 @@ test.describe('Search Functionality', () => {
         await page.waitForLoadState('networkidle');
 
         // Look for filter options
-        const filterButton = page.locator('button').filter({ hasText: /filter|sort/i });
+        const filterButton = page
+            .locator('button')
+            .filter({ hasText: /filter|sort/i });
 
-        if (await filterButton.count() > 0) {
+        if ((await filterButton.count()) > 0) {
             await filterButton.first().click();
 
             // Check for filter options
-            const filterOptions = page.locator('[role="menuitem"], [role="option"]');
+            const filterOptions = page.locator(
+                '[role="menuitem"], [role="option"]',
+            );
             expect(await filterOptions.count()).toBeGreaterThan(0);
         }
     });
@@ -417,7 +482,9 @@ test.describe('Search Functionality', () => {
         const suggestions = page.locator('[role="listbox"], [role="menu"]');
 
         // Try to wait for suggestions, but don't fail if they don't appear
-        await suggestions.waitFor({ state: 'visible', timeout: 1000 }).catch(() => {});
+        await suggestions
+            .waitFor({ state: 'visible', timeout: 1000 })
+            .catch(() => {});
 
         // Suggestions may or may not be implemented
         const hasSuggestions = await suggestions.isVisible();
@@ -429,19 +496,25 @@ test.describe('Search Functionality', () => {
 test.describe('Engagement Features', () => {
     test('should display like/vote buttons on clips', async ({ page }) => {
         await page.goto('/');
-        await page.waitForSelector('[data-testid="clip-card"]', { timeout: 10000 });
+        await page.waitForSelector('[data-testid="clip-card"]', {
+            timeout: 10000,
+        });
 
         // Check for engagement buttons
-        const likeButton = page.locator('button').filter({ hasText: /like|upvote|vote/i });
+        const likeButton = page
+            .locator('button')
+            .filter({ hasText: /like|upvote|vote/i });
 
-        if (await likeButton.count() > 0) {
+        if ((await likeButton.count()) > 0) {
             await expect(likeButton.first()).toBeVisible();
         }
     });
 
     test('should navigate to clip comments', async ({ page }) => {
         await page.goto('/');
-        await page.waitForSelector('[data-testid="clip-card"]', { timeout: 10000 });
+        await page.waitForSelector('[data-testid="clip-card"]', {
+            timeout: 10000,
+        });
 
         const firstClip = page.locator('[data-testid="clip-card"]').first();
         const clipLink = firstClip.locator('a[href*="/clip/"]').first();
@@ -460,7 +533,9 @@ test.describe('Engagement Features', () => {
         expect(page.url()).toMatch(/clip\/[a-f0-9-]+/);
 
         // Look for comment section
-        const commentSection = page.locator('[data-testid="comments"], section, div').filter({ hasText: /comment/i });
+        const commentSection = page
+            .locator('[data-testid="comments"], section, div')
+            .filter({ hasText: /comment/i });
         const commentCount = await commentSection.count();
 
         if (commentCount === 0) {
@@ -471,7 +546,9 @@ test.describe('Engagement Features', () => {
         }
     });
 
-    test('should show comment form for authenticated users', async ({ authenticatedPage }) => {
+    test('should show comment form for authenticated users', async ({
+        authenticatedPage,
+    }) => {
         // Now using fixture-based authentication
         const page = authenticatedPage;
 
@@ -483,18 +560,24 @@ test.describe('Engagement Features', () => {
 
         await page.waitForLoadState('networkidle');
 
-        const commentForm = page.locator('form, textarea').filter({ hasText: /comment/i });
+        const commentForm = page
+            .locator('form, textarea')
+            .filter({ hasText: /comment/i });
         await expect(commentForm.first()).toBeVisible();
     });
 
     test('should handle favorite/bookmark functionality', async ({ page }) => {
         await page.goto('/');
-        await page.waitForSelector('[data-testid="clip-card"]', { timeout: 10000 });
+        await page.waitForSelector('[data-testid="clip-card"]', {
+            timeout: 10000,
+        });
 
         // Look for favorite/bookmark button
-        const favoriteButton = page.locator('button').filter({ hasText: /favorite|bookmark|save/i });
+        const favoriteButton = page
+            .locator('button')
+            .filter({ hasText: /favorite|bookmark|save/i });
 
-        if (await favoriteButton.count() > 0) {
+        if ((await favoriteButton.count()) > 0) {
             const button = favoriteButton.first();
             await expect(button).toBeVisible();
 
@@ -503,8 +586,12 @@ test.describe('Engagement Features', () => {
 
             // Wait for either success or auth prompt
             await Promise.race([
-                page.waitForSelector('[data-testid="favorite-success"]', { timeout: 2000 }),
-                page.waitForSelector('[data-testid="login-prompt"]', { timeout: 2000 }),
+                page.waitForSelector('[data-testid="favorite-success"]', {
+                    timeout: 2000,
+                }),
+                page.waitForSelector('[data-testid="login-prompt"]', {
+                    timeout: 2000,
+                }),
                 page.waitForLoadState('networkidle', { timeout: 2000 }),
             ]).catch(() => {});
 
@@ -514,13 +601,17 @@ test.describe('Engagement Features', () => {
 });
 
 test.describe('Premium Features', () => {
-    test('should display premium/subscription information', async ({ page }) => {
+    test('should display premium/subscription information', async ({
+        page,
+    }) => {
         await page.goto('/');
 
         // Look for premium/pro/subscription links
-        const premiumLink = page.locator('a, button').filter({ hasText: /premium|pro|subscribe|upgrade/i });
+        const premiumLink = page
+            .locator('a, button')
+            .filter({ hasText: /premium|pro|subscribe|upgrade/i });
 
-        if (await premiumLink.count() > 0) {
+        if ((await premiumLink.count()) > 0) {
             await expect(premiumLink.first()).toBeVisible();
         }
     });
@@ -528,9 +619,11 @@ test.describe('Premium Features', () => {
     test('should navigate to premium page', async ({ page }) => {
         await page.goto('/');
 
-        const premiumLink = page.locator('a').filter({ hasText: /premium|pro|subscribe|upgrade/i });
+        const premiumLink = page
+            .locator('a')
+            .filter({ hasText: /premium|pro|subscribe|upgrade/i });
 
-        if (await premiumLink.count() > 0) {
+        if ((await premiumLink.count()) > 0) {
             await premiumLink.first().click();
             await page.waitForLoadState('networkidle');
 
@@ -551,14 +644,18 @@ test.describe('Premium Features', () => {
         }
     });
 
-    test.skip('should handle subscription checkout flow', async ({ authenticatedPage }) => {
+    test.skip('should handle subscription checkout flow', async ({
+        authenticatedPage,
+    }) => {
         // TODO: Requires Stripe integration and checkout UI
         // Now using fixture-based authentication and Stripe test mode
         const page = authenticatedPage;
 
         await page.goto('/premium');
 
-        const subscribeButton = page.locator('button').filter({ hasText: /subscribe|get started|buy/i });
+        const subscribeButton = page
+            .locator('button')
+            .filter({ hasText: /subscribe|get started|buy/i });
         await subscribeButton.first().click();
 
         await page.waitForLoadState('networkidle');
@@ -579,10 +676,12 @@ test.describe('Mobile Responsiveness', () => {
         expect(page.url()).toBeTruthy();
 
         // Check for mobile menu or navigation
-        const mobileMenu = page.locator('button').filter({ hasText: /menu|navigation/i });
+        const mobileMenu = page
+            .locator('button')
+            .filter({ hasText: /menu|navigation/i });
 
         // Mobile menu may exist
-        const hasMobileMenu = await mobileMenu.count() > 0;
+        const hasMobileMenu = (await mobileMenu.count()) > 0;
         expect(typeof hasMobileMenu).toBe('boolean');
     });
 
@@ -590,16 +689,22 @@ test.describe('Mobile Responsiveness', () => {
         await page.setViewportSize({ width: 375, height: 667 });
         await page.goto('/');
         await page.waitForLoadState('networkidle');
+        await dismissCookieBanner(page);
 
         // Look for hamburger menu
-        const menuButton = page.locator('button[aria-label*="menu" i], button[aria-label*="navigation" i]');
+        const menuButton = page.locator(
+            'button[aria-label*="menu" i], button[aria-label*="navigation" i]',
+        );
 
-        if (await menuButton.count() > 0) {
+        if ((await menuButton.count()) > 0) {
             await menuButton.first().click();
 
             // Wait for navigation menu to appear
             const navMenu = page.locator('nav, [role="navigation"]');
-            await navMenu.first().waitFor({ state: 'visible', timeout: 2000 }).catch(() => {});
+            await navMenu
+                .first()
+                .waitFor({ state: 'visible', timeout: 2000 })
+                .catch(() => {});
 
             // Navigation should be visible
             await expect(navMenu.first()).toBeVisible();
@@ -632,7 +737,7 @@ test.describe('Accessibility', () => {
         const skipLink = page.locator('a[href="#main"], a[href="#content"]');
 
         // Optional feature
-        const hasSkipLink = await skipLink.count() > 0;
+        const hasSkipLink = (await skipLink.count()) > 0;
         expect(typeof hasSkipLink).toBe('boolean');
     });
 });

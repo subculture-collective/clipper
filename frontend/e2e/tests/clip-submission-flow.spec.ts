@@ -573,15 +573,14 @@ test.describe('Clip Submission E2E Flow', () => {
 
             await submitClipPage.goto();
 
-            // When: user tries to submit duplicate
-            await submitClipPage.submitClip({
-                url: DUPLICATE_CLIP_URL,
-                title: 'Duplicate Submission',
-                description: 'This is a duplicate',
-                tags: ['duplicate'],
-            });
+            // When: user enters the duplicate URL
+            // Only fill the URL - duplicate detection happens on URL entry
+            await page.locator('#clip_url').fill(DUPLICATE_CLIP_URL);
 
-            // Then: duplicate error shown
+            // Wait for duplicate detection to trigger
+            await page.waitForLoadState('networkidle');
+
+            // Then: duplicate error shown and form is disabled
             await submitClipPage.expectDuplicateError();
         });
     });

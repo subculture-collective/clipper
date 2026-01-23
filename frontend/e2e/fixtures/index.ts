@@ -13,7 +13,7 @@ import {
     AdminModerationPage,
     SearchPage,
 } from '../pages';
-import { login, isAuthenticated } from '../utils/auth';
+import { login, isAuthenticated, dismissCookieBanner } from '../utils/auth';
 import {
     createUser,
     createClip,
@@ -178,27 +178,57 @@ export const test = base.extend<CustomFixtures>({
      * 3. And save the state for reuse
      */
     authenticatedPage: async ({ page }, use) => {
-        // Attempt deterministic test login via API first (avoids flaky UI OAuth)
+        // First navigate to home to trigger any auto-login from E2E test mode
+        await page.goto('/');
+        await page.waitForLoadState('networkidle');
+
+        // Give the app more time to complete auto-login
+        await page.waitForTimeout(1000);
+
+        // Check if auto-login already authenticated the user
         let isAuth = await isAuthenticated(page);
 
         if (!isAuth) {
+            // Attempt deterministic test login via API (avoids flaky UI OAuth)
             const apiUrl = getApiUrl();
             const testUser = process.env.VITE_E2E_TEST_USER || 'user1_e2e';
             try {
-                const resp = await page.request.post(
-                    `${apiUrl}/api/v1/auth/test-login`,
-                    {
-                        data: { username: testUser },
-                    }
+                // Use page.evaluate to call the API from within the browser context
+                // This ensures cookies are properly set for the browser session
+                const response = await page.evaluate(
+                    async ({ apiUrl, testUser }) => {
+                        try {
+                            const resp = await fetch(
+                                `${apiUrl}/api/v1/auth/test-login`,
+                                {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({
+                                        username: testUser,
+                                    }),
+                                    credentials: 'include',
+                                },
+                            );
+                            return { ok: resp.ok, status: resp.status };
+                        } catch (e) {
+                            return { ok: false, status: 0, error: String(e) };
+                        }
+                    },
+                    { apiUrl, testUser },
                 );
-                if (!resp.ok()) {
+
+                if (!response.ok) {
                     console.warn(
                         '[authenticatedPage] test-login failed:',
-                        resp.status()
+                        response.status,
                     );
                 } else {
                     // Navigate once to let app read cookies and populate auth context
                     await page.goto('/');
+                    await page.waitForLoadState('networkidle');
+                    await page.waitForTimeout(500);
                     isAuth = await isAuthenticated(page);
                 }
             } catch (error) {
@@ -209,12 +239,14 @@ export const test = base.extend<CustomFixtures>({
         // Fallback: try UI login (best-effort)
         if (!isAuth) {
             try {
+                // Dismiss cookie banner before attempting login
+                await dismissCookieBanner(page);
                 await login(page);
                 isAuth = await isAuthenticated(page);
             } catch (error) {
                 console.warn(
                     'Could not authenticate page via UI login:',
-                    error
+                    error,
                 );
             }
         }
@@ -422,7 +454,7 @@ async function enableSearchMocks(page: Page, isFailoverMode: boolean = false) {
                 contentType: 'application/json',
                 body: JSON.stringify({ query: q, suggestions }),
             });
-        }
+        },
     );
 
     // Universal search
@@ -481,7 +513,7 @@ async function enableSearchMocks(page: Page, isFailoverMode: boolean = false) {
                     game_id: `game-${(i % 3) + 1}`,
                     game_name: ['Valorant', 'CS:GO', 'LoL'][i % 3],
                     created_at: new Date(
-                        Date.now() - i * 1000 * 60
+                        Date.now() - i * 1000 * 60,
                     ).toISOString(),
                     vote_score: (i % 10) - 5,
                     user_vote: 0,
@@ -561,7 +593,7 @@ async function enableSearchMocks(page: Page, isFailoverMode: boolean = false) {
                 contentType: 'application/json',
                 body: JSON.stringify(response),
             });
-        }
+        },
     );
 }
 
@@ -580,6 +612,20 @@ async function enableSocialMocks(page: Page) {
     let commentCounter = 1;
     let playlistCounter = 1;
     let clipCounter = 1;
+
+    // Track auth state for mock auth handling
+    let isAuthenticated = false;
+    const mockUser = {
+        id: 'mock-user-1',
+        username: 'user1_e2e',
+        display_name: 'Test User',
+        email: 'test@example.com',
+        role: 'user',
+        twitch_id: 'twitch-123',
+        avatar_url: 'https://via.placeholder.com/96',
+        created_at: new Date().toISOString(),
+        karma_points: 100,
+    };
 
     const makeClip = (id: string, base: any = {}) => {
         const clip = {
@@ -606,6 +652,50 @@ async function enableSocialMocks(page: Page) {
         // Only intercept API calls (common base /api/v1)
         if (!pathname.includes('/api/')) {
             return route.fallback();
+        }
+
+        // Auth test-login endpoint - sets mock auth state
+        if (pathname.endsWith('/auth/test-login') && method === 'POST') {
+            isAuthenticated = true;
+            return route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    success: true,
+                    user: mockUser,
+                    message: 'Test login successful',
+                }),
+                headers: {
+                    'Set-Cookie':
+                        'session=mock-session-token; Path=/; HttpOnly',
+                },
+            });
+        }
+
+        // Auth me endpoint - returns current auth state
+        if (pathname.endsWith('/auth/me') && method === 'GET') {
+            if (isAuthenticated) {
+                return route.fulfill({
+                    status: 200,
+                    contentType: 'application/json',
+                    body: JSON.stringify(mockUser),
+                });
+            }
+            return route.fulfill({
+                status: 401,
+                contentType: 'application/json',
+                body: JSON.stringify({ error: 'unauthenticated' }),
+            });
+        }
+
+        // Auth logout endpoint
+        if (pathname.endsWith('/auth/logout') && method === 'POST') {
+            isAuthenticated = false;
+            return route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ success: true }),
+            });
         }
 
         // Admin users
@@ -704,16 +794,16 @@ async function enableSocialMocks(page: Page) {
 
             if (method === 'GET') {
                 const items = Array.from(comments.values()).filter(
-                    c => c.clip_id === clipId
+                    c => c.clip_id === clipId,
                 );
                 const sort = searchParams.get('sort');
                 if (sort === 'new') {
                     items.sort((a, b) =>
-                        (b.created_at || '').localeCompare(a.created_at || '')
+                        (b.created_at || '').localeCompare(a.created_at || ''),
                     );
                 } else if (sort === 'top') {
                     items.sort(
-                        (a, b) => (b.vote_score || 0) - (a.vote_score || 0)
+                        (a, b) => (b.vote_score || 0) - (a.vote_score || 0),
                     );
                 }
                 return route.fulfill({
@@ -782,7 +872,7 @@ async function enableSocialMocks(page: Page) {
                         id: commentId,
                         content: body.content,
                         edited: true,
-                    }
+                    },
                 ),
             });
         }
@@ -877,7 +967,7 @@ async function enableSocialMocks(page: Page) {
         }
 
         const followStatusMatch = pathname.match(
-            /\/users\/([^/]+)\/follow-status$/
+            /\/users\/([^/]+)\/follow-status$/,
         );
         if (followStatusMatch && method === 'GET') {
             const userId = followStatusMatch[1];
@@ -954,7 +1044,7 @@ async function enableSocialMocks(page: Page) {
         }
 
         const playlistClipsMatch = pathname.match(
-            /\/playlists\/([^/]+)\/clips$/
+            /\/playlists\/([^/]+)\/clips$/,
         );
         if (playlistClipsMatch && method === 'POST') {
             const playlistId = playlistClipsMatch[1];
@@ -975,7 +1065,7 @@ async function enableSocialMocks(page: Page) {
         }
 
         const playlistClipDeleteMatch = pathname.match(
-            /\/playlists\/([^/]+)\/clips\/([^/]+)$/
+            /\/playlists\/([^/]+)\/clips\/([^/]+)$/,
         );
         if (playlistClipDeleteMatch && method === 'DELETE') {
             const playlistId = playlistClipDeleteMatch[1];
@@ -983,7 +1073,7 @@ async function enableSocialMocks(page: Page) {
             const playlist = playlists.get(playlistId);
             if (playlist && Array.isArray(playlist.clips)) {
                 playlist.clips = playlist.clips.filter(
-                    (id: string) => id !== clipId
+                    (id: string) => id !== clipId,
                 );
                 playlists.set(playlistId, playlist);
             }
@@ -991,7 +1081,7 @@ async function enableSocialMocks(page: Page) {
         }
 
         const playlistShareMatch = pathname.match(
-            /\/playlists\/([^/]+)\/share$/
+            /\/playlists\/([^/]+)\/share$/,
         );
         if (playlistShareMatch && method === 'GET') {
             const playlistId = playlistShareMatch[1];
@@ -1053,7 +1143,7 @@ async function enableSocialMocks(page: Page) {
         }
 
         const blockStatusMatch = pathname.match(
-            /\/users\/([^/]+)\/block-status$/
+            /\/users\/([^/]+)\/block-status$/,
         );
         if (blockStatusMatch && method === 'GET') {
             const userId = blockStatusMatch[1];
