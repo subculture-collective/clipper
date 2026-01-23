@@ -33,8 +33,8 @@ export default defineConfig({
   /* Retry on CI only - 2 retries as per requirements */
   retries: process.env.CI ? 2 : 0,
 
-  /* Parallel workers - 4 on CI as per requirements, auto-detect locally */
-  workers: process.env.CI ? 4 : undefined,
+  /* Parallel workers - 4 on CI as per requirements, limit to 6 locally to prevent resource exhaustion */
+  workers: process.env.CI ? 4 : 6,
 
   /* Reporter to use - HTML format with CI-friendly list reporter */
   reporter: [

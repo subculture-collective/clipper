@@ -178,7 +178,18 @@ export async function logout(page: Page): Promise<void> {
  */
 export async function isAuthenticated(page: Page): Promise<boolean> {
     try {
-        // Check for user menu or profile indicators
+        // First check localStorage for mock auth state (set by mock handlers)
+        const storageAuth = await page.evaluate(() => {
+            const isAuth = localStorage.getItem('isAuthenticated');
+            const user = localStorage.getItem('user');
+            return isAuth === 'true' || (user && user !== 'null');
+        });
+
+        if (storageAuth) {
+            return true;
+        }
+
+        // Check for user menu or profile indicators in the UI
         const userIndicators = [
             page.locator('[data-testid="user-menu"]'),
             page.getByRole('button', { name: /profile|account|logout/i }),

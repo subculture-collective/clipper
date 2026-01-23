@@ -198,6 +198,8 @@ export class SearchPage extends BasePage {
    * @param delay - Delay between keystrokes in ms (default: 50ms)
    */
   async typeSearchQuery(query: string, delay: number = 50): Promise<void> {
+    // Wait for search input to be visible and ready before typing
+    await this.searchInput.waitFor({ state: 'visible', timeout: 15000 });
     await this.typeInput(this.searchInput, query, delay);
   }
 
@@ -205,6 +207,7 @@ export class SearchPage extends BasePage {
    * Clear the search input
    */
   async clearSearch(): Promise<void> {
+    await this.searchInput.waitFor({ state: 'visible', timeout: 15000 });
     await this.searchInput.clear();
   }
 
@@ -305,6 +308,7 @@ export class SearchPage extends BasePage {
    */
   async measureSuggestionLatency(query: string): Promise<number> {
     await this.goto();
+    await this.searchInput.waitFor({ state: 'visible', timeout: 15000 });
     await this.searchInput.clear();
     await this.searchInput.click();
 
@@ -747,6 +751,8 @@ export class SearchPage extends BasePage {
    */
   async measureSearchLatency(query: string): Promise<number> {
     await this.goto();
+    // Wait for search input to be visible and ready
+    await this.searchInput.waitFor({ state: 'visible', timeout: 15000 });
     await this.fillInput(this.searchInput, query);
 
     const startTime = Date.now();

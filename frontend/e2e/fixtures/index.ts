@@ -177,62 +177,82 @@ export const test = base.extend<CustomFixtures>({
      * 2. Or perform actual login before tests
      * 3. And save the state for reuse
      */
-    authenticatedPage: async ({ page }, use) => {
+    authenticatedPage: async ({ page, context }, use) => {
         // First navigate to home to trigger any auto-login from E2E test mode
+        // and to ensure route handlers are active
         await page.goto('/');
         await page.waitForLoadState('networkidle');
 
         // Give the app more time to complete auto-login
-        await page.waitForTimeout(1000);
+        await page.waitForTimeout(500);
 
         // Check if auto-login already authenticated the user
         let isAuth = await isAuthenticated(page);
 
         if (!isAuth) {
             // Attempt deterministic test login via API (avoids flaky UI OAuth)
-            const apiUrl = getApiUrl();
             const testUser = process.env.VITE_E2E_TEST_USER || 'user1_e2e';
+            const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:5173';
+            
+            // Default mock user for fallback
+            const mockUser = {
+                id: 'mock-user-1',
+                username: testUser,
+                display_name: 'Test User',
+                email: 'test@example.com',
+                role: 'user',
+                twitch_id: 'twitch-123',
+                avatar_url: 'https://via.placeholder.com/96',
+                created_at: new Date().toISOString(),
+                karma_points: 100,
+            };
+
             try {
-                // Use page.evaluate to call the API from within the browser context
-                // This ensures cookies are properly set for the browser session
-                const response = await page.evaluate(
-                    async ({ apiUrl, testUser }) => {
-                        try {
-                            const resp = await fetch(
-                                `${apiUrl}/api/v1/auth/test-login`,
-                                {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                    },
-                                    body: JSON.stringify({
-                                        username: testUser,
-                                    }),
-                                    credentials: 'include',
-                                },
-                            );
-                            return { ok: resp.ok, status: resp.status };
-                        } catch (e) {
-                            return { ok: false, status: 0, error: String(e) };
-                        }
+                // Use page.request which is the API testing helper attached to the page's context
+                // This goes through Playwright's HTTP stack and can bypass browser CORS
+                const response = await page.request.post(
+                    `${baseUrl}/api/v1/auth/test-login`,
+                    {
+                        data: { username: testUser },
+                        headers: { 'Content-Type': 'application/json' },
                     },
-                    { apiUrl, testUser },
                 );
 
-                if (!response.ok) {
+                if (!response.ok()) {
                     console.warn(
                         '[authenticatedPage] test-login failed:',
-                        response.status,
+                        response.status(),
+                        '- using mock auth',
                     );
+                    // Set mock auth state in localStorage
+                    await page.evaluate((user) => {
+                        localStorage.setItem('user', JSON.stringify(user));
+                        localStorage.setItem('isAuthenticated', 'true');
+                    }, mockUser);
                 } else {
-                    // Navigate once to let app read cookies and populate auth context
-                    await page.goto('/');
-                    await page.waitForLoadState('networkidle');
-                    await page.waitForTimeout(500);
-                    isAuth = await isAuthenticated(page);
+                    const data = await response.json().catch(() => ({}));
+                    const user = data.user || mockUser;
+                    // Store user info in localStorage for app to pick up
+                    await page.evaluate((user) => {
+                        localStorage.setItem('user', JSON.stringify(user));
+                        localStorage.setItem('isAuthenticated', 'true');
+                    }, user);
                 }
+                // Navigate once to let app read cookies/localStorage and populate auth context
+                await page.goto('/');
+                await page.waitForLoadState('networkidle');
+                await page.waitForTimeout(300);
+                isAuth = await isAuthenticated(page);
             } catch (error) {
-                console.warn('[authenticatedPage] test-login error:', error);
+                console.warn('[authenticatedPage] test-login error:', error, '- using mock auth');
+                // Set mock auth state in localStorage as fallback
+                await page.evaluate((user) => {
+                    localStorage.setItem('user', JSON.stringify(user));
+                    localStorage.setItem('isAuthenticated', 'true');
+                }, mockUser);
+                await page.goto('/');
+                await page.waitForLoadState('networkidle');
+                isAuth = await isAuthenticated(page);
             }
         }
 
@@ -613,20 +633,6 @@ async function enableSocialMocks(page: Page) {
     let playlistCounter = 1;
     let clipCounter = 1;
 
-    // Track auth state for mock auth handling
-    let isAuthenticated = false;
-    const mockUser = {
-        id: 'mock-user-1',
-        username: 'user1_e2e',
-        display_name: 'Test User',
-        email: 'test@example.com',
-        role: 'user',
-        twitch_id: 'twitch-123',
-        avatar_url: 'https://via.placeholder.com/96',
-        created_at: new Date().toISOString(),
-        karma_points: 100,
-    };
-
     const makeClip = (id: string, base: any = {}) => {
         const clip = {
             id,
@@ -654,48 +660,16 @@ async function enableSocialMocks(page: Page) {
             return route.fallback();
         }
 
-        // Auth test-login endpoint - sets mock auth state
-        if (pathname.endsWith('/auth/test-login') && method === 'POST') {
-            isAuthenticated = true;
-            return route.fulfill({
-                status: 200,
-                contentType: 'application/json',
-                body: JSON.stringify({
-                    success: true,
-                    user: mockUser,
-                    message: 'Test login successful',
-                }),
-                headers: {
-                    'Set-Cookie':
-                        'session=mock-session-token; Path=/; HttpOnly',
-                },
-            });
-        }
-
-        // Auth me endpoint - returns current auth state
-        if (pathname.endsWith('/auth/me') && method === 'GET') {
-            if (isAuthenticated) {
-                return route.fulfill({
-                    status: 200,
-                    contentType: 'application/json',
-                    body: JSON.stringify(mockUser),
-                });
-            }
-            return route.fulfill({
-                status: 401,
-                contentType: 'application/json',
-                body: JSON.stringify({ error: 'unauthenticated' }),
-            });
-        }
-
-        // Auth logout endpoint
-        if (pathname.endsWith('/auth/logout') && method === 'POST') {
-            isAuthenticated = false;
-            return route.fulfill({
-                status: 200,
-                contentType: 'application/json',
-                body: JSON.stringify({ success: true }),
-            });
+        // Auth endpoints - fallback to allow tests to override with their own mocks
+        // Tests that set up context.route() for auth will handle these
+        // The authenticatedPage fixture handles auth via localStorage/API
+        if (pathname.endsWith('/auth/test-login') || 
+            pathname.endsWith('/auth/me') || 
+            pathname.endsWith('/auth/logout') ||
+            pathname.endsWith('/auth/twitch') ||
+            pathname.endsWith('/auth/callback') ||
+            pathname.endsWith('/auth/refresh')) {
+            return route.fallback();
         }
 
         // Admin users

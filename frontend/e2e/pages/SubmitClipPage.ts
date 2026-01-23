@@ -40,17 +40,11 @@ export class SubmitClipPage extends BasePage {
 
     // Error/Success message selectors
     private readonly errorAlert = () =>
-        this.page
-            .locator('[role="alert"]')
-            .filter({
-                has: this.page.locator('.bg-error-50, [class*="bg-error"]'),
-            });
+        this.page.locator('[role="alert"].bg-error-50, [role="alert"][class*="bg-error"]');
+    private readonly warningAlert = () =>
+        this.page.locator('[role="alert"].bg-warning-50, [role="alert"][class*="bg-warning"]');
     private readonly successMessage = () =>
         this.page.getByText('Submission Successful!');
-    private readonly warningAlert = () =>
-        this.page
-            .locator('[role="alert"]')
-            .filter({ hasText: /warning|karma/i });
 
     constructor(page: Page) {
         super(page, '/submit');
@@ -139,8 +133,8 @@ export class SubmitClipPage extends BasePage {
      * Verify that a rate limit error is shown
      */
     async expectRateLimitError(): Promise<void> {
-        await expect(this.errorAlert()).toBeVisible();
-        await expect(this.errorAlert()).toContainText(
+        await expect(this.warningAlert()).toBeVisible();
+        await expect(this.warningAlert()).toContainText(
             /rate limit|submission rate limit reached/i,
         );
     }
@@ -149,9 +143,9 @@ export class SubmitClipPage extends BasePage {
      * Verify that rate limit countdown is shown
      */
     async expectRateLimitCountdown(): Promise<void> {
-        await expect(this.errorAlert()).toBeVisible();
+        await expect(this.warningAlert()).toBeVisible();
         // Look for time units in the countdown
-        await expect(this.errorAlert()).toContainText(
+        await expect(this.warningAlert()).toContainText(
             /(second|minute|hour)s?/i,
         );
     }
@@ -160,8 +154,8 @@ export class SubmitClipPage extends BasePage {
      * Verify that rate limit has expired message is shown
      */
     async expectRateLimitExpired(): Promise<void> {
-        await expect(this.errorAlert()).toBeVisible();
-        await expect(this.errorAlert()).toContainText(
+        await expect(this.warningAlert()).toBeVisible();
+        await expect(this.warningAlert()).toContainText(
             /you can submit again now/i,
         );
     }
