@@ -192,8 +192,9 @@ export const test = base.extend<CustomFixtures>({
         if (!isAuth) {
             // Attempt deterministic test login via API (avoids flaky UI OAuth)
             const testUser = process.env.VITE_E2E_TEST_USER || 'user1_e2e';
-            const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:5173';
-            
+            const baseUrl =
+                process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:5173';
+
             // Default mock user for fallback
             const mockUser = {
                 id: 'mock-user-1',
@@ -225,7 +226,7 @@ export const test = base.extend<CustomFixtures>({
                         '- using mock auth',
                     );
                     // Set mock auth state in localStorage
-                    await page.evaluate((user) => {
+                    await page.evaluate(user => {
                         localStorage.setItem('user', JSON.stringify(user));
                         localStorage.setItem('isAuthenticated', 'true');
                     }, mockUser);
@@ -233,7 +234,7 @@ export const test = base.extend<CustomFixtures>({
                     const data = await response.json().catch(() => ({}));
                     const user = data.user || mockUser;
                     // Store user info in localStorage for app to pick up
-                    await page.evaluate((user) => {
+                    await page.evaluate(user => {
                         localStorage.setItem('user', JSON.stringify(user));
                         localStorage.setItem('isAuthenticated', 'true');
                     }, user);
@@ -244,9 +245,13 @@ export const test = base.extend<CustomFixtures>({
                 await page.waitForTimeout(300);
                 isAuth = await isAuthenticated(page);
             } catch (error) {
-                console.warn('[authenticatedPage] test-login error:', error, '- using mock auth');
+                console.warn(
+                    '[authenticatedPage] test-login error:',
+                    error,
+                    '- using mock auth',
+                );
                 // Set mock auth state in localStorage as fallback
-                await page.evaluate((user) => {
+                await page.evaluate(user => {
                     localStorage.setItem('user', JSON.stringify(user));
                     localStorage.setItem('isAuthenticated', 'true');
                 }, mockUser);
@@ -663,12 +668,14 @@ async function enableSocialMocks(page: Page) {
         // Auth endpoints - fallback to allow tests to override with their own mocks
         // Tests that set up context.route() for auth will handle these
         // The authenticatedPage fixture handles auth via localStorage/API
-        if (pathname.endsWith('/auth/test-login') || 
-            pathname.endsWith('/auth/me') || 
+        if (
+            pathname.endsWith('/auth/test-login') ||
+            pathname.endsWith('/auth/me') ||
             pathname.endsWith('/auth/logout') ||
             pathname.endsWith('/auth/twitch') ||
             pathname.endsWith('/auth/callback') ||
-            pathname.endsWith('/auth/refresh')) {
+            pathname.endsWith('/auth/refresh')
+        ) {
             return route.fallback();
         }
 

@@ -33,7 +33,14 @@ type MockUser = {
 };
 
 /** Helper to create MockUser with required defaults */
-function createMockUser(overrides: Partial<MockUser> & { id: string; username: string; email: string; role: MockUser['role'] }): MockUser {
+function createMockUser(
+    overrides: Partial<MockUser> & {
+        id: string;
+        username: string;
+        email: string;
+        role: MockUser['role'];
+    },
+): MockUser {
     return {
         display_name: overrides.username,
         twitch_id: overrides.id,
@@ -87,30 +94,36 @@ async function setupTwitchModerationMocks(page: Page) {
     let auditIdCounter = 1;
 
     // Seed default users upfront
-    users.set('99999', createMockUser({
-        id: '99999',
-        username: 'twitchuser',
-        display_name: 'Twitch User',
-        email: 'twitchuser@example.com',
-        role: 'user',
-        twitch_id: '99999',
-        is_broadcaster: true,
-        is_twitch_moderator: true,
-        has_twitch_ban_scope: true,
-        is_banned_on_twitch: false,
-    }));
-    users.set('88888', createMockUser({
-        id: '88888',
-        username: 'banneduser',
-        display_name: 'Banned User',
-        email: 'banned@example.com',
-        role: 'user',
-        twitch_id: '88888',
-        is_broadcaster: true,
-        is_twitch_moderator: true,
-        has_twitch_ban_scope: true,
-        is_banned_on_twitch: true,
-    }));
+    users.set(
+        '99999',
+        createMockUser({
+            id: '99999',
+            username: 'twitchuser',
+            display_name: 'Twitch User',
+            email: 'twitchuser@example.com',
+            role: 'user',
+            twitch_id: '99999',
+            is_broadcaster: true,
+            is_twitch_moderator: true,
+            has_twitch_ban_scope: true,
+            is_banned_on_twitch: false,
+        }),
+    );
+    users.set(
+        '88888',
+        createMockUser({
+            id: '88888',
+            username: 'banneduser',
+            display_name: 'Banned User',
+            email: 'banned@example.com',
+            role: 'user',
+            twitch_id: '88888',
+            is_broadcaster: true,
+            is_twitch_moderator: true,
+            has_twitch_ban_scope: true,
+            is_banned_on_twitch: true,
+        }),
+    );
 
     const respond = (route: Route, status: number, body: any) =>
         route.fulfill({
@@ -220,7 +233,7 @@ async function setupTwitchModerationMocks(page: Page) {
 
                 let body: TwitchBanRequest = { broadcasterID: '', userID: '' };
                 try {
-                    body = request.postDataJSON() as TwitchBanRequest || body;
+                    body = (request.postDataJSON() as TwitchBanRequest) || body;
                 } catch {
                     // If JSON parsing fails, try to get raw body
                     const rawBody = request.postData();
@@ -604,7 +617,7 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
             const banButton = page
                 .getByRole('button', { name: /ban.*twitch/i })
                 .first();
-            
+
             // Ensure the ban button is visible - this is required for the test to be meaningful
             await expect(banButton).toBeVisible({ timeout: 5000 });
             await banButton.click();
@@ -613,7 +626,9 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
             await expect(modal).toBeVisible({ timeout: 5000 });
 
             // Fill reason
-            const reasonInput = page.getByRole('textbox', { name: /reason/i }).first();
+            const reasonInput = page
+                .getByRole('textbox', { name: /reason/i })
+                .first();
             await expect(reasonInput).toBeVisible({ timeout: 2000 });
             await reasonInput.fill('Spam');
 
@@ -637,9 +652,7 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
             ).toBeVisible({ timeout: 5000 });
 
             const logs = mocks.getAuditLogs();
-            const banLog = logs.find(
-                log => log.action === 'twitch_ban_user',
-            );
+            const banLog = logs.find(log => log.action === 'twitch_ban_user');
             expect(banLog).toBeDefined();
             expect(banLog?.details?.duration).toBe(3600); // 1 hour in seconds
             expect(banLog?.details?.is_timeout).toBe(true);

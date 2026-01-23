@@ -40,9 +40,13 @@ export class SubmitClipPage extends BasePage {
 
     // Error/Success message selectors
     private readonly errorAlert = () =>
-        this.page.locator('[role="alert"].bg-error-50, [role="alert"][class*="bg-error"]');
+        this.page.locator(
+            '[role="alert"].bg-error-50, [role="alert"][class*="bg-error"]',
+        );
     private readonly warningAlert = () =>
-        this.page.locator('[role="alert"].bg-warning-50, [role="alert"][class*="bg-warning"]');
+        this.page.locator(
+            '[role="alert"].bg-warning-50, [role="alert"][class*="bg-warning"]',
+        );
     private readonly successMessage = () =>
         this.page.getByText('Submission Successful!');
 

@@ -96,7 +96,7 @@ async function setupModerationMocks(page: Page) {
         // Get actor user info
         const actorUser = users.get(actorId);
         const targetUser = users.get(targetId);
-        
+
         const log: AuditLogEntry = {
             id: `audit-${Date.now()}-${Math.random()}`,
             action,
@@ -729,8 +729,14 @@ async function setupModerationMocks(page: Page) {
                 const action = url.searchParams.get('action');
                 const actor = url.searchParams.get('actor');
                 const target = url.searchParams.get('target');
-                const limit = parseInt(url.searchParams.get('limit') || '50', 10);
-                const offset = parseInt(url.searchParams.get('offset') || '0', 10);
+                const limit = parseInt(
+                    url.searchParams.get('limit') || '50',
+                    10,
+                );
+                const offset = parseInt(
+                    url.searchParams.get('offset') || '0',
+                    10,
+                );
 
                 let filteredLogs = [...auditLogs];
                 if (action) {
@@ -1076,12 +1082,14 @@ test.describe('Moderation E2E', () => {
             // Click "Sync Bans" button
             const syncButton = page.getByRole('button', { name: /sync.*ban/i });
             if (
-                !(await syncButton.isVisible({ timeout: 2000 }).catch(() => false))
+                !(await syncButton
+                    .isVisible({ timeout: 2000 })
+                    .catch(() => false))
             ) {
                 // If sync button not visible, skip this test
                 return;
             }
-            
+
             await syncButton.click();
             await page.waitForTimeout(500); // Allow React state to update
 
@@ -1099,15 +1107,23 @@ test.describe('Moderation E2E', () => {
                 .getByPlaceholder(/channel.*name/i)
                 .or(modal.getByLabel(/twitch.*channel/i))
                 .or(modal.locator('input').first());
-            
-            if (await channelInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+
+            if (
+                await channelInput
+                    .isVisible({ timeout: 2000 })
+                    .catch(() => false)
+            ) {
                 await channelInput.fill('invalid!!!channel###');
 
                 // Click Start Sync button to show confirmation (scoped to modal)
                 const startButton = modal.getByRole('button', {
                     name: /start.*sync/i,
                 });
-                if (await startButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+                if (
+                    await startButton
+                        .isVisible({ timeout: 2000 })
+                        .catch(() => false)
+                ) {
                     await startButton.click();
                     await page.waitForTimeout(300);
 
@@ -1115,7 +1131,11 @@ test.describe('Moderation E2E', () => {
                     const confirmButton = modal.getByRole('button', {
                         name: /confirm.*sync/i,
                     });
-                    if (await confirmButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+                    if (
+                        await confirmButton
+                            .isVisible({ timeout: 2000 })
+                            .catch(() => false)
+                    ) {
                         await confirmButton.click();
                         await page.waitForTimeout(300);
 
@@ -1123,8 +1143,16 @@ test.describe('Moderation E2E', () => {
                         const errorAlert = modal
                             .locator('[role="alert"]')
                             .filter({ hasText: /error|invalid|failed/i })
-                            .or(page.locator('[role="alert"]').filter({ hasText: /error|invalid|failed/i }));
-                        await expect(errorAlert.first()).toBeVisible({ timeout: 5000 });
+                            .or(
+                                page
+                                    .locator('[role="alert"]')
+                                    .filter({
+                                        hasText: /error|invalid|failed/i,
+                                    }),
+                            );
+                        await expect(errorAlert.first()).toBeVisible({
+                            timeout: 5000,
+                        });
                     }
                 }
             }
@@ -1190,7 +1218,9 @@ test.describe('Moderation E2E', () => {
             expect(logs.length).toBeGreaterThan(0);
 
             // Check for create_moderator action in the log entries (not in filter dropdown)
-            await expect(page.getByText('create_moderator').first()).toBeVisible({
+            await expect(
+                page.getByText('create_moderator').first(),
+            ).toBeVisible({
                 timeout: 5000,
             });
 
@@ -1296,12 +1326,14 @@ test.describe('Moderation E2E', () => {
                 .or(page.getByText(/sync.*ban/i).first());
 
             if (
-                !(await logEntry.isVisible({ timeout: 2000 }).catch(() => false))
+                !(await logEntry
+                    .isVisible({ timeout: 2000 })
+                    .catch(() => false))
             ) {
                 // No audit log entries visible - feature may not be implemented
                 return;
             }
-            
+
             await logEntry.click();
             await page.waitForTimeout(500);
 
@@ -1310,9 +1342,12 @@ test.describe('Moderation E2E', () => {
                 .locator('[role="dialog"]')
                 .or(page.locator('.expanded-details'))
                 .or(page.locator('[data-testid="audit-log-details"]'));
-                
+
             if (
-                !(await details.first().isVisible({ timeout: 5000 }).catch(() => false))
+                !(await details
+                    .first()
+                    .isVisible({ timeout: 5000 })
+                    .catch(() => false))
             ) {
                 // Details view didn't open - may be inline display or not implemented
                 return;
@@ -1329,7 +1364,7 @@ test.describe('Moderation E2E', () => {
                 .first()
                 .isVisible({ timeout: 1000 })
                 .catch(() => false);
-                
+
             expect(hasChannelName || hasAnyText).toBe(true);
         });
     });
@@ -1483,7 +1518,11 @@ test.describe('Moderation E2E', () => {
 
             // Find the ban entry
             const banEntry = page.getByText('banneduser').first();
-            if (!(await banEntry.isVisible({ timeout: 5000 }).catch(() => false))) {
+            if (
+                !(await banEntry
+                    .isVisible({ timeout: 5000 })
+                    .catch(() => false))
+            ) {
                 // Ban entry not visible - may not have loaded
                 return;
             }
@@ -1491,7 +1530,12 @@ test.describe('Moderation E2E', () => {
             // Click revoke/unban button - try multiple selectors
             const revokeButton = page
                 .getByRole('button', { name: /revoke.*banneduser/i })
-                .or(page.locator('button').filter({ hasText: /revoke/i }).first())
+                .or(
+                    page
+                        .locator('button')
+                        .filter({ hasText: /revoke/i })
+                        .first(),
+                )
                 .first();
 
             if (
@@ -1502,7 +1546,7 @@ test.describe('Moderation E2E', () => {
                 // Revoke button not visible
                 return;
             }
-            
+
             await revokeButton.click();
             await page.waitForTimeout(500);
 
@@ -1523,8 +1567,11 @@ test.describe('Moderation E2E', () => {
             const successAlert = page
                 .locator('[role="alert"]')
                 .filter({ hasText: /success|unbanned|revoked/i });
-            const hasSuccess = await successAlert.first().isVisible({ timeout: 5000 }).catch(() => false);
-            
+            const hasSuccess = await successAlert
+                .first()
+                .isVisible({ timeout: 5000 })
+                .catch(() => false);
+
             if (hasSuccess) {
                 // Verify audit log was created
                 const logs = mocks.getAuditLogs();
@@ -1667,12 +1714,14 @@ test.describe('Moderation E2E', () => {
             // Try to sync bans
             const syncButton = page.getByRole('button', { name: /sync.*ban/i });
             if (
-                !(await syncButton.isVisible({ timeout: 2000 }).catch(() => false))
+                !(await syncButton
+                    .isVisible({ timeout: 2000 })
+                    .catch(() => false))
             ) {
                 // Sync button not visible
                 return;
             }
-            
+
             await syncButton.click();
             await page.waitForTimeout(500);
 
@@ -1683,26 +1732,42 @@ test.describe('Moderation E2E', () => {
                 // Modal didn't open - feature may not be implemented
                 return;
             }
-            
+
             const channelInput = modal
                 .getByPlaceholder(/channel.*name/i)
                 .or(modal.getByLabel(/twitch.*channel/i))
                 .or(modal.locator('input').first());
-            
-            if (!(await channelInput.isVisible({ timeout: 2000 }).catch(() => false))) {
+
+            if (
+                !(await channelInput
+                    .isVisible({ timeout: 2000 })
+                    .catch(() => false))
+            ) {
                 return;
             }
-            
+
             await channelInput.fill('testchannel');
 
-            const startButton = modal.getByRole('button', { name: /start.*sync/i });
-            if (await startButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+            const startButton = modal.getByRole('button', {
+                name: /start.*sync/i,
+            });
+            if (
+                await startButton
+                    .isVisible({ timeout: 2000 })
+                    .catch(() => false)
+            ) {
                 await startButton.click();
                 await page.waitForTimeout(300);
             }
 
-            const confirmButton = modal.getByRole('button', { name: /confirm.*sync/i });
-            if (await confirmButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+            const confirmButton = modal.getByRole('button', {
+                name: /confirm.*sync/i,
+            });
+            if (
+                await confirmButton
+                    .isVisible({ timeout: 2000 })
+                    .catch(() => false)
+            ) {
                 await confirmButton.click();
                 await page.waitForTimeout(500);
             }
@@ -1711,9 +1776,16 @@ test.describe('Moderation E2E', () => {
             const errorAlert = modal
                 .locator('[role="alert"]')
                 .filter({ hasText: /error|failed|network/i })
-                .or(page.locator('[role="alert"]').filter({ hasText: /error|failed|network/i }));
-            
-            const hasError = await errorAlert.first().isVisible({ timeout: 5000 }).catch(() => false);
+                .or(
+                    page
+                        .locator('[role="alert"]')
+                        .filter({ hasText: /error|failed|network/i }),
+                );
+
+            const hasError = await errorAlert
+                .first()
+                .isVisible({ timeout: 5000 })
+                .catch(() => false);
             // If error is shown, test passes. If not, the modal may have closed or error handling differs
             if (hasError) {
                 expect(hasError).toBe(true);

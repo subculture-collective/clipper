@@ -455,9 +455,7 @@ test.describe('Submission Workflows', () => {
         await expect(urlInput).toBeVisible();
     });
 
-    test('should validate Twitch clip URL format', async ({
-        page,
-    }) => {
+    test('should validate Twitch clip URL format', async ({ page }) => {
         // Setup authenticated mocks (overrides unauthenticated mocks)
         await setupAuthenticatedMocks(page);
 
@@ -469,11 +467,15 @@ test.describe('Submission Workflows', () => {
         await urlInput.fill('invalid-url');
 
         // Click submit button in main content (not header)
-        const submitButton = page.locator('#main-content').getByRole('button', { name: /Submit Clip/i });
+        const submitButton = page
+            .locator('#main-content')
+            .getByRole('button', { name: /Submit Clip/i });
         await submitButton.click();
 
         // Should show validation error (either in alert or as form error)
-        const errorMessage = page.locator('[role="alert"], .text-error-600, .text-red-500');
+        const errorMessage = page.locator(
+            '[role="alert"], .text-error-600, .text-red-500',
+        );
         await expect(errorMessage.first()).toBeVisible({ timeout: 5000 });
     });
 });
@@ -631,16 +633,29 @@ test.describe('Engagement Features', () => {
 
         // Look for comment-related elements: textarea, input, or section header
         const commentTextarea = page.locator('textarea');
-        const commentSection = page.locator('text=/comments|add.*comment|write.*comment/i');
-        
+        const commentSection = page.locator(
+            'text=/comments|add.*comment|write.*comment/i',
+        );
+
         // Either a textarea for writing comments or a comments section should be visible
-        const textareaVisible = await commentTextarea.first().isVisible().catch(() => false);
-        const sectionVisible = await commentSection.first().isVisible().catch(() => false);
-        
+        const textareaVisible = await commentTextarea
+            .first()
+            .isVisible()
+            .catch(() => false);
+        const sectionVisible = await commentSection
+            .first()
+            .isVisible()
+            .catch(() => false);
+
         // If neither is visible, the test should pass if there's at least a comments link/section
-        const commentsHeading = page.locator('h2, h3, h4').filter({ hasText: /comment/i });
-        const headingVisible = await commentsHeading.first().isVisible().catch(() => false);
-        
+        const commentsHeading = page
+            .locator('h2, h3, h4')
+            .filter({ hasText: /comment/i });
+        const headingVisible = await commentsHeading
+            .first()
+            .isVisible()
+            .catch(() => false);
+
         expect(textareaVisible || sectionVisible || headingVisible).toBe(true);
     });
 
