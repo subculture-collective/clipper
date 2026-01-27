@@ -11,10 +11,14 @@
             "id": "e0ec848f240719d6",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {},
+              "type": "markdown",
+              "state": {
+                "file": "RATE_LIMIT_UI_IMPLEMENTATION.md",
+                "mode": "source",
+                "source": false
+              },
               "icon": "lucide-file",
-              "title": "New tab"
+              "title": "RATE_LIMIT_UI_IMPLEMENTATION"
             }
           }
         ]
@@ -191,6 +195,11 @@
   },
   "active": "e0ec848f240719d6",
   "lastOpenFiles": [
+    "AUDIT_LOGGING_IMPLEMENTATION.md",
+    "CURRENT_TEST_STATUS.md",
+    "IMPLEMENTATION_SUMMARY.md",
+    "PREMIUM_SUBSCRIPTION_CHECKOUT_STATUS.md",
+    "TEST_FIX_SUMMARY.md",
     "backend/api.md",
     "unsorted/EPIC_VERIFICATION_CHECKLIST2.md",
     "testing/index.md",
@@ -213,11 +222,6 @@
     "unsorted/CREATOR_VERIFICATION_EPIC_COMPLETE copy.md",
     "unsorted/DEPLOYMENT_LIVE_STREAMS copy.md",
     "unsorted/EPIC_COMPLETION_FINAL_SUMMARY_HOME_FEED copy.md",
-    "unsorted/EPIC_COMPLETION_FINAL_SUMMARY copy.md",
-    "unsorted/EPIC_VERIFICATION_CHECKLIST copy 2.md",
-    "unsorted/LIVE_STREAM_EPIC_COMPLETION_SUMMARY copy.md",
-    "unsorted/META_FORUM_EPIC_COMPLETION copy.md",
-    "unsorted/SOCIAL_COMMUNITY_EPIC_FINAL_VERIFICATION copy.md",
     "users",
     "setup",
     "product",

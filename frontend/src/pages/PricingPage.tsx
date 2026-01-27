@@ -178,7 +178,7 @@ export default function PricingPage() {
                             <ul className='space-y-3 mb-8'>
                                 <li className='flex items-start'>
                                     <svg
-                                        className='h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5'
+                                        className='h-5 w-5 text-green-500 mr-3 shrink-0 mt-0.5'
                                         fill='none'
                                         stroke='currentColor'
                                         viewBox='0 0 24 24'
@@ -196,7 +196,7 @@ export default function PricingPage() {
                                 </li>
                                 <li className='flex items-start'>
                                     <svg
-                                        className='h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5'
+                                        className='h-5 w-5 text-green-500 mr-3 shrink-0 mt-0.5'
                                         fill='none'
                                         stroke='currentColor'
                                         viewBox='0 0 24 24'
@@ -214,7 +214,7 @@ export default function PricingPage() {
                                 </li>
                                 <li className='flex items-start'>
                                     <svg
-                                        className='h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5'
+                                        className='h-5 w-5 text-green-500 mr-3 shrink-0 mt-0.5'
                                         fill='none'
                                         stroke='currentColor'
                                         viewBox='0 0 24 24'
@@ -232,7 +232,7 @@ export default function PricingPage() {
                                 </li>
                                 <li className='flex items-start'>
                                     <svg
-                                        className='h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5'
+                                        className='h-5 w-5 text-green-500 mr-3 shrink-0 mt-0.5'
                                         fill='none'
                                         stroke='currentColor'
                                         viewBox='0 0 24 24'
@@ -259,7 +259,7 @@ export default function PricingPage() {
                         </div>
 
                         {/* Pro Plan */}
-                        <div className='bg-gradient-to-br from-purple-600 to-indigo-600 rounded-lg p-8 border-2 border-purple-400 shadow-xl relative'>
+                        <div className='bg-linear-to-br from-purple-600 to-indigo-600 rounded-lg p-8 border-2 border-purple-400 shadow-xl relative'>
                             <div className='absolute top-0 right-0 bg-yellow-400 text-gray-900 text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg'>
                                 POPULAR
                             </div>
@@ -305,7 +305,7 @@ export default function PricingPage() {
                                         className='flex items-start'
                                     >
                                         <svg
-                                            className='h-5 w-5 text-yellow-400 mr-3 flex-shrink-0 mt-0.5'
+                                            className='h-5 w-5 text-yellow-400 mr-3 shrink-0 mt-0.5'
                                             fill='none'
                                             stroke='currentColor'
                                             viewBox='0 0 24 24'

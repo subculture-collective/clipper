@@ -19,15 +19,37 @@ import type { Page, Route, Request } from '@playwright/test';
 type MockUser = {
     id: string;
     username: string;
-    display_name?: string;
-    twitch_id?: string;
+    display_name: string;
+    twitch_id: string;
     email: string;
     role: 'user' | 'moderator' | 'admin';
+    karma_points: number;
+    is_banned: boolean;
+    created_at: string;
     is_broadcaster?: boolean;
     is_twitch_moderator?: boolean;
     has_twitch_ban_scope?: boolean;
     is_banned_on_twitch?: boolean;
 };
+
+/** Helper to create MockUser with required defaults */
+function createMockUser(
+    overrides: Partial<MockUser> & {
+        id: string;
+        username: string;
+        email: string;
+        role: MockUser['role'];
+    },
+): MockUser {
+    return {
+        display_name: overrides.username,
+        twitch_id: overrides.id,
+        karma_points: 100,
+        is_banned: false,
+        created_at: new Date().toISOString(),
+        ...overrides,
+    };
+}
 
 type TwitchBanRequest = {
     broadcasterID: string;
@@ -71,6 +93,38 @@ async function setupTwitchModerationMocks(page: Page) {
     let rateLimitResetTime = Date.now() + RATE_LIMIT_WINDOW_MS;
     let auditIdCounter = 1;
 
+    // Seed default users upfront
+    users.set(
+        '99999',
+        createMockUser({
+            id: '99999',
+            username: 'twitchuser',
+            display_name: 'Twitch User',
+            email: 'twitchuser@example.com',
+            role: 'user',
+            twitch_id: '99999',
+            is_broadcaster: true,
+            is_twitch_moderator: true,
+            has_twitch_ban_scope: true,
+            is_banned_on_twitch: false,
+        }),
+    );
+    users.set(
+        '88888',
+        createMockUser({
+            id: '88888',
+            username: 'banneduser',
+            display_name: 'Banned User',
+            email: 'banned@example.com',
+            role: 'user',
+            twitch_id: '88888',
+            is_broadcaster: true,
+            is_twitch_moderator: true,
+            has_twitch_ban_scope: true,
+            is_banned_on_twitch: true,
+        }),
+    );
+
     const respond = (route: Route, status: number, body: any) =>
         route.fulfill({
             status,
@@ -83,7 +137,7 @@ async function setupTwitchModerationMocks(page: Page) {
         resourceType: string,
         resourceId: string,
         actorId: string,
-        details: any = {}
+        details: any = {},
     ) => {
         const log: AuditLogEntry = {
             id: `audit-${auditIdCounter++}`,
@@ -115,51 +169,23 @@ async function setupTwitchModerationMocks(page: Page) {
 
             // Admin users listing for moderation UI
             if (pathname === '/admin/users' && method === 'GET') {
-                // Seed a couple of users if none exist
-                if (users.size === 0) {
-                    users.set('99999', {
-                        id: '99999',
-                        username: 'twitchuser',
-                        display_name: 'Twitch User',
-                        email: 'twitchuser@example.com',
-                        role: 'user',
-                        twitch_id: '99999',
-                        is_broadcaster: true,
-                        is_twitch_moderator: true,
-                        has_twitch_ban_scope: true,
-                        is_banned_on_twitch: false,
-                    });
-                    users.set('88888', {
-                        id: '88888',
-                        username: 'banneduser',
-                        display_name: 'Banned User',
-                        email: 'banned@example.com',
-                        role: 'user',
-                        twitch_id: '88888',
-                        is_broadcaster: true,
-                        is_twitch_moderator: true,
-                        has_twitch_ban_scope: true,
-                        is_banned_on_twitch: true,
-                    });
-                }
-
                 const search = (
                     url.searchParams.get('search') || ''
                 ).toLowerCase();
                 const pageNum = parseInt(
                     url.searchParams.get('page') || '1',
-                    10
+                    10,
                 );
                 const perPage = parseInt(
                     url.searchParams.get('per_page') || '25',
-                    10
+                    10,
                 );
 
                 const allUsers = Array.from(users.values()).filter(
                     u =>
                         !search ||
                         u.username.toLowerCase().includes(search) ||
-                        u.display_name?.toLowerCase().includes(search)
+                        u.display_name?.toLowerCase().includes(search),
                 );
 
                 const start = (pageNum - 1) * perPage;
@@ -205,8 +231,20 @@ async function setupTwitchModerationMocks(page: Page) {
                     return respond(route, 401, { error: 'Unauthorized' });
                 }
 
-                const body = (request.postDataJSON?.() ||
-                    {}) as TwitchBanRequest;
+                let body: TwitchBanRequest = { broadcasterID: '', userID: '' };
+                try {
+                    body = (request.postDataJSON() as TwitchBanRequest) || body;
+                } catch {
+                    // If JSON parsing fails, try to get raw body
+                    const rawBody = request.postData();
+                    if (rawBody) {
+                        try {
+                            body = JSON.parse(rawBody) as TwitchBanRequest;
+                        } catch {
+                            // Ignore parse errors
+                        }
+                    }
+                }
 
                 // Site moderators are read-only
                 if (
@@ -271,9 +309,12 @@ async function setupTwitchModerationMocks(page: Page) {
 
                 // Perform ban
                 const banId = `ban-${Date.now()}`;
-                const expiresAt = body.duration
-                    ? new Date(Date.now() + body.duration * 1000).toISOString()
-                    : undefined;
+                const expiresAt =
+                    body.duration ?
+                        new Date(
+                            Date.now() + body.duration * 1000,
+                        ).toISOString()
+                    :   undefined;
 
                 bannedUsers.set(body.userID, {
                     banId,
@@ -293,14 +334,15 @@ async function setupTwitchModerationMocks(page: Page) {
                         reason: body.reason,
                         duration: body.duration,
                         is_timeout: !!body.duration,
-                    }
+                    },
                 );
 
                 return respond(route, 200, {
                     success: true,
-                    message: body.duration
-                        ? `User timed out on Twitch for ${body.duration} seconds`
-                        : 'User banned on Twitch successfully',
+                    message:
+                        body.duration ?
+                            `User timed out on Twitch for ${body.duration} seconds`
+                        :   'User banned on Twitch successfully',
                     broadcasterID: body.broadcasterID,
                     userID: body.userID,
                 });
@@ -380,21 +422,29 @@ async function setupTwitchModerationMocks(page: Page) {
                     });
                 }
 
-                // Perform unban
+                // Perform unban - check both bannedUsers map and user's is_banned_on_twitch flag
                 const banInfo = bannedUsers.get(userID);
-                if (banInfo) {
-                    bannedUsers.delete(userID);
+                const user = users.get(userID);
+                const wasBanned = banInfo || (user && user.is_banned_on_twitch);
+
+                if (wasBanned) {
+                    if (banInfo) {
+                        bannedUsers.delete(userID);
+                    }
+                    if (user) {
+                        user.is_banned_on_twitch = false;
+                    }
 
                     // Create audit log
                     createAuditLog(
                         'twitch_unban_user',
                         'twitch_ban',
-                        banInfo.banId,
+                        banInfo?.banId || `ban-${userID}`,
                         currentUser.id,
                         {
                             broadcaster_id: broadcasterID,
                             user_id: userID,
-                        }
+                        },
                     );
                 }
 
@@ -423,7 +473,7 @@ async function setupTwitchModerationMocks(page: Page) {
 
                 if (action) {
                     filteredLogs = filteredLogs.filter(
-                        log => log.action === action
+                        log => log.action === action,
                     );
                 }
 
@@ -432,7 +482,7 @@ async function setupTwitchModerationMocks(page: Page) {
                     data: filteredLogs.sort(
                         (a, b) =>
                             new Date(b.timestamp).getTime() -
-                            new Date(a.timestamp).getTime()
+                            new Date(a.timestamp).getTime(),
                     ),
                     meta: {
                         total: filteredLogs.length,
@@ -480,9 +530,13 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
             const broadcaster: MockUser = {
                 id: 'broadcaster-1',
                 username: 'testbroadcaster',
+                display_name: 'Test Broadcaster',
                 twitch_id: '12345',
                 email: 'broadcaster@example.com',
                 role: 'user',
+                karma_points: 100,
+                is_banned: false,
+                created_at: new Date().toISOString(),
                 is_broadcaster: true,
                 has_twitch_ban_scope: true,
             };
@@ -505,11 +559,11 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
                 .or(page.locator('.modal'));
             await expect(modal.first()).toBeVisible({ timeout: 5000 });
 
-            // Fill ban reason
+            // Fill ban reason - use textbox role to avoid matching the select dropdown
             const reasonInput = page
-                .getByLabel(/reason/i)
+                .getByRole('textbox', { name: /reason/i })
                 .or(page.getByPlaceholder(/reason/i));
-            await reasonInput.fill('Violation of community guidelines');
+            await reasonInput.first().fill('Violation of community guidelines');
 
             // Select permanent ban (no duration)
             const permanentRadio = page
@@ -529,7 +583,7 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
 
             // Verify success message
             await expect(
-                page.getByTestId('twitch-action-success-alert')
+                page.getByTestId('twitch-action-success-alert'),
             ).toBeVisible({ timeout: 5000 });
 
             // Verify audit log was created
@@ -538,7 +592,7 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
             expect(banLog).toBeDefined();
             expect(banLog?.actor_id).toBe('broadcaster-1');
             expect(banLog?.details?.reason).toBe(
-                'Violation of community guidelines'
+                'Violation of community guidelines',
             );
             expect(banLog?.details?.is_timeout).toBe(false);
         });
@@ -546,7 +600,7 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
         test('broadcaster can timeout user with duration', async ({ page }) => {
             const mocks = await setupTwitchModerationMocks(page);
 
-            const broadcaster: MockUser = {
+            const broadcaster: MockUser = createMockUser({
                 id: 'broadcaster-1',
                 username: 'testbroadcaster',
                 twitch_id: '12345',
@@ -554,7 +608,7 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
                 role: 'user',
                 is_broadcaster: true,
                 has_twitch_ban_scope: true,
-            };
+            });
             mocks.setCurrentUser(broadcaster);
 
             await page.goto('/moderation/users');
@@ -563,69 +617,51 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
             const banButton = page
                 .getByRole('button', { name: /ban.*twitch/i })
                 .first();
-            if (
-                await banButton.isVisible({ timeout: 2000 }).catch(() => false)
-            ) {
-                await banButton.click();
 
-                const modal = page
-                    .locator('[role="dialog"]')
-                    .or(page.locator('.modal'));
-                await expect(modal.first()).toBeVisible({ timeout: 5000 });
+            // Ensure the ban button is visible - this is required for the test to be meaningful
+            await expect(banButton).toBeVisible({ timeout: 5000 });
+            await banButton.click();
 
-                // Fill reason
-                const reasonInput = page
-                    .getByLabel(/reason/i)
-                    .or(page.getByPlaceholder(/reason/i));
-                await reasonInput.fill('Spam');
+            const modal = page.locator('[role="dialog"]').first();
+            await expect(modal).toBeVisible({ timeout: 5000 });
 
-                // Select timeout option
-                const timeoutRadio = page
-                    .getByLabel(/timeout/i)
-                    .or(page.getByText(/timeout/i));
-                if (
-                    await timeoutRadio
-                        .isVisible({ timeout: 2000 })
-                        .catch(() => false)
-                ) {
-                    await timeoutRadio.click();
-                }
+            // Fill reason
+            const reasonInput = page
+                .getByRole('textbox', { name: /reason/i })
+                .first();
+            await expect(reasonInput).toBeVisible({ timeout: 2000 });
+            await reasonInput.fill('Spam');
 
-                // Set duration (600 seconds = 10 minutes)
-                const durationInput = page
-                    .getByLabel(/duration/i)
-                    .or(page.getByPlaceholder(/duration|seconds/i));
-                if (
-                    await durationInput
-                        .isVisible({ timeout: 2000 })
-                        .catch(() => false)
-                ) {
-                    await durationInput.fill('600');
-                }
+            // Select timeout option - click the radio label
+            const timeoutLabel = page.getByLabel(/timeout \(temporary\)/i);
+            await expect(timeoutLabel).toBeVisible({ timeout: 2000 });
+            await timeoutLabel.click();
 
-                const confirmButton = page.getByTestId(
-                    'confirm-ban-action-button'
-                );
-                await confirmButton.click();
+            // Click "1 hour" preset button (3600 seconds) for reliable testing
+            const oneHourButton = page.getByRole('button', { name: '1 hour' });
+            await expect(oneHourButton).toBeVisible({ timeout: 2000 });
+            await oneHourButton.click();
 
-                await expect(
-                    page.getByTestId('twitch-action-success-alert')
-                ).toBeVisible({ timeout: 5000 });
+            // Submit the ban
+            const confirmButton = page.getByTestId('confirm-ban-action-button');
+            await expect(confirmButton).toBeVisible({ timeout: 2000 });
+            await confirmButton.click();
 
-                const logs = mocks.getAuditLogs();
-                const banLog = logs.find(
-                    log => log.action === 'twitch_ban_user'
-                );
-                expect(banLog).toBeDefined();
-                expect(banLog?.details?.duration).toBe(600);
-                expect(banLog?.details?.is_timeout).toBe(true);
-            }
+            await expect(
+                page.getByTestId('twitch-action-success-alert'),
+            ).toBeVisible({ timeout: 5000 });
+
+            const logs = mocks.getAuditLogs();
+            const banLog = logs.find(log => log.action === 'twitch_ban_user');
+            expect(banLog).toBeDefined();
+            expect(banLog?.details?.duration).toBe(3600); // 1 hour in seconds
+            expect(banLog?.details?.is_timeout).toBe(true);
         });
 
         test('broadcaster can unban user', async ({ page }) => {
             const mocks = await setupTwitchModerationMocks(page);
 
-            const broadcaster: MockUser = {
+            const broadcaster: MockUser = createMockUser({
                 id: 'broadcaster-1',
                 username: 'testbroadcaster',
                 twitch_id: '12345',
@@ -633,7 +669,7 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
                 role: 'user',
                 is_broadcaster: true,
                 has_twitch_ban_scope: true,
-            };
+            });
             mocks.setCurrentUser(broadcaster);
 
             await page.goto('/moderation/users');
@@ -663,12 +699,12 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
                 }
 
                 await expect(
-                    page.getByTestId('twitch-action-success-alert')
+                    page.getByTestId('twitch-action-success-alert'),
                 ).toBeVisible({ timeout: 5000 });
 
                 const logs = mocks.getAuditLogs();
                 const unbanLog = logs.find(
-                    log => log.action === 'twitch_unban_user'
+                    log => log.action === 'twitch_unban_user',
                 );
                 expect(unbanLog).toBeDefined();
                 expect(unbanLog?.actor_id).toBe('broadcaster-1');
@@ -680,7 +716,7 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
         test('channel moderator can ban user', async ({ page }) => {
             const mocks = await setupTwitchModerationMocks(page);
 
-            const moderator: MockUser = {
+            const moderator: MockUser = createMockUser({
                 id: 'moderator-1',
                 username: 'channelmoderator',
                 twitch_id: '67890',
@@ -689,7 +725,7 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
                 is_broadcaster: false,
                 is_twitch_moderator: true,
                 has_twitch_ban_scope: true,
-            };
+            });
             mocks.setCurrentUser(moderator);
 
             await page.goto('/moderation/users');
@@ -708,23 +744,24 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
                     .or(page.locator('.modal'));
                 await expect(modal.first()).toBeVisible({ timeout: 5000 });
 
+                // Use textbox role to avoid matching the select dropdown
                 const reasonInput = page
-                    .getByLabel(/reason/i)
+                    .getByRole('textbox', { name: /reason/i })
                     .or(page.getByPlaceholder(/reason/i));
-                await reasonInput.fill('Moderator action');
+                await reasonInput.first().fill('Moderator action');
 
                 const confirmButton = page.getByTestId(
-                    'confirm-ban-action-button'
+                    'confirm-ban-action-button',
                 );
                 await confirmButton.click();
 
                 await expect(
-                    page.getByTestId('twitch-action-success-alert')
+                    page.getByTestId('twitch-action-success-alert'),
                 ).toBeVisible({ timeout: 5000 });
 
                 const logs = mocks.getAuditLogs();
                 const banLog = logs.find(
-                    log => log.action === 'twitch_ban_user'
+                    log => log.action === 'twitch_ban_user',
                 );
                 expect(banLog).toBeDefined();
                 expect(banLog?.actor_id).toBe('moderator-1');
@@ -734,7 +771,7 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
         test('channel moderator can unban user', async ({ page }) => {
             const mocks = await setupTwitchModerationMocks(page);
 
-            const moderator: MockUser = {
+            const moderator: MockUser = createMockUser({
                 id: 'moderator-1',
                 username: 'channelmoderator',
                 twitch_id: '67890',
@@ -743,7 +780,7 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
                 is_broadcaster: false,
                 is_twitch_moderator: true,
                 has_twitch_ban_scope: true,
-            };
+            });
             mocks.setCurrentUser(moderator);
 
             await page.goto('/moderation/users');
@@ -771,12 +808,12 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
                 }
 
                 await expect(
-                    page.getByTestId('twitch-action-success-alert')
+                    page.getByTestId('twitch-action-success-alert'),
                 ).toBeVisible({ timeout: 5000 });
 
                 const logs = mocks.getAuditLogs();
                 const unbanLog = logs.find(
-                    log => log.action === 'twitch_unban_user'
+                    log => log.action === 'twitch_unban_user',
                 );
                 expect(unbanLog).toBeDefined();
             }
@@ -787,7 +824,7 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
         test('site moderator cannot ban user on Twitch', async ({ page }) => {
             const mocks = await setupTwitchModerationMocks(page);
 
-            const siteModerator: MockUser = {
+            const siteModerator: MockUser = createMockUser({
                 id: 'site-mod-1',
                 username: 'sitemoderator',
                 email: 'sitemod@example.com',
@@ -796,7 +833,7 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
                 is_twitch_moderator: false, // Site mod only, not Twitch mod
                 twitch_id: '11111',
                 has_twitch_ban_scope: false,
-            };
+            });
             mocks.setCurrentUser(siteModerator);
 
             await page.goto('/moderation/users');
@@ -819,7 +856,7 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
                 await expect(
                     page.locator('[role="alert"]').filter({
                         hasText: /site moderator|read.*only|cannot perform/i,
-                    })
+                    }),
                 ).toBeVisible({ timeout: 5000 });
             } else {
                 // Button should not be visible - this is the expected behavior
@@ -830,7 +867,7 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
         test('site moderator cannot unban user on Twitch', async ({ page }) => {
             const mocks = await setupTwitchModerationMocks(page);
 
-            const siteModerator: MockUser = {
+            const siteModerator: MockUser = createMockUser({
                 id: 'site-mod-1',
                 username: 'sitemoderator',
                 email: 'sitemod@example.com',
@@ -839,7 +876,7 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
                 is_twitch_moderator: false,
                 twitch_id: '11111',
                 has_twitch_ban_scope: false,
-            };
+            });
             mocks.setCurrentUser(siteModerator);
 
             await page.goto('/moderation/users');
@@ -858,7 +895,7 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
                 await expect(
                     page.locator('[role="alert"]').filter({
                         hasText: /site moderator|read.*only|cannot perform/i,
-                    })
+                    }),
                 ).toBeVisible({ timeout: 5000 });
             } else {
                 expect(isVisible).toBe(false);
@@ -872,7 +909,7 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
         }) => {
             const mocks = await setupTwitchModerationMocks(page);
 
-            const broadcaster: MockUser = {
+            const broadcaster: MockUser = createMockUser({
                 id: 'broadcaster-1',
                 username: 'testbroadcaster',
                 twitch_id: '12345',
@@ -880,7 +917,7 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
                 role: 'user',
                 is_broadcaster: true,
                 has_twitch_ban_scope: false, // Missing required scope
-            };
+            });
             mocks.setCurrentUser(broadcaster);
 
             await page.goto('/moderation/users');
@@ -903,19 +940,20 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
                         .isVisible({ timeout: 2000 })
                         .catch(() => false)
                 ) {
+                    // Use textbox role specifically to avoid matching the select dropdown
                     const reasonInput = page
-                        .getByLabel(/reason/i)
+                        .getByRole('textbox', { name: /reason/i })
                         .or(page.getByPlaceholder(/reason/i));
-                    await reasonInput.fill('Test ban');
+                    await reasonInput.first().fill('Test ban');
 
                     const confirmButton = page.getByTestId(
-                        'confirm-ban-action-button'
+                        'confirm-ban-action-button',
                     );
                     await confirmButton.click();
 
                     // Use data-testid to specifically get the modal inline error alert, avoiding strict mode
                     await expect(
-                        page.getByTestId('twitch-action-error-alert')
+                        page.getByTestId('twitch-action-error-alert'),
                     ).toBeVisible({ timeout: 5000 });
                 }
             }
@@ -926,15 +964,15 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
         }) => {
             const mocks = await setupTwitchModerationMocks(page);
 
-            const user: MockUser = {
+            const user: MockUser = createMockUser({
                 id: 'user-1',
                 username: 'testuser',
                 email: 'user@example.com',
                 role: 'user',
+                twitch_id: '', // Not authenticated with Twitch - empty twitch_id
                 is_broadcaster: true,
                 has_twitch_ban_scope: true,
-                // twitch_id is missing - not authenticated with Twitch
-            };
+            });
             mocks.setCurrentUser(user);
 
             await page.goto('/moderation/users');
@@ -958,18 +996,18 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
                         .catch(() => false)
                 ) {
                     const reasonInput = page
-                        .getByLabel(/reason/i)
+                        .getByRole('textbox', { name: /reason/i })
                         .or(page.getByPlaceholder(/reason/i));
-                    await reasonInput.fill('Test ban');
+                    await reasonInput.first().fill('Test ban');
 
                     const confirmButton = page.getByTestId(
-                        'confirm-ban-action-button'
+                        'confirm-ban-action-button',
                     );
                     await confirmButton.click();
 
                     // Use data-testid to specifically get the modal inline error alert, avoiding strict mode
                     await expect(
-                        page.getByTestId('twitch-action-error-alert')
+                        page.getByTestId('twitch-action-error-alert'),
                     ).toBeVisible({ timeout: 5000 });
                 }
             }
@@ -978,7 +1016,7 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
         test('shows error when rate limit exceeded', async ({ page }) => {
             const mocks = await setupTwitchModerationMocks(page);
 
-            const broadcaster: MockUser = {
+            const broadcaster: MockUser = createMockUser({
                 id: 'broadcaster-1',
                 username: 'testbroadcaster',
                 twitch_id: '12345',
@@ -986,7 +1024,7 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
                 role: 'user',
                 is_broadcaster: true,
                 has_twitch_ban_scope: true,
-            };
+            });
             mocks.setCurrentUser(broadcaster);
 
             // Trigger rate limit
@@ -1012,19 +1050,20 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
                         .isVisible({ timeout: 2000 })
                         .catch(() => false)
                 ) {
+                    // Use textbox role specifically to avoid matching the select dropdown
                     const reasonInput = page
-                        .getByLabel(/reason/i)
+                        .getByRole('textbox', { name: /reason/i })
                         .or(page.getByPlaceholder(/reason/i));
-                    await reasonInput.fill('Test ban');
+                    await reasonInput.first().fill('Test ban');
 
                     const confirmButton = page.getByTestId(
-                        'confirm-ban-action-button'
+                        'confirm-ban-action-button',
                     );
                     await confirmButton.click();
 
                     // Use data-testid to specifically get the modal inline error alert, avoiding strict mode
                     await expect(
-                        page.getByTestId('twitch-action-error-alert')
+                        page.getByTestId('twitch-action-error-alert'),
                     ).toBeVisible({ timeout: 5000 });
                 }
             }
@@ -1035,7 +1074,7 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
         test('creates audit log for ban action', async ({ page }) => {
             const mocks = await setupTwitchModerationMocks(page);
 
-            const broadcaster: MockUser = {
+            const broadcaster: MockUser = createMockUser({
                 id: 'broadcaster-1',
                 username: 'testbroadcaster',
                 twitch_id: '12345',
@@ -1043,16 +1082,24 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
                 role: 'admin', // Admin to access audit logs
                 is_broadcaster: true,
                 has_twitch_ban_scope: true,
-            };
+            });
             mocks.setCurrentUser(broadcaster);
 
-            // Perform a ban action via API
-            await page.request.post('/api/v1/moderation/twitch/ban', {
-                data: {
-                    broadcasterID: '12345',
-                    userID: '99999',
-                    reason: 'Test ban for audit',
-                },
+            // Navigate first to establish page context for fetch requests
+            await page.goto('/');
+            await page.waitForLoadState('networkidle');
+
+            // Perform a ban action via API using page.evaluate to go through route handlers
+            await page.evaluate(async () => {
+                await fetch('/api/v1/moderation/twitch/ban', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        broadcasterID: '12345',
+                        userID: '99999',
+                        reason: 'Test ban for audit',
+                    }),
+                });
             });
 
             // Navigate to audit logs
@@ -1071,7 +1118,7 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
         test('creates audit log for unban action', async ({ page }) => {
             const mocks = await setupTwitchModerationMocks(page);
 
-            const broadcaster: MockUser = {
+            const broadcaster: MockUser = createMockUser({
                 id: 'broadcaster-1',
                 username: 'testbroadcaster',
                 twitch_id: '12345',
@@ -1079,17 +1126,27 @@ test.describe('Twitch Ban/Unban Actions E2E', () => {
                 role: 'admin',
                 is_broadcaster: true,
                 has_twitch_ban_scope: true,
-            };
+            });
             mocks.setCurrentUser(broadcaster);
 
-            // Perform an unban action via API
-            await page.request.delete(
-                '/api/v1/moderation/twitch/ban?broadcasterID=12345&userID=99999'
-            );
+            // Navigate first to establish page context for fetch requests
+            await page.goto('/');
+            await page.waitForLoadState('networkidle');
+
+            // Perform an unban action via API using page.evaluate to go through route handlers
+            // Use user 88888 who has is_banned_on_twitch: true
+            await page.evaluate(async () => {
+                await fetch(
+                    '/api/v1/moderation/twitch/ban?broadcasterID=12345&userID=88888',
+                    {
+                        method: 'DELETE',
+                    },
+                );
+            });
 
             const logs = mocks.getAuditLogs();
             const unbanLog = logs.find(
-                log => log.action === 'twitch_unban_user'
+                log => log.action === 'twitch_unban_user',
             );
             expect(unbanLog).toBeDefined();
             expect(unbanLog?.actor_id).toBe('broadcaster-1');

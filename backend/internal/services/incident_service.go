@@ -42,7 +42,7 @@ func (s *IncidentService) CreateIncident(
 	`
 
 	var incident models.StatusIncident
-	err := s.db.QueryRowContext(
+	err := s.db.Pool.QueryRow(
 		ctx,
 		query,
 		id,
@@ -85,7 +85,7 @@ func (s *IncidentService) GetIncident(ctx context.Context, incidentID uuid.UUID)
 	`
 
 	var incident models.StatusIncident
-	err := s.db.QueryRowContext(ctx, query, incidentID).Scan(
+	err := s.db.Pool.QueryRow(ctx, query, incidentID).Scan(
 		&incident.ID,
 		&incident.ServiceName,
 		&incident.Title,
@@ -136,7 +136,7 @@ func (s *IncidentService) ListIncidents(
 	// Get total count
 	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM status_incidents %s", whereClause)
 	var total int
-	err := s.db.QueryRowContext(ctx, countQuery, args...).Scan(&total)
+	err := s.db.Pool.QueryRow(ctx, countQuery, args...).Scan(&total)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to count incidents: %w", err)
 	}
@@ -151,7 +151,7 @@ func (s *IncidentService) ListIncidents(
 	`, whereClause, argCount+1, argCount+2)
 
 	args = append(args, limit, offset)
-	rows, err := s.db.QueryContext(ctx, query, args...)
+	rows, err := s.db.Pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to query incidents: %w", err)
 	}
@@ -194,11 +194,11 @@ func (s *IncidentService) UpdateIncident(
 	message string,
 	updatedBy *uuid.UUID,
 ) error {
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.db.Pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer tx.Rollback(ctx)
 
 	// Update incident status if provided
 	if status != nil {
@@ -207,7 +207,7 @@ func (s *IncidentService) UpdateIncident(
 			SET status = $1, updated_at = NOW()
 			WHERE id = $2
 		`
-		_, err = tx.ExecContext(ctx, updateQuery, *status, incidentID)
+		_, err = tx.Exec(ctx, updateQuery, *status, incidentID)
 		if err != nil {
 			return fmt.Errorf("failed to update incident: %w", err)
 		}
@@ -219,7 +219,7 @@ func (s *IncidentService) UpdateIncident(
 				SET resolved_at = NOW()
 				WHERE id = $1 AND resolved_at IS NULL
 			`
-			_, err = tx.ExecContext(ctx, resolveQuery, incidentID)
+			_, err = tx.Exec(ctx, resolveQuery, incidentID)
 			if err != nil {
 				return fmt.Errorf("failed to set resolved_at: %w", err)
 			}
@@ -238,12 +238,12 @@ func (s *IncidentService) UpdateIncident(
 		updateStatus = *status
 	}
 
-	_, err = tx.ExecContext(ctx, insertQuery, updateID, incidentID, updateStatus, message, updatedBy)
+	_, err = tx.Exec(ctx, insertQuery, updateID, incidentID, updateStatus, message, updatedBy)
 	if err != nil {
 		return fmt.Errorf("failed to create incident update: %w", err)
 	}
 
-	if err := tx.Commit(); err != nil {
+	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
@@ -259,7 +259,7 @@ func (s *IncidentService) GetIncidentUpdates(ctx context.Context, incidentID uui
 		ORDER BY created_at DESC
 	`
 
-	rows, err := s.db.QueryContext(ctx, query, incidentID)
+	rows, err := s.db.Pool.Query(ctx, query, incidentID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query incident updates: %w", err)
 	}
@@ -298,7 +298,7 @@ func (s *IncidentService) GetActiveIncidents(ctx context.Context) ([]models.Stat
 		ORDER BY severity DESC, started_at DESC
 	`
 
-	rows, err := s.db.QueryContext(ctx, query, models.IncidentStatusResolved)
+	rows, err := s.db.Pool.Query(ctx, query, models.IncidentStatusResolved)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query active incidents: %w", err)
 	}

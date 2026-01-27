@@ -14,9 +14,13 @@ vi.mock('../../lib/moderation-api', () => ({
 }));
 
 // Mock the AuthContext
-vi.mock('../../context/AuthContext', () => ({
-    useAuth: vi.fn(),
-}));
+vi.mock('../../context/AuthContext', async () => {
+    const actual = await vi.importActual('../../context/AuthContext');
+    return {
+        ...actual,
+        useAuth: vi.fn(),
+    };
+});
 
 // Mock react-router-dom
 const mockNavigate = vi.fn();

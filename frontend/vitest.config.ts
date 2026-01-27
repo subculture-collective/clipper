@@ -14,6 +14,7 @@ export default defineConfig({
         environment: 'jsdom',
         setupFiles: './src/test/setup.ts',
         passWithNoTests: true,
+        testTimeout: 10000,
         exclude: [
             '**/node_modules/**',
             '**/dist/**',

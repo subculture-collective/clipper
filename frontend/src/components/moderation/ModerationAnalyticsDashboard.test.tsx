@@ -129,7 +129,7 @@ describe('ModerationAnalyticsDashboard', () => {
 
             await waitFor(() => {
                 expect(
-                    screen.getByText('Moderation Analytics')
+                    screen.getByText('Moderation Analytics'),
                 ).toBeInTheDocument();
             });
         });
@@ -138,7 +138,7 @@ describe('ModerationAnalyticsDashboard', () => {
             render(<ModerationAnalyticsDashboard />);
 
             expect(
-                screen.getByText('Loading analytics...')
+                screen.getByText('Loading analytics...'),
             ).toBeInTheDocument();
         });
 
@@ -155,7 +155,7 @@ describe('ModerationAnalyticsDashboard', () => {
 
             await waitFor(() => {
                 expect(
-                    screen.getByTestId('date-range-selector')
+                    screen.getByTestId('date-range-selector'),
                 ).toBeInTheDocument();
             });
         });
@@ -292,7 +292,7 @@ describe('ModerationAnalyticsDashboard', () => {
 
             await waitFor(() => {
                 const selector = screen.getByTestId(
-                    'date-range-selector'
+                    'date-range-selector',
                 ) as HTMLSelectElement;
                 expect(selector.value).toBe('30');
             });
@@ -304,7 +304,7 @@ describe('ModerationAnalyticsDashboard', () => {
 
             await waitFor(() => {
                 expect(
-                    screen.getByTestId('date-range-selector')
+                    screen.getByTestId('date-range-selector'),
                 ).toBeInTheDocument();
             });
 
@@ -323,7 +323,7 @@ describe('ModerationAnalyticsDashboard', () => {
 
             await waitFor(() => {
                 expect(
-                    screen.getByTestId('date-range-selector')
+                    screen.getByTestId('date-range-selector'),
                 ).toBeInTheDocument();
             });
 
@@ -343,28 +343,28 @@ describe('ModerationAnalyticsDashboard', () => {
     describe('Error Handling', () => {
         it('displays error message when loading fails', async () => {
             vi.mocked(moderationApi.getModerationAnalytics).mockRejectedValue(
-                new Error('Failed to load analytics')
+                new Error('Failed to load analytics'),
             );
 
             render(<ModerationAnalyticsDashboard />);
 
             await waitFor(() => {
                 expect(
-                    screen.getByText('Failed to load analytics data')
+                    screen.getByText('Failed to load analytics data'),
                 ).toBeInTheDocument();
             });
         });
 
         it('shows retry button on error', async () => {
             vi.mocked(moderationApi.getModerationAnalytics).mockRejectedValue(
-                new Error('Failed to load analytics')
+                new Error('Failed to load analytics'),
             );
 
             render(<ModerationAnalyticsDashboard />);
 
             await waitFor(() => {
                 expect(
-                    screen.getByRole('button', { name: /retry/i })
+                    screen.getByRole('button', { name: /retry/i }),
                 ).toBeInTheDocument();
             });
         });
@@ -379,7 +379,7 @@ describe('ModerationAnalyticsDashboard', () => {
 
             await waitFor(() => {
                 expect(
-                    screen.getByText('Failed to load analytics data')
+                    screen.getByText('Failed to load analytics data'),
                 ).toBeInTheDocument();
             });
 
@@ -388,10 +388,10 @@ describe('ModerationAnalyticsDashboard', () => {
 
             await waitFor(() => {
                 expect(
-                    screen.getByText('Moderation Analytics')
+                    screen.getByText('Moderation Analytics'),
                 ).toBeInTheDocument();
                 expect(
-                    screen.queryByText('Failed to load analytics data')
+                    screen.queryByText('Failed to load analytics data'),
                 ).not.toBeInTheDocument();
             });
         });
@@ -431,14 +431,14 @@ describe('ModerationAnalyticsDashboard', () => {
                 expect(
                     screen.getByRole('heading', {
                         name: 'Moderation Analytics',
-                    })
+                    }),
                 ).toBeInTheDocument();
             });
         });
 
         it('displays error in accessible alert', async () => {
             vi.mocked(moderationApi.getModerationAnalytics).mockRejectedValue(
-                new Error('Failed')
+                new Error('Failed'),
             );
 
             render(<ModerationAnalyticsDashboard />);
@@ -457,7 +457,9 @@ describe('ModerationAnalyticsDashboard', () => {
             render(<ModerationAnalyticsDashboard />);
 
             await waitFor(() => {
-                expect(screen.getByText('False Positive Rate')).toBeInTheDocument();
+                expect(
+                    screen.getByText('False Positive Rate'),
+                ).toBeInTheDocument();
                 expect(screen.getByText('40.0%')).toBeInTheDocument();
             });
         });
@@ -468,7 +470,9 @@ describe('ModerationAnalyticsDashboard', () => {
             await waitFor(() => {
                 expect(screen.getByText('spam: 30')).toBeInTheDocument();
                 expect(screen.getByText('harassment: 20')).toBeInTheDocument();
-                expect(screen.getByText('inappropriate: 10')).toBeInTheDocument();
+                expect(
+                    screen.getByText('inappropriate: 10'),
+                ).toBeInTheDocument();
             });
         });
 
@@ -484,7 +488,9 @@ describe('ModerationAnalyticsDashboard', () => {
             render(<ModerationAnalyticsDashboard />);
 
             await waitFor(() => {
-                expect(screen.queryByText('Ban Reasons Distribution')).not.toBeInTheDocument();
+                expect(
+                    screen.queryByText('Ban Reasons Distribution'),
+                ).not.toBeInTheDocument();
             });
         });
 
@@ -492,7 +498,9 @@ describe('ModerationAnalyticsDashboard', () => {
             render(<ModerationAnalyticsDashboard />);
 
             await waitFor(() => {
-                expect(screen.getByText('Most Banned Users')).toBeInTheDocument();
+                expect(
+                    screen.getByText('Most Banned Users'),
+                ).toBeInTheDocument();
                 expect(screen.getByText('banned_user_1')).toBeInTheDocument();
                 expect(screen.getByText('banned_user_2')).toBeInTheDocument();
                 expect(screen.getByText('5')).toBeInTheDocument();
@@ -512,7 +520,9 @@ describe('ModerationAnalyticsDashboard', () => {
             render(<ModerationAnalyticsDashboard />);
 
             await waitFor(() => {
-                expect(screen.queryByText('Most Banned Users')).not.toBeInTheDocument();
+                expect(
+                    screen.queryByText('Most Banned Users'),
+                ).not.toBeInTheDocument();
             });
         });
 
@@ -520,7 +530,9 @@ describe('ModerationAnalyticsDashboard', () => {
             render(<ModerationAnalyticsDashboard />);
 
             await waitFor(() => {
-                expect(screen.getByText('Appeals & Reversals')).toBeInTheDocument();
+                expect(
+                    screen.getByText('Appeals & Reversals'),
+                ).toBeInTheDocument();
                 expect(screen.getByText('Total Appeals')).toBeInTheDocument();
                 expect(screen.getByText('20')).toBeInTheDocument();
                 expect(screen.getByText('Pending')).toBeInTheDocument();
@@ -544,7 +556,9 @@ describe('ModerationAnalyticsDashboard', () => {
             render(<ModerationAnalyticsDashboard />);
 
             await waitFor(() => {
-                expect(screen.queryByText('Appeals & Reversals')).not.toBeInTheDocument();
+                expect(
+                    screen.queryByText('Appeals & Reversals'),
+                ).not.toBeInTheDocument();
             });
         });
 
@@ -560,7 +574,9 @@ describe('ModerationAnalyticsDashboard', () => {
             render(<ModerationAnalyticsDashboard />);
 
             await waitFor(() => {
-                expect(screen.getByText('False Positive Rate')).toBeInTheDocument();
+                expect(
+                    screen.getByText('False Positive Rate'),
+                ).toBeInTheDocument();
                 expect(screen.getByText('N/A')).toBeInTheDocument();
             });
         });

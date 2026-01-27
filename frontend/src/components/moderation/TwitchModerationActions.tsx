@@ -72,7 +72,7 @@ export interface TwitchModerationActionsProps {
  */
 function canUserPerformTwitchActions(
     isBroadcaster: boolean,
-    isTwitchModerator: boolean
+    isTwitchModerator: boolean,
 ): boolean {
     // Only broadcaster or Twitch-recognized moderators can perform actions.
     // Site moderators without these roles are view-only (their flags will both be false).
@@ -144,7 +144,7 @@ export function TwitchModerationActions({
     const [isPermanent, setIsPermanent] = useState(true);
     const [duration, setDuration] = useState('600'); // Default 10 minutes in seconds
     const [customDuration, setCustomDuration] = useState(false);
-    
+
     // Template state
     const [templates, setTemplates] = useState<BanReasonTemplate[]>([]);
     const [selectedTemplate, setSelectedTemplate] = useState<string>('');
@@ -166,14 +166,17 @@ export function TwitchModerationActions({
                 });
         }
     }, [showBanModal, broadcasterID, templates.length]);
-    
+
     // Apply template when selected
     useEffect(() => {
         if (selectedTemplate && templates.length > 0) {
             const template = templates.find(t => t.id === selectedTemplate);
             if (template) {
                 setReason(template.reason);
-                if (template.duration_seconds === null || template.duration_seconds === undefined) {
+                if (
+                    template.duration_seconds === null ||
+                    template.duration_seconds === undefined
+                ) {
                     setIsPermanent(true);
                 } else {
                     setIsPermanent(false);
@@ -187,7 +190,7 @@ export function TwitchModerationActions({
     // Permission check
     const canPerformTwitchActions = canUserPerformTwitchActions(
         resolvedIsBroadcaster,
-        resolvedIsTwitchModerator
+        resolvedIsTwitchModerator,
     );
 
     // Hide triggers when a modal is open or parent disables them
@@ -226,7 +229,7 @@ export function TwitchModerationActions({
                 durationNum > 1209600
             ) {
                 setError(
-                    'Duration must be between 1 and 1,209,600 seconds (14 days).'
+                    'Duration must be between 1 and 1,209,600 seconds (14 days).',
                 );
                 return;
             }
@@ -251,18 +254,23 @@ export function TwitchModerationActions({
 
             setCustomDuration(false);
 
-            const successText = isPermanent
-                ? `${username || 'User'} has been permanently banned on Twitch`
-                : `${username || 'User'} has been timed out on Twitch`;
+            const successText =
+                isPermanent ?
+                    `${username || 'User'} has been permanently banned on Twitch`
+                :   `${username || 'User'} has been timed out on Twitch`;
 
             // Show success toast and inline alert for E2E visibility
             toast.success(successText);
             setActionAlert({ type: 'success', message: successText });
 
             // Invalidate relevant queries to update UI
-            queryClient.invalidateQueries({ queryKey: ['banStatus', broadcasterID] });
-            queryClient.invalidateQueries({ queryKey: ['user-profile-by-username'] });
-            
+            queryClient.invalidateQueries({
+                queryKey: ['banStatus', broadcasterID],
+            });
+            queryClient.invalidateQueries({
+                queryKey: ['user-profile-by-username'],
+            });
+
             // Refresh user data from auth context
             await refreshUser();
 
@@ -301,9 +309,13 @@ export function TwitchModerationActions({
             setActionAlert({ type: 'success', message: successText });
 
             // Invalidate relevant queries to update UI
-            queryClient.invalidateQueries({ queryKey: ['banStatus', broadcasterID] });
-            queryClient.invalidateQueries({ queryKey: ['user-profile-by-username'] });
-            
+            queryClient.invalidateQueries({
+                queryKey: ['banStatus', broadcasterID],
+            });
+            queryClient.invalidateQueries({
+                queryKey: ['user-profile-by-username'],
+            });
+
             // Refresh user data from auth context
             await refreshUser();
 
@@ -343,7 +355,7 @@ export function TwitchModerationActions({
                 </Alert>
             )}
             {!triggersHidden &&
-                (!isBanned ? (
+                (!isBanned ?
                     <Button
                         variant='danger'
                         size='sm'
@@ -358,8 +370,7 @@ export function TwitchModerationActions({
                     >
                         Ban on Twitch
                     </Button>
-                ) : (
-                    <Button
+                :   <Button
                         variant='secondary'
                         size='sm'
                         leftIcon={<ShieldCheck className='h-4 w-4' />}
@@ -372,8 +383,7 @@ export function TwitchModerationActions({
                         aria-label={`Unban ${username || 'user'} on Twitch`}
                     >
                         Unban on Twitch
-                    </Button>
-                ))}
+                    </Button>)}
 
             {/* Ban Modal */}
             <Modal
@@ -405,7 +415,7 @@ export function TwitchModerationActions({
                         <div className='space-y-4'>
                             {/* Template Selection */}
                             <div>
-                                <label 
+                                <label
                                     htmlFor='template-select'
                                     className='mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300'
                                 >
@@ -414,14 +424,24 @@ export function TwitchModerationActions({
                                 <select
                                     id='template-select'
                                     value={selectedTemplate}
-                                    onChange={(e) => setSelectedTemplate(e.target.value)}
+                                    onChange={e =>
+                                        setSelectedTemplate(e.target.value)
+                                    }
                                     disabled={loading || templatesLoading}
                                     className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white'
                                 >
-                                    <option value=''>-- Select a template --</option>
-                                    {templates.map((template) => (
-                                        <option key={template.id} value={template.id}>
-                                            {template.name} {template.is_default ? '(Default)' : ''}
+                                    <option value=''>
+                                        -- Select a template --
+                                    </option>
+                                    {templates.map(template => (
+                                        <option
+                                            key={template.id}
+                                            value={template.id}
+                                        >
+                                            {template.name}{' '}
+                                            {template.is_default ?
+                                                '(Default)'
+                                            :   ''}
                                         </option>
                                     ))}
                                 </select>
@@ -431,7 +451,7 @@ export function TwitchModerationActions({
                                     </p>
                                 )}
                             </div>
-                            
+
                             <div>
                                 <label className='mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300'>
                                     Ban Type
@@ -497,10 +517,12 @@ export function TwitchModerationActions({
                                                 }}
                                                 disabled={loading}
                                                 className={`px-3 py-2 text-sm border rounded-md transition-colors ${
-                                                    duration === '3600' &&
-                                                    !customDuration
-                                                        ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
-                                                        : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                                    (
+                                                        duration === '3600' &&
+                                                        !customDuration
+                                                    ) ?
+                                                        'border-primary-600 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
+                                                    :   'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
                                                 }`}
                                             >
                                                 1 hour
@@ -513,10 +535,12 @@ export function TwitchModerationActions({
                                                 }}
                                                 disabled={loading}
                                                 className={`px-3 py-2 text-sm border rounded-md transition-colors ${
-                                                    duration === '86400' &&
-                                                    !customDuration
-                                                        ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
-                                                        : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                                    (
+                                                        duration === '86400' &&
+                                                        !customDuration
+                                                    ) ?
+                                                        'border-primary-600 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
+                                                    :   'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
                                                 }`}
                                             >
                                                 24 hours
@@ -529,10 +553,12 @@ export function TwitchModerationActions({
                                                 }}
                                                 disabled={loading}
                                                 className={`px-3 py-2 text-sm border rounded-md transition-colors ${
-                                                    duration === '604800' &&
-                                                    !customDuration
-                                                        ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
-                                                        : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                                    (
+                                                        duration === '604800' &&
+                                                        !customDuration
+                                                    ) ?
+                                                        'border-primary-600 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
+                                                    :   'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
                                                 }`}
                                             >
                                                 7 days
@@ -545,10 +571,13 @@ export function TwitchModerationActions({
                                                 }}
                                                 disabled={loading}
                                                 className={`px-3 py-2 text-sm border rounded-md transition-colors ${
-                                                    duration === '1209600' &&
-                                                    !customDuration
-                                                        ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
-                                                        : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                                    (
+                                                        duration ===
+                                                            '1209600' &&
+                                                        !customDuration
+                                                    ) ?
+                                                        'border-primary-600 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
+                                                    :   'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
                                                 }`}
                                             >
                                                 14 days
@@ -565,9 +594,9 @@ export function TwitchModerationActions({
                                                 }}
                                                 disabled={loading}
                                                 className={`w-full px-3 py-2 text-sm border rounded-md transition-colors text-left ${
-                                                    customDuration
-                                                        ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
-                                                        : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                                    customDuration ?
+                                                        'border-primary-600 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
+                                                    :   'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
                                                 }`}
                                             >
                                                 Custom duration
@@ -588,7 +617,7 @@ export function TwitchModerationActions({
                                                         value={duration}
                                                         onChange={e =>
                                                             setDuration(
-                                                                e.target.value
+                                                                e.target.value,
                                                             )
                                                         }
                                                         disabled={loading}

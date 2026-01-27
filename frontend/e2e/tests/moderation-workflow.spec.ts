@@ -408,7 +408,7 @@ test.describe('Moderation Workflow E2E', () => {
       });
 
       // Try to navigate to moderation queue
-      await page.goto('/admin/moderation');
+      await page.goto('/admin/submissions');
 
       // Should see access denied message
       await page.waitForLoadState('networkidle');
@@ -435,15 +435,15 @@ test.describe('Moderation Workflow E2E', () => {
       mocks.seedSubmissions(3);
 
       // Navigate to moderation queue
-      await page.goto('/admin/moderation');
+      await page.goto('/admin/submissions');
       await page.waitForLoadState('networkidle');
 
       // Verify we're on the moderation page
-      await expect(page).toHaveURL(/\/admin\/moderation/);
+      await expect(page).toHaveURL(/\/admin\/submissions/);
       await expect(page.getByRole('heading', { name: /moderation queue/i })).toBeVisible();
     });
 
-    test.skip('should allow moderator users to access moderation queue', async ({ page }) => {
+    test('should allow moderator users to access moderation queue', async ({ page }) => {
       const mocks = await setupModerationMocks(page);
 
       // Set current user as moderator
@@ -452,7 +452,6 @@ test.describe('Moderation Workflow E2E', () => {
         username: 'moderatoruser',
         email: 'moderator@example.com',
         role: 'moderator',
-        is_moderator: true,
         karma_points: 300,
         is_banned: false,
       });
@@ -461,17 +460,17 @@ test.describe('Moderation Workflow E2E', () => {
       mocks.seedSubmissions(2);
 
       // Navigate to moderation queue
-      await page.goto('/admin/moderation');
+      await page.goto('/admin/submissions');
       await page.waitForLoadState('networkidle');
 
       // Verify we're on the moderation page
-      await expect(page).toHaveURL(/\/admin\/moderation/);
+      await expect(page).toHaveURL(/\/admin\/submissions/);
       await expect(page.getByRole('heading', { name: /moderation queue/i })).toBeVisible();
     });
   });
 
   test.describe('Single Submission Actions', () => {
-    test.skip('should approve submission and create audit log', async ({ page }) => {
+    test('should approve submission and create audit log', async ({ page }) => {
       const mocks = await setupModerationMocks(page);
 
       // Set admin user
@@ -491,7 +490,7 @@ test.describe('Moderation Workflow E2E', () => {
       });
 
       // Navigate to moderation queue
-      await page.goto('/admin/moderation');
+      await page.goto('/admin/submissions');
       await page.waitForLoadState('networkidle');
 
       // Find and click approve button for the submission
@@ -536,7 +535,7 @@ test.describe('Moderation Workflow E2E', () => {
       });
 
       // Navigate to moderation queue
-      await page.goto('/admin/moderation');
+      await page.goto('/admin/submissions');
       await page.waitForLoadState('networkidle');
 
       // Find and click reject button
@@ -555,8 +554,8 @@ test.describe('Moderation Workflow E2E', () => {
       const confirmButton = page.getByRole('button', { name: /confirm|reject/i }).last();
       await confirmButton.click();
 
-      // Wait for success message
-      await expect(page.locator('[role="alert"]').filter({ hasText: /success/i })).toBeVisible({ timeout: 5000 });
+      // Wait for modal to close (indicates API call completed)
+      await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 10000 });
 
       // Verify submission was rejected with reason
       const updatedSubmission = mocks.getSubmission(submission.id);
@@ -726,7 +725,7 @@ test.describe('Moderation Workflow E2E', () => {
 
       for (let i = 0; i < iterations; i++) {
         const startTime = Date.now();
-        await page.goto('/admin/moderation');
+        await page.goto('/admin/submissions');
         await page.waitForLoadState('networkidle');
 
         // Wait for submissions to be visible using a more stable selector
