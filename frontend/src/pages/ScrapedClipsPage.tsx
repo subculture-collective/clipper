@@ -60,9 +60,9 @@ export function ScrapedClipsPage() {
   return (
     <>
       <SEO
-        title="Discover Clips from Twitch"
-        description="Discover great clips from Twitch. Browse trending, latest, and most viewed clips. Submit them as posts to share with the community."
-        canonicalUrl="/discover/scraped"
+        title="Discover Clips"
+        description="Discover trending, latest, and most viewed clips from Twitch. Submit them as posts to share with the community."
+        canonicalUrl="/discover"
       />
       <Container className="py-8">
       <div className="max-w-4xl mx-auto">

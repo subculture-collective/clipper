@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import {
     Alert,
     Button,
@@ -99,6 +100,8 @@ export function SubmitClipPage() {
     const { user, isAuthenticated } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
+    const queryClient = useQueryClient();
+    const [fromDiscover, setFromDiscover] = useState(false);
     const [formData, setFormData] = useState<SubmitClipRequest>({
         clip_url: '',
         custom_title: '',
@@ -155,16 +158,34 @@ export function SubmitClipPage() {
         []
     );
 
-    // Pre-fill from navigation state (e.g., when claiming a scraped clip)
+    // Pre-fill from navigation state or URL query (e.g., when claiming a scraped clip)
     // or restore from draft
     useEffect(() => {
         let timeoutId: number | undefined;
 
-        const state = location.state as { clipUrl?: string } | null;
+        const state = location.state as { clipUrl?: string; fromDiscover?: boolean } | null;
+        const searchParams = new URLSearchParams(location.search);
+        const urlFromQuery =
+            searchParams.get('url') || searchParams.get('clip_url');
+
+        // Detect if user came from discover page
+        const cameFromDiscover =
+            state?.fromDiscover ||
+            searchParams.get('from') === 'discover' ||
+            document.referrer.includes('/discover');
+        if (cameFromDiscover) {
+            setFromDiscover(true);
+        }
+
         if (state?.clipUrl) {
             setFormData(prev => ({
                 ...prev,
                 clip_url: state.clipUrl!,
+            }));
+        } else if (urlFromQuery) {
+            setFormData(prev => ({
+                ...prev,
+                clip_url: urlFromQuery,
             }));
         } else {
             // Try to load draft if no state from navigation
@@ -183,7 +204,7 @@ export function SubmitClipPage() {
                 clearTimeout(timeoutId);
             }
         };
-    }, [location.state, draft.loadDraft]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [location.state, location.search, draft.loadDraft]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Load rate limit from localStorage on mount
     useEffect(() => {
@@ -436,6 +457,9 @@ export function SubmitClipPage() {
             // Clear draft on successful submission
             draft.clearDraft();
 
+            // Invalidate scraped-clips cache so the submitted clip disappears from discovery
+            queryClient.invalidateQueries({ queryKey: ['scraped-clips'] });
+
             // Reset form
             setFormData({
                 clip_url: '',
@@ -605,6 +629,7 @@ export function SubmitClipPage() {
                 <SubmissionConfirmation
                     submission={submittedClip}
                     onSubmitAnother={handleSubmitAnother}
+                    fromDiscover={fromDiscover}
                 />
             </Container>
         );

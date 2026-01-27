@@ -2,12 +2,17 @@ package scheduler
 
 import (
 	"context"
-	"log"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/subculture-collective/clipper/pkg/metrics"
+	"github.com/subculture-collective/clipper/pkg/utils"
+)
+
+const (
+	reputationSchedulerName = "reputation"
+	reputationJobName       = "reputation_tasks"
 )
 
 // ReputationServiceInterface defines the interface required by the scheduler
@@ -46,7 +51,10 @@ func NewReputationScheduler(
 
 // Start begins the periodic reputation tasks
 func (s *ReputationScheduler) Start(ctx context.Context) {
-	log.Printf("Starting reputation scheduler (interval: %v)", s.interval)
+	utils.Info("Starting reputation scheduler", map[string]interface{}{
+		"scheduler": reputationSchedulerName,
+		"interval":  s.interval.String(),
+	})
 
 	ticker := time.NewTicker(s.interval)
 	defer ticker.Stop()
@@ -59,10 +67,14 @@ func (s *ReputationScheduler) Start(ctx context.Context) {
 		case <-ticker.C:
 			s.runTasks(ctx)
 		case <-s.stopChan:
-			log.Println("Reputation scheduler stopped")
+			utils.Info("Reputation scheduler stopped", map[string]interface{}{
+				"scheduler": reputationSchedulerName,
+			})
 			return
 		case <-ctx.Done():
-			log.Println("Reputation scheduler stopped due to context cancellation")
+			utils.Info("Reputation scheduler stopped due to context cancellation", map[string]interface{}{
+				"scheduler": reputationSchedulerName,
+			})
 			return
 		}
 	}
@@ -77,16 +89,21 @@ func (s *ReputationScheduler) Stop() {
 
 // runTasks executes reputation maintenance tasks
 func (s *ReputationScheduler) runTasks(ctx context.Context) {
-	jobName := "reputation_tasks"
-	log.Println("Starting scheduled reputation tasks...")
+	utils.Info("Starting scheduled reputation tasks", map[string]interface{}{
+		"scheduler": reputationSchedulerName,
+		"job":       reputationJobName,
+	})
 	startTime := time.Now()
 
 	// Get all active user IDs
 	userIDs, err := s.userRepo.GetAllActiveUserIDs(ctx)
 	if err != nil {
-		log.Printf("Failed to get active users: %v", err)
-		metrics.JobExecutionTotal.WithLabelValues(jobName, "failed").Inc()
-		metrics.JobExecutionDuration.WithLabelValues(jobName).Observe(time.Since(startTime).Seconds())
+		utils.Error("Failed to get active users", err, map[string]interface{}{
+			"scheduler": reputationSchedulerName,
+			"job":       reputationJobName,
+		})
+		metrics.JobExecutionTotal.WithLabelValues(reputationJobName, "failed").Inc()
+		metrics.JobExecutionDuration.WithLabelValues(reputationJobName).Observe(time.Since(startTime).Seconds())
 		return
 	}
 
@@ -112,17 +129,31 @@ func (s *ReputationScheduler) runTasks(ctx context.Context) {
 				// Check and award badges
 				badges, err := s.reputationService.CheckAndAwardBadges(ctx, userID)
 				if err != nil {
-					log.Printf("Failed to check badges for user %v: %v", userID, err)
+					utils.Error("Failed to check badges for user", err, map[string]interface{}{
+						"scheduler": reputationSchedulerName,
+						"user_id":   userID,
+						"job":       reputationJobName,
+					})
 					res.errors++
 				} else if len(badges) > 0 {
 					res.badgesAwarded += len(badges)
-					log.Printf("Awarded %d badges to user %v: %v", len(badges), userID, badges)
+					utils.Info("Awarded badges to user", map[string]interface{}{
+						"scheduler":   reputationSchedulerName,
+						"user_id":     userID,
+						"badge_count": len(badges),
+						"badges":      badges,
+						"job":         reputationJobName,
+					})
 				}
 
 				// Update user stats
 				err = s.reputationService.UpdateUserStats(ctx, userID)
 				if err != nil {
-					log.Printf("Failed to update stats for user %v: %v", userID, err)
+					utils.Error("Failed to update stats for user", err, map[string]interface{}{
+						"scheduler": reputationSchedulerName,
+						"user_id":   userID,
+						"job":       reputationJobName,
+					})
 					res.errors++
 				} else {
 					res.statsUpdated++
@@ -158,31 +189,38 @@ func (s *ReputationScheduler) runTasks(ctx context.Context) {
 	duration := time.Since(startTime)
 
 	// Record metrics
-	metrics.JobExecutionDuration.WithLabelValues(jobName).Observe(duration.Seconds())
-	metrics.JobItemsProcessed.WithLabelValues(jobName, "success").Add(float64(statsUpdated))
+	metrics.JobExecutionDuration.WithLabelValues(reputationJobName).Observe(duration.Seconds())
+	metrics.JobItemsProcessed.WithLabelValues(reputationJobName, "success").Add(float64(statsUpdated))
 
 	if errors > 0 {
-		metrics.JobItemsProcessed.WithLabelValues(jobName, "failed").Add(float64(errors))
+		metrics.JobItemsProcessed.WithLabelValues(reputationJobName, "failed").Add(float64(errors))
 	}
 
 	// Consider the job successful if majority of operations succeeded
 	totalOperations := statsUpdated + errors
 	if totalOperations == 0 {
 		// No operations processed, treat as successful
-		metrics.JobExecutionTotal.WithLabelValues(jobName, "success").Inc()
-		metrics.JobLastSuccessTimestamp.WithLabelValues(jobName).Set(float64(time.Now().Unix()))
+		metrics.JobExecutionTotal.WithLabelValues(reputationJobName, "success").Inc()
+		metrics.JobLastSuccessTimestamp.WithLabelValues(reputationJobName).Set(float64(time.Now().Unix()))
 	} else {
 		failureRatio := float64(errors) / float64(totalOperations)
 		if failureRatio > 0.5 {
 			// More than 50% failures - mark as failed
-			metrics.JobExecutionTotal.WithLabelValues(jobName, "failed").Inc()
+			metrics.JobExecutionTotal.WithLabelValues(reputationJobName, "failed").Inc()
 		} else {
 			// Majority succeeded - mark as success
-			metrics.JobExecutionTotal.WithLabelValues(jobName, "success").Inc()
-			metrics.JobLastSuccessTimestamp.WithLabelValues(jobName).Set(float64(time.Now().Unix()))
+			metrics.JobExecutionTotal.WithLabelValues(reputationJobName, "success").Inc()
+			metrics.JobLastSuccessTimestamp.WithLabelValues(reputationJobName).Set(float64(time.Now().Unix()))
 		}
 	}
 
-	log.Printf("Reputation tasks completed: users=%d badges_awarded=%d stats_updated=%d errors=%d duration=%v",
-		len(userIDs), badgesAwarded, statsUpdated, errors, duration)
+	utils.Info("Reputation tasks completed", map[string]interface{}{
+		"scheduler":      reputationSchedulerName,
+		"job":            reputationJobName,
+		"users":          len(userIDs),
+		"badges_awarded": badgesAwarded,
+		"stats_updated":  statsUpdated,
+		"errors":         errors,
+		"duration":       duration.String(),
+	})
 }

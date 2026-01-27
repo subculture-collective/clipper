@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"fmt"
-	"log"
 	"regexp"
 	"strings"
 	"time"
@@ -11,9 +10,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
-	"github.com/subculture-collective/clipper/internal/utils"
+	internalutils "github.com/subculture-collective/clipper/internal/utils"
 	redispkg "github.com/subculture-collective/clipper/pkg/redis"
 	"github.com/subculture-collective/clipper/pkg/twitch"
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
 const (
@@ -120,7 +120,7 @@ func (s *ClipSyncService) SyncClipsByGame(ctx context.Context, gameID string, ho
 		GameID:    gameID,
 		StartedAt: startTime,
 		EndedAt:   endTime,
-		First:     utils.Min(limit, 100), // Twitch API max is 100
+		First:     internalutils.Min(limit, 100), // Twitch API max is 100
 	}
 
 	pageIndex := 1
@@ -138,7 +138,14 @@ func (s *ClipSyncService) SyncClipsByGame(ctx context.Context, gameID string, ho
 
 	languageFilter = normalizeLanguageFilter(languageFilter)
 
-	log.Printf("Syncing clips for game %s from %v to %v (page=%d, cursor=%s, limit=%d)", gameID, startTime, endTime, pageIndex, params.After, params.First)
+	utils.Info("Syncing clips for game", map[string]interface{}{
+		"game_id":    gameID,
+		"start_time": startTime,
+		"end_time":   endTime,
+		"page":       pageIndex,
+		"cursor":     params.After,
+		"limit":      params.First,
+	})
 
 	totalFetched := 0
 	var nextCursor string
@@ -149,7 +156,7 @@ func (s *ClipSyncService) SyncClipsByGame(ctx context.Context, gameID string, ho
 		if err != nil {
 			if strings.Contains(err.Error(), "404") {
 				stats.Errors = append(stats.Errors, fmt.Sprintf("Game category %s not found (404) - may have been removed or merged", gameID))
-				log.Printf("[Warning] Game category %s returned 404 - skipping", gameID)
+				utils.Warn("Game category returned 404 - skipping", map[string]interface{}{"game_id": gameID})
 			} else {
 				stats.Errors = append(stats.Errors, fmt.Sprintf("Failed to fetch clips: %v", err))
 			}
@@ -203,9 +210,15 @@ func (s *ClipSyncService) SyncClipsByGame(ctx context.Context, gameID string, ho
 	stats.ClipsFetched = totalFetched
 	stats.EndTime = time.Now()
 
-	log.Printf("Sync completed: fetched=%d created=%d updated=%d skipped=%d errors=%d duration=%v next_cursor=%s",
-		stats.ClipsFetched, stats.ClipsCreated, stats.ClipsUpdated, stats.ClipsSkipped,
-		len(stats.Errors), stats.EndTime.Sub(stats.StartTime), nextCursor)
+	utils.Info("Sync completed", map[string]interface{}{
+		"fetched":     stats.ClipsFetched,
+		"created":     stats.ClipsCreated,
+		"updated":     stats.ClipsUpdated,
+		"skipped":     stats.ClipsSkipped,
+		"errors":      len(stats.Errors),
+		"duration":    stats.EndTime.Sub(stats.StartTime),
+		"next_cursor": nextCursor,
+	})
 
 	return stats, nextCursor, fetchErr
 }
@@ -232,10 +245,14 @@ func (s *ClipSyncService) SyncClipsByBroadcaster(ctx context.Context, broadcaste
 		BroadcasterID: broadcasterID,
 		StartedAt:     startTime,
 		EndedAt:       endTime,
-		First:         utils.Min(limit, 100),
+		First:         internalutils.Min(limit, 100),
 	}
 
-	log.Printf("Syncing clips for broadcaster %s from %v to %v", broadcasterID, startTime, endTime)
+	utils.Info("Syncing clips for broadcaster", map[string]interface{}{
+		"broadcaster_id": broadcasterID,
+		"start_time":     startTime,
+		"end_time":       endTime,
+	})
 
 	// Fetch clips with pagination
 	totalFetched := 0
@@ -282,9 +299,14 @@ func (s *ClipSyncService) SyncClipsByBroadcaster(ctx context.Context, broadcaste
 	stats.ClipsFetched = totalFetched
 	stats.EndTime = time.Now()
 
-	log.Printf("Sync completed: fetched=%d created=%d updated=%d skipped=%d errors=%d duration=%v",
-		stats.ClipsFetched, stats.ClipsCreated, stats.ClipsUpdated, stats.ClipsSkipped,
-		len(stats.Errors), stats.EndTime.Sub(stats.StartTime))
+	utils.Info("Sync completed", map[string]interface{}{
+		"fetched":  stats.ClipsFetched,
+		"created":  stats.ClipsCreated,
+		"updated":  stats.ClipsUpdated,
+		"skipped":  stats.ClipsSkipped,
+		"errors":   len(stats.Errors),
+		"duration": stats.EndTime.Sub(stats.StartTime),
+	})
 
 	return stats, nil
 }
@@ -307,7 +329,11 @@ func (s *ClipSyncService) SyncTrendingClips(ctx context.Context, hours int, opts
 		games = buildTrendingGameConfigs(defaultTrendingGameIDs)
 	}
 
-	log.Printf("Syncing trending clips from %d games (max_pages=%d force_reset=%v)", len(games), resolved.MaxPages, resolved.ForceResetPagination)
+	utils.Info("Syncing trending clips", map[string]interface{}{
+		"games":       len(games),
+		"max_pages":   resolved.MaxPages,
+		"force_reset": resolved.ForceResetPagination,
+	})
 
 	for _, game := range games {
 		var cursorState *TrendingCursorState
@@ -336,7 +362,7 @@ func (s *ClipSyncService) SyncTrendingClips(ctx context.Context, hours int, opts
 			LanguageFilter: resolved.LanguageFilter,
 		})
 		if err != nil {
-			log.Printf("[Warning] Failed to sync game %s: %v", game.GameID, err)
+			utils.Warn("Failed to sync game", map[string]interface{}{"game_id": game.GameID, "error": err})
 			stats.Errors = append(stats.Errors, fmt.Sprintf("Failed to sync game %s: %v", game.GameID, err))
 		}
 
@@ -348,8 +374,14 @@ func (s *ClipSyncService) SyncTrendingClips(ctx context.Context, hours int, opts
 
 		// For admin-triggered runs we force page 1 and leave stored cursors untouched
 		if resolved.ForceResetPagination || resolved.StateStore == nil {
-			log.Printf("Trending game %s page=%d cursor_in=%s cursor_out=%s reset=true fetched=%d",
-				game.GameID, pageIndex, initialCursor, nextCursor, gameStats.ClipsFetched)
+			utils.Info("Trending game sync", map[string]interface{}{
+				"game_id":    game.GameID,
+				"page":       pageIndex,
+				"cursor_in":  initialCursor,
+				"cursor_out": nextCursor,
+				"reset":      true,
+				"fetched":    gameStats.ClipsFetched,
+			})
 			continue
 		}
 
@@ -365,15 +397,27 @@ func (s *ClipSyncService) SyncTrendingClips(ctx context.Context, hours int, opts
 			}
 		}
 
-		log.Printf("Trending game %s page=%d next_page=%d cursor_in=%s cursor_out=%s reset=%v fetched=%d",
-			game.GameID, pageIndex, nextPage, initialCursor, nextCursor, shouldReset, gameStats.ClipsFetched)
+		utils.Info("Trending game sync", map[string]interface{}{
+			"game_id":    game.GameID,
+			"page":       pageIndex,
+			"next_page":  nextPage,
+			"cursor_in":  initialCursor,
+			"cursor_out": nextCursor,
+			"reset":      shouldReset,
+			"fetched":    gameStats.ClipsFetched,
+		})
 	}
 
 	stats.EndTime = time.Now()
 
-	log.Printf("Trending sync completed: fetched=%d created=%d updated=%d skipped=%d errors=%d duration=%v",
-		stats.ClipsFetched, stats.ClipsCreated, stats.ClipsUpdated, stats.ClipsSkipped,
-		len(stats.Errors), stats.EndTime.Sub(stats.StartTime))
+	utils.Info("Trending sync completed", map[string]interface{}{
+		"fetched":  stats.ClipsFetched,
+		"created":  stats.ClipsCreated,
+		"updated":  stats.ClipsUpdated,
+		"skipped":  stats.ClipsSkipped,
+		"errors":   len(stats.Errors),
+		"duration": stats.EndTime.Sub(stats.StartTime),
+	})
 
 	return stats, nil
 }
@@ -418,20 +462,20 @@ func (s *ClipSyncService) resolveTrendingGames(ctx context.Context, store Trendi
 			configs := buildTrendingGameConfigs(ids)
 			if store != nil {
 				if err := store.SaveGameIDs(ctx, ids); err != nil {
-					log.Printf("[Warning] Failed to cache trending game IDs: %v", err)
+					utils.Warn("Failed to cache trending game IDs", map[string]interface{}{"error": err})
 				}
 			}
 			return configs, nil
 		}
 		if err != nil {
-			log.Printf("[Warning] Failed to fetch top games: %v", err)
+			utils.Warn("Failed to fetch top games", map[string]interface{}{"error": err})
 		}
 	}
 
 	if store != nil {
 		cached, err := store.LoadGameIDs(ctx)
 		if err != nil {
-			log.Printf("[Warning] Failed to load cached top games: %v", err)
+			utils.Warn("Failed to load cached top games", map[string]interface{}{"error": err})
 		} else if len(cached) > 0 {
 			return buildTrendingGameConfigs(ensureJustChattingGameIDs(cached)), nil
 		}
@@ -572,10 +616,10 @@ func (s *ClipSyncService) processClip(ctx context.Context, twitchClip *twitch.Cl
 
 	// Ensure unclaimed users exist for creator and broadcaster
 	if err := s.ensureUnclaimedUser(ctx, twitchClip.CreatorID, twitchClip.CreatorName); err != nil {
-		log.Printf("Warning: failed to ensure unclaimed user for creator %s: %v", twitchClip.CreatorName, err)
+		utils.Warn("Failed to ensure unclaimed user for creator", map[string]interface{}{"creator": twitchClip.CreatorName, "error": err})
 	}
 	if err := s.ensureUnclaimedUser(ctx, twitchClip.BroadcasterID, twitchClip.BroadcasterName); err != nil {
-		log.Printf("Warning: failed to ensure unclaimed user for broadcaster %s: %v", twitchClip.BroadcasterName, err)
+		utils.Warn("Failed to ensure unclaimed user for broadcaster", map[string]interface{}{"broadcaster": twitchClip.BroadcasterName, "error": err})
 	}
 
 	// Save to database
@@ -602,14 +646,14 @@ func transformTwitchClip(twitchClip *twitch.Clip) *models.Clip {
 		EmbedURL:        twitchClip.EmbedURL,
 		Title:           twitchClip.Title,
 		CreatorName:     twitchClip.CreatorName,
-		CreatorID:       utils.StringPtr(twitchClip.CreatorID),
+		CreatorID:       internalutils.StringPtr(twitchClip.CreatorID),
 		BroadcasterName: twitchClip.BroadcasterName,
-		BroadcasterID:   utils.StringPtr(twitchClip.BroadcasterID),
-		GameID:          utils.StringPtr(twitchClip.GameID),
+		BroadcasterID:   internalutils.StringPtr(twitchClip.BroadcasterID),
+		GameID:          internalutils.StringPtr(twitchClip.GameID),
 		GameName:        nil, // Will be enriched separately if needed
-		Language:        utils.StringPtr(twitchClip.Language),
-		ThumbnailURL:    utils.StringPtr(twitchClip.ThumbnailURL),
-		Duration:        utils.Float64Ptr(twitchClip.Duration),
+		Language:        internalutils.StringPtr(twitchClip.Language),
+		ThumbnailURL:    internalutils.StringPtr(twitchClip.ThumbnailURL),
+		Duration:        internalutils.Float64Ptr(twitchClip.Duration),
 		ViewCount:       twitchClip.ViewCount,
 		CreatedAt:       twitchClip.CreatedAt,
 		ImportedAt:      time.Now(),
@@ -663,7 +707,7 @@ func (s *ClipSyncService) ensureUnclaimedUser(ctx context.Context, twitchID, dis
 		return fmt.Errorf("failed to create unclaimed user: %w", err)
 	}
 
-	log.Printf("Created unclaimed user account for %s (Twitch ID: %s)", displayName, twitchID)
+	utils.Info("Created unclaimed user account", map[string]interface{}{"display_name": displayName, "twitch_id": twitchID})
 	return nil
 }
 

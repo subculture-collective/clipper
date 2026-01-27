@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/subculture-collective/clipper/internal/repository"
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
 // AccountMergeService handles merging unclaimed accounts into authenticated accounts
@@ -76,7 +76,7 @@ func (s *AccountMergeService) MergeAccounts(ctx context.Context, fromUserID, toU
 	defer func() {
 		if err != nil {
 			if rbErr := tx.Rollback(ctx); rbErr != nil {
-				log.Printf("Error rolling back transaction: %v", rbErr)
+				utils.Error("Error rolling back transaction", rbErr, nil)
 			}
 		}
 	}()
@@ -151,7 +151,7 @@ func (s *AccountMergeService) MergeAccounts(ctx context.Context, fromUserID, toU
 	// 11. Create audit log entry
 	if err := s.createMergeAuditLog(ctx, tx, fromUserID, toUserID, result); err != nil {
 		// Log but don't fail the merge
-		log.Printf("Warning: failed to create merge audit log: %v", err)
+		utils.Warn("Failed to create merge audit log", map[string]interface{}{"error": err})
 	}
 
 	// Commit transaction
@@ -308,28 +308,28 @@ func (s *AccountMergeService) transferFollows(ctx context.Context, tx pgx.Tx, fr
 
 	// Handle broadcaster_follows: UNIQUE(user_id, broadcaster_id)
 	if transferred, err := s.transferBroadcasterFollows(ctx, tx, fromUserID, toUserID); err != nil {
-		log.Printf("Warning: failed to transfer broadcaster follows: %v", err)
+		utils.Warn("Failed to transfer broadcaster follows", map[string]interface{}{"error": err})
 	} else {
 		totalTransferred += transferred
 	}
 
 	// Handle stream_follows: UNIQUE(user_id, streamer_username)
 	if transferred, err := s.transferStreamFollows(ctx, tx, fromUserID, toUserID); err != nil {
-		log.Printf("Warning: failed to transfer stream follows: %v", err)
+		utils.Warn("Failed to transfer stream follows", map[string]interface{}{"error": err})
 	} else {
 		totalTransferred += transferred
 	}
 
 	// Handle game_follows: UNIQUE(user_id, game_id)
 	if transferred, err := s.transferGameFollows(ctx, tx, fromUserID, toUserID); err != nil {
-		log.Printf("Warning: failed to transfer game follows: %v", err)
+		utils.Warn("Failed to transfer game follows", map[string]interface{}{"error": err})
 	} else {
 		totalTransferred += transferred
 	}
 
 	// Handle user_follows: UNIQUE(follower_id, following_id) - uses follower_id instead of user_id
 	if transferred, err := s.transferUserFollows(ctx, tx, fromUserID, toUserID); err != nil {
-		log.Printf("Warning: failed to transfer user follows: %v", err)
+		utils.Warn("Failed to transfer user follows", map[string]interface{}{"error": err})
 	} else {
 		totalTransferred += transferred
 	}
@@ -649,7 +649,7 @@ func (s *AccountMergeService) mergeUserPreferences(ctx context.Context, tx pgx.T
 	// Delete unclaimed user's preferences
 	deleteQuery := `DELETE FROM user_preferences WHERE user_id = $1`
 	if _, err := tx.Exec(ctx, deleteQuery, fromUserID); err != nil {
-		log.Printf("Warning: failed to delete old preferences: %v", err)
+		utils.Warn("Failed to delete old preferences", map[string]interface{}{"error": err})
 	}
 
 	return true, nil

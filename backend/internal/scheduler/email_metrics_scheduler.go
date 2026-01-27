@@ -9,6 +9,8 @@ import (
 	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
+const emailMetricsSchedulerName = "email_metrics"
+
 // EmailMetricsScheduler manages periodic email metrics calculation and alert checking
 type EmailMetricsScheduler struct {
 	emailMetricsService *services.EmailMetricsService
@@ -41,6 +43,7 @@ func NewEmailMetricsScheduler(
 func (s *EmailMetricsScheduler) Start(ctx context.Context) {
 	logger := utils.GetLogger()
 	logger.Info("Starting email metrics scheduler", map[string]interface{}{
+		"scheduler":        emailMetricsSchedulerName,
 		"metrics_interval": s.metricsInterval.String(),
 		"alerts_interval":  s.alertsInterval.String(),
 		"cleanup_interval": s.cleanupInterval.String(),
@@ -66,10 +69,14 @@ func (s *EmailMetricsScheduler) Start(ctx context.Context) {
 		case <-cleanupTicker.C:
 			go s.cleanupOldLogs(ctx)
 		case <-s.stopChan:
-			logger.Info("Email metrics scheduler stopped", nil)
+			logger.Info("Email metrics scheduler stopped", map[string]interface{}{
+				"scheduler": emailMetricsSchedulerName,
+			})
 			return
 		case <-ctx.Done():
-			logger.Info("Email metrics scheduler stopped due to context cancellation", nil)
+			logger.Info("Email metrics scheduler stopped due to context cancellation", map[string]interface{}{
+				"scheduler": emailMetricsSchedulerName,
+			})
 			return
 		}
 	}
@@ -85,53 +92,73 @@ func (s *EmailMetricsScheduler) Stop() {
 // calculateDailyMetrics calculates and stores daily metrics
 func (s *EmailMetricsScheduler) calculateDailyMetrics(ctx context.Context) {
 	logger := utils.GetLogger()
-	logger.Debug("Calculating daily email metrics...", nil)
+	logger.Debug("Calculating daily email metrics", map[string]interface{}{
+		"scheduler": emailMetricsSchedulerName,
+	})
 
 	if err := s.emailMetricsService.CalculateAndStoreDailyMetrics(ctx); err != nil {
-		logger.Error("Failed to calculate daily metrics", err)
+		logger.Error("Failed to calculate daily metrics", err, map[string]interface{}{
+			"scheduler": emailMetricsSchedulerName,
+		})
 		return
 	}
 
-	logger.Info("Successfully calculated and stored daily email metrics", nil)
+	logger.Info("Successfully calculated and stored daily email metrics", map[string]interface{}{
+		"scheduler": emailMetricsSchedulerName,
+	})
 }
 
 // checkAlerts checks current metrics against thresholds and triggers alerts
 func (s *EmailMetricsScheduler) checkAlerts(ctx context.Context) {
 	logger := utils.GetLogger()
-	logger.Debug("Checking email metrics for alerts...", nil)
+	logger.Debug("Checking email metrics for alerts", map[string]interface{}{
+		"scheduler": emailMetricsSchedulerName,
+	})
 
 	alerts, err := s.emailMetricsService.CheckAlerts(ctx, s.alertThresholds)
 	if err != nil {
-		logger.Error("Failed to check alerts", err)
+		logger.Error("Failed to check alerts", err, map[string]interface{}{
+			"scheduler": emailMetricsSchedulerName,
+		})
 		return
 	}
 
 	if len(alerts) > 0 {
 		logger.Info("Email alerts triggered", map[string]interface{}{
+			"scheduler":   emailMetricsSchedulerName,
 			"alert_count": len(alerts),
 		})
 		// Log each alert
 		for _, alert := range alerts {
 			logger.Warn("Email alert triggered", map[string]interface{}{
+				"scheduler":  emailMetricsSchedulerName,
 				"alert_type": alert.AlertType,
 				"severity":   alert.Severity,
 				"message":    alert.Message,
 			})
 		}
 	} else {
-		logger.Debug("No email alerts triggered", nil)
+		logger.Debug("No email alerts triggered", map[string]interface{}{
+			"scheduler": emailMetricsSchedulerName,
+		})
 	}
 }
 
 // cleanupOldLogs removes email logs older than the retention period
 func (s *EmailMetricsScheduler) cleanupOldLogs(ctx context.Context) {
 	logger := utils.GetLogger()
-	logger.Info("Cleaning up old email logs...", nil)
+	logger.Info("Cleaning up old email logs", map[string]interface{}{
+		"scheduler": emailMetricsSchedulerName,
+	})
 
 	if err := s.emailMetricsService.CleanupOldLogs(ctx); err != nil {
-		logger.Error("Failed to cleanup old email logs", err)
+		logger.Error("Failed to cleanup old email logs", err, map[string]interface{}{
+			"scheduler": emailMetricsSchedulerName,
+		})
 		return
 	}
 
-	logger.Info("Successfully cleaned up old email logs", nil)
+	logger.Info("Successfully cleaned up old email logs", map[string]interface{}{
+		"scheduler": emailMetricsSchedulerName,
+	})
 }

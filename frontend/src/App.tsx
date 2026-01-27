@@ -13,9 +13,6 @@ import { ConsentBanner } from './components/consent';
 const HomePage = lazy(() =>
     import('./pages/HomePage').then(m => ({ default: m.HomePage })),
 );
-const DiscoveryPage = lazy(() =>
-    import('./pages/DiscoveryPage').then(m => ({ default: m.DiscoveryPage })),
-);
 const DiscoveryListsPage = lazy(() =>
     import('./pages/DiscoveryListsPage').then(m => ({
         default: m.DiscoveryListsPage,
@@ -261,6 +258,9 @@ const WatchHistoryPage = lazy(() =>
         default: m.WatchHistoryPage,
     })),
 );
+const QueuePage = lazy(() =>
+    import('./pages/QueuePage').then(m => ({ default: m.QueuePage })),
+);
 const StreamPage = lazy(() =>
     import('./pages/StreamPage').then(m => ({ default: m.StreamPage })),
 );
@@ -361,7 +361,7 @@ function App() {
                                         />
                                         <Route
                                             path='/discover'
-                                            element={<DiscoveryPage />}
+                                            element={<ScrapedClipsPage />}
                                         />
                                         <Route
                                             path='/discover/lists'
@@ -545,6 +545,14 @@ function App() {
                                             element={
                                                 <ProtectedRoute>
                                                     <WatchHistoryPage />
+                                                </ProtectedRoute>
+                                            }
+                                        />
+                                        <Route
+                                            path='/queue'
+                                            element={
+                                                <ProtectedRoute>
+                                                    <QueuePage />
                                                 </ProtectedRoute>
                                             }
                                         />

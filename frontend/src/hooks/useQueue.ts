@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { apiClient } from '@/lib/api';
 import type {
     Queue,
     QueueResponse,
@@ -7,107 +8,53 @@ import type {
     ReorderQueueRequest,
 } from '@/types/queue';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
-
-// API functions
+// API functions using apiClient for proper CSRF token handling
 const fetchQueue = async (limit = 100): Promise<Queue> => {
-    const response = await fetch(
-        `${API_BASE_URL}/queue?limit=${limit}`,
-        {
-            credentials: 'include',
-        }
+    const response = await apiClient.get<QueueResponse>(
+        `/queue?limit=${limit}`,
     );
-    if (!response.ok) {
-        throw new Error('Failed to fetch queue');
-    }
-    const result: QueueResponse = await response.json();
-    return result.data;
+    return response.data.data;
 };
 
 const fetchQueueCount = async (): Promise<number> => {
-    const response = await fetch(
-        `${API_BASE_URL}/queue/count`,
-        {
-            credentials: 'include',
-        }
-    );
-    if (!response.ok) {
-        throw new Error('Failed to fetch queue count');
-    }
-    const result: QueueCountResponse = await response.json();
-    return result.data.count;
+    const response = await apiClient.get<QueueCountResponse>('/queue/count');
+    return response.data.data.count;
 };
 
 const addToQueue = async (data: AddToQueueRequest): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/queue`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-    });
-    if (!response.ok) {
-        throw new Error('Failed to add to queue');
-    }
+    await apiClient.post('/queue', data);
 };
 
 const removeFromQueue = async (itemId: string): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/queue/${itemId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-    });
-    if (!response.ok) {
-        throw new Error('Failed to remove from queue');
-    }
+    await apiClient.delete(`/queue/${itemId}`);
 };
 
 const reorderQueue = async (data: ReorderQueueRequest): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/queue/reorder`, {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-    });
-    if (!response.ok) {
-        throw new Error('Failed to reorder queue');
-    }
+    await apiClient.patch('/queue/reorder', data);
 };
 
 const clearQueue = async (): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/queue`, {
-        method: 'DELETE',
-        credentials: 'include',
-    });
-    if (!response.ok) {
-        throw new Error('Failed to clear queue');
-    }
+    await apiClient.delete('/queue');
 };
 
 const markAsPlayed = async (itemId: string): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/queue/${itemId}/played`, {
-        method: 'POST',
-        credentials: 'include',
-    });
-    if (!response.ok) {
-        throw new Error('Failed to mark as played');
-    }
+    await apiClient.post(`/queue/${itemId}/played`);
 };
 
 // React Query hooks
-export const useQueue = (limit = 100) => {
+export const useQueue = (limit = 100, enabled = true) => {
     return useQuery({
         queryKey: ['queue', limit],
         queryFn: () => fetchQueue(limit),
+        enabled,
     });
 };
 
-export const useQueueCount = () => {
+export const useQueueCount = (enabled = true) => {
     return useQuery({
         queryKey: ['queue', 'count'],
         queryFn: fetchQueueCount,
+        enabled,
     });
 };
 

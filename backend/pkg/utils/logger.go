@@ -14,6 +14,21 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// ANSI color codes for terminal output
+const (
+	colorReset  = "\033[0m"
+	colorRed    = "\033[31m"
+	colorGreen  = "\033[32m"
+	colorYellow = "\033[33m"
+	colorBlue   = "\033[34m"
+	colorPurple = "\033[35m"
+	colorCyan   = "\033[36m"
+	colorWhite  = "\033[37m"
+	colorGray   = "\033[90m"
+	colorBold   = "\033[1m"
+	colorDim    = "\033[2m"
+)
+
 // LogLevel represents logging severity
 type LogLevel string
 
@@ -25,10 +40,19 @@ const (
 	LogLevelFatal LogLevel = "fatal"
 )
 
+// LogFormat represents the output format
+type LogFormat string
+
+const (
+	LogFormatJSON   LogFormat = "json"
+	LogFormatPretty LogFormat = "pretty"
+)
+
 // StructuredLogger provides JSON structured logging
 type StructuredLogger struct {
 	writer   io.Writer
 	minLevel LogLevel
+	format   LogFormat
 }
 
 // LogEntry represents a structured log entry
@@ -52,9 +76,24 @@ type LogEntry struct {
 
 // NewStructuredLogger creates a new structured logger
 func NewStructuredLogger(minLevel LogLevel) *StructuredLogger {
+	// Default to pretty format in development (when GIN_MODE != release)
+	format := LogFormatPretty
+	if os.Getenv("LOG_FORMAT") == "json" || os.Getenv("GIN_MODE") == "release" {
+		format = LogFormatJSON
+	}
 	return &StructuredLogger{
 		writer:   os.Stdout,
 		minLevel: minLevel,
+		format:   format,
+	}
+}
+
+// NewStructuredLoggerWithFormat creates a new structured logger with specific format
+func NewStructuredLoggerWithFormat(minLevel LogLevel, format LogFormat) *StructuredLogger {
+	return &StructuredLogger{
+		writer:   os.Stdout,
+		minLevel: minLevel,
+		format:   format,
 	}
 }
 
@@ -89,12 +128,96 @@ func (l *StructuredLogger) log(entry *LogEntry) {
 		entry.Fields = RedactPIIFromFields(entry.Fields)
 	}
 
+	if l.format == LogFormatPretty {
+		l.logPretty(entry)
+		return
+	}
+
 	data, err := json.Marshal(entry)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to marshal log entry: %v\n", err)
 		return
 	}
 	fmt.Fprintln(l.writer, string(data))
+}
+
+// logPretty writes a colorized, human-readable log entry
+func (l *StructuredLogger) logPretty(entry *LogEntry) {
+	// Format timestamp
+	ts := time.Now().Format("15:04:05.000")
+
+	// Level colors and icons
+	var levelColor, levelIcon string
+	switch LogLevel(entry.Level) {
+	case LogLevelDebug:
+		levelColor = colorGray
+		levelIcon = "🐛"
+	case LogLevelInfo:
+		levelColor = colorCyan
+		levelIcon = "ℹ️ "
+	case LogLevelWarn:
+		levelColor = colorYellow
+		levelIcon = "⚠️ "
+	case LogLevelError:
+		levelColor = colorRed
+		levelIcon = "❌"
+	case LogLevelFatal:
+		levelColor = colorRed + colorBold
+		levelIcon = "💀"
+	default:
+		levelColor = colorWhite
+		levelIcon = "  "
+	}
+
+	// Build the log line
+	levelStr := fmt.Sprintf("%s%s%-5s%s", levelColor, levelIcon, strings.ToUpper(entry.Level), colorReset)
+	line := fmt.Sprintf("%s%s%s %s %s", colorGray, ts, colorReset, levelStr, entry.Message)
+
+	// Add HTTP request details if present
+	if entry.Method != "" && entry.Path != "" {
+		statusColor := colorGreen
+		if entry.StatusCode >= 400 && entry.StatusCode < 500 {
+			statusColor = colorYellow
+		} else if entry.StatusCode >= 500 {
+			statusColor = colorRed
+		}
+		line = fmt.Sprintf("%s%s%s %s %s%s%s %s %s%d%s %s%s%s",
+			colorGray, ts, colorReset,
+			levelStr,
+			colorBold, entry.Method, colorReset,
+			entry.Path,
+			statusColor, entry.StatusCode, colorReset,
+			colorGray, entry.Latency, colorReset,
+		)
+	}
+
+	// Add error if present
+	if entry.Error != "" {
+		line += fmt.Sprintf(" %s[error: %s]%s", colorRed, entry.Error, colorReset)
+	}
+
+	// Add fields if present
+	if len(entry.Fields) > 0 {
+		fieldsStr := ""
+		for k, v := range entry.Fields {
+			if fieldsStr != "" {
+				fieldsStr += " "
+			}
+			fieldsStr += fmt.Sprintf("%s%s%s=%v", colorPurple, k, colorReset, v)
+		}
+		line += fmt.Sprintf(" %s", fieldsStr)
+	}
+
+	// Add trace ID if present (abbreviated)
+	if entry.TraceID != "" {
+		shortTrace := entry.TraceID
+		if len(shortTrace) > 8 {
+			shortTrace = shortTrace[:8]
+		}
+		line += fmt.Sprintf(" %strace=%s%s", colorGray, shortTrace, colorReset)
+	}
+
+	fmt.Fprintln(l.writer, line)
 }
 
 // Debug logs a debug message

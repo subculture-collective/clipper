@@ -2,10 +2,13 @@ package scheduler
 
 import (
 	"context"
-	"log"
 	"sync"
 	"time"
+
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
+
+const serviceStatusSchedulerName = "service_status"
 
 // ServiceStatusServiceInterface defines the interface required by the service status scheduler
 type ServiceStatusServiceInterface interface {
@@ -39,7 +42,11 @@ func NewServiceStatusScheduler(
 
 // Start begins the periodic cleanup process
 func (s *ServiceStatusScheduler) Start(ctx context.Context) {
-	log.Printf("Starting service status scheduler (cleanup interval: %v, retention: %v)", s.cleanupInterval, s.retentionPeriod)
+	utils.Info("Starting service status scheduler", map[string]interface{}{
+		"scheduler":        serviceStatusSchedulerName,
+		"cleanup_interval": s.cleanupInterval.String(),
+		"retention":        s.retentionPeriod.String(),
+	})
 
 	ticker := time.NewTicker(s.cleanupInterval)
 	defer ticker.Stop()
@@ -54,10 +61,14 @@ func (s *ServiceStatusScheduler) Start(ctx context.Context) {
 		case <-ticker.C:
 			s.cleanupOldHistory(ctx)
 		case <-s.stopChan:
-			log.Println("Service status scheduler stopped")
+			utils.Info("Service status scheduler stopped", map[string]interface{}{
+				"scheduler": serviceStatusSchedulerName,
+			})
 			return
 		case <-ctx.Done():
-			log.Println("Service status scheduler stopped due to context cancellation")
+			utils.Info("Service status scheduler stopped due to context cancellation", map[string]interface{}{
+				"scheduler": serviceStatusSchedulerName,
+			})
 			return
 		}
 	}
@@ -72,14 +83,22 @@ func (s *ServiceStatusScheduler) Stop() {
 
 // cleanupOldHistory removes old service status history records
 func (s *ServiceStatusScheduler) cleanupOldHistory(ctx context.Context) {
-	log.Println("Starting service status history cleanup...")
+	utils.Info("Starting service status history cleanup", map[string]interface{}{
+		"scheduler": serviceStatusSchedulerName,
+	})
 	startTime := time.Now()
 
 	if err := s.serviceStatusService.CleanupOldHistory(ctx, s.retentionPeriod); err != nil {
-		log.Printf("Service status history cleanup failed: %v", err)
+		utils.Error("Service status history cleanup failed", err, map[string]interface{}{
+			"scheduler": serviceStatusSchedulerName,
+			"retention": s.retentionPeriod.String(),
+		})
 		return
 	}
 
 	duration := time.Since(startTime)
-	log.Printf("Service status history cleanup completed in %v", duration)
+	utils.Info("Service status history cleanup completed", map[string]interface{}{
+		"scheduler": serviceStatusSchedulerName,
+		"duration":  duration.String(),
+	})
 }

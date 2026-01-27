@@ -1,13 +1,10 @@
 import { useEffect, useRef, useState, useCallback, memo } from 'react';
 import { useInView } from 'react-intersection-observer';
-import { useSearchParams } from 'react-router-dom';
 import { Spinner, Button, ScrollToTop } from '@/components/ui';
 import { MiniFooter } from '@/components/layout';
-import { ClipCard } from './ClipCard';
+import { DiscoverClipCard } from './DiscoverClipCard';
 import { ClipCardSkeleton } from './ClipCardSkeleton';
 import { EmptyState } from './EmptyState';
-import { FeedFilters } from './FeedFilters';
-import { FeedHeader } from './FeedHeader';
 import { useScrapedClipsFeed } from '@/hooks/useClips';
 import type { SortOption, TimeFrame, ClipFeedFilters } from '@/types/clip';
 
@@ -19,15 +16,12 @@ interface ScrapedClipFeedProps {
     filters?: Partial<ClipFeedFilters>;
 }
 
-// Memoized ClipCard wrapper for performance
-const MemoizedClipCard = memo(ClipCard, (prevProps, nextProps) => {
+// Memoized DiscoverClipCard wrapper for performance
+const MemoizedDiscoverClipCard = memo(DiscoverClipCard, (prevProps, nextProps) => {
     return (
         prevProps.clip.id === nextProps.clip.id &&
-        prevProps.clip.vote_score === nextProps.clip.vote_score &&
-        prevProps.clip.user_vote === nextProps.clip.user_vote &&
-        prevProps.clip.is_favorited === nextProps.clip.is_favorited &&
-        prevProps.clip.comment_count === nextProps.clip.comment_count &&
-        prevProps.clip.favorite_count === nextProps.clip.favorite_count
+        prevProps.clip.view_count === nextProps.clip.view_count &&
+        prevProps.clip.submitted_by?.id === nextProps.clip.submitted_by?.id
     );
 });
 
@@ -38,7 +32,6 @@ export function ScrapedClipFeed({
     defaultTimeframe = 'day',
     filters: additionalFilters = {},
 }: ScrapedClipFeedProps) {
-    const [searchParams, setSearchParams] = useSearchParams();
     const containerRef = useRef<HTMLDivElement>(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [pullDistance, setPullDistance] = useState(0);
@@ -46,9 +39,8 @@ export function ScrapedClipFeed({
     const scrollTopRef = useRef<number>(0);
 
     // Get filters from URL or use defaults
-    const sort = (searchParams.get('sort') as SortOption) || defaultSort;
-    const timeframe =
-        (searchParams.get('timeframe') as TimeFrame) || defaultTimeframe;
+    const sort = defaultSort;
+    const timeframe = defaultTimeframe;
 
     // Combine URL filters with additional filters
     // Do not filter by UI language by default; include language only if explicitly provided
@@ -71,6 +63,10 @@ export function ScrapedClipFeed({
 
     // Get all clips from all pages
     const clips = data?.pages.flatMap(page => page.clips) ?? [];
+    // Discovery should only show unposted, visible clips
+    const filteredClips = clips.filter(
+        clip => !clip.submitted_by && !clip.is_removed && !clip.is_hidden,
+    );
 
     // Intersection observer for infinite scroll
     const { ref: loadMoreRef, inView } = useInView({
@@ -123,31 +119,22 @@ export function ScrapedClipFeed({
         touchStartRef.current = 0;
     }, [pullDistance, isRefreshing, isLoading, refetch]);
 
-    const handleSortChange = (newSort: SortOption) => {
-        const params = new URLSearchParams(searchParams);
-        params.set('sort', newSort);
-        if (newSort !== 'top') {
-            params.delete('timeframe');
-        }
-        setSearchParams(params);
-    };
-
-    const handleTimeframeChange = (newTimeframe: TimeFrame) => {
-        const params = new URLSearchParams(searchParams);
-        params.set('timeframe', newTimeframe);
-        setSearchParams(params);
-    };
-
     return (
         <div className='max-w-4xl mx-auto'>
-            <FeedHeader title={title} description={description} />
-
-            <FeedFilters
-                sort={sort}
-                timeframe={timeframe}
-                onSortChange={handleSortChange}
-                onTimeframeChange={handleTimeframeChange}
-            />
+            {(title || description) && (
+                <div className='mb-6'>
+                    {title && (
+                        <h2 className='text-2xl sm:text-3xl font-bold truncate'>
+                            {title}
+                        </h2>
+                    )}
+                    {description && (
+                        <p className='text-muted-foreground text-sm mt-1'>
+                            {description}
+                        </p>
+                    )}
+                </div>
+            )}
 
             {/* Pull-to-refresh indicator */}
             {pullDistance > 0 && (
@@ -220,7 +207,7 @@ export function ScrapedClipFeed({
             )}
 
             {/* Empty state */}
-            {!isLoading && !isError && clips.length === 0 && (
+            {!isLoading && !isError && filteredClips.length === 0 && (
                 <EmptyState
                     title='No clips found'
                     message='Try adjusting your filters or check back later.'
@@ -243,7 +230,7 @@ export function ScrapedClipFeed({
             )}
 
             {/* Clips list with pull-to-refresh */}
-            {!isLoading && !isError && clips.length > 0 && (
+            {!isLoading && !isError && filteredClips.length > 0 && (
                 <div
                     ref={containerRef}
                     onTouchStart={handleTouchStart}
@@ -251,8 +238,11 @@ export function ScrapedClipFeed({
                     onTouchEnd={handleTouchEnd}
                 >
                     <div className='space-y-4'>
-                        {clips.map(clip => (
-                            <MemoizedClipCard key={clip.id} clip={clip} />
+                        {filteredClips.map(clip => (
+                            <MemoizedDiscoverClipCard
+                                key={clip.id}
+                                clip={clip}
+                            />
                         ))}
                     </div>
 
@@ -272,7 +262,7 @@ export function ScrapedClipFeed({
                     )}
 
                     {/* End of results */}
-                    {!hasNextPage && clips.length > 0 && (
+                    {!hasNextPage && filteredClips.length > 0 && (
                         <div className='text-center py-8 text-muted-foreground'>
                             <p>You've reached the end!</p>
                         </div>

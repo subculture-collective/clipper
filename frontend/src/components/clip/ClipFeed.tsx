@@ -4,9 +4,9 @@ import { useSearchParams } from 'react-router-dom';
 import { Spinner, Button, ScrollToTop } from '@/components/ui';
 import { MiniFooter } from '@/components/layout';
 import { ClipCard } from './ClipCard';
+import { DiscoverClipCard } from './DiscoverClipCard';
 import { ClipCardSkeleton } from './ClipCardSkeleton';
 import { EmptyState } from './EmptyState';
-import { FeedFilters } from './FeedFilters';
 import { FeedHeader } from './FeedHeader';
 import { useClipFeed } from '@/hooks/useClips';
 import type { SortOption, TimeFrame, ClipFeedFilters } from '@/types/clip';
@@ -19,7 +19,14 @@ interface ClipFeedProps {
     filters?: Partial<ClipFeedFilters>;
     showSearch?: boolean;
     useSortTitle?: boolean;
+    /** When true, uses simplified cards focused on discovery and posting */
+    discoverMode?: boolean;
 }
+
+// Map legacy 'hot' to 'trending' for consistency
+const normalizeSortOption = (sort: SortOption): SortOption => {
+    return sort === 'hot' ? 'trending' : sort;
+};
 
 // Memoized ClipCard wrapper for performance
 const MemoizedClipCard = memo(ClipCard, (prevProps, nextProps) => {
@@ -33,14 +40,27 @@ const MemoizedClipCard = memo(ClipCard, (prevProps, nextProps) => {
     );
 });
 
+// Memoized DiscoverClipCard wrapper for performance
+const MemoizedDiscoverClipCard = memo(
+    DiscoverClipCard,
+    (prevProps, nextProps) => {
+        return (
+            prevProps.clip.id === nextProps.clip.id &&
+            prevProps.clip.view_count === nextProps.clip.view_count &&
+            prevProps.clip.submitted_by?.id === nextProps.clip.submitted_by?.id
+        );
+    },
+);
+
 export function ClipFeed({
     title = 'Clip Feed',
     description,
-    defaultSort = 'hot',
+    defaultSort = 'trending',
     defaultTimeframe = 'day',
     filters: additionalFilters = {},
     showSearch = false,
     useSortTitle = true,
+    discoverMode = false,
 }: ClipFeedProps) {
     const [searchParams, setSearchParams] = useSearchParams();
     const containerRef = useRef<HTMLDivElement>(null);
@@ -49,15 +69,21 @@ export function ClipFeed({
     const touchStartRef = useRef<number>(0);
     const scrollTopRef = useRef<number>(0);
 
-    // Get filters from URL or use defaults
-    const sort = (searchParams.get('sort') as SortOption) || defaultSort;
+    // Get filters from URL or use defaults (normalize 'hot' to 'trending')
+    // In discover mode, ignore URL sort/timeframe to keep the feed controlled by tabs
+    const rawSort =
+        discoverMode ? defaultSort :
+        (searchParams.get('sort') as SortOption) || defaultSort;
+    const sort = normalizeSortOption(rawSort);
     const timeframe =
+        discoverMode ? defaultTimeframe :
         (searchParams.get('timeframe') as TimeFrame) || defaultTimeframe;
 
     // Combine URL filters with additional filters and current language
     const filters: ClipFeedFilters = {
         sort,
-        timeframe: sort === 'top' || sort === 'trending' ? timeframe : undefined,
+        timeframe:
+            sort === 'top' || sort === 'trending' ? timeframe : undefined,
         // Do not filter by UI language by default; include language only if explicitly provided
         ...additionalFilters,
     };
@@ -149,15 +175,13 @@ export function ClipFeed({
         setSearchParams(params);
     };
 
-    const sortLabelMap: Record<SortOption, string> = {
+    const sortLabelMap: Partial<Record<SortOption, string>> = {
         trending: 'Trending',
         popular: 'Most Popular',
         new: 'Newest',
         top: 'Top Rated',
         rising: 'Rising',
         discussed: 'Most Discussed',
-        hot: 'Hot',
-        views: 'Views',
     };
 
     const timeframeLabelMap: Partial<Record<TimeFrame, string>> = {
@@ -172,24 +196,24 @@ export function ClipFeed({
     const resolvedTitle =
         useSortTitle ?
             sort === 'top' || sort === 'trending' ?
-                `${sortLabelMap[sort]} — ${timeframeLabelMap[timeframe] ?? 'Past Day'}`
-            :   `${sortLabelMap[sort]} Feed`
+                `${sortLabelMap[sort] ?? sort} — ${timeframeLabelMap[timeframe] ?? 'Past Day'}`
+            :   `${sortLabelMap[sort] ?? sort} Feed`
         :   title;
 
     return (
         <div className='max-w-4xl mx-auto'>
-            <FeedHeader
-                title={resolvedTitle || title}
-                description={description}
-                showSearch={showSearch}
-            />
-
-            <FeedFilters
-                sort={sort}
-                timeframe={timeframe}
-                onSortChange={handleSortChange}
-                onTimeframeChange={handleTimeframeChange}
-            />
+            {/* Hide FeedHeader in discover mode - DiscoveryPage has its own header/tabs */}
+            {!discoverMode && (
+                <FeedHeader
+                    title={resolvedTitle || title}
+                    description={description}
+                    showSearch={showSearch}
+                    sort={sort}
+                    timeframe={timeframe}
+                    onSortChange={handleSortChange}
+                    onTimeframeChange={handleTimeframeChange}
+                />
+            )}
 
             {/* Pull-to-refresh indicator */}
             {pullDistance > 0 && (
@@ -293,9 +317,14 @@ export function ClipFeed({
                     onTouchEnd={handleTouchEnd}
                 >
                     <div className='space-y-4'>
-                        {validClips.map(clip => (
-                            <MemoizedClipCard key={clip.id} clip={clip} />
-                        ))}
+                        {validClips.map(clip =>
+                            discoverMode ?
+                                <MemoizedDiscoverClipCard
+                                    key={clip.id}
+                                    clip={clip}
+                                />
+                            :   <MemoizedClipCard key={clip.id} clip={clip} />,
+                        )}
                     </div>
 
                     {/* Load more trigger */}

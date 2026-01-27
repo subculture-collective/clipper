@@ -3,12 +3,12 @@ package services
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/subculture-collective/clipper/config"
 	"github.com/subculture-collective/clipper/internal/models"
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
 // MirrorRepositoryContract captures repository calls ClipMirrorService relies on.
@@ -99,7 +99,7 @@ func (s *ClipMirrorService) ReplicateClip(ctx context.Context, clipID uuid.UUID)
 	}
 
 	if activeMirrors >= s.config.MaxMirrorsPerClip {
-		log.Printf("Clip %s already has %d active mirrors, skipping", clipID, activeMirrors)
+		utils.Debug("Clip already has max active mirrors, skipping", map[string]interface{}{"clip_id": clipID, "active_mirrors": activeMirrors})
 		return nil
 	}
 
@@ -133,19 +133,19 @@ func (s *ClipMirrorService) ReplicateClip(ctx context.Context, clipID uuid.UUID)
 
 		// Create the mirror record
 		if err := s.mirrorRepo.Create(ctx, mirror); err != nil {
-			log.Printf("Failed to create mirror for clip %s in region %s: %v", clipID, region, err)
+			utils.Warn("Failed to create mirror", map[string]interface{}{"clip_id": clipID, "region": region, "error": err})
 			continue
 		}
 
 		// In a real implementation, this would trigger the actual file replication
 		// For now, we just mark it as active
 		if err := s.mirrorRepo.UpdateStatus(ctx, mirror.ID, models.MirrorStatusActive, nil); err != nil {
-			log.Printf("Failed to update mirror status for clip %s in region %s: %v", clipID, region, err)
+			utils.Warn("Failed to update mirror status", map[string]interface{}{"clip_id": clipID, "region": region, "error": err})
 			continue
 		}
 
 		activeMirrors++
-		log.Printf("Successfully created mirror for clip %s in region %s", clipID, region)
+		utils.Info("Successfully created mirror", map[string]interface{}{"clip_id": clipID, "region": region})
 	}
 
 	return nil
@@ -162,12 +162,12 @@ func (s *ClipMirrorService) GetMirrorURL(ctx context.Context, clipID uuid.UUID, 
 	if err == nil && mirror.Status == models.MirrorStatusActive {
 		// Record access
 		if err := s.mirrorRepo.RecordAccess(ctx, mirror.ID); err != nil {
-			log.Printf("Failed to record mirror access: %v", err)
+			utils.Warn("Failed to record mirror access", map[string]interface{}{"error": err})
 		}
 
 		// Record metric
 		if err := s.recordMetric(ctx, clipID, userRegion, models.MirrorMetricTypeAccess, 1); err != nil {
-			log.Printf("Failed to record mirror metric: %v", err)
+			utils.Warn("Failed to record mirror metric", map[string]interface{}{"error": err})
 		}
 
 		return mirror.MirrorURL, true, nil
@@ -183,12 +183,12 @@ func (s *ClipMirrorService) GetMirrorURL(ctx context.Context, clipID uuid.UUID, 
 		if mirror.Status == models.MirrorStatusActive {
 			// Record access
 			if err := s.mirrorRepo.RecordAccess(ctx, mirror.ID); err != nil {
-				log.Printf("Failed to record mirror access: %v", err)
+				utils.Warn("Failed to record mirror access", map[string]interface{}{"error": err})
 			}
 
 			// Record metric
 			if err := s.recordMetric(ctx, clipID, mirror.Region, models.MirrorMetricTypeAccess, 1); err != nil {
-				log.Printf("Failed to record mirror metric: %v", err)
+				utils.Warn("Failed to record mirror metric", map[string]interface{}{"error": err})
 			}
 
 			return mirror.MirrorURL, true, nil
@@ -197,7 +197,7 @@ func (s *ClipMirrorService) GetMirrorURL(ctx context.Context, clipID uuid.UUID, 
 
 	// Record failover metric
 	if err := s.recordMetric(ctx, clipID, userRegion, models.MirrorMetricTypeFailover, 1); err != nil {
-		log.Printf("Failed to record failover metric: %v", err)
+		utils.Warn("Failed to record failover metric", map[string]interface{}{"error": err})
 	}
 
 	return "", false, nil
@@ -214,7 +214,7 @@ func (s *ClipMirrorService) CleanupExpiredMirrors(ctx context.Context) (int64, e
 		return 0, fmt.Errorf("failed to cleanup expired mirrors: %w", err)
 	}
 
-	log.Printf("Cleaned up %d expired mirrors", count)
+	utils.Info("Cleaned up expired mirrors", map[string]interface{}{"count": count})
 	return count, nil
 }
 
@@ -239,7 +239,7 @@ func (s *ClipMirrorService) SyncPopularClips(ctx context.Context) error {
 		return nil
 	}
 
-	log.Println("Starting mirror sync for popular clips...")
+	utils.Info("Starting mirror sync for popular clips", nil)
 
 	// Identify popular clips
 	clipIDs, err := s.IdentifyPopularClips(ctx)
@@ -247,19 +247,19 @@ func (s *ClipMirrorService) SyncPopularClips(ctx context.Context) error {
 		return fmt.Errorf("failed to identify popular clips: %w", err)
 	}
 
-	log.Printf("Found %d clips to mirror", len(clipIDs))
+	utils.Info("Found clips to mirror", map[string]interface{}{"count": len(clipIDs)})
 
 	// Replicate each clip
 	successCount := 0
 	for _, clipID := range clipIDs {
 		if err := s.ReplicateClip(ctx, clipID); err != nil {
-			log.Printf("Failed to replicate clip %s: %v", clipID, err)
+			utils.Warn("Failed to replicate clip", map[string]interface{}{"clip_id": clipID, "error": err})
 			continue
 		}
 		successCount++
 	}
 
-	log.Printf("Mirror sync complete: %d/%d clips successfully replicated", successCount, len(clipIDs))
+	utils.Info("Mirror sync complete", map[string]interface{}{"success_count": successCount, "total": len(clipIDs)})
 	return nil
 }
 

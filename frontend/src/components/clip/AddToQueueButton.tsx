@@ -1,13 +1,12 @@
 import { useAddToQueue } from '@/hooks/useQueue';
 import { useIsAuthenticated, useToast } from '@/hooks';
+import { AxiosError } from 'axios';
 
 interface AddToQueueButtonProps {
     clipId: string;
 }
 
-export function AddToQueueButton({
-    clipId,
-}: AddToQueueButtonProps) {
+export function AddToQueueButton({ clipId }: AddToQueueButtonProps) {
     const isAuthenticated = useIsAuthenticated();
     const addToQueue = useAddToQueue();
     const toast = useToast();
@@ -24,8 +23,17 @@ export function AddToQueueButton({
                 at_end: true,
             });
             toast.success('Added to queue');
-        } catch {
-            toast.error('Failed to add to queue');
+        } catch (error) {
+            let message = 'Failed to add to queue';
+            if (
+                error instanceof AxiosError &&
+                error.response?.data?.error?.message
+            ) {
+                message = error.response.data.error.message;
+            } else if (error instanceof Error) {
+                message = error.message;
+            }
+            toast.error(message);
         }
     };
 
@@ -39,34 +47,31 @@ export function AddToQueueButton({
                 :   'cursor-pointer'
             }`}
             aria-label={
-                !isAuthenticated ?
-                    'Log in to add to queue'
-                :   'Add to queue'
-            }
-            aria-disabled={!isAuthenticated}
-            title={
                 !isAuthenticated ? 'Log in to add to queue' : 'Add to queue'
             }
+            aria-disabled={!isAuthenticated}
+            title={!isAuthenticated ? 'Log in to add to queue' : 'Add to queue'}
         >
             <svg
-                className="w-5 h-5 shrink-0"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+                className='w-5 h-5 shrink-0'
+                fill='none'
+                stroke='currentColor'
+                viewBox='0 0 24 24'
             >
                 <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
                     strokeWidth={2}
-                    d="M12 4v16m8-8H4"
+                    d='M12 4v16m8-8H4'
                 />
                 <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
                     strokeWidth={2}
-                    d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h2M15 5h2a2 2 0 012 2v10a2 2 0 01-2 2h-2"
+                    d='M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h2M15 5h2a2 2 0 012 2v10a2 2 0 01-2 2h-2'
                 />
             </svg>
+            <span className='hidden sm:inline'>Add to Queue</span>
         </button>
     );
 }
