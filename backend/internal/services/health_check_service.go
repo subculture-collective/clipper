@@ -3,9 +3,10 @@ package services
 import (
 	"context"
 	"fmt"
-	"log"
 	"sync"
 	"time"
+
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
 // HealthStatus represents the health status of a service
@@ -163,16 +164,16 @@ func (s *HealthCheckService) StartHealthCheckLoop(ctx context.Context, interval 
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
-	log.Printf("Starting health check loop (interval: %s)", interval)
+	utils.Info("Starting health check loop", map[string]interface{}{"interval": interval})
 
 	for {
 		select {
 		case <-ctx.Done():
-			log.Println("Health check loop stopped")
+			utils.Info("Health check loop stopped", nil)
 			return
 		case <-ticker.C:
 			if _, err := s.CheckAllRegions(ctx); err != nil {
-				log.Printf("Health check error: %v", err)
+				utils.Warn("Health check error", map[string]interface{}{"error": err})
 			}
 		}
 	}

@@ -11,6 +11,10 @@ export interface SubmissionConfirmationProps {
      * Callback when "Submit Another" is clicked
      */
     onSubmitAnother?: () => void;
+    /**
+     * If true, shows a "Back to Discovery" link
+     */
+    fromDiscover?: boolean;
 }
 
 /**
@@ -20,6 +24,7 @@ export interface SubmissionConfirmationProps {
 export function SubmissionConfirmation({
     submission,
     onSubmitAnother,
+    fromDiscover = false,
 }: SubmissionConfirmationProps) {
     const statusVariant = submission.status === 'approved' ? 'success' : 'warning';
     const isAutoApproved = submission.status === 'approved';
@@ -161,8 +166,15 @@ export function SubmissionConfirmation({
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-3">
+                {fromDiscover && (
+                    <Link to="/discover" className="sm:flex-1">
+                        <Button variant="primary" fullWidth>
+                            Back to Discovery
+                        </Button>
+                    </Link>
+                )}
                 <Link to="/submissions" className="sm:flex-1">
-                    <Button variant="primary" fullWidth>
+                    <Button variant={fromDiscover ? "secondary" : "primary"} fullWidth>
                         View My Submissions
                     </Button>
                 </Link>

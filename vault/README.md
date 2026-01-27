@@ -5,13 +5,13 @@ build-time secrets for the frontend from HashiCorp Vault.
 
 ## Layout
 
--   `config/clipper-backend-agent.hcl` – Vault agent configuration (AppRole auth + template rendering).
--   `templates/backend.env.ctmpl` – Consul-template file that renders the environment variables consumed by the backend.
--   `templates/frontend.env.ctmpl` – Consul-template file that renders Sentry/build environment variables for the frontend.
--   `rendered/` – Output directory for the processed `backend.env` and `frontend.env` files (ignored by git).
--   `approle/` – Placeholders for the AppRole `role_id` and `secret_id` files (ignored by git).
--   `policies/clipper-backend.hcl` – Vault policy granting the backend read-only access to `kv/clipper/backend`.
--   `policies/clipper-frontend.hcl` – Vault policy granting the frontend build read-only access to `kv/clipper/frontend`.
+- `config/clipper-backend-agent.hcl` – Vault agent configuration (AppRole auth + template rendering).
+- `templates/backend.env.ctmpl` – Consul-template file that renders the environment variables consumed by the backend.
+- `templates/frontend.env.ctmpl` – Consul-template file that renders Sentry/build environment variables for the frontend.
+- `rendered/` – Output directory for the processed `backend.env` and `frontend.env` files (ignored by git).
+- `approle/` – Placeholders for the AppRole `role_id` and `secret_id` files (ignored by git).
+- `policies/clipper-backend.hcl` – Vault policy granting the backend read-only access to `kv/clipper/backend`.
+- `policies/clipper-frontend.hcl` – Vault policy granting the frontend build read-only access to `kv/clipper/frontend`.
 
 ## Bootstrapping Steps
 
@@ -109,7 +109,9 @@ The frontend build requires Sentry credentials at build time to upload sourcemap
       SENTRY_AUTH_TOKEN="sntrys_your_auth_token" \
       SENTRY_ORG="your-org" \
       SENTRY_PROJECT="clipper-frontend" \
-      SENTRY_RELEASE="$(git rev-parse --short HEAD)"
+      SENTRY_RELEASE="$(git rev-parse --short HEAD)" \
+      VITE_POSTHOG_API_KEY="phc_your_api_key" \
+      VITE_POSTHOG_HOST="https://app.posthog.com"
     ```
 
 2. **Create the frontend policy**:
@@ -144,7 +146,6 @@ The frontend build requires Sentry credentials at build time to upload sourcemap
     ```
 
     The script will:
-
     - Authenticate with Vault using the AppRole credentials.
     - Render `frontend.env` from the template.
     - Export the environment variables for Vite and the Sentry plugin.
@@ -158,11 +159,11 @@ The frontend build requires Sentry credentials at build time to upload sourcemap
 The secret at `kv/clipper/backend` mirrors every variable in `backend/.env.example` (plus a few infrastructure
 helpers like `POSTGRES_PASSWORD`). The rendered template now includes:
 
--   Core service settings (`PORT`, `BASE_URL`, `ENVIRONMENT`, etc.)
--   Database/Redis credentials (`DB_*`, `REDIS_*`, `POSTGRES_PASSWORD`)
--   JWT key pair placeholders (`JWT_PRIVATE_KEY`, `JWT_PUBLIC_KEY`)
--   Twitch, Stripe, Sentry, SendGrid, and OpenAI credentials
--   Feature flags and scheduler knobs (`FEATURE_*`, `HOT_CLIPS_*`, `WEBHOOK_*`, etc.)
+- Core service settings (`PORT`, `BASE_URL`, `ENVIRONMENT`, etc.)
+- Database/Redis credentials (`DB_*`, `REDIS_*`, `POSTGRES_PASSWORD`)
+- JWT key pair placeholders (`JWT_PRIVATE_KEY`, `JWT_PUBLIC_KEY`)
+- Twitch, Stripe, Sentry, SendGrid, and OpenAI credentials
+- Feature flags and scheduler knobs (`FEATURE_*`, `HOT_CLIPS_*`, `WEBHOOK_*`, etc.)
 
 Run the following to review what is currently stored:
 
@@ -185,17 +186,24 @@ vault kv patch kv/clipper/backend \
 
 ### Frontend (`kv/clipper/frontend`)
 
-The secret at `kv/clipper/frontend` contains Sentry credentials for runtime SDK and build-time sourcemap upload:
+The secret at `kv/clipper/frontend` contains Sentry and PostHog credentials for runtime SDK and build-time sourcemap upload:
 
--   `VITE_SENTRY_ENABLED` – Enable Sentry SDK (true/false)
--   `VITE_SENTRY_DSN` – Sentry DSN for error reporting
--   `VITE_SENTRY_ENVIRONMENT` – Environment name (production, staging, etc.)
--   `VITE_SENTRY_RELEASE` – Release identifier (git SHA, version tag, or timestamp)
--   `VITE_SENTRY_TRACES_SAMPLE_RATE` – Sample rate for performance traces (0.0 to 1.0)
--   `SENTRY_AUTH_TOKEN` – Auth token for sourcemap upload
--   `SENTRY_ORG` – Sentry organization slug
--   `SENTRY_PROJECT` – Sentry project slug
--   `SENTRY_RELEASE` – Optional override for upload release (defaults to `VITE_SENTRY_RELEASE`)
+**Sentry Configuration:**
+
+- `VITE_SENTRY_ENABLED` – Enable Sentry SDK (true/false)
+- `VITE_SENTRY_DSN` – Sentry DSN for error reporting
+- `VITE_SENTRY_ENVIRONMENT` – Environment name (production, staging, etc.)
+- `VITE_SENTRY_RELEASE` – Release identifier (git SHA, version tag, or timestamp)
+- `VITE_SENTRY_TRACES_SAMPLE_RATE` – Sample rate for performance traces (0.0 to 1.0)
+- `SENTRY_AUTH_TOKEN` – Auth token for sourcemap upload
+- `SENTRY_ORG` – Sentry organization slug
+- `SENTRY_PROJECT` – Sentry project slug
+- `SENTRY_RELEASE` – Optional override for upload release (defaults to `VITE_SENTRY_RELEASE`)
+
+**PostHog Configuration:**
+
+- `VITE_POSTHOG_API_KEY` – PostHog project API key
+- `VITE_POSTHOG_HOST` – PostHog host (defaults to https://app.posthog.com)
 
 To update frontend secrets:
 

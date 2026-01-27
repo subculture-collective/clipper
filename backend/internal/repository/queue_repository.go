@@ -25,10 +25,10 @@ func NewQueueRepository(pool *pgxpool.Pool) *QueueRepository {
 // GetUserQueue retrieves a user's queue with optional limit
 func (r *QueueRepository) GetUserQueue(ctx context.Context, userID uuid.UUID, limit int) ([]models.QueueItemWithClip, error) {
 	query := `
-		SELECT 
+		SELECT
 			qi.id, qi.user_id, qi.clip_id, qi.position, qi.added_at, qi.played_at, qi.created_at, qi.updated_at,
-			c.id, c.twitch_clip_id, c.twitch_clip_url, c.embed_url, c.title, c.creator_name, 
-			c.broadcaster_name, c.game_name, c.thumbnail_url, c.duration, c.view_count, 
+			c.id, c.twitch_clip_id, c.twitch_clip_url, c.embed_url, c.title, c.creator_name,
+			c.broadcaster_name, c.game_name, c.thumbnail_url, c.duration, c.view_count,
 			c.vote_score, c.comment_count, c.favorite_count, c.is_nsfw, c.created_at
 		FROM queue_items qi
 		LEFT JOIN clips c ON qi.clip_id = c.id
@@ -82,9 +82,9 @@ func (r *QueueRepository) GetQueueCount(ctx context.Context, userID uuid.UUID) (
 	return count, nil
 }
 
-// GetMaxPosition gets the maximum position in a user's queue (unplayed items only)
+// GetMaxPosition gets the maximum position in a user's queue (all items to avoid constraint violations)
 func (r *QueueRepository) GetMaxPosition(ctx context.Context, userID uuid.UUID) (int, error) {
-	query := `SELECT COALESCE(MAX(position), 0) FROM queue_items WHERE user_id = $1 AND played_at IS NULL`
+	query := `SELECT COALESCE(MAX(position), 0) FROM queue_items WHERE user_id = $1`
 
 	var maxPos int
 	err := r.pool.QueryRow(ctx, query, userID).Scan(&maxPos)
@@ -95,15 +95,44 @@ func (r *QueueRepository) GetMaxPosition(ctx context.Context, userID uuid.UUID) 
 	return maxPos, nil
 }
 
-// AddItem adds a clip to the queue
+// AddItem adds a clip to the queue at the end (using transaction to avoid race conditions)
 func (r *QueueRepository) AddItem(ctx context.Context, item *models.QueueItem) error {
-	query := `
+	// Use a transaction to calculate position and insert atomically
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	// Use advisory lock based on user_id to prevent concurrent inserts
+	// pg_advisory_xact_lock is automatically released at transaction end
+	// We use a hash of the user_id bytes to get a consistent int64 lock key
+	userIDBytes := item.UserID[:]
+	lockKey := int64(userIDBytes[0])<<56 | int64(userIDBytes[1])<<48 | int64(userIDBytes[2])<<40 | int64(userIDBytes[3])<<32 |
+		int64(userIDBytes[4])<<24 | int64(userIDBytes[5])<<16 | int64(userIDBytes[6])<<8 | int64(userIDBytes[7])
+	_, err = tx.Exec(ctx, `SELECT pg_advisory_xact_lock($1)`, lockKey)
+	if err != nil {
+		return fmt.Errorf("failed to acquire advisory lock: %w", err)
+	}
+
+	// Now calculate next position
+	var maxPos int
+	err = tx.QueryRow(ctx, `
+		SELECT COALESCE(MAX(position), 0)
+		FROM queue_items
+		WHERE user_id = $1
+	`, item.UserID).Scan(&maxPos)
+	if err != nil {
+		return fmt.Errorf("failed to get max position: %w", err)
+	}
+
+	item.Position = maxPos + 1
+
+	err = tx.QueryRow(ctx, `
 		INSERT INTO queue_items (id, user_id, clip_id, position, added_at)
 		VALUES ($1, $2, $3, $4, NOW())
 		RETURNING created_at, updated_at, added_at
-	`
-
-	err := r.pool.QueryRow(ctx, query,
+	`,
 		item.ID,
 		item.UserID,
 		item.ClipID,
@@ -112,6 +141,11 @@ func (r *QueueRepository) AddItem(ctx context.Context, item *models.QueueItem) e
 
 	if err != nil {
 		return fmt.Errorf("failed to add queue item: %w", err)
+	}
+
+	// Commit transaction
+	if err = tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	return nil
@@ -126,8 +160,8 @@ func (r *QueueRepository) AddItemAtTop(ctx context.Context, item *models.QueueIt
 	}
 	defer tx.Rollback(ctx)
 
-	// Shift all unplayed items down by 1
-	_, err = tx.Exec(ctx, `UPDATE queue_items SET position = position + 1 WHERE user_id = $1 AND played_at IS NULL`, item.UserID)
+	// Shift ALL items down by 1 (including played items to avoid constraint violations)
+	_, err = tx.Exec(ctx, `UPDATE queue_items SET position = position + 1 WHERE user_id = $1`, item.UserID)
 	if err != nil {
 		return fmt.Errorf("failed to shift positions: %w", err)
 	}
@@ -218,15 +252,15 @@ func (r *QueueRepository) ReorderItem(ctx context.Context, itemID uuid.UUID, use
 	if oldPosition < newPosition {
 		// Moving down: shift items up
 		_, err = tx.Exec(ctx, `
-			UPDATE queue_items 
-			SET position = position - 1 
+			UPDATE queue_items
+			SET position = position - 1
 			WHERE user_id = $1 AND position > $2 AND position <= $3
 		`, userID, oldPosition, newPosition)
 	} else if oldPosition > newPosition {
 		// Moving up: shift items down
 		_, err = tx.Exec(ctx, `
-			UPDATE queue_items 
-			SET position = position + 1 
+			UPDATE queue_items
+			SET position = position + 1
 			WHERE user_id = $1 AND position >= $2 AND position < $3
 		`, userID, newPosition, oldPosition)
 	}
@@ -237,7 +271,7 @@ func (r *QueueRepository) ReorderItem(ctx context.Context, itemID uuid.UUID, use
 
 	// Update item to new position
 	_, err = tx.Exec(ctx, `
-		UPDATE queue_items 
+		UPDATE queue_items
 		SET position = $1, updated_at = NOW()
 		WHERE id = $2 AND user_id = $3
 	`, newPosition, itemID, userID)
@@ -256,7 +290,7 @@ func (r *QueueRepository) ReorderItem(ctx context.Context, itemID uuid.UUID, use
 // MarkAsPlayed marks a queue item as played
 func (r *QueueRepository) MarkAsPlayed(ctx context.Context, itemID uuid.UUID, userID uuid.UUID) error {
 	query := `
-		UPDATE queue_items 
+		UPDATE queue_items
 		SET played_at = NOW(), updated_at = NOW()
 		WHERE id = $1 AND user_id = $2 AND played_at IS NULL
 	`

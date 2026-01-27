@@ -5,6 +5,7 @@ import { Footer } from './Footer';
 import { Header } from './Header';
 import { CategoriesNav } from './CategoriesNav';
 import { OfflineIndicator } from '../OfflineIndicator';
+import { QueueWidget } from '../queue/QueueWidget';
 import { useOfflineCacheInit } from '@/hooks/useOfflineCache';
 import { useSyncManager } from '@/hooks/useSyncManager';
 
@@ -60,13 +61,13 @@ export function AppLayout() {
             window.history.pushState = function (
                 data: unknown,
                 unused: string,
-                url?: string | URL | null
+                url?: string | URL | null,
             ) {
                 const push = originalPush as unknown as (
                     this: History,
                     data: unknown,
                     unused: string,
-                    url?: string | URL | null
+                    url?: string | URL | null,
                 ) => void;
                 push.call(window.history, data, unused, url ?? null);
                 reset();
@@ -74,13 +75,13 @@ export function AppLayout() {
             window.history.replaceState = function (
                 data: unknown,
                 unused: string,
-                url?: string | URL | null
+                url?: string | URL | null,
             ) {
                 const replace = originalReplace as unknown as (
                     this: History,
                     data: unknown,
                     unused: string,
-                    url?: string | URL | null
+                    url?: string | URL | null,
                 ) => void;
                 replace.call(window.history, data, unused, url ?? null);
                 reset();
@@ -113,21 +114,15 @@ export function AppLayout() {
 
     return (
         <div className='min-h-screen flex flex-col bg-background text-foreground transition-theme'>
-            <SkipLink
-                targetId='main-content'
-                label='Skip to main content'
-            />
+            <SkipLink targetId='main-content' label='Skip to main content' />
             <Header />
             <CategoriesNav />
-            <main
-                id='main-content'
-                className='flex-1'
-                tabIndex={-1}
-            >
+            <main id='main-content' className='flex-1' tabIndex={-1}>
                 <Outlet />
             </main>
             <Footer />
             <OfflineIndicator />
+            <QueueWidget />
         </div>
     );
 }

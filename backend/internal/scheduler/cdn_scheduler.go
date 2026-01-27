@@ -2,10 +2,13 @@ package scheduler
 
 import (
 	"context"
-	"log"
 	"sync"
 	"time"
+
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
+
+const cdnSchedulerName = "cdn"
 
 // CDNServiceInterface defines the interface required by the CDN scheduler
 type CDNServiceInterface interface {
@@ -40,13 +43,18 @@ func (s *CDNScheduler) Start(ctx context.Context) {
 	s.mu.Lock()
 	if s.running {
 		s.mu.Unlock()
-		log.Println("CDN scheduler is already running")
+		utils.Warn("CDN scheduler is already running", map[string]interface{}{
+			"scheduler": cdnSchedulerName,
+		})
 		return
 	}
 	s.running = true
 	s.mu.Unlock()
 
-	log.Printf("Starting CDN scheduler (metrics: %v)", s.metricsInterval)
+	utils.Info("Starting CDN scheduler", map[string]interface{}{
+		"scheduler":        cdnSchedulerName,
+		"metrics_interval": s.metricsInterval.String(),
+	})
 
 	metricsTicker := time.NewTicker(s.metricsInterval)
 	defer metricsTicker.Stop()
@@ -65,10 +73,14 @@ func (s *CDNScheduler) Start(ctx context.Context) {
 			s.collectMetrics(ctx)
 			s.checkCostThreshold(ctx)
 		case <-s.stopChan:
-			log.Println("CDN scheduler stopped")
+			utils.Info("CDN scheduler stopped", map[string]interface{}{
+				"scheduler": cdnSchedulerName,
+			})
 			return
 		case <-ctx.Done():
-			log.Println("CDN scheduler stopped due to context cancellation")
+			utils.Info("CDN scheduler stopped due to context cancellation", map[string]interface{}{
+				"scheduler": cdnSchedulerName,
+			})
 			return
 		}
 	}
@@ -83,28 +95,40 @@ func (s *CDNScheduler) Stop() {
 
 // collectMetrics performs CDN metrics collection
 func (s *CDNScheduler) collectMetrics(ctx context.Context) {
-	log.Println("Collecting CDN metrics...")
+	utils.Info("Collecting CDN metrics", map[string]interface{}{
+		"scheduler": cdnSchedulerName,
+	})
 	start := time.Now()
 
 	if err := s.cdnService.CollectMetrics(ctx); err != nil {
-		log.Printf("ERROR: CDN metrics collection failed: %v", err)
+		utils.Error("CDN metrics collection failed", err, map[string]interface{}{
+			"scheduler": cdnSchedulerName,
+		})
 		return
 	}
 
 	duration := time.Since(start)
-	log.Printf("CDN metrics collection completed in %v", duration)
+	utils.Info("CDN metrics collection completed", map[string]interface{}{
+		"scheduler": cdnSchedulerName,
+		"duration":  duration.String(),
+	})
 }
 
 // checkCostThreshold checks if CDN costs exceed the configured threshold
 func (s *CDNScheduler) checkCostThreshold(ctx context.Context) {
 	exceeded, costPerGB, err := s.cdnService.CheckCostThreshold(ctx)
 	if err != nil {
-		log.Printf("ERROR: CDN cost threshold check failed: %v", err)
+		utils.Error("CDN cost threshold check failed", err, map[string]interface{}{
+			"scheduler": cdnSchedulerName,
+		})
 		return
 	}
 
 	if exceeded {
-		log.Printf("ALERT: CDN cost per GB ($%.4f) exceeds configured threshold", costPerGB)
+		utils.Warn("CDN cost per GB exceeds configured threshold", map[string]interface{}{
+			"scheduler":   cdnSchedulerName,
+			"cost_per_gb": costPerGB,
+		})
 		// In a real implementation, this would trigger an alert via email/Slack/PagerDuty
 	}
 }

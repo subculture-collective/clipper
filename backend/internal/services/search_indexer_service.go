@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"math"
 	"strings"
 	"time"
@@ -15,6 +14,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v2/opensearchapi"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/pkg/opensearch"
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
 // SearchIndexerService handles indexing operations for OpenSearch
@@ -49,7 +49,7 @@ func (s *SearchIndexerService) InitializeIndices(ctx context.Context) error {
 		if err := s.createIndexIfNotExists(ctx, indexName, mapping); err != nil {
 			return fmt.Errorf("failed to create index %s: %w", indexName, err)
 		}
-		log.Printf("Index %s ready", indexName)
+		utils.Info("Index ready", map[string]interface{}{"index": indexName})
 	}
 
 	return nil
@@ -350,7 +350,7 @@ func (s *SearchIndexerService) bulkRequest(ctx context.Context, body *bytes.Buff
 	}
 
 	if errors, ok := bulkRes["errors"].(bool); ok && errors {
-		log.Printf("WARNING: Some bulk operations failed. Check items for details.")
+		utils.Warn("Some bulk operations failed, check items for details", nil)
 	}
 
 	return nil

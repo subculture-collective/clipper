@@ -2,9 +2,10 @@ package scheduler
 
 import (
 	"context"
-	"log"
 	"sync"
 	"time"
+
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
 // WebhookRetryServiceInterface defines the interface required by the webhook retry scheduler
@@ -37,8 +38,11 @@ func NewWebhookRetryScheduler(
 
 // Start begins the periodic webhook retry processing
 func (s *WebhookRetryScheduler) Start(ctx context.Context) {
-	log.Printf("[WEBHOOK_SCHEDULER] Starting webhook retry scheduler (interval: %v, batch size: %d)",
-		s.interval, s.batchSize)
+	utils.Info("Starting webhook retry scheduler", map[string]interface{}{
+		"interval":   s.interval.String(),
+		"batch_size": s.batchSize,
+		"scheduler":  "webhook_retry",
+	})
 
 	ticker := time.NewTicker(s.interval)
 	defer ticker.Stop()
@@ -51,10 +55,14 @@ func (s *WebhookRetryScheduler) Start(ctx context.Context) {
 		case <-ticker.C:
 			s.processRetries(ctx)
 		case <-s.stopChan:
-			log.Println("[WEBHOOK_SCHEDULER] Webhook retry scheduler stopped")
+			utils.Info("Webhook retry scheduler stopped", map[string]interface{}{
+				"scheduler": "webhook_retry",
+			})
 			return
 		case <-ctx.Done():
-			log.Println("[WEBHOOK_SCHEDULER] Webhook retry scheduler stopped due to context cancellation")
+			utils.Info("Webhook retry scheduler stopped due to context cancellation", map[string]interface{}{
+				"scheduler": "webhook_retry",
+			})
 			return
 		}
 	}
@@ -63,16 +71,24 @@ func (s *WebhookRetryScheduler) Start(ctx context.Context) {
 // Stop gracefully stops the scheduler
 func (s *WebhookRetryScheduler) Stop() {
 	s.stopOnce.Do(func() {
-		log.Println("[WEBHOOK_SCHEDULER] Stopping webhook retry scheduler...")
+		utils.Info("Stopping webhook retry scheduler", map[string]interface{}{
+			"scheduler": "webhook_retry",
+		})
 		close(s.stopChan)
 	})
 }
 
 // processRetries processes pending webhook retries
 func (s *WebhookRetryScheduler) processRetries(ctx context.Context) {
-	log.Printf("[WEBHOOK_SCHEDULER] Processing webhook retries...")
+	utils.Info("Processing webhook retries", map[string]interface{}{
+		"batch_size": s.batchSize,
+		"scheduler":  "webhook_retry",
+	})
 
 	if err := s.webhookRetryService.ProcessPendingRetries(ctx, s.batchSize); err != nil {
-		log.Printf("[WEBHOOK_SCHEDULER] Error processing webhook retries: %v", err)
+		utils.Error("Error processing webhook retries", err, map[string]interface{}{
+			"batch_size": s.batchSize,
+			"scheduler":  "webhook_retry",
+		})
 	}
 }

@@ -2,10 +2,13 @@ package scheduler
 
 import (
 	"context"
-	"log"
 	"sync"
 	"time"
+
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
+
+const liveStatusSchedulerName = "live_status"
 
 // LiveStatusServiceInterface defines the interface required by the live status scheduler
 type LiveStatusServiceInterface interface {
@@ -42,7 +45,10 @@ func NewLiveStatusScheduler(
 
 // Start begins the periodic live status update process
 func (s *LiveStatusScheduler) Start(ctx context.Context) {
-	log.Printf("Starting live status scheduler (interval: %v)", s.interval)
+	utils.Info("Starting live status scheduler", map[string]interface{}{
+		"scheduler": liveStatusSchedulerName,
+		"interval":  s.interval.String(),
+	})
 
 	ticker := time.NewTicker(s.interval)
 	defer ticker.Stop()
@@ -55,10 +61,14 @@ func (s *LiveStatusScheduler) Start(ctx context.Context) {
 		case <-ticker.C:
 			s.updateLiveStatuses(ctx)
 		case <-s.stopChan:
-			log.Println("Live status scheduler stopped")
+			utils.Info("Live status scheduler stopped", map[string]interface{}{
+				"scheduler": liveStatusSchedulerName,
+			})
 			return
 		case <-ctx.Done():
-			log.Println("Live status scheduler stopped due to context cancellation")
+			utils.Info("Live status scheduler stopped due to context cancellation", map[string]interface{}{
+				"scheduler": liveStatusSchedulerName,
+			})
 			return
 		}
 	}
@@ -73,29 +83,45 @@ func (s *LiveStatusScheduler) Stop() {
 
 // updateLiveStatuses executes a live status update operation
 func (s *LiveStatusScheduler) updateLiveStatuses(ctx context.Context) {
-	log.Println("Starting scheduled live status update...")
+	utils.Info("Starting scheduled live status update", map[string]interface{}{
+		"scheduler": liveStatusSchedulerName,
+	})
 	startTime := time.Now()
 
 	// Get all unique broadcaster IDs from follows using repository
 	broadcasterIDs, err := s.broadcasterRepo.GetAllFollowedBroadcasterIDs(ctx)
 	if err != nil {
-		log.Printf("Failed to get followed broadcasters: %v", err)
+		utils.Error("Failed to get followed broadcasters", err, map[string]interface{}{
+			"scheduler": liveStatusSchedulerName,
+		})
 		return
 	}
 
 	if len(broadcasterIDs) == 0 {
-		log.Println("No broadcasters to check")
+		utils.Info("No broadcasters to check", map[string]interface{}{
+			"scheduler": liveStatusSchedulerName,
+		})
 		return
 	}
 
-	log.Printf("Checking live status for %d broadcasters", len(broadcasterIDs))
+	utils.Info("Checking live status for broadcasters", map[string]interface{}{
+		"scheduler": liveStatusSchedulerName,
+		"count":     len(broadcasterIDs),
+	})
 
 	err = s.liveStatusService.UpdateLiveStatusForBroadcasters(ctx, broadcasterIDs)
 	if err != nil {
-		log.Printf("Live status update failed: %v", err)
+		utils.Error("Live status update failed", err, map[string]interface{}{
+			"scheduler": liveStatusSchedulerName,
+			"count":     len(broadcasterIDs),
+		})
 		return
 	}
 
 	duration := time.Since(startTime)
-	log.Printf("Live status update completed in %v", duration)
+	utils.Info("Live status update completed", map[string]interface{}{
+		"scheduler": liveStatusSchedulerName,
+		"duration":  duration.String(),
+		"count":     len(broadcasterIDs),
+	})
 }
