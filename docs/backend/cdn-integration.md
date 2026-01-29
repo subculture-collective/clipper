@@ -1,5 +1,5 @@
 ---
-title: "Cdn Integration"
+title: "CDN Integration"
 summary: "This guide explains how to configure and use the CDN (Content Delivery Network) integration for optimized video delivery."
 tags: ["backend"]
 area: "backend"

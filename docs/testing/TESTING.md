@@ -1,6 +1,6 @@
 ---
 title: "TESTING"
-summary: "> **Roadmap 5.0 Phase 0 - Unified Testing Strategy**"
+summary: "Unified Testing Strategy for Roadmap 5.0 Phase 0 - Defines Clipper's comprehensive testing strategy to achieve 90%+ coverage across all platforms."
 tags: ["testing"]
 area: "testing"
 status: "stable"

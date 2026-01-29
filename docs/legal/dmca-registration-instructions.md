@@ -1,5 +1,5 @@
 ---
-title: "Dmca Registration Instructions"
+title: "DMCA Registration Instructions"
 summary: "**Status:** PENDING REGISTRATION"
 tags: ["legal"]
 area: "legal"

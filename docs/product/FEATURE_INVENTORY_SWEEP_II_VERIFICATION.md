@@ -1,6 +1,6 @@
 ---
 title: "FEATURE INVENTORY SWEEP II VERIFICATION"
-summary: "- [x] Feature inventory doc exists in `/docs/product/feature-inventory.md`"
+summary: "Verification checklist for Feature Inventory Sweep II acceptance criteria."
 tags: ["product"]
 area: "product"
 status: "stable"

@@ -1,6 +1,6 @@
 ---
 title: "RICH TEXT EDITOR IMPLEMENTATION"
-summary: "- **Location**: `frontend/src/lib/url-validation.ts`"
+summary: "Implementation summary of rich text editor enhancements including link validation, emoji picker, markdown help modal, and auto-save functionality."
 tags: ["docs","implementation"]
 area: "docs"
 status: "stable"

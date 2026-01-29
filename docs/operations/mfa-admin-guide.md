@@ -1,5 +1,5 @@
 ---
-title: "Mfa Admin Guide"
+title: "MFA Admin Guide"
 summary: "Multi-Factor Authentication (MFA) is **required** for all admin and moderator accounts to protect against credential compromise and unauthorized access. This document explains how to set up and manage"
 tags: ["operations","guide"]
 area: "operations"

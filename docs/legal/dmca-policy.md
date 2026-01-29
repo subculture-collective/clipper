@@ -1,5 +1,5 @@
 ---
-title: "Dmca Policy"
+title: "DMCA Policy"
 summary: "**Last Updated:** December 12, 2025"
 tags: ["legal"]
 area: "legal"

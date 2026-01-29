@@ -1,5 +1,5 @@
 ---
-title: "Oauth Scopes"
+title: "OAuth Scopes"
 summary: "**Last Updated:** 2025-12-29"
 tags: ["compliance"]
 area: "compliance"

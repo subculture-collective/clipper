@@ -1,5 +1,5 @@
 ---
-title: "Hpa Scaling"
+title: "HPA Scaling"
 summary: "This runbook covers Horizontal Pod Autoscaler (HPA) operations, troubleshooting, and best practices for the Clipper backend and frontend services."
 tags: ["operations"]
 area: "operations"

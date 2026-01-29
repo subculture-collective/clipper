@@ -1,5 +1,5 @@
 ---
-title: "Api Playlist Sharing"
+title: "API Playlist Sharing"
 summary: "This document describes the API endpoints for playlist sharing and collaborative features."
 tags: ["backend","api"]
 area: "backend"

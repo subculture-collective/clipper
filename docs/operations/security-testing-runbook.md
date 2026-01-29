@@ -1,6 +1,6 @@
 ---
 title: "Security Testing Runbook"
-summary: "```bash"
+summary: "This runbook provides quick reference procedures for IDOR and authorization security testing."
 tags: ["operations","testing","runbook"]
 area: "operations"
 status: "stable"
