@@ -12,76 +12,13 @@ aliases: ["runbook", "ops procedures"]
 
 # Operations Runbook
 
-Operational procedures and commands for managing Clipper in production.
+> **Note**: The comprehensive operations runbook is maintained at [[../operations/runbook|operations/runbook.md]]. This page provides quick deployment-specific procedures.
 
-## Common Tasks
+For complete operational procedures including monitoring, incident response, deployment testing, and rollback drills, see [[../operations/runbook|Operations Runbook]].
 
-### Check Service Health
+## Quick Deployment Procedures
 
-```bash
-# All services
-kubectl get pods -n clipper
-
-# Specific service
-kubectl describe pod backend-xyz -n clipper
-
-# Logs
-kubectl logs -f deployment/backend -n clipper
-```
-
-### Database Operations
-
-```bash
-# Connect to database
-psql $POSTGRES_URL
-
-# Check connection count
-psql -c "SELECT count(*) FROM pg_stat_activity;"
-
-# Kill long-running query
-psql -c "SELECT pg_terminate_backend(PID);"
-
-# Run migrations
-kubectl exec -it backend-pod -- make migrate-up
-```
-
-### Search Operations
-
-```bash
-# Cluster health
-curl https://opensearch.clipper.app/_cluster/health
-
-# Reindex from PostgreSQL
-kubectl exec -it backend-pod -- go run cmd/backfill-search/main.go
-
-# Force refresh
-curl -X POST https://opensearch.clipper.app/_refresh
-```
-
-### Cache Operations
-
-```bash
-# Connect to Redis
-kubectl exec -it redis-pod -- redis-cli
-
-# Clear cache
-redis-cli FLUSHDB
-
-# Check memory usage
-redis-cli INFO memory
-```
-
-### Scaling
-
-```bash
-# Scale backend pods
-kubectl scale deployment backend --replicas=5 -n clipper
-
-# Horizontal Pod Autoscaler
-kubectl autoscale deployment backend --cpu-percent=70 --min=3 --max=10 -n clipper
-```
-
-### Deployments
+### Deploy New Version
 
 ```bash
 # Deploy new version
@@ -90,70 +27,64 @@ kubectl set image deployment/backend backend=clipper:v1.2.3 -n clipper
 # Check rollout status
 kubectl rollout status deployment/backend -n clipper
 
-# Rollback
+# Rollback if needed
 kubectl rollout undo deployment/backend -n clipper
 ```
 
-### Database Backups
+### Pre-Deployment Checklist
 
-```bash
-# Manual backup
-pg_dump $POSTGRES_URL > backup_$(date +%Y%m%d).sql
+1. **Run Deployment Tests**: Verify all deployment scripts pass tests
+   ```bash
+   cd scripts && ./test-deployment-harness.sh
+   ```
 
-# Restore
-psql $POSTGRES_URL < backup_20251130.sql
-```
+2. **Run Rollback Drill**: Validate rollback procedures
+   ```bash
+   DRY_RUN=true ./rollback-drill.sh
+   ```
 
-## Incident Scenarios
+3. **Review Artifacts**: Check logs and reports for warnings
 
-### High Error Rate
+4. **Staging Rehearsal**: Full end-to-end test
+   ```bash
+   ./staging-rehearsal.sh
+   ```
 
-1. Check logs: `kubectl logs -f deployment/backend`
-2. Check metrics: Grafana dashboard
-3. Recent deploy? Rollback: `kubectl rollout undo`
-4. Database issue? Check connections, slow queries
-5. External API down? Enable circuit breaker
+### Post-Deployment Verification
 
-### High Latency
+1. Check service health: `kubectl get pods -n clipper`
+2. Check logs: `kubectl logs -f deployment/backend -n clipper`
+3. Verify metrics in Grafana
+4. Run smoke tests
+5. Monitor for 30 minutes
 
-1. Check p95/p99 metrics
-2. Database slow? Check `pg_stat_statements`
-3. Cache cold? Warm up or increase TTL
-4. Scale up: `kubectl scale deployment backend --replicas=N`
+## Common Deployment Issues
 
-### Database Connection Exhaustion
+### Deployment Stuck
 
-1. Check active connections
-2. Kill idle/long-running queries
-3. Increase connection pool size (restart required)
-4. Add read replicas if read-heavy
+1. Check pod events: `kubectl describe pod <pod-name> -n clipper`
+2. Check resource limits and quotas
+3. Verify image pull credentials
+4. Check for failing health checks
 
-### OpenSearch Cluster Red
+### Rolling Update Failed
 
-1. Check cluster health
-2. Identify problematic indices
-3. Delete/recreate if needed
-4. Reindex from PostgreSQL
+1. Check rollout status: `kubectl rollout status deployment/backend -n clipper`
+2. Review pod logs for errors
+3. Rollback: `kubectl rollout undo deployment/backend -n clipper`
+4. Investigate and fix issues before re-deploying
 
-### Out of Disk Space
+## Related Documentation
 
-1. Check disk usage: `df -h`
-2. Clear old logs, backups
-3. Increase volume size (cloud provider)
-4. Add log rotation policy
-
-## Maintenance Windows
-
-Planned maintenance:
-1. Announce in advance (status page, email)
-2. Enable maintenance mode (static page)
-3. Run migrations, upgrades
-4. Test thoroughly
-5. Re-enable traffic
-6. Monitor for 30 minutes
+- [[../operations/runbook|Operations Runbook]] - Complete operational procedures
+- [[docker|Docker Deployment]] - Container-based deployment guide
+- [[ci_cd|CI/CD Pipeline]] - Automated deployment workflows
+- [[../operations/blue-green-deployment|Blue-Green Deployment]] - Zero-downtime deployments
+- [[../operations/preflight|Preflight Checklist]] - Pre-deployment validation
 
 ---
 
-Related: [[../operations/monitoring|Monitoring]] · [[infra|Infrastructure]] · [[docker|Docker Deployment]]
-
-[[index|← Back to Deployment]]
+**See also:**
+[[../operations/runbook|Full Operations Runbook]] ·
+[[index|Deployment Index]] ·
+[[../index|Documentation Home]]
