@@ -50,7 +50,7 @@ check_dependencies() {
     local missing=0
     
     for cmd in curl jq; do
-        if ! command -v $cmd &> /dev/null; then
+        if ! command -v "$cmd" &> /dev/null; then
             log_error "Required command not found: $cmd"
             missing=$((missing + 1))
         fi
@@ -74,7 +74,7 @@ generate_latency_signal() {
     
     while [ "$(date +%s)" -lt $end_time ]; do
         # Generate high latency metric
-        cat <<EOF | curl --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/${service}/instance/test
+        if ! curl --fail --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/${service}/instance/test 2>/dev/null <<EOF
 # HELP http_request_duration_seconds HTTP request duration in seconds
 # TYPE http_request_duration_seconds histogram
 http_request_duration_seconds_bucket{path="/api/v1/clips",method="GET",le="0.005"} 0
@@ -89,6 +89,10 @@ http_request_duration_seconds_bucket{path="/api/v1/clips",method="GET",le="+Inf"
 http_request_duration_seconds_sum{path="/api/v1/clips",method="GET"} $(echo "scale=3; $latency_ms / 1000 * 100" | bc)
 http_request_duration_seconds_count{path="/api/v1/clips",method="GET"} 100
 EOF
+        then
+            log_error "Failed to push latency metrics to Pushgateway"
+            return 1
+        fi
         
         log_info "Sent latency signal: ${latency_ms}ms"
         sleep 5
@@ -112,12 +116,16 @@ generate_error_rate_signal() {
     
     while [ "$(date +%s)" -lt $end_time ]; do
         # Generate error rate metric
-        cat <<EOF | curl --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/${service}/instance/test
+        if ! curl --fail --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/${service}/instance/test 2>/dev/null <<EOF
 # HELP http_requests_total Total HTTP requests
 # TYPE http_requests_total counter
 http_requests_total{status="2xx"} ${success_requests}
 http_requests_total{status="5xx"} ${error_requests}
 EOF
+        then
+            log_error "Failed to push error rate metrics to Pushgateway"
+            return 1
+        fi
         
         log_info "Sent error rate signal: ${error_rate} (${error_requests}/${total_requests})"
         sleep 5
@@ -138,11 +146,15 @@ generate_queue_depth_signal() {
     
     while [ "$(date +%s)" -lt $end_time ]; do
         # Generate queue depth metric
-        cat <<EOF | curl --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/background-jobs/instance/test
+        if ! curl --fail --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/background-jobs/instance/test 2>/dev/null <<EOF
 # HELP ${queue_name}_size Current queue size
 # TYPE ${queue_name}_size gauge
 ${queue_name}_size{job_name="webhook_retry"} ${queue_size}
 EOF
+        then
+            log_error "Failed to push queue depth metrics to Pushgateway"
+            return 1
+        fi
         
         log_info "Sent queue depth signal: ${queue_size} items"
         sleep 5
@@ -166,12 +178,16 @@ generate_webhook_failure_signal() {
     
     while [ "$(date +%s)" -lt $end_time ]; do
         # Generate webhook delivery metrics
-        cat <<EOF | curl --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/${service}/instance/test
+        if ! curl --fail --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/${service}/instance/test 2>/dev/null <<EOF
 # HELP webhook_delivery_total Total webhook deliveries
 # TYPE webhook_delivery_total counter
 webhook_delivery_total{status="success"} ${success_deliveries}
 webhook_delivery_total{status="failed"} ${failed_deliveries}
 EOF
+        then
+            log_error "Failed to push webhook failure metrics to Pushgateway"
+            return 1
+        fi
         
         log_info "Sent webhook failure signal: ${failure_rate} (${failed_deliveries}/${total_deliveries})"
         sleep 5
@@ -192,11 +208,15 @@ generate_search_failover_signal() {
     
     while [ "$(date +%s)" -lt $end_time ]; do
         # Generate search failover metrics
-        cat <<EOF | curl --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/${service}/instance/test
+        if ! curl --fail --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/${service}/instance/test 2>/dev/null <<EOF
 # HELP search_failover_total Total search failovers
 # TYPE search_failover_total counter
 search_failover_total{from="opensearch",to="postgres"} ${failover_rate}
 EOF
+        then
+            log_error "Failed to push search failover metrics to Pushgateway"
+            return 1
+        fi
         
         log_info "Sent search failover signal: ${failover_rate} failovers"
         sleep 5
@@ -218,7 +238,7 @@ generate_cdn_failover_signal() {
     
     while [ "$(date +%s)" -lt $end_time ]; do
         # Generate CDN failover metrics
-        cat <<EOF | curl --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/${service}/instance/test
+        if ! curl --fail --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/${service}/instance/test 2>/dev/null <<EOF
 # HELP cdn_failover_total Total CDN failovers to origin
 # TYPE cdn_failover_total counter
 cdn_failover_total{cdn="cloudflare"} ${failover_rate}
@@ -233,6 +253,10 @@ cdn_failover_duration_ms_bucket{le="+Inf"} 100
 cdn_failover_duration_ms_sum 45000
 cdn_failover_duration_ms_count 100
 EOF
+        then
+            log_error "Failed to push CDN failover metrics to Pushgateway"
+            return 1
+        fi
         
         log_info "Sent CDN failover signal: ${failover_rate} failovers/sec"
         sleep 5
@@ -348,24 +372,50 @@ main() {
             ;;
         all)
             log_info "Running all signal generators..."
-            generate_latency_signal 30 150 &
-            generate_error_rate_signal 30 0.01 &
-            generate_queue_depth_signal 30 500 &
-            generate_webhook_failure_signal 30 0.15 &
-            generate_search_failover_signal 30 10 &
-            generate_cdn_failover_signal 30 10 &
-            wait
+            pids=()
+            generate_latency_signal 30 150 & pids+=($!)
+            generate_error_rate_signal 30 0.01 & pids+=($!)
+            generate_queue_depth_signal 30 500 & pids+=($!)
+            generate_webhook_failure_signal 30 0.15 & pids+=($!)
+            generate_search_failover_signal 30 10 & pids+=($!)
+            generate_cdn_failover_signal 30 10 & pids+=($!)
+            
+            failed=0
+            for pid in "${pids[@]}"; do
+                if ! wait "$pid"; then
+                    failed=1
+                    log_error "Signal generator with PID $pid failed"
+                fi
+            done
+            
+            if [ "$failed" -ne 0 ]; then
+                log_error "One or more signal generators failed"
+                exit 1
+            fi
             log_success "All signal generators complete"
             ;;
         recovery)
             local recovery_type=${2:-all}
+            
+            # Validate recovery type
+            case "$recovery_type" in
+                all|latency|error-rate|queue-depth|webhook-failure|search-failover|cdn-failover)
+                    # valid recovery type
+                    ;;
+                *)
+                    log_error "Invalid recovery type: '$recovery_type'"
+                    echo "Valid recovery types: all, latency, error-rate, queue-depth, webhook-failure, search-failover, cdn-failover"
+                    exit 1
+                    ;;
+            esac
+            
             if [ "$recovery_type" = "all" ]; then
                 for type in latency error-rate queue-depth webhook-failure search-failover cdn-failover; do
-                    generate_recovery_signal $type
+                    generate_recovery_signal "$type"
                     sleep 1
                 done
             else
-                generate_recovery_signal $recovery_type
+                generate_recovery_signal "$recovery_type"
             fi
             ;;
         help|*)

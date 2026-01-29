@@ -43,31 +43,6 @@ jobs:
     timeout-minutes: 45
     
     services:
-      prometheus:
-        image: prom/prometheus:v2.48.0
-        ports:
-          - 9090:9090
-        volumes:
-          - ${{ github.workspace }}/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-          - ${{ github.workspace }}/monitoring/alerts.yml:/etc/prometheus/alerts.yml
-        options: >-
-          --health-cmd "wget --spider http://localhost:9090/-/healthy || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-      
-      alertmanager:
-        image: prom/alertmanager:v0.26.0
-        ports:
-          - 9093:9093
-        volumes:
-          - ${{ github.workspace }}/monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
-        options: >-
-          --health-cmd "wget --spider http://localhost:9093/-/healthy || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-      
       pushgateway:
         image: prom/pushgateway:v1.6.2
         ports:
@@ -85,36 +60,74 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y curl jq bc
+          sudo apt-get install -y curl jq bc wget
+      
+      - name: Start Prometheus and Alertmanager
+        run: |
+          # Start Prometheus with configuration
+          docker run -d --name prometheus \
+            --network host \
+            -v ${{ github.workspace }}/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml \
+            -v ${{ github.workspace }}/monitoring/alerts.yml:/etc/prometheus/alerts.yml \
+            prom/prometheus:v2.48.0 \
+            --config.file=/etc/prometheus/prometheus.yml \
+            --web.enable-lifecycle
+          
+          # Start Alertmanager with configuration
+          docker run -d --name alertmanager \
+            --network host \
+            -v ${{ github.workspace }}/monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml \
+            prom/alertmanager:v0.26.0 \
+            --config.file=/etc/alertmanager/alertmanager.yml
       
       - name: Wait for services to be ready
         run: |
           echo "Waiting for Prometheus..."
+          ready=false
           for i in {1..30}; do
             if curl -s http://localhost:9090/-/healthy > /dev/null 2>&1; then
               echo "Prometheus is ready"
+              ready=true
               break
             fi
             sleep 2
           done
+          if [ "$ready" = false ]; then
+            echo "ERROR: Prometheus failed to become ready"
+            docker logs prometheus
+            exit 1
+          fi
           
           echo "Waiting for Alertmanager..."
+          ready=false
           for i in {1..30}; do
             if curl -s http://localhost:9093/-/healthy > /dev/null 2>&1; then
               echo "Alertmanager is ready"
+              ready=true
               break
             fi
             sleep 2
           done
+          if [ "$ready" = false ]; then
+            echo "ERROR: Alertmanager failed to become ready"
+            docker logs alertmanager
+            exit 1
+          fi
           
           echo "Waiting for Pushgateway..."
+          ready=false
           for i in {1..30}; do
             if curl -s http://localhost:9091/-/healthy > /dev/null 2>&1; then
               echo "Pushgateway is ready"
+              ready=true
               break
             fi
             sleep 2
           done
+          if [ "$ready" = false ]; then
+            echo "ERROR: Pushgateway failed to become ready"
+            exit 1
+          fi
       
       - name: Validate alert rules syntax
         run: |
@@ -165,7 +178,7 @@ jobs:
       - name: Generate validation report
         if: always()
         run: |
-          cat > monitoring/validation-report.md << 'EOF'
+          cat > monitoring/validation-report.md << EOF
           # Alert Validation Report
           
           **Date**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
@@ -179,17 +192,17 @@ jobs:
           
           **Result**: ${{ steps.alert_tests.outputs.test_result || 'skipped' }}
           
-          ```
+          \`\`\`
           $(cat monitoring/tests/alert-validation-results.txt 2>/dev/null || echo "No results available")
-          ```
+          \`\`\`
           
           ### Dashboard Validation Tests
           
           **Result**: ${{ steps.dashboard_tests.outputs.test_result || 'skipped' }}
           
-          ```
+          \`\`\`
           $(cat monitoring/tests/dashboard-validation-results.txt 2>/dev/null || echo "No results available")
-          ```
+          \`\`\`
           
           ## Summary
           
@@ -211,26 +224,6 @@ jobs:
             monitoring/tests/alert-validation-results.txt
             monitoring/tests/dashboard-validation-results.txt
           retention-days: 30
-      
-      - name: Comment on PR (if applicable)
-        if: github.event_name == 'pull_request' && always()
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const fs = require('fs');
-            const reportPath = 'monitoring/validation-report.md';
-            
-            if (fs.existsSync(reportPath)) {
-              const report = fs.readFileSync(reportPath, 'utf8');
-              
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: report
-              });
-            }
       
       - name: Fail workflow if tests failed
         if: steps.alert_tests.outputs.test_result == 'failure' || steps.dashboard_tests.outputs.test_result == 'failure'

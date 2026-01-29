@@ -90,7 +90,7 @@ compare_metrics() {
     fi
     
     local diff=$(echo "scale=4; ($actual - $expected) / $expected" | bc -l)
-    local abs_diff=$(echo "scale=4; if ($diff < 0) -$diff else $diff" | bc -l)
+    local abs_diff=$(echo "scale=4; if (($diff) < 0) (-($diff)) else ($diff)" | bc -l)
     
     local is_within_tolerance=$(echo "$abs_diff <= $METRIC_TOLERANCE" | bc -l)
     
@@ -120,7 +120,7 @@ test_slo_dashboard() {
     bash "$generator" latency 30 150 > /dev/null 2>&1 &
     local gen_pid=$!
     
-    sleep 35
+    sleep 25
     
     # Query latency metric
     log_info "Querying latency metric..."
@@ -138,7 +138,9 @@ test_slo_dashboard() {
     fi
     
     # Clean up
-    kill $gen_pid 2>/dev/null || true
+    if [ -n "$gen_pid" ] && kill -0 "$gen_pid" 2>/dev/null; then
+        kill "$gen_pid" 2>/dev/null || true
+    fi
     bash "$generator" recovery latency > /dev/null 2>&1
 }
 
@@ -172,7 +174,9 @@ test_webhook_dashboard() {
     fi
     
     # Clean up
-    kill $gen_pid 2>/dev/null || true
+    if [ -n "$gen_pid" ] && kill -0 "$gen_pid" 2>/dev/null; then
+        kill "$gen_pid" 2>/dev/null || true
+    fi
     bash "$generator" recovery webhook-failure > /dev/null 2>&1
 }
 
@@ -206,7 +210,9 @@ test_background_jobs_dashboard() {
     fi
     
     # Clean up
-    kill $gen_pid 2>/dev/null || true
+    if [ -n "$gen_pid" ] && kill -0 "$gen_pid" 2>/dev/null; then
+        kill "$gen_pid" 2>/dev/null || true
+    fi
     bash "$generator" recovery queue-depth > /dev/null 2>&1
 }
 
@@ -237,7 +243,9 @@ test_search_dashboard() {
     fi
     
     # Clean up
-    kill $gen_pid 2>/dev/null || true
+    if [ -n "$gen_pid" ] && kill -0 "$gen_pid" 2>/dev/null; then
+        kill "$gen_pid" 2>/dev/null || true
+    fi
     bash "$generator" recovery search-failover > /dev/null 2>&1
 }
 
@@ -268,7 +276,9 @@ test_cdn_dashboard() {
     fi
     
     # Clean up
-    kill $gen_pid 2>/dev/null || true
+    if [ -n "$gen_pid" ] && kill -0 "$gen_pid" 2>/dev/null; then
+        kill "$gen_pid" 2>/dev/null || true
+    fi
     bash "$generator" recovery cdn-failover > /dev/null 2>&1
 }
 
