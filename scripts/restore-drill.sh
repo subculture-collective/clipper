@@ -361,29 +361,29 @@ report_metrics() {
     log_info "Reporting metrics to $pushgateway..."
     
     cat <<METRICS | curl --data-binary @- "${pushgateway}/metrics/job/restore_drill" 2>/dev/null || log_warn "Failed to push metrics to Prometheus"
-# TYPE restore_drill_success gauge
 # HELP restore_drill_success Whether the last restore drill succeeded (1 = success, 0 = failure)
+# TYPE restore_drill_success gauge
 restore_drill_success ${DRILL_SUCCESS}
-# TYPE restore_drill_timestamp gauge
 # HELP restore_drill_timestamp Unix timestamp of the last restore drill
+# TYPE restore_drill_timestamp gauge
 restore_drill_timestamp ${DRILL_TIMESTAMP}
-# TYPE restore_drill_duration_seconds gauge
 # HELP restore_drill_duration_seconds Duration of the restore operation in seconds
+# TYPE restore_drill_duration_seconds gauge
 restore_drill_duration_seconds ${RESTORE_DURATION_SECONDS}
-# TYPE restore_drill_rpo_seconds gauge
 # HELP restore_drill_rpo_seconds Recovery Point Objective in seconds (backup age)
+# TYPE restore_drill_rpo_seconds gauge
 restore_drill_rpo_seconds ${RPO_SECONDS}
-# TYPE restore_drill_clip_count gauge
 # HELP restore_drill_clip_count Number of clips in restored database
+# TYPE restore_drill_clip_count gauge
 restore_drill_clip_count ${CLIP_COUNT}
-# TYPE restore_drill_user_count gauge
 # HELP restore_drill_user_count Number of users in restored database
+# TYPE restore_drill_user_count gauge
 restore_drill_user_count ${USER_COUNT}
-# TYPE restore_drill_rto_met gauge
 # HELP restore_drill_rto_met Whether RTO target was met (1 = met, 0 = not met)
+# TYPE restore_drill_rto_met gauge
 restore_drill_rto_met ${RTO_MET}
-# TYPE restore_drill_rpo_met gauge
 # HELP restore_drill_rpo_met Whether RPO target was met (1 = met, 0 = not met)
+# TYPE restore_drill_rpo_met gauge
 restore_drill_rpo_met ${RPO_MET}
 METRICS
     

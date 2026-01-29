@@ -247,7 +247,7 @@ verify_cross_region() {
         # Check bucket location type
         local location=$(gsutil ls -L -b "gs://${BACKUP_BUCKET}" 2>/dev/null | grep -iE "Location type:|Location:" | awk '{print $NF}' || echo "")
         
-        if echo "$location" | grep -qiE "multi-region|dual-region|region-us|region-eu|region-asia"; then
+        if echo "$location" | grep -qiE "multi-region|dual-region|^(US|EU|ASIA)$"; then
             log_info "✓ GCS bucket is multi-region or geo-redundant: $location"
             CROSS_REGION_VERIFIED=1
         else
@@ -298,23 +298,23 @@ report_metrics() {
     log_info "Reporting metrics to $pushgateway..."
     
     cat <<METRICS | curl --data-binary @- "${pushgateway}/metrics/job/backup_validation" 2>/dev/null || log_warn "Failed to push metrics to Prometheus"
-# TYPE backup_validation_success gauge
 # HELP backup_validation_success Whether the last backup validation succeeded (1 = success, 0 = failure)
+# TYPE backup_validation_success gauge
 backup_validation_success ${VALIDATION_SUCCESS}
-# TYPE backup_validation_timestamp gauge
 # HELP backup_validation_timestamp Unix timestamp of the last backup validation
+# TYPE backup_validation_timestamp gauge
 backup_validation_timestamp ${VALIDATION_TIMESTAMP}
-# TYPE backup_age_hours gauge
 # HELP backup_age_hours Age of the latest backup in hours
+# TYPE backup_age_hours gauge
 backup_age_hours ${BACKUP_AGE_HOURS}
-# TYPE backup_size_mb gauge
 # HELP backup_size_mb Size of the latest backup in megabytes
+# TYPE backup_size_mb gauge
 backup_size_mb ${BACKUP_SIZE_MB}
-# TYPE backup_encryption_verified gauge
 # HELP backup_encryption_verified Whether backup encryption was verified (1 = verified, 0 = not verified)
+# TYPE backup_encryption_verified gauge
 backup_encryption_verified ${ENCRYPTION_VERIFIED}
-# TYPE backup_cross_region_verified gauge
 # HELP backup_cross_region_verified Whether cross-region storage was verified (1 = verified, 0 = not verified)
+# TYPE backup_cross_region_verified gauge
 backup_cross_region_verified ${CROSS_REGION_VERIFIED}
 METRICS
     

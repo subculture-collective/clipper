@@ -160,7 +160,6 @@ jobs:
             RPO: ${{ steps.results.outputs.rpo_seconds }}s (Target: 900s)
 
             Check logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          webhook_url: ${{ secrets.SLACK_WEBHOOK_OPERATIONS }}
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_OPERATIONS }}
 
@@ -198,6 +197,5 @@ jobs:
                 ]
               }]
             }
-          webhook_url: ${{ secrets.SLACK_WEBHOOK_OPERATIONS }}
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_OPERATIONS }}

@@ -1971,12 +1971,4 @@ groups:
           summary: "Restore drill duration critically high"
           description: "Restore drill took {{ $value }} seconds (over 2 hours), significantly exceeding acceptable recovery time."
           runbook: "Immediate optimization required. Review database size, backup format, network bandwidth, and restore process efficiency."
-        for: 5m
-        labels:
-          severity: critical
-          category: restore
-        annotations:
-          summary: "Restore drill duration critically high"
-          description: "Restore drill took {{ $value }} seconds (over 2 hours), significantly exceeding acceptable recovery time."
-          runbook: "Immediate optimization required. Review database size, backup format, network bandwidth, and restore process efficiency."
 
