@@ -161,32 +161,23 @@ simulate_deployment() {
     export BACKUP_TAG="backup-$(date +%Y%m%d-%H%M%S)"
     echo "$BACKUP_TAG" > "$DRILL_DIR/state/backup_tag"
     
-    # Update version to v2 and backup images
+    # Update version to v2
     log_step "Updating version to v2.0.0"
     
     if [ "$DRY_RUN" != true ]; then
         # Tag current nginx:alpine as backup before changing to v2
         docker tag nginx:alpine "drill-backup-v1:$BACKUP_TAG" 2>/dev/null || log_warn "Could not create v1 backup tag"
-        
-        # Update .env to point to new image versions
-        cat > "$DRILL_DIR/.env" <<EOF
-VERSION=v2.0.0
-ENVIRONMENT=$ENVIRONMENT
-DEPLOY_TAG=v2-deployment-$(date +%s)
-BACKEND_IMAGE=nginx:alpine
-FRONTEND_IMAGE=nginx:alpine
-COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME}
-EOF
-    else
-        cat > "$DRILL_DIR/.env" <<EOF
-VERSION=v2.0.0
-ENVIRONMENT=$ENVIRONMENT
-DEPLOY_TAG=v2-deployment-$(date +%s)
-BACKEND_IMAGE=nginx:alpine
-FRONTEND_IMAGE=nginx:alpine
-COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME}
-EOF
     fi
+    
+    # Update .env to point to new image versions
+    cat > "$DRILL_DIR/.env" <<EOF
+VERSION=v2.0.0
+ENVIRONMENT=$ENVIRONMENT
+DEPLOY_TAG=v2-deployment-$(date +%s)
+BACKEND_IMAGE=nginx:alpine
+FRONTEND_IMAGE=nginx:alpine
+COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME}
+EOF
     
     # Deploy v2 (using docker-compose)
     log_step "Deploying v2"
@@ -199,7 +190,9 @@ EOF
     
     # Capture post-deployment state
     echo "deployed-v2" > "$DRILL_DIR/state/current_state"
-    docker ps --format "{{.Names}}" > "$DRILL_DIR/state/deployed-containers.txt" 2>/dev/null || true
+    if [ "$DRY_RUN" != true ]; then
+        docker ps --format "{{.Names}}" > "$DRILL_DIR/state/deployed-containers.txt" 2>/dev/null || true
+    fi
     
     log_success "Deployment simulation complete"
 }
