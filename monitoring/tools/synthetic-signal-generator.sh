@@ -72,7 +72,7 @@ generate_latency_signal() {
     
     local end_time=$(($(date +%s) + duration))
     
-    while [ $(date +%s) -lt $end_time ]; do
+    while [ "$(date +%s)" -lt $end_time ]; do
         # Generate high latency metric
         cat <<EOF | curl --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/${service}/instance/test
 # HELP http_request_duration_seconds HTTP request duration in seconds
@@ -110,7 +110,7 @@ generate_error_rate_signal() {
     local error_requests=$(echo "$total_requests * $error_rate" | bc | cut -d. -f1)
     local success_requests=$((total_requests - error_requests))
     
-    while [ $(date +%s) -lt $end_time ]; do
+    while [ "$(date +%s)" -lt $end_time ]; do
         # Generate error rate metric
         cat <<EOF | curl --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/${service}/instance/test
 # HELP http_requests_total Total HTTP requests
@@ -136,7 +136,7 @@ generate_queue_depth_signal() {
     
     local end_time=$(($(date +%s) + duration))
     
-    while [ $(date +%s) -lt $end_time ]; do
+    while [ "$(date +%s)" -lt $end_time ]; do
         # Generate queue depth metric
         cat <<EOF | curl --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/background-jobs/instance/test
 # HELP ${queue_name}_size Current queue size
@@ -164,7 +164,7 @@ generate_webhook_failure_signal() {
     local failed_deliveries=$(echo "$total_deliveries * $failure_rate" | bc | cut -d. -f1)
     local success_deliveries=$((total_deliveries - failed_deliveries))
     
-    while [ $(date +%s) -lt $end_time ]; do
+    while [ "$(date +%s)" -lt $end_time ]; do
         # Generate webhook delivery metrics
         cat <<EOF | curl --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/${service}/instance/test
 # HELP webhook_delivery_total Total webhook deliveries
@@ -190,7 +190,7 @@ generate_search_failover_signal() {
     
     local end_time=$(($(date +%s) + duration))
     
-    while [ $(date +%s) -lt $end_time ]; do
+    while [ "$(date +%s)" -lt $end_time ]; do
         # Generate search failover metrics
         cat <<EOF | curl --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/${service}/instance/test
 # HELP search_failover_total Total search failovers
@@ -216,7 +216,7 @@ generate_cdn_failover_signal() {
     
     local end_time=$(($(date +%s) + duration))
     
-    while [ $(date +%s) -lt $end_time ]; do
+    while [ "$(date +%s)" -lt $end_time ]; do
         # Generate CDN failover metrics
         cat <<EOF | curl --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/${service}/instance/test
 # HELP cdn_failover_total Total CDN failovers to origin

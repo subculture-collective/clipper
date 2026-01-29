@@ -162,7 +162,7 @@ This document provides documentation on alert validation testing, false-positive
 
 ### False Positive Reduction Strategies
 
-1. **For** Clause Tuning**: Increase `for` duration for volatile metrics
+1. **"for" Clause Tuning**: Increase `for` duration for volatile metrics
 2. **Alert Aggregation**: Group related alerts to reduce noise
 3. **Intelligent Routing**: Route low-severity alerts to monitoring channel vs. pages
 4. **Anomaly Detection**: Use ML-based thresholds for dynamic workloads

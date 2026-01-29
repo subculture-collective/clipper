@@ -184,7 +184,7 @@ check_flapping() {
     local previous_state=""
     local end_time=$(($(date +%s) + duration))
     
-    while [ $(date +%s) -lt $end_time ]; do
+    while [ "$(date +%s)" -lt $end_time ]; do
         local alert_response=$(curl -s "${PROMETHEUS_API}/alerts" | jq -r ".data.alerts[] | select(.labels.alertname==\"$alert_name\")")
         local current_state="inactive"
         
