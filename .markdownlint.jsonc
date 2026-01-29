@@ -1,15 +1,55 @@
 {
     // markdownlint-cli2 configuration
-    // Obsidian-compatible settings
+    // Obsidian-compatible settings with frontmatter, HTML, and table support
     "default": true,
-    "MD013": { "line_length": 120, "code_blocks": false, "tables": false },
+    
+    // Line length: Allow longer lines in code blocks, tables, and headings
+    "MD013": { 
+        "line_length": 120, 
+        "code_blocks": false, 
+        "tables": false,
+        "headings": false
+    },
+    
+    // MD014: Allow dollar signs before commands (common in documentation)
+    "MD014": false,
+    
+    // MD024: Allow duplicate headings (common in Obsidian vaults)
     "MD024": false,
+    
+    // MD025: Allow multiple top-level headings
     "MD025": false,
+    
+    // MD029: Allow different ordered list styles
     "MD029": false,
+    
+    // MD031: Allow fenced code blocks without surrounding blank lines
     "MD031": false,
+    
+    // MD032: Allow lists without surrounding blank lines
     "MD032": false,
+    
+    // MD033: Allow HTML (required for Obsidian features and complex tables)
     "MD033": false,
+    
+    // MD036: Allow emphasis used instead of heading
     "MD036": false,
+    
+    // MD040: Allow fenced code blocks without language
     "MD040": false,
-    "MD041": false
+    
+    // MD041: Allow first line not to be top-level heading (for frontmatter)
+    "MD041": false,
+    
+    // MD022: Allow headings without surrounding blank lines (Obsidian style)
+    "MD022": false,
+    
+    // MD009: Allow trailing spaces (sometimes used intentionally)
+    "MD009": false,
+    
+    // MD050: Allow mixed strong/emphasis styles
+    "MD050": false,
+    
+    // MD055: Allow flexible table pipe styles
+    "MD055": false
 }

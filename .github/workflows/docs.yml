@@ -1,5 +1,18 @@
 name: Docs CI
 
+# CI Quality Enforcement for Documentation (Roadmap 5.0)
+# Related issues: #803, #845, #846, #805
+# 
+# This workflow enforces documentation quality standards including:
+# - Markdown linting (frontmatter, HTML, tables)
+# - Spell checking (ignoring wikilinks, block refs, tags)
+# - Link validation (ignoring localhost)
+# - Anchor validation
+# - Orphan detection (BFS from /docs/index.md)
+# - Unused asset detection
+#
+# All checks exclude vault/** directory
+
 on:
   pull_request:
     paths:
@@ -9,6 +22,7 @@ on:
       - '.markdownlint.jsonc'
       - '.cspell.json'
       - '.lycheeignore'
+      - 'package.json'
   push:
     branches:
       - main
@@ -16,9 +30,14 @@ on:
       - 'docs/**'
       - 'README.md'
       - 'scripts/check-*.js'
+      - '.markdownlint.jsonc'
+      - '.cspell.json'
+      - '.lycheeignore'
+      - 'package.json'
 
 jobs:
-  docs:
+  docs-quality-check:
+    name: Documentation Quality Enforcement
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -29,36 +48,71 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install dependencies
+      - name: Install Node dependencies
         run: npm ci
+
+      - name: Install lychee link checker
+        uses: lycheeverse/lychee-action@v1.9.3
+        with:
+          args: --version
 
       - name: Lint markdown files
         run: npm run docs:lint
+        continue-on-error: false
 
       - name: Check spelling
         run: npm run docs:spell
+        continue-on-error: false
 
       - name: Check links
         run: npm run docs:links
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Check anchors
         run: npm run docs:anchors
+        continue-on-error: false
 
       - name: Check orphans
         run: npm run docs:orphans
+        continue-on-error: false
 
       - name: Check assets
         run: npm run docs:assets
+        continue-on-error: false
 
-      - name: Comment PR with results
+      - name: Comment PR with failure details
         if: failure() && github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
+            const message = `❌ **Documentation Quality Check Failed**
+            
+            One or more documentation quality checks have failed. Please review the logs above for details.
+            
+            **Common fixes:**
+            - **Lint errors**: Fix markdown formatting issues or update .markdownlint.jsonc
+            - **Spelling errors**: Fix typos or add words to .cspell.json
+            - **Broken links**: Fix URLs or add to .lycheeignore
+            - **Invalid anchors**: Fix heading references or create missing headings
+            - **Orphan pages**: Link pages from /docs/index.md or move to archive/
+            - **Unused assets**: Remove unused files or add references
+            
+            **Related Issues:** #803, #845, #846, #805`;
+            
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '❌ Documentation validation failed. Please check the logs for details.'
+              body: message
             })
+
+      - name: Mark success
+        if: success()
+        run: |
+          echo "✅ All documentation quality checks passed!"
+          echo "- Markdown linting: PASSED"
+          echo "- Spell checking: PASSED"
+          echo "- Link validation: PASSED"
+          echo "- Anchor validation: PASSED"
+          echo "- Orphan detection: PASSED"
+          echo "- Asset checking: PASSED"
