@@ -1035,3 +1035,188 @@ Next steps:
 
 See [Migration Plan](../docs/MIGRATION_PLAN.md) for detailed procedures.
 
+## Backup & Restore Validation Scripts
+
+### validate-backup.sh
+
+**NEW** - Automated nightly backup validation script that verifies backup completion, encryption, and cross-region storage.
+
+**Features**:
+- Verifies latest backup exists in cloud storage (GCP, AWS, or Azure)
+- Checks backup age (< 24 hours by default)
+- Validates backup size meets minimum requirements
+- Verifies encryption at rest
+- Checks cross-region/geo-redundant storage
+- Reports metrics to Prometheus pushgateway
+- Generates validation log with timestamps
+
+**Usage**:
+
+```bash
+# Run backup validation
+export CLOUD_PROVIDER="gcp"  # or "aws", "azure"
+export BACKUP_BUCKET="clipper-backups-prod"
+./scripts/validate-backup.sh
+
+# With custom settings
+export MAX_BACKUP_AGE_HOURS="24"
+export MIN_BACKUP_SIZE_MB="1"
+export PROMETHEUS_PUSHGATEWAY="http://prometheus-pushgateway:9091"
+./scripts/validate-backup.sh
+```
+
+**Environment Variables**:
+- `CLOUD_PROVIDER`: Cloud provider (gcp, aws, or azure)
+- `BACKUP_BUCKET`: Backup bucket/container name
+- `AZURE_STORAGE_ACCOUNT`: Azure storage account (Azure only)
+- `MAX_BACKUP_AGE_HOURS`: Maximum acceptable backup age (default: 24)
+- `MIN_BACKUP_SIZE_MB`: Minimum backup size in MB (default: 1)
+- `PROMETHEUS_PUSHGATEWAY`: Pushgateway URL for metrics (optional)
+- `VALIDATION_LOG`: Log file path (default: /var/log/clipper/backup-validation.log)
+
+**Validation Checks**:
+1. Backup exists in cloud storage
+2. Backup age < 24 hours
+3. Backup size > 1 MB
+4. Encryption enabled
+5. Cross-region storage configured
+
+**Exit Codes**:
+- `0`: All validations passed
+- `1`: One or more validations failed
+
+**Example Output**:
+
+```
+=== Backup Validation Started at 2026-01-29 03:00:00 ===
+[INFO] Configuration:
+[INFO]   Cloud Provider: gcp
+[INFO]   Backup Bucket: clipper-backups-prod
+[INFO]   Max Backup Age: 24h
+[INFO]   Min Backup Size: 1MB
+[INFO] Checking GCS bucket: gs://clipper-backups-prod/database/
+[INFO] Latest backup: gs://clipper-backups-prod/database/postgres-backup-20260129-020000.sql.gz
+[INFO] Backup size: 147MB
+[INFO] Backup timestamp: 2026-01-29 02:00:00
+[INFO] Backup age: 1 hours
+[INFO] Verifying backup age...
+[INFO] ✓ Backup age is acceptable: 1h
+[INFO] Verifying backup size...
+[INFO] ✓ Backup size is acceptable: 147MB
+[INFO] Verifying backup encryption...
+[INFO] ✓ GCS bucket has encryption enabled
+[INFO] Verifying cross-region storage...
+[INFO] ✓ GCS bucket is multi-region or geo-redundant: US
+[INFO] ✓ All backup validations passed
+=== Backup Validation SUCCEEDED ===
+```
+
+**CI/CD Integration**:
+
+Automated via GitHub Actions workflow `.github/workflows/backup-validation.yml` - runs nightly at 3 AM UTC.
+
+### restore-drill.sh
+
+**NEW** - Monthly restore drill script that performs complete backup restoration and validates RTO/RPO targets.
+
+**Features**:
+- Downloads latest backup from cloud storage
+- Measures RPO (backup age) - target < 15 minutes
+- Creates temporary test database
+- Performs full restore operation
+- Measures RTO (restore duration) - target < 1 hour
+- Validates restored data integrity
+- Checks table counts and schema
+- Reports metrics to Prometheus pushgateway
+- Automatic cleanup of test resources
+
+**Usage**:
+
+```bash
+# Run restore drill
+export CLOUD_PROVIDER="gcp"
+export BACKUP_BUCKET="clipper-backups-prod"
+export POSTGRES_HOST="localhost"
+export POSTGRES_PASSWORD="your_password"
+./scripts/restore-drill.sh
+
+# With custom RTO/RPO targets
+export RTO_TARGET_SECONDS="3600"  # 1 hour
+export RPO_TARGET_SECONDS="900"   # 15 minutes
+./scripts/restore-drill.sh
+```
+
+**Environment Variables**:
+- `CLOUD_PROVIDER`: Cloud provider (gcp, aws, or azure)
+- `BACKUP_BUCKET`: Backup bucket/container name
+- `AZURE_STORAGE_ACCOUNT`: Azure storage account (Azure only)
+- `POSTGRES_HOST`: PostgreSQL host (default: localhost)
+- `POSTGRES_PORT`: PostgreSQL port (default: 5432)
+- `POSTGRES_USER`: PostgreSQL user (default: clipper)
+- `POSTGRES_PASSWORD`: PostgreSQL password (required)
+- `POSTGRES_DB`: PostgreSQL database (default: clipper)
+- `RTO_TARGET_SECONDS`: RTO target in seconds (default: 3600)
+- `RPO_TARGET_SECONDS`: RPO target in seconds (default: 900)
+- `PROMETHEUS_PUSHGATEWAY`: Pushgateway URL for metrics (optional)
+- `DRILL_LOG`: Log file path (default: /var/log/clipper/restore-drill.log)
+
+**Drill Operations**:
+1. Download latest backup
+2. Calculate RPO (backup age)
+3. Create test database
+4. Restore backup (timed for RTO)
+5. Validate data integrity
+6. Check RTO/RPO targets
+7. Cleanup test resources
+
+**Exit Codes**:
+- `0`: Drill passed, RTO/RPO targets met
+- `1`: Drill failed or targets not met
+
+**Example Output**:
+
+```
+=== Restore Drill Started at 2026-02-01 04:00:00 ===
+[INFO] Configuration:
+[INFO]   Cloud Provider: gcp
+[INFO]   Backup Bucket: clipper-backups-prod
+[INFO]   PostgreSQL Host: localhost:5432
+[INFO]   RTO Target: 3600s (60 minutes)
+[INFO]   RPO Target: 900s (15 minutes)
+[INFO] Finding latest backup...
+[INFO] Downloading backup from GCS...
+[INFO] ✓ Backup downloaded: /tmp/restore-drill-20260201-040000.sql.gz
+[INFO]   Size: 147MB
+[INFO]   Backup timestamp: 2026-02-01 02:00:00
+[INFO]   RPO (backup age): 720s (12 minutes)
+[INFO]   ✓ RPO target met
+[INFO] Creating test database: restore_drill_test_20260201_040000
+[INFO] ✓ Test database created
+[INFO] Starting restore operation...
+[INFO] ✓ Restore completed
+[INFO]   Duration: 1847s (31 minutes)
+[INFO]   ✓ RTO target met (1847s < 3600s)
+[INFO] Validating restored data...
+[INFO]   Clips count: 15423
+[INFO]   Users count: 3891
+[INFO]   Tables restored: 37
+[INFO] ✓ Data validation passed
+[INFO] ✓ All restore drill checks passed
+[INFO] Summary:
+[INFO]   - Restore Duration: 1847s (RTO: 3600s)
+[INFO]   - Backup Age: 720s (RPO: 900s)
+[INFO]   - Clips: 15423
+[INFO]   - Users: 3891
+=== Restore Drill SUCCEEDED ===
+```
+
+**CI/CD Integration**:
+
+Automated via GitHub Actions workflow `.github/workflows/restore-drill.yml` - runs monthly on the 1st at 4 AM UTC.
+
+**RTO/RPO Targets**:
+- **RTO (Recovery Time Objective)**: < 1 hour (3600 seconds)
+- **RPO (Recovery Point Objective)**: < 15 minutes (900 seconds)
+
+See [Backup & Recovery Runbook](../docs/operations/backup-recovery-runbook.md) for complete documentation.
+
