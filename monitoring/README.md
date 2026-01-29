@@ -44,7 +44,10 @@ See [Alertmanager Setup Guide](./ALERTMANAGER_SETUP.md) for configuration detail
 
 **Testing Alerts:**
 - [Alert Testing in Staging](../docs/operations/alert-testing-staging.md) - Procedures for testing alerts before production
+- [Alert Validation Runbook](../docs/operations/runbooks/alert-validation.md) - Complete guide for validating alert rules
 - Test script: `./test-alerts.sh` - Automated testing tool for alert validation and routing tests
+- Validation suite: `./tests/alert-validation-test.sh` - Comprehensive alert validation with synthetic signals
+- Dashboard validation: `./tests/dashboard-validation-test.sh` - Validate dashboard panel accuracy
 
 ## Quick Start
 
@@ -675,6 +678,70 @@ command:
    - Backup Prometheus data directory
    - Export Grafana dashboards
    - Version control configurations
+
+## Alert Validation
+
+Clipper includes a comprehensive alert validation pack to ensure monitoring alerts fire correctly, contain proper labels, and clear on recovery.
+
+### Quick Start
+
+```bash
+# Run all alert validation tests
+cd monitoring/tests
+./alert-validation-test.sh all
+
+# Run specific alert test
+./alert-validation-test.sh latency-alert
+
+# Validate dashboards
+./dashboard-validation-test.sh all
+
+# Generate synthetic signals for testing
+cd monitoring/tools
+./synthetic-signal-generator.sh latency 60 150
+```
+
+### Validation Tools
+
+**Synthetic Signal Generator** (`tools/synthetic-signal-generator.sh`):
+- Generates synthetic metrics to trigger alerts
+- Supports latency, error rate, queue depth, webhook failures, search failover, CDN failover
+- Includes recovery signal generation to clear alerts
+
+**Alert Validation Tests** (`tests/alert-validation-test.sh`):
+- Tests that alerts fire with correct labels (service, severity, runbook link)
+- Validates alerts clear on recovery
+- Checks for excessive flapping (< 2 state changes per 60s)
+- Comprehensive coverage of all critical alerts
+
+**Dashboard Validation Tests** (`tests/dashboard-validation-test.sh`):
+- Verifies dashboard panels display accurate metrics
+- Compares dashboard queries against synthetic signals
+- Ensures metric values within tolerance (5%)
+
+### Automated Validation
+
+Alert validation runs automatically via GitHub Actions:
+- **Daily**: At 02:00 UTC via cron schedule
+- **On Changes**: When monitoring configs are modified
+- **Results**: Published as workflow artifacts
+
+See `.github/workflows/alert-validation.yml` for workflow configuration.
+
+### Documentation
+
+- [Alert Validation Report](docs/ALERT_VALIDATION_REPORT.md) - False-positive rates, threshold tuning, validation results
+- [Alert Validation Runbook](../docs/operations/runbooks/alert-validation.md) - Step-by-step validation procedures
+- [Test Scripts README](tests/README.md) - Detailed usage of validation tools
+
+### Validation Coverage
+
+✓ **Latency Alerts**: SLOLatencyBreach (P95 > 100ms)
+✓ **Error Rate Alerts**: SLOErrorRateBreach (errors > 0.5%)
+✓ **Webhook Alerts**: HighWebhookFailureRate (failures > 10%)
+✓ **Search Failover**: SearchFailoverRateHigh (failovers > 5/min)
+✓ **CDN Failover**: CDNFailoverRateHigh (failovers > 5/sec)
+✓ **Queue Depth**: LargeWebhookRetryQueue (queue > 100 items)
 
 ## Resources
 
