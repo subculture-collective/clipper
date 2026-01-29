@@ -1,3 +1,14 @@
+---
+title: "FEATURE INVENTORY SWEEP II VERIFICATION"
+summary: "- [x] Feature inventory doc exists in `/docs/product/feature-inventory.md`"
+tags: ["product"]
+area: "product"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Feature Inventory & Verification Sweep II - Acceptance Criteria Checklist
 
 ## ✅ Acceptance Criteria from Issue

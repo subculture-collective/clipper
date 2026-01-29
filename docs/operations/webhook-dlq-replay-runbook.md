@@ -1,3 +1,14 @@
+---
+title: "Webhook Dlq Replay Runbook"
+summary: "This runbook provides operational procedures for managing and replaying failed webhook deliveries from the Dead-Letter Queue (DLQ). Use these procedures to ensure safe and effective recovery from webh"
+tags: ["operations","runbook"]
+area: "operations"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Webhook Dead-Letter Queue (DLQ) Replay Operations Runbook
 
 ## Overview

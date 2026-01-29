@@ -1,3 +1,14 @@
+---
+title: "README"
+summary: "This directory contains OpenAPI 3.0 specifications for the Clipper API."
+tags: ["openapi"]
+area: "openapi"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # OpenAPI Specifications
 
 This directory contains OpenAPI 3.0 specifications for the Clipper API.

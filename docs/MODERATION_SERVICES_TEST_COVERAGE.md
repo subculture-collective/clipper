@@ -1,3 +1,14 @@
+---
+title: "MODERATION SERVICES TEST COVERAGE"
+summary: "Comprehensive unit tests for backend moderation services have been implemented and enhanced, achieving >85% coverage for core service methods."
+tags: ["docs","testing"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Moderation Services Test Coverage Report
 
 ## Overview

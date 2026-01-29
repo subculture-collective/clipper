@@ -1,3 +1,14 @@
+---
+title: "FFMPEG JOB QUEUE"
+summary: "This implementation provides a Redis-based job queue system for processing FFmpeg video extraction jobs from live Twitch streams. When users create clips from live streams, a background job is enqueue"
+tags: ["docs"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # FFmpeg Video Extraction Job Queue
 
 ## Overview

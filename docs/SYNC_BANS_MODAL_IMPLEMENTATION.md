@@ -1,3 +1,14 @@
+---
+title: "SYNC BANS MODAL IMPLEMENTATION"
+summary: "Successfully implemented the SyncBansModal component as specified in issue #1037. This modal provides a complete user interface for synchronizing bans from Twitch channels to the local ban list."
+tags: ["docs","implementation"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Sync Bans Modal Implementation Summary
 
 ## Overview

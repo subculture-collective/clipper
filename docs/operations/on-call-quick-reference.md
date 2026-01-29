@@ -1,3 +1,14 @@
+---
+title: "On Call Quick Reference"
+summary: "> **Print this card and keep it handy during your on-call rotation**"
+tags: ["operations","quick-reference"]
+area: "operations"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # On-Call Quick Reference Card
 
 > **Print this card and keep it handy during your on-call rotation**

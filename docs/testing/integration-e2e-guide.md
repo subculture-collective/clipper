@@ -1,3 +1,14 @@
+---
+title: "Integration E2e Guide"
+summary: "This document provides a comprehensive guide to running and understanding the integration and end-to-end tests for Clipper."
+tags: ["testing","guide"]
+area: "testing"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Integration & E2E Testing Guide
 
 This document provides a comprehensive guide to running and understanding the integration and end-to-end tests for Clipper.

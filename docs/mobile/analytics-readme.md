@@ -1,3 +1,14 @@
+---
+title: "Analytics Readme"
+summary: "Welcome to the Clipper mobile analytics documentation. This guide helps you navigate the analytics dashboard documentation suite."
+tags: ["mobile"]
+area: "mobile"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Mobile Analytics Documentation - Quick Start
 
 Welcome to the Clipper mobile analytics documentation. This guide helps you navigate the analytics dashboard documentation suite.

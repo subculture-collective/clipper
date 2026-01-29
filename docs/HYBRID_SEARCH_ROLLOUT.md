@@ -1,3 +1,14 @@
+---
+title: "HYBRID SEARCH ROLLOUT"
+summary: "This document outlines the rollout plan for optimized hybrid search weights (BM25 vs Vector) as part of Roadmap 5.0 Phase 3.1."
+tags: ["docs"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Hybrid Search Weight Optimization - Rollout Plan
 
 ## Overview

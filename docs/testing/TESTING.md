@@ -1,3 +1,14 @@
+---
+title: "TESTING"
+summary: "> **Roadmap 5.0 Phase 0 - Unified Testing Strategy**"
+tags: ["testing"]
+area: "testing"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Testing Strategy & Guide
 
 > **Roadmap 5.0 Phase 0 - Unified Testing Strategy**  

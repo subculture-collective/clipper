@@ -1,3 +1,14 @@
+---
+title: "Websocket Configuration"
+summary: "This document describes the WebSocket CORS (Cross-Origin Resource Sharing) configuration for the clipper backend."
+tags: ["backend"]
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # WebSocket Configuration
 
 This document describes the WebSocket CORS (Cross-Origin Resource Sharing) configuration for the clipper backend.

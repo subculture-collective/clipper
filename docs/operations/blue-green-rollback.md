@@ -1,3 +1,14 @@
+---
+title: "Blue Green Rollback"
+summary: "This document describes the rollback procedures for blue/green deployments in Clipper."
+tags: ["operations"]
+area: "operations"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Blue/Green Deployment Rollback Procedures
 
 This document describes the rollback procedures for blue/green deployments in Clipper.

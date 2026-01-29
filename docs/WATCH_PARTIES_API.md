@@ -1,3 +1,14 @@
+---
+title: "WATCH PARTIES API"
+summary: "Watch Parties enable synchronized video watching with friends and community members. The system provides real-time synchronization with a target tolerance of ±2 seconds, role-based access control, and"
+tags: ["docs","api"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Watch Parties API Documentation
 
 ## Overview

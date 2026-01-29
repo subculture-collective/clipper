@@ -1,3 +1,14 @@
+---
+title: "TWITCH OAUTH BAN SCOPES IMPLEMENTATION"
+summary: "**Epic:** subculture-collective/clipper#1059"
+tags: ["docs","implementation"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Twitch OAuth Scopes Implementation - Ban Management
 
 **Epic:** subculture-collective/clipper#1059  

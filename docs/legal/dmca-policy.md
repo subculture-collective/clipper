@@ -1,3 +1,14 @@
+---
+title: "Dmca Policy"
+summary: "**Last Updated:** December 12, 2025"
+tags: ["legal"]
+area: "legal"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # DMCA Copyright Policy
 
 **Last Updated:** December 12, 2025  

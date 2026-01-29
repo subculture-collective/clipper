@@ -1,3 +1,14 @@
+---
+title: "Background Jobs"
+summary: "This runbook provides troubleshooting guidance for background job monitoring and alerting."
+tags: ["operations"]
+area: "operations"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Background Jobs Runbook
 
 This runbook provides troubleshooting guidance for background job monitoring and alerting.

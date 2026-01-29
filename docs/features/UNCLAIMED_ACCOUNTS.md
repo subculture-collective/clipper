@@ -1,3 +1,14 @@
+---
+title: "UNCLAIMED ACCOUNTS"
+summary: "The Unclaimed Accounts feature allows the platform to automatically create user profiles for Twitch clip creators who don't have accounts yet. This enables the community to see who created clips and a"
+tags: ["features"]
+area: "features"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Unclaimed Accounts Feature
 
 ## Overview

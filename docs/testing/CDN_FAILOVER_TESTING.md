@@ -1,3 +1,14 @@
+---
+title: "CDN FAILOVER TESTING"
+summary: "This guide provides quick commands to run the CDN failover tests."
+tags: ["testing"]
+area: "testing"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # CDN Failover Testing Quick Start
 
 This guide provides quick commands to run the CDN failover tests.

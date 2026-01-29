@@ -1,3 +1,14 @@
+---
+title: "Feature Theatre Mode"
+summary: "Summary"
+tags: ["features"]
+area: "features"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 ## Feature: Theatre Mode & Player
 
 Summary

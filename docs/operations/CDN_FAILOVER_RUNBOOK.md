@@ -1,3 +1,14 @@
+---
+title: "CDN FAILOVER RUNBOOK"
+summary: "This document describes CDN failover behavior, testing procedures, and operational runbooks for handling CDN outages in the Clipper application."
+tags: ["operations","runbook"]
+area: "operations"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # CDN Failover Testing and Operations Runbook
 
 ## Overview

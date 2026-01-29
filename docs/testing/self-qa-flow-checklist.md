@@ -1,3 +1,14 @@
+---
+title: "Self Qa Flow Checklist"
+summary: "Use this checklist for quick, repeatable validation before sharing with other testers. Update the date and environment at the top of each run."
+tags: ["testing"]
+area: "testing"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Self QA Flow Checklist
 
 Use this checklist for quick, repeatable validation before sharing with other testers. Update the date and environment at the top of each run.

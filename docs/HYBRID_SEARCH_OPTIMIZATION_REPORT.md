@@ -1,3 +1,14 @@
+---
+title: "HYBRID SEARCH OPTIMIZATION REPORT"
+summary: "**Issue**: Roadmap 5.0 Phase 3.1 - Hybrid Search Weight Optimization"
+tags: ["docs"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Hybrid Search Weight Optimization - Final Report
 
 **Issue**: Roadmap 5.0 Phase 3.1 - Hybrid Search Weight Optimization  

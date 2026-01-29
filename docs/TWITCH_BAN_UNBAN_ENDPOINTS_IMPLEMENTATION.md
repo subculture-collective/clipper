@@ -1,3 +1,14 @@
+---
+title: "TWITCH BAN UNBAN ENDPOINTS IMPLEMENTATION"
+summary: "**Epic:** subculture-collective/clipper#1059"
+tags: ["docs","implementation"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Twitch Ban/Unban API Endpoints Implementation
 
 **Epic:** subculture-collective/clipper#1059  

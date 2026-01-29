@@ -1,3 +1,14 @@
+---
+title: "Mirror Hosting"
+summary: "This guide explains how to configure and use the mirror hosting feature for global content distribution."
+tags: ["backend"]
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Mirror Hosting Guide
 
 This guide explains how to configure and use the mirror hosting feature for global content distribution.

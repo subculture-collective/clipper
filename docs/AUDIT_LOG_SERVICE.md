@@ -1,3 +1,14 @@
+---
+title: "AUDIT LOG SERVICE"
+summary: "The AuditLogService provides comprehensive audit logging capabilities for all moderation actions in the system. It tracks who did what, when, where, and why with full context."
+tags: ["docs"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Audit Log Service Implementation
 
 ## Overview

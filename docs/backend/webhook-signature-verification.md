@@ -1,3 +1,14 @@
+---
+title: "Webhook Signature Verification"
+summary: "This guide explains how to verify webhook signatures sent by Clipper's webhook system. Signature verification is crucial for ensuring that webhook requests are authentic and haven't been tampered with"
+tags: ["backend"]
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Webhook Signature Verification Guide
 
 ## Overview

@@ -1,3 +1,14 @@
+---
+title: "Blue Green Quick Reference"
+summary: "Quick reference card for blue/green deployment operations."
+tags: ["operations","quick-reference"]
+area: "operations"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Blue/Green Deployment Quick Reference
 
 Quick reference card for blue/green deployment operations.

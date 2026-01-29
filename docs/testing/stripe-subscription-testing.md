@@ -1,3 +1,14 @@
+---
+title: "Stripe Subscription Testing"
+summary: "This guide provides comprehensive testing procedures for Stripe subscription flows, including automated integration tests, manual test cases, edge cases, and dashboard reconciliation procedures."
+tags: ["testing"]
+area: "testing"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Stripe Subscription Lifecycle Testing Guide
 
 This guide provides comprehensive testing procedures for Stripe subscription flows, including automated integration tests, manual test cases, edge cases, and dashboard reconciliation procedures.

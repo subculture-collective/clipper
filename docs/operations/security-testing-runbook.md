@@ -1,3 +1,14 @@
+---
+title: "Security Testing Runbook"
+summary: "```bash"
+tags: ["operations","testing","runbook"]
+area: "operations"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Security Testing Runbook
 
 ## Quick Reference for IDOR and Authorization Testing

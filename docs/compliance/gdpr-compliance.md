@@ -1,3 +1,14 @@
+---
+title: "Gdpr Compliance"
+summary: "Clipper implements a GDPR-compliant system for handling data subject requests in accordance with the General Data Protection Regulation (EU Regulation 2016/679) and the California Consumer Privacy Act"
+tags: ["compliance"]
+area: "compliance"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # GDPR Data Subject Request System
 
 ## Overview

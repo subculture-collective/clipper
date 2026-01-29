@@ -1,3 +1,14 @@
+---
+title: "RICH TEXT EDITOR IMPLEMENTATION"
+summary: "- **Location**: `frontend/src/lib/url-validation.ts`"
+tags: ["docs","implementation"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Rich Text Editor Enhancement - Implementation Summary
 
 ## Features Implemented

@@ -1,3 +1,14 @@
+---
+title: "Terms Of Service"
+summary: "**Last Updated:** [DATE TO BE ADDED]"
+tags: ["legal"]
+area: "legal"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Terms of Service
 
 **Last Updated:** [DATE TO BE ADDED]

@@ -1,3 +1,14 @@
+---
+title: "Global Redundancy Runbook"
+summary: "This runbook provides operational procedures for managing global redundancy, failover scenarios, and multi-region infrastructure."
+tags: ["operations","runbook"]
+area: "operations"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Global Redundancy & Failover Runbook
 
 This runbook provides operational procedures for managing global redundancy, failover scenarios, and multi-region infrastructure.
