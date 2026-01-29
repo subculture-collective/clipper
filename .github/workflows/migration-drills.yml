@@ -1,0 +1,260 @@
+name: Migration Rollback Drills
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/migrations/**'
+      - 'backend/tests/migrations/**'
+      - '.github/workflows/migration-drills.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/migrations/**'
+      - 'backend/tests/migrations/**'
+      - '.github/workflows/migration-drills.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  migration-rollback-drills:
+    name: Shadow Database Migration Drills
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: clipper
+          POSTGRES_PASSWORD: clipper_password
+          POSTGRES_DB: clipper_test
+        ports:
+          - 5437:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6380:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22.x'
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install golang-migrate
+        run: |
+          curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz
+          sudo mv migrate /usr/local/bin/
+          migrate -version
+
+      - name: Run database migrations
+        env:
+          DB_URL: postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable
+        run: |
+          echo "::add-mask::$DB_URL"
+          migrate -path backend/migrations -database "$DB_URL" up
+
+      - name: Run migration rollback drills
+        env:
+          TEST_DATABASE_URL: postgresql://clipper:clipper_password@localhost:5437/clipper_test?sslmode=disable
+          TEST_REDIS_URL: localhost:6380
+          TEST_DATABASE_HOST: localhost
+          TEST_DATABASE_PORT: 5437
+          TEST_DATABASE_USER: clipper
+          TEST_DATABASE_PASSWORD: clipper_password
+          TEST_DATABASE_NAME: clipper_test
+        run: |
+          echo "::add-mask::$TEST_DATABASE_URL"
+          echo "::add-mask::$TEST_DATABASE_PASSWORD"
+          cd backend
+          
+          # Create test-reports directory
+          mkdir -p test-reports/migration-drills
+          
+          # Run migration drill tests
+          go test -v -tags=integration \
+            -timeout=30m \
+            -run="TestShadowDatabaseMigrationDrills|TestMigrationDriftDetection|TestResidualObjectsDetection" \
+            ./tests/migrations/... \
+            | tee test-reports/migration-drills/test-output.log
+
+      - name: Check for schema drift
+        if: always()
+        run: |
+          cd backend
+          if grep -q "Schema should match after complete migration cycle" test-reports/migration-drills/test-output.log; then
+            if grep -q "FAIL" test-reports/migration-drills/test-output.log; then
+              echo "❌ Schema drift detected after rollback cycle!"
+              echo "Migration rollback did not cleanly restore the schema."
+              echo "Review the test output for details."
+              exit 1
+            else
+              echo "✅ No schema drift detected"
+            fi
+          fi
+
+      - name: Check for residual objects
+        if: always()
+        run: |
+          cd backend
+          if grep -q "No residual objects should remain" test-reports/migration-drills/test-output.log; then
+            if grep -q "Residual objects detected" test-reports/migration-drills/test-output.log; then
+              echo "❌ Residual objects detected after rollback!"
+              echo "Migration down scripts are not properly cleaning up."
+              echo "Review the test output for details."
+              exit 1
+            else
+              echo "✅ No residual objects detected"
+            fi
+          fi
+
+      - name: Check performance thresholds
+        if: always()
+        run: |
+          cd backend
+          if grep -q "exceeded performance threshold" test-reports/migration-drills/test-output.log; then
+            echo "⚠️  Warning: Some migrations exceeded performance thresholds"
+            echo "Review performance reports in artifacts for details"
+            # Don't fail the build, just warn
+          else
+            echo "✅ All migrations within performance thresholds"
+          fi
+
+      - name: Generate drill summary report
+        if: always()
+        run: |
+          cd backend
+          cat > test-reports/migration-drills/summary.md << 'EOF'
+          # Migration Rollback Drills Summary
+          
+          ## Overview
+          This report summarizes the results of automated migration rollback drills.
+          
+          ## Tests Executed
+          - **Full Migration Cycle**: Forward migration → Rollback → Forward again
+          - **Integrity Validation**: Foreign keys, indexes, constraints, triggers
+          - **Performance Baseline**: Migration execution time tracking
+          - **Drift Detection**: Unexpected schema changes
+          - **Residual Objects**: Objects left after rollback
+          
+          ## Results
+          See detailed test output in test-output.log
+          
+          ## Performance Reports
+          Performance baseline files (JSON format) contain detailed timing information for each migration.
+          
+          ## Snapshots
+          Schema snapshots (JSON format) capture the database state at various points:
+          - initial-snapshot.json: Before any operations
+          - after-rollback-snapshot.json: After rollback
+          - final-snapshot.json: After re-applying migrations
+          
+          ## Interpreting Results
+          
+          ### Success Criteria
+          - ✅ Schema matches after complete cycle (no drift)
+          - ✅ No residual objects after rollback
+          - ✅ All integrity checks pass
+          - ✅ Migrations complete within thresholds
+          
+          ### Failure Indicators
+          - ❌ Schema drift: Initial and final snapshots don't match
+          - ❌ Residual objects: Tables, indexes, etc. left after rollback
+          - ❌ Integrity violations: Orphaned constraints, triggers, etc.
+          - ⚠️  Performance issues: Migrations exceed time thresholds
+          
+          ## Thresholds
+          - Forward migrations: 30 seconds
+          - Backward migrations: 30 seconds
+          
+          EOF
+          
+          cat test-reports/migration-drills/summary.md
+
+      - name: Upload migration drill reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: migration-drill-reports
+          path: |
+            backend/test-reports/migration-drills/
+          retention-days: 30
+
+      - name: Upload test logs on failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: migration-drill-failure-logs
+          path: backend/test-reports/migration-drills/
+          retention-days: 7
+
+      - name: Comment on PR with results
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let summary = '## Migration Rollback Drills\n\n';
+            
+            try {
+              const logContent = fs.readFileSync('backend/test-reports/migration-drills/test-output.log', 'utf8');
+              
+              if (logContent.includes('PASS')) {
+                summary += '✅ All migration drills passed\n\n';
+              } else if (logContent.includes('FAIL')) {
+                summary += '❌ Some migration drills failed\n\n';
+              }
+              
+              if (logContent.includes('Schema drift detected')) {
+                summary += '- ❌ Schema drift detected after rollback cycle\n';
+              } else {
+                summary += '- ✅ No schema drift\n';
+              }
+              
+              if (logContent.includes('Residual objects detected')) {
+                summary += '- ❌ Residual objects found after rollback\n';
+              } else {
+                summary += '- ✅ No residual objects\n';
+              }
+              
+              if (logContent.includes('exceeded performance threshold')) {
+                summary += '- ⚠️  Performance thresholds exceeded\n';
+              } else {
+                summary += '- ✅ Performance within thresholds\n';
+              }
+              
+              summary += '\n📊 Detailed reports available in workflow artifacts\n';
+              
+            } catch (error) {
+              summary += '⚠️  Could not read test output\n';
+            }
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });

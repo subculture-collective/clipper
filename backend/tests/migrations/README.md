@@ -123,6 +123,87 @@ t.Run("ModerationQueueStatusConstraint", func(t *testing.T) {
 })
 ```
 
+## Migration Rollback Drills
+
+### Shadow Database Testing
+
+The migration rollback drills (`shadow_db_drills_test.go`) provide comprehensive automated testing of database migrations in a shadow database environment. These tests ensure migrations can be safely applied and rolled back without leaving residual objects or causing schema drift.
+
+#### What It Tests
+
+1. **Full Migration Cycle**
+   - Captures initial schema snapshot
+   - Rolls back one migration
+   - Re-applies the migration
+   - Verifies final schema matches initial state
+   - No residual objects (tables, indexes, triggers, constraints, functions)
+
+2. **Integrity Validation**
+   - Referential integrity (foreign key constraints)
+   - Index integrity (no orphaned indexes)
+   - Constraint integrity (no orphaned constraints)
+   - Trigger integrity (no orphaned triggers)
+   - Data corruption checks with test fixtures
+
+3. **Performance Baseline Recording**
+   - Tracks migration execution time (forward and backward)
+   - Reports stored in `test-reports/migration-drills/`
+   - Thresholds: 30 seconds for up/down migrations
+   - JSON format for easy parsing and trending
+
+4. **Drift Detection**
+   - Detects unexpected schema changes
+   - Compares snapshots to identify drift
+   - Validates migrations don't leave residual state
+
+#### Running Drills Locally
+
+```bash
+# Run all migration drills
+go test -v -tags=integration -run="TestShadowDatabaseMigrationDrills" ./tests/migrations/...
+
+# Run specific drill tests
+go test -v -tags=integration -run="TestMigrationDriftDetection" ./tests/migrations/...
+go test -v -tags=integration -run="TestResidualObjectsDetection" ./tests/migrations/...
+
+# Run with timeout for long-running drills
+go test -v -tags=integration -timeout=30m ./tests/migrations/...
+```
+
+#### Performance Reports
+
+Performance baselines are saved to `test-reports/migration-drills/`:
+- `perf-up-<timestamp>.json` - Forward migration timing
+- `perf-down-<timestamp>.json` - Rollback migration timing
+- `initial-snapshot.json` - Schema before operations
+- `after-rollback-snapshot.json` - Schema after rollback
+- `final-snapshot.json` - Schema after re-applying
+
+#### Updating Performance Thresholds
+
+Edit `shadow_db_drills_test.go`:
+```go
+const (
+    PerformanceThresholdUp = 30.0   // seconds for forward migrations
+    PerformanceThresholdDown = 30.0 // seconds for rollback migrations
+)
+```
+
+#### CI Integration
+
+The drills run automatically in CI on:
+- Push to main/develop branches (when migrations change)
+- Pull requests affecting migrations
+- Manual workflow dispatch
+
+CI fails on:
+- Schema drift after rollback cycle
+- Residual objects after rollback
+- Integrity check failures
+
+CI warns on:
+- Performance threshold violations (non-blocking)
+
 ## Adding New Migration Tests
 
 When adding a new migration test:
@@ -141,3 +222,4 @@ When adding a new migration test:
 - Coverage metrics are not applicable as these are schema tests
 - All tests should clean up after themselves
 - Tests should be idempotent and can run in any order
+- Migration drills use shadow database to test rollback safety
