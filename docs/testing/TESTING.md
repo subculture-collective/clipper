@@ -105,9 +105,36 @@ go test -v -tags=integration ./tests/integration/dmca/...
 # Auth tests
 go test -v -tags=integration ./tests/integration/auth/...
 
+# Migration tests
+go test -v -tags=integration ./tests/migrations/...
+
+# Migration rollback drills (shadow database testing)
+go test -v -tags=integration -timeout=30m -run="TestShadowDatabaseMigrationDrills" ./tests/migrations/...
+
 # All integration tests
 go test -v -tags=integration ./tests/integration/...
 ```
+
+**Migration Rollback Drills:**
+
+The migration rollback drills provide comprehensive automated testing of database migrations:
+
+- **Full Migration Cycle**: Apply migrations, rollback, re-apply and verify schema integrity
+- **Integrity Validation**: Check foreign keys, indexes, constraints, triggers, and functions
+- **Performance Baseline**: Track and report migration execution times
+- **Drift Detection**: Identify unexpected schema changes after rollback
+- **Residual Objects**: Ensure no orphaned database objects remain
+
+Performance thresholds:
+- Forward migrations (up): 30 seconds
+- Backward migrations (down): 30 seconds
+
+Reports are saved to `backend/test-reports/migration-drills/` including:
+- Performance baselines (JSON)
+- Schema snapshots before/after operations
+- Test output logs
+
+See `backend/tests/migrations/README.md` for detailed documentation.
 
 **Cleanup:**
 
@@ -196,6 +223,25 @@ All PRs must pass the following checks before merging:
 - ✅ **Unit Tests** (Go 1.21, 1.22) - Must pass with ≥8% coverage
 - ✅ **Integration Tests** - Must pass with ≥70% coverage
 - ✅ **Build** (Linux, macOS, Windows)
+
+#### Migration Rollback Drills (on migration changes)
+- ✅ **Schema Integrity** - No drift after rollback cycle
+- ✅ **Residual Objects** - No orphaned tables, indexes, constraints, triggers
+- ✅ **Integrity Checks** - All foreign keys, constraints, triggers valid
+- ⚠️ **Performance Baselines** - Tracked but non-blocking (30s threshold)
+
+The migration drills run automatically when:
+- Migrations are added or modified (`backend/migrations/**`)
+- Migration tests are changed (`backend/tests/migrations/**`)
+- Workflow is manually triggered
+
+Failure conditions:
+- Schema doesn't match after complete rollback cycle
+- Residual database objects remain after rollback
+- Integrity checks fail (orphaned FK, indexes, constraints, triggers)
+
+Warning conditions (non-blocking):
+- Migration execution exceeds 30 second threshold
 
 #### Frontend
 - ✅ **Lint & Format** (`eslint`, `prettier`)
