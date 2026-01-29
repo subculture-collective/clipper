@@ -122,16 +122,21 @@ In-depth documentation for major platform features:
 - **[[decisions/adr-1-semantic-search-vector-db|ADR 001: Semantic Search & Vector DB]]** - Hybrid search architecture
 - **[[decisions/adr-002-mobile-framework-selection|ADR 002: Mobile Framework]]** - React Native + Expo decision
 - **[[decisions/adr-003-advanced-query-language|ADR 003: Query Language]]** - Advanced search syntax
+- **[[decisions/index|All Architecture Decisions]]** - Complete ADR index
+- **[[rfcs/index|Request for Comments (RFCs)]]** - Feature proposals and RFCs
 
-### Product
+### Product & Compliance
 
 - **[[product/features|Features]]** - Complete feature list
-- **[[product/roadmap|Roadmap]]** - Upcoming features and milestones
+- **[[product/roadmap|Roadmap]]** - High-level roadmap overview
+- **[[product/roadmap-5.0|Roadmap 5.0]]** - Detailed current roadmap
 - **[[product/reputation-system|Reputation System]]** - Karma and trust scores
 - **[[product/trust-system|Trust System]]** - User trust and moderation
 - **[[product/tagging-system|Tagging System]]** - Clip categorization
 - **[[product/analytics|Analytics]]** - User engagement tracking
 - **[[product/query-grammar|Query Grammar]]** - Advanced search syntax
+- **[[compliance/index|Compliance]]** - Legal, regulatory, and compliance documentation
+- **[[legal/index|Legal]]** - Terms of service and privacy policy
 
 ## 📖 Additional Resources
 
@@ -139,6 +144,9 @@ In-depth documentation for major platform features:
 - **[[glossary|Glossary]]** - Terms and definitions
 - **[[changelog|Changelog]]** - Version history and release notes
 - **[[contributing|Contributing]]** - How to contribute to the project
+- **[[adr/index|Legacy ADRs]]** - Older architecture decision records
+- **[[examples/index|Code Examples]]** - Sample code and integration examples
+- **[[openapi/index|OpenAPI Specifications]]** - Machine-readable API specs
 
 ## 🏗️ Project Status
 

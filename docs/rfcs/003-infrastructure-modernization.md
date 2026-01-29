@@ -1497,7 +1497,8 @@ All documentation complete and linked in this RFC:
 
 - [Roadmap 5.0](../product/roadmap-5.0.md) - Complete roadmap document
 - [Feature Inventory](../product/feature-inventory.md) - Platform feature audit
-- [Roadmap 5.0 Issue Creation Summary](../product/roadmap-5.0-issue-creation-summary.md)
+- [[../product/roadmap-5.0|Roadmap 5.0]] - Current detailed roadmap
+- [[../archive/roadmap-5.0-issue-creation-summary|Roadmap 5.0 Issue Creation Summary]] (archived)
 
 ### External References
 
