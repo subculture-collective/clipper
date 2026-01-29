@@ -4,12 +4,12 @@ import { Container, SEO } from '../components';
 import { ClipFeed } from '../components/clip';
 import type { SortOption } from '../types/clip';
 
-type DiscoveryTab = 'top' | 'new' | 'discussed';
+type DiscoveryTab = 'trending' | 'new' | 'views';
 
 export function DiscoveryPage() {
     const [searchParams, setSearchParams] = useSearchParams();
     const [top10kEnabled, setTop10kEnabled] = useState(
-        searchParams.get('top10k_streamers') === 'true'
+        searchParams.get('top10k_streamers') === 'true',
     );
 
     // Sync state with URL params when searchParams changes
@@ -17,8 +17,12 @@ export function DiscoveryPage() {
         setTop10kEnabled(searchParams.get('top10k_streamers') === 'true');
     }, [searchParams]);
 
-    // Get active tab from URL or default to 'top'
-    const activeTab = (searchParams.get('tab') as DiscoveryTab) || 'top';
+    // Get active tab from URL or default to 'trending'
+    const tabParam = searchParams.get('tab') as DiscoveryTab | null;
+    const activeTab: DiscoveryTab =
+        tabParam === 'trending' || tabParam === 'new' || tabParam === 'views' ?
+            tabParam
+        :   'trending';
 
     const handleTabChange = (tab: DiscoveryTab) => {
         const params = new URLSearchParams(searchParams);
@@ -42,19 +46,19 @@ export function DiscoveryPage() {
     const tabs: { value: DiscoveryTab; label: string; description: string }[] =
         [
             {
-                value: 'top',
-                label: 'Top',
-                description: 'Highest rated clips from all sources',
+                value: 'trending',
+                label: 'Trending',
+                description: 'What everyone is watching right now',
             },
             {
                 value: 'new',
-                label: 'New',
-                description: 'Latest clips from everywhere',
+                label: 'Latest',
+                description: 'Fresh clips just added',
             },
             {
-                value: 'discussed',
-                label: 'Discussed',
-                description: 'Most talked about clips',
+                value: 'views',
+                label: 'Top Views',
+                description: 'Most viewed clips across Twitch',
             },
         ];
 
@@ -62,7 +66,7 @@ export function DiscoveryPage() {
         <>
             <SEO
                 title='Discover Clips'
-                description='Explore all Twitch clips including community posts and trending content. Browse by top-rated, newest, or most discussed clips from all sources.'
+                description='Explore trending, latest, and most-viewed Twitch clips, including community posts and scraped content.'
                 canonicalUrl='/discover'
             />
             <Container className='py-8'>
@@ -73,8 +77,8 @@ export function DiscoveryPage() {
                             Discover Clips
                         </h1>
                         <p className='text-muted-foreground'>
-                            Explore all clips from Twitch - including community
-                            posts and trending content
+                            Explore trending, latest, and top-viewed clips from
+                            Twitch, including community posts
                         </p>
                     </div>
 
@@ -88,9 +92,9 @@ export function DiscoveryPage() {
                                     className={`
                   flex-1 min-w-[120px] px-4 py-3 rounded-lg text-sm font-medium transition-colors
                   ${
-                      activeTab === tab.value
-                          ? 'bg-primary-500 text-white'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                      activeTab === tab.value ?
+                          'bg-primary-500 text-white'
+                      :   'text-muted-foreground hover:text-foreground hover:bg-accent'
                   }
                 `}
                                 >
@@ -122,9 +126,9 @@ export function DiscoveryPage() {
                                 className={`
                 relative inline-flex h-6 w-11 items-center rounded-full transition-colors
                 ${
-                    top10kEnabled
-                        ? 'bg-primary-500'
-                        : 'bg-gray-300 dark:bg-gray-600'
+                    top10kEnabled ? 'bg-primary-500' : (
+                        'bg-gray-300 dark:bg-gray-600'
+                    )
                 }
               `}
                                 role='switch'
@@ -152,12 +156,13 @@ export function DiscoveryPage() {
                         }
                         defaultSort={activeTab as SortOption}
                         defaultTimeframe={
-                            activeTab === 'top' ? 'day' : undefined
+                            activeTab === 'trending' ? 'day' : undefined
                         }
                         filters={{
                             top10k_streamers: top10kEnabled,
                             show_all_clips: true, // Discovery shows both user-submitted and scraped clips
                         }}
+                        discoverMode
                     />
                 </div>
             </Container>

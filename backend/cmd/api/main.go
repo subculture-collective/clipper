@@ -304,7 +304,7 @@ func main() {
 
 	// Initialize moderation service for ban management
 	moderationService := services.NewModerationService(db.Pool, communityRepo, userRepo, auditLogRepo)
-	
+
 	// Initialize ban reason template service
 	banReasonTemplateService := services.NewBanReasonTemplateService(banReasonTemplateRepo, communityRepo, logger)
 
@@ -926,7 +926,7 @@ func main() {
 				moderationAppeals.GET("/audit-logs", middleware.AuthMiddleware(authService), middleware.RequireRole("admin", "moderator"), middleware.RateLimitMiddleware(redisClient, 60, time.Minute), auditLogHandler.ListModerationAuditLogs)
 				moderationAppeals.GET("/audit-logs/export", middleware.AuthMiddleware(authService), middleware.RequireRole("admin", "moderator"), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), auditLogHandler.ExportModerationAuditLogs)
 				moderationAppeals.GET("/audit-logs/:id", middleware.AuthMiddleware(authService), middleware.RequireRole("admin", "moderator"), middleware.RateLimitMiddleware(redisClient, 60, time.Minute), auditLogHandler.GetModerationAuditLog)
-				
+
 				// Ban reason template endpoints
 				moderationAppeals.GET("/ban-templates", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 60, time.Minute), banReasonTemplateHandler.ListTemplates)
 				moderationAppeals.GET("/ban-templates/stats", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 60, time.Minute), banReasonTemplateHandler.GetUsageStats)
@@ -1269,6 +1269,9 @@ func main() {
 			subscriptions.POST("/checkout", middleware.RateLimitMiddleware(redisClient, 5, time.Minute), subscriptionHandler.CreateCheckoutSession)
 			subscriptions.POST("/portal", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), subscriptionHandler.CreatePortalSession)
 			subscriptions.POST("/change-plan", middleware.RateLimitMiddleware(redisClient, 5, time.Minute), subscriptionHandler.ChangeSubscriptionPlan)
+			subscriptions.POST("/cancel", middleware.RateLimitMiddleware(redisClient, 5, time.Minute), subscriptionHandler.CancelSubscription)
+			subscriptions.POST("/reactivate", middleware.RateLimitMiddleware(redisClient, 5, time.Minute), subscriptionHandler.ReactivateSubscription)
+			subscriptions.GET("/invoices", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), subscriptionHandler.GetInvoices)
 		}
 
 		// Outbound webhook subscription routes

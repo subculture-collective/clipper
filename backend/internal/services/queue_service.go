@@ -106,12 +106,7 @@ func (s *QueueService) AddToQueue(ctx context.Context, userID uuid.UUID, req *mo
 	}
 
 	if atEnd {
-		// Add to end of queue
-		maxPos, err := s.queueRepo.GetMaxPosition(ctx, userID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get max position: %w", err)
-		}
-		item.Position = maxPos + 1
+		// Add to end of queue (repository handles position calculation atomically)
 		err = s.queueRepo.AddItem(ctx, item)
 		if err != nil {
 			return nil, fmt.Errorf("failed to add to queue: %w", err)

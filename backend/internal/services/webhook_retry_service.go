@@ -4,14 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"math"
 	"time"
 
 	"github.com/stripe/stripe-go/v81"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
+
+const webhookRetryComponent = "webhook_retry"
 
 // WebhookRetryService handles processing of webhook retries from the queue
 type WebhookRetryService struct {
@@ -32,7 +34,10 @@ func NewWebhookRetryService(
 
 // ProcessPendingRetries processes webhook events that are ready for retry
 func (s *WebhookRetryService) ProcessPendingRetries(ctx context.Context, batchSize int) error {
-	log.Printf("[WEBHOOK_RETRY] Processing pending retries (batch size: %d)", batchSize)
+	utils.Info("Processing pending webhook retries", map[string]interface{}{
+		"component":  webhookRetryComponent,
+		"batch_size": batchSize,
+	})
 
 	// Get pending retries
 	items, err := s.webhookRepo.GetPendingRetries(ctx, batchSize)
@@ -41,15 +46,24 @@ func (s *WebhookRetryService) ProcessPendingRetries(ctx context.Context, batchSi
 	}
 
 	if len(items) == 0 {
-		log.Printf("[WEBHOOK_RETRY] No pending retries found")
+		utils.Info("No pending webhook retries found", map[string]interface{}{
+			"component": webhookRetryComponent,
+		})
 		return nil
 	}
 
-	log.Printf("[WEBHOOK_RETRY] Found %d pending retries", len(items))
+	utils.Info("Found pending webhook retries", map[string]interface{}{
+		"component": webhookRetryComponent,
+		"count":     len(items),
+	})
 
 	for _, item := range items {
 		if err := s.processRetry(ctx, item); err != nil {
-			log.Printf("[WEBHOOK_RETRY] Failed to process retry for event %s: %v", item.StripeEventID, err)
+			utils.Error("Failed to process webhook retry", err, map[string]interface{}{
+				"component":  webhookRetryComponent,
+				"event_id":   item.StripeEventID,
+				"event_type": item.EventType,
+			})
 		}
 	}
 
@@ -58,18 +72,31 @@ func (s *WebhookRetryService) ProcessPendingRetries(ctx context.Context, batchSi
 
 // processRetry processes a single retry attempt
 func (s *WebhookRetryService) processRetry(ctx context.Context, item *models.WebhookRetryQueue) error {
-	log.Printf("[WEBHOOK_RETRY] Processing retry %d/%d for event %s (type: %s)",
-		item.RetryCount+1, item.MaxRetries, item.StripeEventID, item.EventType)
+	utils.Info("Processing webhook retry", map[string]interface{}{
+		"component":   webhookRetryComponent,
+		"event_id":    item.StripeEventID,
+		"event_type":  item.EventType,
+		"retry_count": item.RetryCount + 1,
+		"max_retries": item.MaxRetries,
+	})
 
 	// Parse the payload into a Stripe event
 	var event stripe.Event
 	if err := json.Unmarshal([]byte(item.Payload), &event); err != nil {
 		errMsg := fmt.Sprintf("failed to unmarshal event payload: %v", err)
-		log.Printf("[WEBHOOK_RETRY] %s", errMsg)
+		utils.Error("Failed to unmarshal webhook payload", err, map[string]interface{}{
+			"component":  webhookRetryComponent,
+			"event_id":   item.StripeEventID,
+			"event_type": item.EventType,
+		})
 
 		// This is a permanent error, move to DLQ
 		if err := s.webhookRepo.MoveToDeadLetterQueue(ctx, item, errMsg); err != nil {
-			log.Printf("[WEBHOOK_RETRY] Failed to move event %s to DLQ: %v", item.StripeEventID, err)
+			utils.Error("Failed to move webhook event to DLQ", err, map[string]interface{}{
+				"component":  webhookRetryComponent,
+				"event_id":   item.StripeEventID,
+				"event_type": item.EventType,
+			})
 		}
 		return fmt.Errorf("%s", errMsg)
 	}
@@ -83,25 +110,48 @@ func (s *WebhookRetryService) processRetry(ctx context.Context, item *models.Web
 
 		// Check if we've exhausted retries
 		if newRetryCount >= item.MaxRetries {
-			log.Printf("[WEBHOOK_RETRY] Max retries reached for event %s, moving to DLQ", item.StripeEventID)
+			utils.Warn("Max retries reached for webhook event, moving to DLQ", map[string]interface{}{
+				"component":   webhookRetryComponent,
+				"event_id":    item.StripeEventID,
+				"event_type":  item.EventType,
+				"max_retries": item.MaxRetries,
+			})
 			if dlqErr := s.webhookRepo.MoveToDeadLetterQueue(ctx, item, err.Error()); dlqErr != nil {
-				log.Printf("[WEBHOOK_RETRY] Failed to move event %s to DLQ: %v", item.StripeEventID, dlqErr)
+				utils.Error("Failed to move webhook event to DLQ", dlqErr, map[string]interface{}{
+					"component":  webhookRetryComponent,
+					"event_id":   item.StripeEventID,
+					"event_type": item.EventType,
+				})
 			}
 			return err
 		}
 
 		// Calculate next retry time with exponential backoff
 		nextRetry := s.calculateNextRetry(newRetryCount)
-		log.Printf("[WEBHOOK_RETRY] Retry failed for event %s, scheduling next retry at %v",
-			item.StripeEventID, nextRetry)
+		utils.Warn("Webhook retry failed, scheduling next retry", map[string]interface{}{
+			"component":   webhookRetryComponent,
+			"event_id":    item.StripeEventID,
+			"event_type":  item.EventType,
+			"retry_count": newRetryCount,
+			"next_retry":  nextRetry,
+		})
 
 		// Update retry queue item
 		if updateErr := s.webhookRepo.UpdateRetryQueueItem(ctx, item.ID, newRetryCount, &nextRetry, err.Error()); updateErr != nil {
-			log.Printf("[WEBHOOK_RETRY] Failed to update retry queue item: %v", updateErr)
+			utils.Error("Failed to update webhook retry queue item", updateErr, map[string]interface{}{
+				"component":   webhookRetryComponent,
+				"event_id":    item.StripeEventID,
+				"event_type":  item.EventType,
+				"retry_count": newRetryCount,
+			})
 			// Attempt to move to DLQ to prevent rapid retry loops
 			dlqErr := s.webhookRepo.MoveToDeadLetterQueue(ctx, item, fmt.Sprintf("Failed to update retry queue item: %v; original error: %v", updateErr, err))
 			if dlqErr != nil {
-				log.Printf("[WEBHOOK_RETRY] Failed to move event %s to DLQ after update failure: %v", item.StripeEventID, dlqErr)
+				utils.Error("Failed to move webhook event to DLQ after update failure", dlqErr, map[string]interface{}{
+					"component":  webhookRetryComponent,
+					"event_id":   item.StripeEventID,
+					"event_type": item.EventType,
+				})
 			}
 			return fmt.Errorf("failed to update retry queue item for event %s: %w (original error: %v)", item.StripeEventID, updateErr, err)
 		}
@@ -110,9 +160,17 @@ func (s *WebhookRetryService) processRetry(ctx context.Context, item *models.Web
 	}
 
 	// Success! Remove from retry queue
-	log.Printf("[WEBHOOK_RETRY] Successfully processed event %s, removing from queue", item.StripeEventID)
+	utils.Info("Successfully processed webhook event, removing from queue", map[string]interface{}{
+		"component":  webhookRetryComponent,
+		"event_id":   item.StripeEventID,
+		"event_type": item.EventType,
+	})
 	if err := s.webhookRepo.RemoveFromRetryQueue(ctx, item.StripeEventID); err != nil {
-		log.Printf("[WEBHOOK_RETRY] Failed to remove event %s from retry queue: %v", item.StripeEventID, err)
+		utils.Error("Failed to remove webhook event from retry queue", err, map[string]interface{}{
+			"component":  webhookRetryComponent,
+			"event_id":   item.StripeEventID,
+			"event_type": item.EventType,
+		})
 		return fmt.Errorf("successfully processed event %s but failed to remove from retry queue: %w", item.StripeEventID, err)
 	}
 

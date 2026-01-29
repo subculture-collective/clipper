@@ -14,16 +14,16 @@ import (
 )
 
 var (
-	ErrTemplateNotFound       = errors.New("template not found")
-	ErrTemplateNameExists     = errors.New("template name already exists")
-	ErrCannotDeleteDefault    = errors.New("cannot delete default templates")
-	ErrUnauthorizedTemplate   = errors.New("unauthorized to modify this template")
+	ErrTemplateNotFound     = errors.New("template not found")
+	ErrTemplateNameExists   = errors.New("template name already exists")
+	ErrCannotDeleteDefault  = errors.New("cannot delete default templates")
+	ErrUnauthorizedTemplate = errors.New("unauthorized to modify this template")
 )
 
 type BanReasonTemplateService struct {
-	repo         *repository.BanReasonTemplateRepository
+	repo          *repository.BanReasonTemplateRepository
 	communityRepo *repository.CommunityRepository
-	logger       *utils.StructuredLogger
+	logger        *utils.StructuredLogger
 }
 
 func NewBanReasonTemplateService(
@@ -32,9 +32,9 @@ func NewBanReasonTemplateService(
 	logger *utils.StructuredLogger,
 ) *BanReasonTemplateService {
 	return &BanReasonTemplateService{
-		repo:         repo,
+		repo:          repo,
 		communityRepo: communityRepo,
-		logger:       logger,
+		logger:        logger,
 	}
 }
 
@@ -67,7 +67,7 @@ func (s *BanReasonTemplateService) CreateTemplate(ctx context.Context, userID uu
 		// For now, we'll allow any authenticated user to create channel-specific templates
 		// In production, you'd check moderator status
 	}
-	
+
 	template := &models.BanReasonTemplate{
 		Name:            req.Name,
 		Reason:          req.Reason,
@@ -76,7 +76,7 @@ func (s *BanReasonTemplateService) CreateTemplate(ctx context.Context, userID uu
 		BroadcasterID:   req.BroadcasterID,
 		CreatedBy:       &userID,
 	}
-	
+
 	err := s.repo.Create(ctx, template)
 	if err != nil {
 		// Check if it's a unique constraint violation (PostgreSQL error code 23505)
@@ -86,14 +86,14 @@ func (s *BanReasonTemplateService) CreateTemplate(ctx context.Context, userID uu
 		}
 		return nil, fmt.Errorf("failed to create template: %w", err)
 	}
-	
+
 	s.logger.Info("Created ban reason template", map[string]interface{}{
 		"template_id":    template.ID,
 		"name":           template.Name,
 		"broadcaster_id": template.BroadcasterID,
 		"created_by":     userID,
 	})
-	
+
 	return template, nil
 }
 
@@ -107,18 +107,18 @@ func (s *BanReasonTemplateService) UpdateTemplate(ctx context.Context, userID uu
 	if template == nil {
 		return nil, ErrTemplateNotFound
 	}
-	
+
 	// Check permissions
 	if template.IsDefault {
 		return nil, ErrCannotDeleteDefault
 	}
-	
+
 	if template.CreatedBy != nil && *template.CreatedBy != userID {
 		// In production, check if user is broadcaster or moderator
 		// For now, only allow creator to update
 		return nil, ErrUnauthorizedTemplate
 	}
-	
+
 	// Build updates map
 	updates := make(map[string]interface{})
 	if req.Name != nil {
@@ -130,21 +130,21 @@ func (s *BanReasonTemplateService) UpdateTemplate(ctx context.Context, userID uu
 	if req.DurationSeconds != nil {
 		updates["duration_seconds"] = *req.DurationSeconds
 	}
-	
+
 	if len(updates) == 0 {
 		return template, nil // No updates
 	}
-	
+
 	err = s.repo.Update(ctx, templateID, updates)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update template: %w", err)
 	}
-	
+
 	s.logger.Info("Updated ban reason template", map[string]interface{}{
 		"template_id": templateID,
 		"updated_by":  userID,
 	})
-	
+
 	// Fetch updated template
 	return s.repo.GetByID(ctx, templateID)
 }
@@ -159,17 +159,17 @@ func (s *BanReasonTemplateService) DeleteTemplate(ctx context.Context, userID uu
 	if template == nil {
 		return ErrTemplateNotFound
 	}
-	
+
 	// Check permissions
 	if template.IsDefault {
 		return ErrCannotDeleteDefault
 	}
-	
+
 	if template.CreatedBy != nil && *template.CreatedBy != userID {
 		// In production, check if user is broadcaster or moderator
 		return ErrUnauthorizedTemplate
 	}
-	
+
 	err = s.repo.Delete(ctx, templateID)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -177,12 +177,12 @@ func (s *BanReasonTemplateService) DeleteTemplate(ctx context.Context, userID uu
 		}
 		return fmt.Errorf("failed to delete template: %w", err)
 	}
-	
+
 	s.logger.Info("Deleted ban reason template", map[string]interface{}{
 		"template_id": templateID,
 		"deleted_by":  userID,
 	})
-	
+
 	return nil
 }
 
@@ -195,12 +195,12 @@ func (s *BanReasonTemplateService) UseTemplate(ctx context.Context, templateID u
 	if template == nil {
 		return nil, ErrTemplateNotFound
 	}
-	
+
 	err = s.repo.IncrementUsage(ctx, templateID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to increment usage: %w", err)
 	}
-	
+
 	// Fetch updated template
 	return s.repo.GetByID(ctx, templateID)
 }

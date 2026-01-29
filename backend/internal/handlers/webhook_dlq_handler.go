@@ -1,13 +1,13 @@
 package handlers
 
 import (
-	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/subculture-collective/clipper/internal/services"
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
 // WebhookDLQHandler handles webhook dead-letter queue management endpoints
@@ -101,7 +101,10 @@ func (h *WebhookDLQHandler) ReplayDeadLetterQueueItem(c *gin.Context) {
 	// Replay the item
 	if err := h.webhookService.ReplayDeadLetterQueueItem(c.Request.Context(), dlqID); err != nil {
 		// Log detailed error but return generic message to avoid leaking internal details
-		log.Printf("[WEBHOOK_DLQ] Failed to replay item %s: %v", dlqID, err)
+		utils.Error("Failed to replay webhook DLQ item", err, map[string]interface{}{
+			"component": "webhook_dlq",
+			"dlq_id":    dlqID,
+		})
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to replay webhook delivery",
 		})

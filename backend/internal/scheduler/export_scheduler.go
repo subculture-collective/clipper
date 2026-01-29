@@ -10,6 +10,8 @@ import (
 	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
+const exportSchedulerName = "exports"
+
 // ExportScheduler manages periodic processing of export requests
 type ExportScheduler struct {
 	exportService *services.ExportService
@@ -40,6 +42,7 @@ func NewExportScheduler(
 func (s *ExportScheduler) Start(ctx context.Context) {
 	logger := utils.GetLogger()
 	logger.Info("Starting export scheduler", map[string]interface{}{
+		"scheduler":  exportSchedulerName,
 		"interval":   s.interval.String(),
 		"batch_size": s.batchSize,
 	})
@@ -55,10 +58,14 @@ func (s *ExportScheduler) Start(ctx context.Context) {
 		case <-ticker.C:
 			s.processExports(ctx)
 		case <-s.stopChan:
-			logger.Info("Export scheduler stopped", nil)
+			logger.Info("Export scheduler stopped", map[string]interface{}{
+				"scheduler": exportSchedulerName,
+			})
 			return
 		case <-ctx.Done():
-			logger.Info("Export scheduler stopped due to context cancellation", nil)
+			logger.Info("Export scheduler stopped due to context cancellation", map[string]interface{}{
+				"scheduler": exportSchedulerName,
+			})
 			return
 		}
 	}
@@ -74,22 +81,30 @@ func (s *ExportScheduler) Stop() {
 // processExports processes pending export requests
 func (s *ExportScheduler) processExports(ctx context.Context) {
 	logger := utils.GetLogger()
-	logger.Debug("Processing pending export requests...", nil)
+	logger.Debug("Processing pending export requests", map[string]interface{}{
+		"scheduler": exportSchedulerName,
+	})
 
 	// Get pending export requests
 	requests, err := s.exportRepo.GetPendingExportRequests(ctx, s.batchSize)
 	if err != nil {
-		logger.Error("Failed to get pending export requests", err)
+		logger.Error("Failed to get pending export requests", err, map[string]interface{}{
+			"scheduler":  exportSchedulerName,
+			"batch_size": s.batchSize,
+		})
 		return
 	}
 
 	if len(requests) == 0 {
-		logger.Debug("No pending export requests to process", nil)
+		logger.Debug("No pending export requests to process", map[string]interface{}{
+			"scheduler": exportSchedulerName,
+		})
 		return
 	}
 
 	logger.Info("Processing pending export requests", map[string]interface{}{
-		"count": len(requests),
+		"scheduler": exportSchedulerName,
+		"count":     len(requests),
 	})
 
 	// Process each request concurrently using a worker pool
@@ -113,11 +128,13 @@ func (s *ExportScheduler) processExports(ctx context.Context) {
 			for req := range requestCh {
 				if err := s.exportService.ProcessExportRequest(ctx, req); err != nil {
 					logger.Error("Failed to process export request", err, map[string]interface{}{
+						"scheduler": exportSchedulerName,
 						"export_id": req.ID.String(),
 					})
 					continue
 				}
 				logger.Info("Successfully processed export request", map[string]interface{}{
+					"scheduler":    exportSchedulerName,
 					"export_id":    req.ID.String(),
 					"creator_name": req.CreatorName,
 					"format":       req.Format,
@@ -137,6 +154,8 @@ func (s *ExportScheduler) processExports(ctx context.Context) {
 
 	// Clean up expired exports
 	if err := s.exportService.CleanupExpiredExports(ctx); err != nil {
-		logger.Error("Failed to cleanup expired exports", err)
+		logger.Error("Failed to cleanup expired exports", err, map[string]interface{}{
+			"scheduler": exportSchedulerName,
+		})
 	}
 }

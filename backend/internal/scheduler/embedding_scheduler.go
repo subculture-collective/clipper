@@ -2,14 +2,16 @@ package scheduler
 
 import (
 	"context"
-	"log"
 	"sync"
 	"time"
 
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/pkg/database"
 	"github.com/subculture-collective/clipper/pkg/metrics"
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
+
+const embeddingSchedulerName = "embedding_generation"
 
 // EmbeddingServiceInterface defines the interface required by the scheduler
 type EmbeddingServiceInterface interface {
@@ -45,7 +47,11 @@ func NewEmbeddingScheduler(
 
 // Start begins the periodic embedding generation process
 func (s *EmbeddingScheduler) Start(ctx context.Context) {
-	log.Printf("Starting embedding scheduler (interval: %v)", s.interval)
+	utils.Info("Starting embedding scheduler", map[string]interface{}{
+		"scheduler": embeddingSchedulerName,
+		"interval":  s.interval.String(),
+		"model":     s.model,
+	})
 
 	ticker := time.NewTicker(s.interval)
 	defer ticker.Stop()
@@ -58,10 +64,14 @@ func (s *EmbeddingScheduler) Start(ctx context.Context) {
 		case <-ticker.C:
 			s.runEmbedding(ctx)
 		case <-s.stopChan:
-			log.Println("Embedding scheduler stopped")
+			utils.Info("Embedding scheduler stopped", map[string]interface{}{
+				"scheduler": embeddingSchedulerName,
+			})
 			return
 		case <-ctx.Done():
-			log.Println("Embedding scheduler stopped due to context cancellation")
+			utils.Info("Embedding scheduler stopped due to context cancellation", map[string]interface{}{
+				"scheduler": embeddingSchedulerName,
+			})
 			return
 		}
 	}
@@ -76,11 +86,17 @@ func (s *EmbeddingScheduler) Stop() {
 
 // runEmbedding executes embedding generation for clips without embeddings
 func (s *EmbeddingScheduler) runEmbedding(ctx context.Context) {
-	log.Println("Starting scheduled embedding generation...")
+	utils.Info("Starting scheduled embedding generation", map[string]interface{}{
+		"scheduler": embeddingSchedulerName,
+		"model":     s.model,
+	})
 
 	// Skip if database is not available (e.g., in tests)
 	if s.db == nil {
-		log.Println("Database not available, skipping embedding generation")
+		utils.Warn("Database not available, skipping embedding generation", map[string]interface{}{
+			"scheduler": embeddingSchedulerName,
+			"model":     s.model,
+		})
 		return
 	}
 
@@ -100,7 +116,10 @@ func (s *EmbeddingScheduler) runEmbedding(ctx context.Context) {
 
 	rows, err := s.db.Pool.Query(ctx, query)
 	if err != nil {
-		log.Printf("Failed to fetch clips for embedding: %v", err)
+		utils.Error("Failed to fetch clips for embedding", err, map[string]interface{}{
+			"scheduler": embeddingSchedulerName,
+			"model":     s.model,
+		})
 		metrics.IndexingJobsTotal.WithLabelValues("failed").Inc()
 		return
 	}
@@ -119,20 +138,29 @@ func (s *EmbeddingScheduler) runEmbedding(ctx context.Context) {
 			&clip.GameName,
 		)
 		if err != nil {
-			log.Printf("Failed to scan clip: %v", err)
+			utils.Error("Failed to scan clip", err, map[string]interface{}{
+				"scheduler": embeddingSchedulerName,
+			})
 			continue
 		}
 		clips = append(clips, clip)
 	}
 
 	if len(clips) == 0 {
-		log.Println("No clips need embeddings - all up to date")
+		utils.Info("No clips need embeddings - all up to date", map[string]interface{}{
+			"scheduler": embeddingSchedulerName,
+			"model":     s.model,
+		})
 		// Update embedding coverage metrics
 		s.updateEmbeddingCoverageMetrics(ctx)
 		return
 	}
 
-	log.Printf("Generating embeddings for %d clips", len(clips))
+	utils.Info("Generating embeddings for clips", map[string]interface{}{
+		"scheduler": embeddingSchedulerName,
+		"count":     len(clips),
+		"model":     s.model,
+	})
 
 	processed := 0
 	failed := 0
@@ -143,7 +171,11 @@ func (s *EmbeddingScheduler) runEmbedding(ctx context.Context) {
 		// Generate embedding
 		embedding, err := s.embeddingService.GenerateClipEmbedding(ctx, clip)
 		if err != nil {
-			log.Printf("Failed to generate embedding for clip %s: %v", clip.ID, err)
+			utils.Error("Failed to generate embedding for clip", err, map[string]interface{}{
+				"scheduler": embeddingSchedulerName,
+				"clip_id":   clip.ID,
+				"model":     s.model,
+			})
 			failed++
 			continue
 		}
@@ -160,7 +192,11 @@ func (s *EmbeddingScheduler) runEmbedding(ctx context.Context) {
 
 		_, err = s.db.Pool.Exec(ctx, updateQuery, embedding, now, s.model, clip.ID)
 		if err != nil {
-			log.Printf("Failed to save embedding for clip %s: %v", clip.ID, err)
+			utils.Error("Failed to save embedding for clip", err, map[string]interface{}{
+				"scheduler": embeddingSchedulerName,
+				"clip_id":   clip.ID,
+				"model":     s.model,
+			})
 			failed++
 			continue
 		}
@@ -169,8 +205,13 @@ func (s *EmbeddingScheduler) runEmbedding(ctx context.Context) {
 	}
 
 	duration := time.Since(startTime)
-	log.Printf("Scheduled embedding generation completed: processed=%d failed=%d duration=%v",
-		processed, failed, duration)
+	utils.Info("Scheduled embedding generation completed", map[string]interface{}{
+		"scheduler": embeddingSchedulerName,
+		"processed": processed,
+		"failed":    failed,
+		"duration":  duration.String(),
+		"model":     s.model,
+	})
 
 	// Record indexing job metrics
 	if failed == 0 {
@@ -199,7 +240,9 @@ func (s *EmbeddingScheduler) updateEmbeddingCoverageMetrics(ctx context.Context)
 		SELECT COUNT(*) FROM clips WHERE is_removed = false AND embedding IS NOT NULL
 	`).Scan(&withEmbeddings)
 	if err != nil {
-		log.Printf("Failed to count clips with embeddings: %v", err)
+		utils.Error("Failed to count clips with embeddings", err, map[string]interface{}{
+			"scheduler": embeddingSchedulerName,
+		})
 		return
 	}
 
@@ -208,7 +251,9 @@ func (s *EmbeddingScheduler) updateEmbeddingCoverageMetrics(ctx context.Context)
 		SELECT COUNT(*) FROM clips WHERE is_removed = false AND embedding IS NULL
 	`).Scan(&withoutEmbeddings)
 	if err != nil {
-		log.Printf("Failed to count clips without embeddings: %v", err)
+		utils.Error("Failed to count clips without embeddings", err, map[string]interface{}{
+			"scheduler": embeddingSchedulerName,
+		})
 		return
 	}
 

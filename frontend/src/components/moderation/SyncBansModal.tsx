@@ -42,6 +42,13 @@ export function SyncBansModal({
         setShowConfirmation(false);
     };
 
+    // Reset form state when modal closes
+    useEffect(() => {
+        if (!open) {
+            resetFormState();
+        }
+    }, [open]);
+
     // Poll for sync progress
     useEffect(() => {
         if (!jobId || !open) return;
@@ -117,7 +124,7 @@ export function SyncBansModal({
             });
         } catch (err: unknown) {
             setError(
-                getErrorMessage(err, 'Failed to start sync. Please try again.')
+                getErrorMessage(err, 'Failed to start sync. Please try again.'),
             );
         } finally {
             setIsSubmitting(false);

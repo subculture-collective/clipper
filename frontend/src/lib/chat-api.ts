@@ -1,5 +1,5 @@
 import apiClient from './api';
-import type { ChannelMember, ChannelRole } from '@/types/chat';
+import type { ChannelMember, ChannelRole, Channel } from '@/types/chat';
 
 export interface ChatChannel {
     id: string;
@@ -242,6 +242,23 @@ export async function getAllBans(
     }>('/chat/bans', {
         params: { page, limit, channel_id: channelId },
     });
+    return response.data;
+}
+
+// Create a new channel
+export interface CreateChannelRequest {
+    name: string;
+    description?: string;
+    channel_type?: 'public' | 'private' | 'direct';
+}
+
+export async function createChannel(
+    request: CreateChannelRequest
+): Promise<Channel> {
+    const response = await apiClient.post<Channel>(
+        '/chat/channels',
+        request
+    );
     return response.data;
 }
 

@@ -47,7 +47,7 @@ describe('TwitchModerationActions', () => {
                 refreshUser: vi.fn(),
             });
 
-            const { container } = render(
+            render(
                 <TwitchModerationActions
                     broadcasterID="broadcaster-123"
                     userID="target-456"
@@ -75,7 +75,7 @@ describe('TwitchModerationActions', () => {
                 refreshUser: vi.fn(),
             });
 
-            const { container } = render(
+            render(
                 <TwitchModerationActions
                     broadcasterID="broadcaster-123"
                     userID="target-456"
@@ -85,7 +85,7 @@ describe('TwitchModerationActions', () => {
                 />
             , { wrapper: TestWrapper });
 
-            // Should not render ban/unban buttons  
+            // Should not render ban/unban buttons
             expect(screen.queryByRole('button', { name: /ban.*on twitch/i })).not.toBeInTheDocument();
             expect(screen.queryByRole('button', { name: /unban.*on twitch/i })).not.toBeInTheDocument();
         });
@@ -277,7 +277,7 @@ describe('TwitchModerationActions', () => {
             , { wrapper: TestWrapper });
 
             await user.click(screen.getByRole('button', { name: /ban targetuser on twitch/i }));
-            
+
             const modal = screen.getByRole('dialog');
             expect(within(modal).getByLabelText(/permanent ban/i)).toBeChecked();
 
@@ -317,14 +317,14 @@ describe('TwitchModerationActions', () => {
             , { wrapper: TestWrapper });
 
             await user.click(screen.getByRole('button', { name: /ban targetuser on twitch/i }));
-            
+
             const modal = screen.getByRole('dialog');
             await user.click(within(modal).getByLabelText(/timeout \(temporary\)/i));
-            
+
             // Click on "Custom duration" button to reveal the input
             const customButton = within(modal).getByRole('button', { name: /custom duration/i });
             await user.click(customButton);
-            
+
             const durationInput = within(modal).getByLabelText(/duration \(seconds\)/i);
             await user.clear(durationInput);
             await user.type(durationInput, '300');
@@ -362,7 +362,7 @@ describe('TwitchModerationActions', () => {
             , { wrapper: TestWrapper });
 
             await user.click(screen.getByRole('button', { name: /ban targetuser on twitch/i }));
-            
+
             const modal = screen.getByRole('dialog');
             const reasonInput = within(modal).getByLabelText(/reason \(optional\)/i);
             await user.type(reasonInput, 'Spam in chat');
@@ -438,7 +438,7 @@ describe('TwitchModerationActions', () => {
             , { wrapper: TestWrapper });
 
             await user.click(screen.getByRole('button', { name: /unban targetuser on twitch/i }));
-            
+
             const modal = screen.getByRole('dialog');
             await user.click(within(modal).getByRole('button', { name: /unban user/i }));
 
@@ -639,7 +639,7 @@ describe('TwitchModerationActions', () => {
             // Open modal and fill form
             await user.click(screen.getByRole('button', { name: /ban targetuser on twitch/i }));
             let modal = screen.getByRole('dialog');
-            
+
             const reasonInput = within(modal).getByLabelText(/reason \(optional\)/i);
             await user.type(reasonInput, 'Test reason');
 
@@ -656,7 +656,7 @@ describe('TwitchModerationActions', () => {
 
         it('should prevent closing modal while loading', async () => {
             const user = userEvent.setup();
-            vi.mocked(moderationApi.banUserOnTwitch).mockImplementation(() => 
+            vi.mocked(moderationApi.banUserOnTwitch).mockImplementation(() =>
                 new Promise(() => {}) // Never resolves
             );
 
@@ -671,13 +671,13 @@ describe('TwitchModerationActions', () => {
 
             await user.click(screen.getByRole('button', { name: /ban targetuser on twitch/i }));
             const modal = screen.getByRole('dialog');
-            
+
             const banButton = within(modal).getByRole('button', { name: /ban user/i });
             await user.click(banButton);
 
             // Modal should still be open
             expect(screen.getByRole('dialog')).toBeInTheDocument();
-            
+
             // Cancel button should be disabled
             expect(within(modal).getByRole('button', { name: /cancel/i })).toBeDisabled();
         });

@@ -2,11 +2,11 @@ package scheduler
 
 import (
 	"context"
-	"log"
 	"sync"
 	"time"
 
 	"github.com/subculture-collective/clipper/internal/services"
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
 // OutboundWebhookScheduler handles periodic processing of webhook deliveries
@@ -30,7 +30,11 @@ func NewOutboundWebhookScheduler(webhookService *services.OutboundWebhookService
 
 // Start starts the webhook delivery scheduler
 func (s *OutboundWebhookScheduler) Start(ctx context.Context) {
-	log.Printf("[WEBHOOK_SCHEDULER] Starting outbound webhook scheduler (interval: %v, batch size: %d)", s.interval, s.batchSize)
+	utils.Info("Starting outbound webhook scheduler", map[string]interface{}{
+		"interval":   s.interval.String(),
+		"batch_size": s.batchSize,
+		"scheduler":  "outbound_webhook",
+	})
 
 	ticker := time.NewTicker(s.interval)
 	defer ticker.Stop()
@@ -43,10 +47,14 @@ func (s *OutboundWebhookScheduler) Start(ctx context.Context) {
 		case <-ticker.C:
 			s.processDeliveries(ctx)
 		case <-s.stopChan:
-			log.Println("[WEBHOOK_SCHEDULER] Stopping outbound webhook scheduler")
+			utils.Info("Stopping outbound webhook scheduler", map[string]interface{}{
+				"scheduler": "outbound_webhook",
+			})
 			return
 		case <-ctx.Done():
-			log.Println("[WEBHOOK_SCHEDULER] Context cancelled, stopping outbound webhook scheduler")
+			utils.Info("Outbound webhook scheduler stopped due to context cancellation", map[string]interface{}{
+				"scheduler": "outbound_webhook",
+			})
 			return
 		}
 	}
@@ -62,6 +70,9 @@ func (s *OutboundWebhookScheduler) Stop() {
 // processDeliveries processes pending webhook deliveries
 func (s *OutboundWebhookScheduler) processDeliveries(ctx context.Context) {
 	if err := s.webhookService.ProcessPendingDeliveries(ctx, s.batchSize); err != nil {
-		log.Printf("[WEBHOOK_SCHEDULER] Error processing deliveries: %v", err)
+		utils.Error("Error processing outbound webhook deliveries", err, map[string]interface{}{
+			"batch_size": s.batchSize,
+			"scheduler":  "outbound_webhook",
+		})
 	}
 }

@@ -27,7 +27,7 @@ type User struct {
 	ModeratorScope      string      `json:"moderator_scope,omitempty" db:"moderator_scope"`
 	ModerationChannels  []uuid.UUID `json:"moderation_channels,omitempty" db:"moderation_channels"`
 	ModerationStartedAt *time.Time  `json:"moderation_started_at,omitempty" db:"moderation_started_at"`
-	AccountStatus       string       `json:"account_status" db:"account_status"` // active, unclaimed, pending
+	AccountStatus       string      `json:"account_status" db:"account_status"` // active, unclaimed, pending
 	IsBanned            bool        `json:"is_banned" db:"is_banned"`
 	DeviceToken         *string     `json:"device_token,omitempty" db:"device_token"`
 	DevicePlatform      *string     `json:"device_platform,omitempty" db:"device_platform"`
@@ -1091,6 +1091,11 @@ type CreateCheckoutSessionRequest struct {
 // ChangeSubscriptionPlanRequest represents a request to change subscription plan
 type ChangeSubscriptionPlanRequest struct {
 	PriceID string `json:"price_id" binding:"required"`
+}
+
+// CancelSubscriptionRequest represents a request to cancel a subscription
+type CancelSubscriptionRequest struct {
+	Immediate bool `json:"immediate"` // If true, cancel immediately. Otherwise, cancel at period end.
 }
 
 // CreateCheckoutSessionResponse represents the response with checkout session URL
@@ -2897,10 +2902,10 @@ type BannedUserStat struct {
 
 // AppealStats represents appeal and reversal statistics
 type AppealStats struct {
-	TotalAppeals      int     `json:"total_appeals"`
-	PendingAppeals    int     `json:"pending_appeals"`
-	ApprovedAppeals   int     `json:"approved_appeals"`
-	RejectedAppeals   int     `json:"rejected_appeals"`
+	TotalAppeals      int      `json:"total_appeals"`
+	PendingAppeals    int      `json:"pending_appeals"`
+	ApprovedAppeals   int      `json:"approved_appeals"`
+	RejectedAppeals   int      `json:"rejected_appeals"`
 	FalsePositiveRate *float64 `json:"false_positive_rate,omitempty"` // Percentage of approved appeals
 }
 
@@ -3890,16 +3895,16 @@ const (
 
 // ServiceStatus represents the current status of a service
 type ServiceStatus struct {
-	ID              uuid.UUID              `json:"id" db:"id"`
-	ServiceName     string                 `json:"service_name" db:"service_name"`
-	Status          string                 `json:"status" db:"status"`
-	StatusMessage   *string                `json:"status_message,omitempty" db:"status_message"`
-	LastCheckAt     time.Time              `json:"last_check_at" db:"last_check_at"`
-	ResponseTimeMs  *int                   `json:"response_time_ms,omitempty" db:"response_time_ms"`
-	ErrorRate       *float64               `json:"error_rate,omitempty" db:"error_rate"`
-	Metadata        map[string]interface{} `json:"metadata,omitempty" db:"metadata"`
-	CreatedAt       time.Time              `json:"created_at" db:"created_at"`
-	UpdatedAt       time.Time              `json:"updated_at" db:"updated_at"`
+	ID             uuid.UUID              `json:"id" db:"id"`
+	ServiceName    string                 `json:"service_name" db:"service_name"`
+	Status         string                 `json:"status" db:"status"`
+	StatusMessage  *string                `json:"status_message,omitempty" db:"status_message"`
+	LastCheckAt    time.Time              `json:"last_check_at" db:"last_check_at"`
+	ResponseTimeMs *int                   `json:"response_time_ms,omitempty" db:"response_time_ms"`
+	ErrorRate      *float64               `json:"error_rate,omitempty" db:"error_rate"`
+	Metadata       map[string]interface{} `json:"metadata,omitempty" db:"metadata"`
+	CreatedAt      time.Time              `json:"created_at" db:"created_at"`
+	UpdatedAt      time.Time              `json:"updated_at" db:"updated_at"`
 }
 
 // StatusHistory represents historical status data
@@ -3940,14 +3945,14 @@ type StatusIncidentUpdate struct {
 
 // StatusSubscription represents a user's subscription to status updates
 type StatusSubscription struct {
-	ID               uuid.UUID  `json:"id" db:"id"`
-	UserID           uuid.UUID  `json:"user_id" db:"user_id"`
-	ServiceName      *string    `json:"service_name,omitempty" db:"service_name"`
-	NotificationType string     `json:"notification_type" db:"notification_type"`
-	WebhookURL       *string    `json:"webhook_url,omitempty" db:"webhook_url"`
-	IsActive         bool       `json:"is_active" db:"is_active"`
-	CreatedAt        time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt        time.Time  `json:"updated_at" db:"updated_at"`
+	ID               uuid.UUID `json:"id" db:"id"`
+	UserID           uuid.UUID `json:"user_id" db:"user_id"`
+	ServiceName      *string   `json:"service_name,omitempty" db:"service_name"`
+	NotificationType string    `json:"notification_type" db:"notification_type"`
+	WebhookURL       *string   `json:"webhook_url,omitempty" db:"webhook_url"`
+	IsActive         bool      `json:"is_active" db:"is_active"`
+	CreatedAt        time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at" db:"updated_at"`
 }
 
 // Service status constants

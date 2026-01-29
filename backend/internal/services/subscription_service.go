@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -14,11 +13,13 @@ import (
 	portalsession "github.com/stripe/stripe-go/v81/billingportal/session"
 	"github.com/stripe/stripe-go/v81/checkout/session"
 	"github.com/stripe/stripe-go/v81/customer"
+	"github.com/stripe/stripe-go/v81/invoice"
 	"github.com/stripe/stripe-go/v81/subscription"
 	"github.com/stripe/stripe-go/v81/webhook"
 	"github.com/subculture-collective/clipper/config"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
 var (
@@ -29,6 +30,32 @@ var (
 	// ErrStripeCustomerNotFound indicates the Stripe customer was not found
 	ErrStripeCustomerNotFound = errors.New("stripe customer not found")
 )
+
+const webhookLogComponent = "stripe_webhook"
+
+func logWebhookInfo(message string, fields map[string]interface{}) {
+	if fields == nil {
+		fields = map[string]interface{}{}
+	}
+	fields["component"] = webhookLogComponent
+	utils.Info(message, fields)
+}
+
+func logWebhookWarn(message string, fields map[string]interface{}) {
+	if fields == nil {
+		fields = map[string]interface{}{}
+	}
+	fields["component"] = webhookLogComponent
+	utils.Warn(message, fields)
+}
+
+func logWebhookError(message string, err error, fields map[string]interface{}) {
+	if fields == nil {
+		fields = map[string]interface{}{}
+	}
+	fields["component"] = webhookLogComponent
+	utils.Error(message, err, fields)
+}
 
 // SubscriptionService handles subscription business logic
 type SubscriptionService struct {
@@ -265,37 +292,57 @@ func (s *SubscriptionService) HandleWebhook(ctx context.Context, payload []byte,
 	// Verify webhook signature against all configured secrets
 	event, err := s.verifyWebhookSignature(payload, signature)
 	if err != nil {
-		log.Printf("[WEBHOOK] Signature verification failed: %v", err)
+		logWebhookError("Webhook signature verification failed", err, map[string]interface{}{
+			"event_type": "unknown",
+		})
 		return fmt.Errorf("webhook signature verification failed: %w", err)
 	}
 
 	// Log webhook received
-	log.Printf("[WEBHOOK] Received event: %s (type: %s)", event.ID, event.Type)
+	logWebhookInfo("Received webhook event", map[string]interface{}{
+		"event_id":   event.ID,
+		"event_type": event.Type,
+	})
 
 	// Check for duplicate event (idempotency)
 	existingEvent, err := s.repo.GetEventByStripeEventID(ctx, event.ID)
 	if err == nil && existingEvent != nil {
-		log.Printf("[WEBHOOK] Duplicate event %s, skipping", event.ID)
+		logWebhookInfo("Duplicate webhook event detected, skipping", map[string]interface{}{
+			"event_id":   event.ID,
+			"event_type": event.Type,
+		})
 		return nil
 	}
 
 	// Process the webhook with retry mechanism
 	err = s.processWebhookWithRetry(ctx, event)
 	if err != nil {
-		log.Printf("[WEBHOOK] Failed to process event %s: %v", event.ID, err)
+		logWebhookError("Failed to process webhook event", err, map[string]interface{}{
+			"event_id":   event.ID,
+			"event_type": event.Type,
+		})
 		// Add to retry queue if not already there
 		if s.webhookRepo != nil {
 			retryErr := s.webhookRepo.AddToRetryQueue(ctx, event.ID, string(event.Type), event, 3)
 			if retryErr != nil {
-				log.Printf("[WEBHOOK] Failed to add event %s to retry queue: %v", event.ID, retryErr)
+				logWebhookError("Failed to add webhook event to retry queue", retryErr, map[string]interface{}{
+					"event_id":   event.ID,
+					"event_type": event.Type,
+				})
 			} else {
-				log.Printf("[WEBHOOK] Added event %s to retry queue", event.ID)
+				logWebhookInfo("Added webhook event to retry queue", map[string]interface{}{
+					"event_id":   event.ID,
+					"event_type": event.Type,
+				})
 			}
 		}
 		return err
 	}
 
-	log.Printf("[WEBHOOK] Successfully processed event: %s", event.ID)
+	logWebhookInfo("Successfully processed webhook event", map[string]interface{}{
+		"event_id":   event.ID,
+		"event_type": event.Type,
+	})
 	return nil
 }
 
@@ -342,7 +389,9 @@ func (s *SubscriptionService) processWebhookWithRetry(ctx context.Context, event
 	case "charge.dispute.created":
 		return s.handleDisputeCreated(ctx, event)
 	default:
-		log.Printf("[WEBHOOK] Unhandled event type: %s", event.Type)
+		logWebhookWarn("Unhandled webhook event type", map[string]interface{}{
+			"event_type": event.Type,
+		})
 		return nil
 	}
 }
@@ -351,17 +400,28 @@ func (s *SubscriptionService) processWebhookWithRetry(ctx context.Context, event
 func (s *SubscriptionService) handleSubscriptionCreated(ctx context.Context, event stripe.Event) error {
 	var stripeSubscription stripe.Subscription
 	if err := json.Unmarshal(event.Data.Raw, &stripeSubscription); err != nil {
-		log.Printf("[WEBHOOK] Failed to unmarshal subscription.created event %s: %v", event.ID, err)
+		logWebhookError("Failed to unmarshal subscription.created event", err, map[string]interface{}{
+			"event_id":   event.ID,
+			"event_type": event.Type,
+		})
 		return fmt.Errorf("failed to unmarshal subscription: %w", err)
 	}
 
-	log.Printf("[WEBHOOK] Processing subscription.created for customer: %s, subscription: %s",
-		stripeSubscription.Customer.ID, stripeSubscription.ID)
+	logWebhookInfo("Processing subscription.created", map[string]interface{}{
+		"event_id":        event.ID,
+		"event_type":      event.Type,
+		"customer_id":     stripeSubscription.Customer.ID,
+		"subscription_id": stripeSubscription.ID,
+	})
 
 	// Get subscription by customer ID
 	sub, err := s.repo.GetByStripeCustomerID(ctx, stripeSubscription.Customer.ID)
 	if err != nil {
-		log.Printf("[WEBHOOK] Failed to find subscription by customer ID %s: %v", stripeSubscription.Customer.ID, err)
+		logWebhookError("Failed to find subscription by customer ID", err, map[string]interface{}{
+			"event_id":    event.ID,
+			"event_type":  event.Type,
+			"customer_id": stripeSubscription.Customer.ID,
+		})
 		return fmt.Errorf("failed to find subscription by customer ID: %w", err)
 	}
 
@@ -390,13 +450,22 @@ func (s *SubscriptionService) handleSubscriptionCreated(ctx context.Context, eve
 	}
 
 	if err := s.repo.Update(ctx, sub); err != nil {
-		log.Printf("[WEBHOOK] Failed to update subscription for customer %s: %v", stripeSubscription.Customer.ID, err)
+		logWebhookError("Failed to update subscription for customer", err, map[string]interface{}{
+			"event_id":        event.ID,
+			"event_type":      event.Type,
+			"customer_id":     stripeSubscription.Customer.ID,
+			"subscription_id": stripeSubscription.ID,
+		})
 		return fmt.Errorf("failed to update subscription: %w", err)
 	}
 
 	// Log event
 	if err := s.repo.LogSubscriptionEvent(ctx, &sub.ID, "subscription_created", &event.ID, stripeSubscription); err != nil {
-		log.Printf("[WEBHOOK] Failed to log subscription event: %v", err)
+		logWebhookError("Failed to log subscription event", err, map[string]interface{}{
+			"event_id":        event.ID,
+			"event_type":      event.Type,
+			"subscription_id": sub.ID,
+		})
 	}
 
 	// Log audit event
@@ -408,8 +477,14 @@ func (s *SubscriptionService) handleSubscriptionCreated(ctx context.Context, eve
 		})
 	}
 
-	log.Printf("[WEBHOOK] Successfully created subscription for user %s (tier: %s, status: %s)",
-		sub.UserID, tier, stripeSubscription.Status)
+	logWebhookInfo("Successfully created subscription", map[string]interface{}{
+		"event_id":        event.ID,
+		"event_type":      event.Type,
+		"user_id":         sub.UserID,
+		"subscription_id": stripeSubscription.ID,
+		"tier":            tier,
+		"status":          string(stripeSubscription.Status),
+	})
 	return nil
 }
 
@@ -417,16 +492,27 @@ func (s *SubscriptionService) handleSubscriptionCreated(ctx context.Context, eve
 func (s *SubscriptionService) handleSubscriptionUpdated(ctx context.Context, event stripe.Event) error {
 	var stripeSubscription stripe.Subscription
 	if err := json.Unmarshal(event.Data.Raw, &stripeSubscription); err != nil {
-		log.Printf("[WEBHOOK] Failed to unmarshal subscription.updated event %s: %v", event.ID, err)
+		logWebhookError("Failed to unmarshal subscription.updated event", err, map[string]interface{}{
+			"event_id":   event.ID,
+			"event_type": event.Type,
+		})
 		return fmt.Errorf("failed to unmarshal subscription: %w", err)
 	}
 
-	log.Printf("[WEBHOOK] Processing subscription.updated for subscription: %s", stripeSubscription.ID)
+	logWebhookInfo("Processing subscription.updated", map[string]interface{}{
+		"event_id":        event.ID,
+		"event_type":      event.Type,
+		"subscription_id": stripeSubscription.ID,
+	})
 
 	// Get subscription by Stripe subscription ID
 	sub, err := s.repo.GetByStripeSubscriptionID(ctx, stripeSubscription.ID)
 	if err != nil {
-		log.Printf("[WEBHOOK] Failed to find subscription %s: %v", stripeSubscription.ID, err)
+		logWebhookError("Failed to find subscription", err, map[string]interface{}{
+			"event_id":        event.ID,
+			"event_type":      event.Type,
+			"subscription_id": stripeSubscription.ID,
+		})
 		return fmt.Errorf("failed to find subscription: %w", err)
 	}
 
@@ -446,13 +532,21 @@ func (s *SubscriptionService) handleSubscriptionUpdated(ctx context.Context, eve
 	}
 
 	if err := s.repo.Update(ctx, sub); err != nil {
-		log.Printf("[WEBHOOK] Failed to update subscription %s: %v", stripeSubscription.ID, err)
+		logWebhookError("Failed to update subscription", err, map[string]interface{}{
+			"event_id":        event.ID,
+			"event_type":      event.Type,
+			"subscription_id": stripeSubscription.ID,
+		})
 		return fmt.Errorf("failed to update subscription: %w", err)
 	}
 
 	// Log event
 	if err := s.repo.LogSubscriptionEvent(ctx, &sub.ID, "subscription_updated", &event.ID, stripeSubscription); err != nil {
-		log.Printf("[WEBHOOK] Failed to log subscription event: %v", err)
+		logWebhookError("Failed to log subscription event", err, map[string]interface{}{
+			"event_id":        event.ID,
+			"event_type":      event.Type,
+			"subscription_id": sub.ID,
+		})
 	}
 
 	// Log audit event
@@ -464,8 +558,13 @@ func (s *SubscriptionService) handleSubscriptionUpdated(ctx context.Context, eve
 		})
 	}
 
-	log.Printf("[WEBHOOK] Successfully updated subscription %s (tier: %s, status: %s)",
-		stripeSubscription.ID, tier, stripeSubscription.Status)
+	logWebhookInfo("Successfully updated subscription", map[string]interface{}{
+		"event_id":        event.ID,
+		"event_type":      event.Type,
+		"subscription_id": stripeSubscription.ID,
+		"tier":            tier,
+		"status":          string(stripeSubscription.Status),
+	})
 	return nil
 }
 
@@ -473,16 +572,27 @@ func (s *SubscriptionService) handleSubscriptionUpdated(ctx context.Context, eve
 func (s *SubscriptionService) handleSubscriptionDeleted(ctx context.Context, event stripe.Event) error {
 	var stripeSubscription stripe.Subscription
 	if err := json.Unmarshal(event.Data.Raw, &stripeSubscription); err != nil {
-		log.Printf("[WEBHOOK] Failed to unmarshal subscription.deleted event %s: %v", event.ID, err)
+		logWebhookError("Failed to unmarshal subscription.deleted event", err, map[string]interface{}{
+			"event_id":   event.ID,
+			"event_type": event.Type,
+		})
 		return fmt.Errorf("failed to unmarshal subscription: %w", err)
 	}
 
-	log.Printf("[WEBHOOK] Processing subscription.deleted for subscription: %s", stripeSubscription.ID)
+	logWebhookInfo("Processing subscription.deleted", map[string]interface{}{
+		"event_id":        event.ID,
+		"event_type":      event.Type,
+		"subscription_id": stripeSubscription.ID,
+	})
 
 	// Get subscription by Stripe subscription ID
 	sub, err := s.repo.GetByStripeSubscriptionID(ctx, stripeSubscription.ID)
 	if err != nil {
-		log.Printf("[WEBHOOK] Failed to find subscription %s: %v", stripeSubscription.ID, err)
+		logWebhookError("Failed to find subscription", err, map[string]interface{}{
+			"event_id":        event.ID,
+			"event_type":      event.Type,
+			"subscription_id": stripeSubscription.ID,
+		})
 		return fmt.Errorf("failed to find subscription: %w", err)
 	}
 
@@ -492,13 +602,21 @@ func (s *SubscriptionService) handleSubscriptionDeleted(ctx context.Context, eve
 	sub.CanceledAt = timePtr(time.Now())
 
 	if err := s.repo.Update(ctx, sub); err != nil {
-		log.Printf("[WEBHOOK] Failed to update subscription %s to canceled: %v", stripeSubscription.ID, err)
+		logWebhookError("Failed to update subscription to canceled", err, map[string]interface{}{
+			"event_id":        event.ID,
+			"event_type":      event.Type,
+			"subscription_id": stripeSubscription.ID,
+		})
 		return fmt.Errorf("failed to update subscription: %w", err)
 	}
 
 	// Log event
 	if err := s.repo.LogSubscriptionEvent(ctx, &sub.ID, "subscription_deleted", &event.ID, stripeSubscription); err != nil {
-		log.Printf("[WEBHOOK] Failed to log subscription event: %v", err)
+		logWebhookError("Failed to log subscription event", err, map[string]interface{}{
+			"event_id":        event.ID,
+			"event_type":      event.Type,
+			"subscription_id": sub.ID,
+		})
 	}
 
 	// Log audit event
@@ -508,7 +626,12 @@ func (s *SubscriptionService) handleSubscriptionDeleted(ctx context.Context, eve
 		})
 	}
 
-	log.Printf("[WEBHOOK] Successfully deleted subscription %s for user %s", stripeSubscription.ID, sub.UserID)
+	logWebhookInfo("Successfully deleted subscription", map[string]interface{}{
+		"event_id":        event.ID,
+		"event_type":      event.Type,
+		"subscription_id": stripeSubscription.ID,
+		"user_id":         sub.UserID,
+	})
 	return nil
 }
 
@@ -516,35 +639,60 @@ func (s *SubscriptionService) handleSubscriptionDeleted(ctx context.Context, eve
 func (s *SubscriptionService) handleInvoicePaid(ctx context.Context, event stripe.Event) error {
 	var invoice stripe.Invoice
 	if err := json.Unmarshal(event.Data.Raw, &invoice); err != nil {
-		log.Printf("[WEBHOOK] Failed to unmarshal invoice.paid event %s: %v", event.ID, err)
+		logWebhookError("Failed to unmarshal invoice.paid event", err, map[string]interface{}{
+			"event_id":   event.ID,
+			"event_type": event.Type,
+		})
 		return fmt.Errorf("failed to unmarshal invoice: %w", err)
 	}
 
 	if invoice.Subscription == nil {
-		log.Printf("[WEBHOOK] Invoice %s is not a subscription invoice, skipping", invoice.ID)
+		logWebhookInfo("Invoice is not a subscription invoice, skipping", map[string]interface{}{
+			"event_id":   event.ID,
+			"event_type": event.Type,
+			"invoice_id": invoice.ID,
+		})
 		return nil // Not a subscription invoice
 	}
 
-	log.Printf("[WEBHOOK] Processing invoice.paid for subscription: %s, invoice: %s",
-		invoice.Subscription.ID, invoice.ID)
+	logWebhookInfo("Processing invoice.paid", map[string]interface{}{
+		"event_id":        event.ID,
+		"event_type":      event.Type,
+		"invoice_id":      invoice.ID,
+		"subscription_id": invoice.Subscription.ID,
+	})
 
 	// Get subscription by Stripe subscription ID
 	sub, err := s.repo.GetByStripeSubscriptionID(ctx, invoice.Subscription.ID)
 	if err != nil {
-		log.Printf("[WEBHOOK] Failed to find subscription for invoice %s: %v", invoice.ID, err)
+		logWebhookError("Failed to find subscription for invoice", err, map[string]interface{}{
+			"event_id":        event.ID,
+			"event_type":      event.Type,
+			"invoice_id":      invoice.ID,
+			"subscription_id": invoice.Subscription.ID,
+		})
 		return nil // Not critical
 	}
 
 	// Process payment success for dunning (clears grace period and marks failures as resolved)
 	if s.dunningService != nil {
 		if err := s.dunningService.HandlePaymentSuccess(ctx, &invoice); err != nil {
-			log.Printf("[WEBHOOK] Failed to process payment success in dunning service: %v", err)
+			logWebhookError("Failed to process payment success in dunning service", err, map[string]interface{}{
+				"event_id":   event.ID,
+				"event_type": event.Type,
+				"invoice_id": invoice.ID,
+			})
 		}
 	}
 
 	// Log event
 	if err := s.repo.LogSubscriptionEvent(ctx, &sub.ID, "invoice_paid", &event.ID, invoice); err != nil {
-		log.Printf("[WEBHOOK] Failed to log subscription event: %v", err)
+		logWebhookError("Failed to log subscription event", err, map[string]interface{}{
+			"event_id":        event.ID,
+			"event_type":      event.Type,
+			"subscription_id": sub.ID,
+			"invoice_id":      invoice.ID,
+		})
 	}
 
 	// Log audit event
@@ -556,7 +704,12 @@ func (s *SubscriptionService) handleInvoicePaid(ctx context.Context, event strip
 		})
 	}
 
-	log.Printf("[WEBHOOK] Successfully processed invoice.paid for subscription %s", invoice.Subscription.ID)
+	logWebhookInfo("Successfully processed invoice.paid", map[string]interface{}{
+		"event_id":        event.ID,
+		"event_type":      event.Type,
+		"invoice_id":      invoice.ID,
+		"subscription_id": invoice.Subscription.ID,
+	})
 	return nil
 }
 
@@ -564,22 +717,38 @@ func (s *SubscriptionService) handleInvoicePaid(ctx context.Context, event strip
 func (s *SubscriptionService) handleInvoicePaymentFailed(ctx context.Context, event stripe.Event) error {
 	var invoice stripe.Invoice
 	if err := json.Unmarshal(event.Data.Raw, &invoice); err != nil {
-		log.Printf("[WEBHOOK] Failed to unmarshal invoice.payment_failed event %s: %v", event.ID, err)
+		logWebhookError("Failed to unmarshal invoice.payment_failed event", err, map[string]interface{}{
+			"event_id":   event.ID,
+			"event_type": event.Type,
+		})
 		return fmt.Errorf("failed to unmarshal invoice: %w", err)
 	}
 
 	if invoice.Subscription == nil {
-		log.Printf("[WEBHOOK] Invoice %s is not a subscription invoice, skipping", invoice.ID)
+		logWebhookInfo("Invoice is not a subscription invoice, skipping", map[string]interface{}{
+			"event_id":   event.ID,
+			"event_type": event.Type,
+			"invoice_id": invoice.ID,
+		})
 		return nil // Not a subscription invoice
 	}
 
-	log.Printf("[WEBHOOK] Processing invoice.payment_failed for subscription: %s, invoice: %s",
-		invoice.Subscription.ID, invoice.ID)
+	logWebhookInfo("Processing invoice.payment_failed", map[string]interface{}{
+		"event_id":        event.ID,
+		"event_type":      event.Type,
+		"invoice_id":      invoice.ID,
+		"subscription_id": invoice.Subscription.ID,
+	})
 
 	// Get subscription by Stripe subscription ID
 	sub, err := s.repo.GetByStripeSubscriptionID(ctx, invoice.Subscription.ID)
 	if err != nil {
-		log.Printf("[WEBHOOK] Failed to find subscription for invoice %s: %v", invoice.ID, err)
+		logWebhookError("Failed to find subscription for invoice", err, map[string]interface{}{
+			"event_id":        event.ID,
+			"event_type":      event.Type,
+			"invoice_id":      invoice.ID,
+			"subscription_id": invoice.Subscription.ID,
+		})
 		return nil // Not critical
 	}
 
@@ -587,22 +756,39 @@ func (s *SubscriptionService) handleInvoicePaymentFailed(ctx context.Context, ev
 	if sub.Status != "past_due" && sub.Status != "unpaid" {
 		sub.Status = "past_due"
 		if err := s.repo.Update(ctx, sub); err != nil {
-			log.Printf("[WEBHOOK] Failed to update subscription status to past_due: %v", err)
+			logWebhookError("Failed to update subscription status to past_due", err, map[string]interface{}{
+				"event_id":        event.ID,
+				"event_type":      event.Type,
+				"subscription_id": sub.ID,
+			})
 		} else {
-			log.Printf("[WEBHOOK] Updated subscription %s status to past_due", sub.ID)
+			logWebhookInfo("Updated subscription status to past_due", map[string]interface{}{
+				"event_id":        event.ID,
+				"event_type":      event.Type,
+				"subscription_id": sub.ID,
+			})
 		}
 	}
 
 	// Process payment failure through dunning service
 	if s.dunningService != nil {
 		if err := s.dunningService.HandlePaymentFailure(ctx, &invoice); err != nil {
-			log.Printf("[WEBHOOK] Failed to process payment failure in dunning service: %v", err)
+			logWebhookError("Failed to process payment failure in dunning service", err, map[string]interface{}{
+				"event_id":   event.ID,
+				"event_type": event.Type,
+				"invoice_id": invoice.ID,
+			})
 		}
 	}
 
 	// Log event
 	if err := s.repo.LogSubscriptionEvent(ctx, &sub.ID, "invoice_payment_failed", &event.ID, invoice); err != nil {
-		log.Printf("[WEBHOOK] Failed to log subscription event: %v", err)
+		logWebhookError("Failed to log subscription event", err, map[string]interface{}{
+			"event_id":        event.ID,
+			"event_type":      event.Type,
+			"subscription_id": sub.ID,
+			"invoice_id":      invoice.ID,
+		})
 	}
 
 	// Log audit event
@@ -614,7 +800,12 @@ func (s *SubscriptionService) handleInvoicePaymentFailed(ctx context.Context, ev
 		})
 	}
 
-	log.Printf("[WEBHOOK] Successfully processed invoice.payment_failed for subscription %s", invoice.Subscription.ID)
+	logWebhookInfo("Successfully processed invoice.payment_failed", map[string]interface{}{
+		"event_id":        event.ID,
+		"event_type":      event.Type,
+		"invoice_id":      invoice.ID,
+		"subscription_id": invoice.Subscription.ID,
+	})
 	return nil
 }
 
@@ -622,42 +813,70 @@ func (s *SubscriptionService) handleInvoicePaymentFailed(ctx context.Context, ev
 func (s *SubscriptionService) handleInvoiceFinalized(ctx context.Context, event stripe.Event) error {
 	var invoice stripe.Invoice
 	if err := json.Unmarshal(event.Data.Raw, &invoice); err != nil {
-		log.Printf("[WEBHOOK] Failed to unmarshal invoice.finalized event %s: %v", event.ID, err)
+		logWebhookError("Failed to unmarshal invoice.finalized event", err, map[string]interface{}{
+			"event_id":   event.ID,
+			"event_type": event.Type,
+		})
 		return fmt.Errorf("failed to unmarshal invoice: %w", err)
 	}
 
-	log.Printf("[WEBHOOK] Processing invoice.finalized for invoice: %s, customer: %s",
-		invoice.ID, invoice.Customer.ID)
+	logWebhookInfo("Processing invoice.finalized", map[string]interface{}{
+		"event_id":    event.ID,
+		"event_type":  event.Type,
+		"invoice_id":  invoice.ID,
+		"customer_id": invoice.Customer.ID,
+	})
 
 	// Skip if invoice is not related to a subscription
 	if invoice.Subscription == nil {
-		log.Printf("[WEBHOOK] Invoice %s is not a subscription invoice, skipping", invoice.ID)
+		logWebhookInfo("Invoice is not a subscription invoice, skipping", map[string]interface{}{
+			"event_id":   event.ID,
+			"event_type": event.Type,
+			"invoice_id": invoice.ID,
+		})
 		return nil
 	}
 
 	// Skip if invoice PDF delivery is disabled
 	if !s.cfg.Stripe.InvoicePDFEnabled {
-		log.Printf("[WEBHOOK] Invoice PDF delivery disabled, skipping for invoice %s", invoice.ID)
+		logWebhookInfo("Invoice PDF delivery disabled, skipping", map[string]interface{}{
+			"event_id":   event.ID,
+			"event_type": event.Type,
+			"invoice_id": invoice.ID,
+		})
 		return nil
 	}
 
 	// Skip if no invoice PDF URL is available (shouldn't happen for finalized invoices)
 	if invoice.InvoicePDF == "" {
-		log.Printf("[WEBHOOK] No invoice PDF URL available for invoice %s", invoice.ID)
+		logWebhookWarn("No invoice PDF URL available", map[string]interface{}{
+			"event_id":   event.ID,
+			"event_type": event.Type,
+			"invoice_id": invoice.ID,
+		})
 		return nil
 	}
 
 	// Get subscription by Stripe customer ID
 	sub, err := s.repo.GetByStripeCustomerID(ctx, invoice.Customer.ID)
 	if err != nil {
-		log.Printf("[WEBHOOK] Failed to find subscription for customer %s: %v", invoice.Customer.ID, err)
+		logWebhookError("Failed to find subscription for customer", err, map[string]interface{}{
+			"event_id":    event.ID,
+			"event_type":  event.Type,
+			"customer_id": invoice.Customer.ID,
+		})
 		return nil // Not critical, don't fail the webhook
 	}
 
 	// Get user for email
 	user, err := s.userRepo.GetByID(ctx, sub.UserID)
 	if err != nil {
-		log.Printf("[WEBHOOK] Failed to get user %s for invoice email: %v", sub.UserID, err)
+		logWebhookError("Failed to get user for invoice email", err, map[string]interface{}{
+			"event_id":   event.ID,
+			"event_type": event.Type,
+			"user_id":    sub.UserID,
+			"invoice_id": invoice.ID,
+		})
 		return nil // Not critical
 	}
 
@@ -690,10 +909,20 @@ func (s *SubscriptionService) handleInvoiceFinalized(ctx context.Context, event 
 
 		notificationID := uuid.New()
 		if err := s.emailService.SendNotificationEmail(ctx, user, models.NotificationTypeInvoiceFinalized, notificationID, emailData); err != nil {
-			log.Printf("[WEBHOOK] Failed to send invoice email to user %s: %v", user.ID, err)
+			logWebhookError("Failed to send invoice email", err, map[string]interface{}{
+				"event_id":   event.ID,
+				"event_type": event.Type,
+				"user_id":    user.ID,
+				"invoice_id": invoice.ID,
+			})
 			// Continue processing, email failure shouldn't fail the webhook
 		} else {
-			log.Printf("[WEBHOOK] Invoice email sent to user %s for invoice %s", user.ID, invoice.ID)
+			logWebhookInfo("Invoice email sent", map[string]interface{}{
+				"event_id":   event.ID,
+				"event_type": event.Type,
+				"user_id":    user.ID,
+				"invoice_id": invoice.ID,
+			})
 		}
 	}
 
@@ -708,7 +937,11 @@ func (s *SubscriptionService) handleInvoiceFinalized(ctx context.Context, event 
 		})
 	}
 
-	log.Printf("[WEBHOOK] Successfully processed invoice.finalized for invoice %s", invoice.ID)
+	logWebhookInfo("Successfully processed invoice.finalized", map[string]interface{}{
+		"event_id":   event.ID,
+		"event_type": event.Type,
+		"invoice_id": invoice.ID,
+	})
 	return nil
 }
 
@@ -816,6 +1049,150 @@ func (s *SubscriptionService) ChangeSubscriptionPlan(ctx context.Context, user *
 	return nil
 }
 
+// CancelSubscription cancels a user's subscription
+// If immediate is true, cancels immediately. Otherwise, cancels at period end.
+func (s *SubscriptionService) CancelSubscription(ctx context.Context, user *models.User, immediate bool) error {
+	// Get existing subscription
+	sub, err := s.repo.GetByUserID(ctx, user.ID)
+	if err != nil {
+		return fmt.Errorf("failed to get subscription: %w", err)
+	}
+
+	if sub.StripeSubscriptionID == nil || *sub.StripeSubscriptionID == "" {
+		return errors.New("no active stripe subscription found")
+	}
+
+	// Cancel the subscription in Stripe
+	var canceledSub *stripe.Subscription
+
+	if immediate {
+		// Cancel immediately
+		cancelParams := &stripe.SubscriptionCancelParams{}
+		canceledSub, err = subscription.Cancel(*sub.StripeSubscriptionID, cancelParams)
+	} else {
+		// Cancel at period end
+		updateParams := &stripe.SubscriptionParams{CancelAtPeriodEnd: stripe.Bool(true)}
+		canceledSub, err = subscription.Update(*sub.StripeSubscriptionID, updateParams)
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to cancel subscription: %w", err)
+	}
+
+	// Update local subscription record
+	sub.CancelAtPeriodEnd = canceledSub.CancelAtPeriodEnd
+	if canceledSub.Status == "canceled" {
+		sub.Status = "canceled"
+		sub.CanceledAt = timePtr(time.Now())
+	}
+
+	if err := s.repo.Update(ctx, sub); err != nil {
+		utils.Error("Failed to update subscription after cancellation", err, map[string]interface{}{
+			"subscription_id": sub.ID,
+			"user_id":         user.ID,
+		})
+		return fmt.Errorf("subscription cancelled in Stripe but failed to update local record: %w", err)
+	}
+
+	// Log audit event
+	if s.auditLogSvc != nil {
+		_ = s.auditLogSvc.LogSubscriptionEvent(ctx, user.ID, "subscription_canceled", map[string]interface{}{
+			"subscription_id":      *sub.StripeSubscriptionID,
+			"immediate":            immediate,
+			"cancel_at_period_end": canceledSub.CancelAtPeriodEnd,
+		})
+	}
+
+	return nil
+}
+
+// GetInvoices retrieves a user's invoices from Stripe
+func (s *SubscriptionService) GetInvoices(ctx context.Context, user *models.User, limit int64) ([]*stripe.Invoice, error) {
+	// Get subscription to find customer ID
+	sub, err := s.repo.GetByUserID(ctx, user.ID)
+	if err != nil {
+		return nil, ErrSubscriptionNotFound
+	}
+
+	if sub.StripeCustomerID == "" {
+		return nil, ErrStripeCustomerNotFound
+	}
+
+	// Set default limit if not provided
+	if limit <= 0 {
+		limit = 10
+	}
+	if limit > 100 {
+		limit = 100 // Cap at 100 invoices
+	}
+
+	// Fetch invoices from Stripe
+	params := &stripe.InvoiceListParams{
+		Customer: stripe.String(sub.StripeCustomerID),
+	}
+	params.Limit = stripe.Int64(limit)
+
+	invoices := []*stripe.Invoice{}
+	iter := invoice.List(params)
+	for iter.Next() {
+		invoices = append(invoices, iter.Invoice())
+	}
+
+	if err := iter.Err(); err != nil {
+		return nil, fmt.Errorf("failed to fetch invoices: %w", err)
+	}
+
+	return invoices, nil
+}
+
+// ReactivateSubscription reactivates a subscription that was set to cancel at period end
+func (s *SubscriptionService) ReactivateSubscription(ctx context.Context, user *models.User) error {
+	// Get existing subscription
+	sub, err := s.repo.GetByUserID(ctx, user.ID)
+	if err != nil {
+		return fmt.Errorf("failed to get subscription: %w", err)
+	}
+
+	if sub.StripeSubscriptionID == nil || *sub.StripeSubscriptionID == "" {
+		return errors.New("no active stripe subscription found")
+	}
+
+	if !sub.CancelAtPeriodEnd {
+		return errors.New("subscription is not scheduled for cancellation")
+	}
+
+	// Reactivate the subscription in Stripe
+	params := &stripe.SubscriptionParams{
+		CancelAtPeriodEnd: stripe.Bool(false),
+	}
+
+	reactivatedSub, err := subscription.Update(*sub.StripeSubscriptionID, params)
+	if err != nil {
+		return fmt.Errorf("failed to reactivate subscription: %w", err)
+	}
+
+	// Update local subscription record
+	sub.CancelAtPeriodEnd = false
+	sub.Status = string(reactivatedSub.Status)
+
+	if err := s.repo.Update(ctx, sub); err != nil {
+		utils.Error("Failed to update subscription after reactivation", err, map[string]interface{}{
+			"subscription_id": sub.ID,
+			"user_id":         user.ID,
+		})
+		return fmt.Errorf("subscription reactivated in Stripe but failed to update local record: %w", err)
+	}
+
+	// Log audit event
+	if s.auditLogSvc != nil {
+		_ = s.auditLogSvc.LogSubscriptionEvent(ctx, user.ID, "subscription_reactivated", map[string]interface{}{
+			"subscription_id": *sub.StripeSubscriptionID,
+		})
+	}
+
+	return nil
+}
+
 // HasActiveSubscription checks if user has an active subscription (including grace period)
 func (s *SubscriptionService) HasActiveSubscription(ctx context.Context, userID uuid.UUID) bool {
 	sub, err := s.repo.GetByUserID(ctx, userID)
@@ -873,7 +1250,10 @@ func (s *SubscriptionService) isInGracePeriod(sub *models.Subscription) bool {
 func (s *SubscriptionService) handlePaymentIntentSucceeded(ctx context.Context, event stripe.Event) error {
 	var paymentIntent stripe.PaymentIntent
 	if err := json.Unmarshal(event.Data.Raw, &paymentIntent); err != nil {
-		log.Printf("[WEBHOOK] Failed to unmarshal payment_intent.succeeded event %s: %v", event.ID, err)
+		logWebhookError("Failed to unmarshal payment_intent.succeeded event", err, map[string]interface{}{
+			"event_id":   event.ID,
+			"event_type": event.Type,
+		})
 		return fmt.Errorf("failed to unmarshal payment intent: %w", err)
 	}
 
@@ -882,8 +1262,14 @@ func (s *SubscriptionService) handlePaymentIntentSucceeded(ctx context.Context, 
 		customerID = paymentIntent.Customer.ID
 	}
 
-	log.Printf("[WEBHOOK] Processing payment_intent.succeeded for payment intent: %s, customer: %s, amount: %d %s",
-		paymentIntent.ID, customerID, paymentIntent.Amount, paymentIntent.Currency)
+	logWebhookInfo("Processing payment_intent.succeeded", map[string]interface{}{
+		"event_id":          event.ID,
+		"event_type":        event.Type,
+		"payment_intent_id": paymentIntent.ID,
+		"customer_id":       customerID,
+		"amount":            paymentIntent.Amount,
+		"currency":          paymentIntent.Currency,
+	})
 
 	// Log successful payment
 	if s.auditLogSvc != nil {
@@ -906,7 +1292,11 @@ func (s *SubscriptionService) handlePaymentIntentSucceeded(ctx context.Context, 
 		}
 	}
 
-	log.Printf("[WEBHOOK] Successfully processed payment_intent.succeeded for %s", paymentIntent.ID)
+	logWebhookInfo("Successfully processed payment_intent.succeeded", map[string]interface{}{
+		"event_id":          event.ID,
+		"event_type":        event.Type,
+		"payment_intent_id": paymentIntent.ID,
+	})
 	return nil
 }
 
@@ -914,7 +1304,10 @@ func (s *SubscriptionService) handlePaymentIntentSucceeded(ctx context.Context, 
 func (s *SubscriptionService) handlePaymentIntentFailed(ctx context.Context, event stripe.Event) error {
 	var paymentIntent stripe.PaymentIntent
 	if err := json.Unmarshal(event.Data.Raw, &paymentIntent); err != nil {
-		log.Printf("[WEBHOOK] Failed to unmarshal payment_intent.payment_failed event %s: %v", event.ID, err)
+		logWebhookError("Failed to unmarshal payment_intent.payment_failed event", err, map[string]interface{}{
+			"event_id":   event.ID,
+			"event_type": event.Type,
+		})
 		return fmt.Errorf("failed to unmarshal payment intent: %w", err)
 	}
 
@@ -923,8 +1316,14 @@ func (s *SubscriptionService) handlePaymentIntentFailed(ctx context.Context, eve
 		customerID = paymentIntent.Customer.ID
 	}
 
-	log.Printf("[WEBHOOK] Processing payment_intent.payment_failed for payment intent: %s, customer: %s, amount: %d %s",
-		paymentIntent.ID, customerID, paymentIntent.Amount, paymentIntent.Currency)
+	logWebhookInfo("Processing payment_intent.payment_failed", map[string]interface{}{
+		"event_id":          event.ID,
+		"event_type":        event.Type,
+		"payment_intent_id": paymentIntent.ID,
+		"customer_id":       customerID,
+		"amount":            paymentIntent.Amount,
+		"currency":          paymentIntent.Currency,
+	})
 
 	// Log failed payment
 	if s.auditLogSvc != nil {
@@ -951,7 +1350,11 @@ func (s *SubscriptionService) handlePaymentIntentFailed(ctx context.Context, eve
 		}
 	}
 
-	log.Printf("[WEBHOOK] Successfully processed payment_intent.payment_failed for %s", paymentIntent.ID)
+	logWebhookInfo("Successfully processed payment_intent.payment_failed", map[string]interface{}{
+		"event_id":          event.ID,
+		"event_type":        event.Type,
+		"payment_intent_id": paymentIntent.ID,
+	})
 	return nil
 }
 
@@ -959,7 +1362,10 @@ func (s *SubscriptionService) handlePaymentIntentFailed(ctx context.Context, eve
 func (s *SubscriptionService) handleDisputeCreated(ctx context.Context, event stripe.Event) error {
 	var dispute stripe.Dispute
 	if err := json.Unmarshal(event.Data.Raw, &dispute); err != nil {
-		log.Printf("[WEBHOOK] Failed to unmarshal charge.dispute.created event %s: %v", event.ID, err)
+		logWebhookError("Failed to unmarshal charge.dispute.created event", err, map[string]interface{}{
+			"event_id":   event.ID,
+			"event_type": event.Type,
+		})
 		return fmt.Errorf("failed to unmarshal dispute: %w", err)
 	}
 
@@ -973,8 +1379,15 @@ func (s *SubscriptionService) handleDisputeCreated(ctx context.Context, event st
 		}
 	}
 
-	log.Printf("[WEBHOOK] Processing charge.dispute.created for dispute: %s, charge: %s, amount: %d %s, reason: %s",
-		dispute.ID, chargeID, dispute.Amount, dispute.Currency, dispute.Reason)
+	logWebhookInfo("Processing charge.dispute.created", map[string]interface{}{
+		"event_id":   event.ID,
+		"event_type": event.Type,
+		"dispute_id": dispute.ID,
+		"charge_id":  chargeID,
+		"amount":     dispute.Amount,
+		"currency":   dispute.Currency,
+		"reason":     dispute.Reason,
+	})
 
 	// Try to find subscription by customer ID (single lookup)
 	var userID uuid.UUID
@@ -985,7 +1398,11 @@ func (s *SubscriptionService) handleDisputeCreated(ctx context.Context, event st
 			userID = sub.UserID
 			subscription = sub
 		} else {
-			log.Printf("[WEBHOOK] Could not find subscription for customer %s: %v", customerID, err)
+			logWebhookError("Could not find subscription for customer", err, map[string]interface{}{
+				"event_id":    event.ID,
+				"event_type":  event.Type,
+				"customer_id": customerID,
+			})
 		}
 	}
 
@@ -1017,9 +1434,17 @@ func (s *SubscriptionService) handleDisputeCreated(ctx context.Context, event st
 			// Send dispute notification email
 			emailErr := s.emailService.SendDisputeNotification(ctx, user, &dispute)
 			if emailErr != nil {
-				log.Printf("[WEBHOOK] Failed to send dispute notification email to user %s: %v", userID, emailErr)
+				logWebhookError("Failed to send dispute notification email", emailErr, map[string]interface{}{
+					"event_id":   event.ID,
+					"event_type": event.Type,
+					"user_id":    userID,
+				})
 			} else {
-				log.Printf("[WEBHOOK] Sent dispute notification email to user %s", userID)
+				logWebhookInfo("Sent dispute notification email", map[string]interface{}{
+					"event_id":   event.ID,
+					"event_type": event.Type,
+					"user_id":    userID,
+				})
 			}
 		}
 	}
@@ -1027,11 +1452,19 @@ func (s *SubscriptionService) handleDisputeCreated(ctx context.Context, event st
 	// Log subscription event for record keeping (reuse subscription from earlier lookup)
 	if subscription != nil {
 		if logErr := s.repo.LogSubscriptionEvent(ctx, &subscription.ID, "dispute_created", &event.ID, dispute); logErr != nil {
-			log.Printf("[WEBHOOK] Failed to log dispute event: %v", logErr)
+			logWebhookError("Failed to log dispute event", logErr, map[string]interface{}{
+				"event_id":        event.ID,
+				"event_type":      event.Type,
+				"subscription_id": subscription.ID,
+			})
 		}
 	}
 
-	log.Printf("[WEBHOOK] Successfully processed charge.dispute.created for %s", dispute.ID)
+	logWebhookInfo("Successfully processed charge.dispute.created", map[string]interface{}{
+		"event_id":   event.ID,
+		"event_type": event.Type,
+		"dispute_id": dispute.ID,
+	})
 	return nil
 }
 

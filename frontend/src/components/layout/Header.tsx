@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -12,6 +12,8 @@ export function Header() {
     const { isAuthenticated, logout } = useAuth();
     const navigate = useNavigate();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+    const moreMenuRef = useRef<HTMLDivElement>(null);
 
     const handleLogout = async () => {
         await logout();
@@ -19,16 +21,33 @@ export function Header() {
         navigate('/');
     };
 
+    // Close More menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (
+                moreMenuRef.current &&
+                !moreMenuRef.current.contains(event.target as Node)
+            ) {
+                setMoreMenuOpen(false);
+            }
+        };
+
+        if (moreMenuOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () =>
+            document.removeEventListener('mousedown', handleClickOutside);
+    }, [moreMenuOpen]);
+
     // Keyboard shortcuts
     useKeyboardShortcuts([
         {
             key: 'Escape',
             callback: () => {
-                if (mobileMenuOpen) {
-                    setMobileMenuOpen(false);
-                }
+                if (mobileMenuOpen) setMobileMenuOpen(false);
+                if (moreMenuOpen) setMoreMenuOpen(false);
             },
-            description: 'Close mobile menu',
+            description: 'Close menus',
         },
     ]);
 
@@ -47,120 +66,96 @@ export function Header() {
                         </div>
                     </Link>
 
-                    {/* Navigation (desktop visible by default; expose for E2E/mobile) */}
+                    {/* Navigation (desktop) */}
                     <nav
-                        className='flex flex-wrap items-center gap-1 md:flex-nowrap'
+                        className='hidden md:flex items-center gap-1'
                         aria-label='Main navigation'
                         data-testid='main-nav'
                     >
                         <Link to='/'>
                             <Button variant='ghost' size='sm'>
-                                {t('nav.hot')}
+                                🏠 Feed
                             </Button>
                         </Link>
-                        <Link to='/?sort=new'>
+                        <Link to='/discover'>
                             <Button variant='ghost' size='sm'>
-                                {t('nav.new')}
+                                🔍 Discover
                             </Button>
                         </Link>
-                        <Link to='/?sort=top'>
-                            <Button variant='ghost' size='sm'>
-                                {t('nav.top')}
+
+                        {/* More dropdown */}
+                        <div className='relative' ref={moreMenuRef}>
+                            <Button
+                                variant='ghost'
+                                size='sm'
+                                onClick={() => setMoreMenuOpen(!moreMenuOpen)}
+                                aria-expanded={moreMenuOpen}
+                                aria-haspopup='true'
+                            >
+                                ⋯ More
+                                <svg
+                                    className={`w-4 h-4 ml-1 transition-transform ${moreMenuOpen ? 'rotate-180' : ''}`}
+                                    fill='none'
+                                    stroke='currentColor'
+                                    viewBox='0 0 24 24'
+                                >
+                                    <path
+                                        strokeLinecap='round'
+                                        strokeLinejoin='round'
+                                        strokeWidth={2}
+                                        d='M19 9l-7 7-7-7'
+                                    />
+                                </svg>
                             </Button>
-                        </Link>
-                        <Link to='/?sort=rising'>
-                            <Button variant='ghost' size='sm'>
-                                {t('nav.rising')}
-                            </Button>
-                        </Link>
-                        <Link to='/discover/scraped'>
-                            <Button variant='ghost' size='sm'>
-                                🔍 {t('nav.discover')}
-                            </Button>
-                        </Link>
-                        {isAuthenticated && (
-                            <Link to='/discover/live'>
-                                <Button variant='ghost' size='sm'>
-                                    🔴 Live
-                                </Button>
-                            </Link>
-                        )}
-                        <Link to='/leaderboards'>
-                            <Button variant='ghost' size='sm'>
-                                🏆 {t('nav.leaderboards')}
-                            </Button>
-                        </Link>
-                        <Link to='/playlists/discover'>
-                            <Button variant='ghost' size='sm'>
-                                🎵 Playlists
-                            </Button>
-                        </Link>
-                        <Link to='/watch-parties/browse'>
-                            <Button variant='ghost' size='sm'>
-                                👥 Watch Parties
-                            </Button>
-                        </Link>
-                        {isAuthenticated && (
-                            <>
-                                <Link to='/playlists'>
-                                    <Button variant='ghost' size='sm'>
-                                        📋 My Playlists
-                                    </Button>
-                                </Link>
-                                <Link to='/watch-history'>
-                                    <Button variant='ghost' size='sm'>
-                                        🕒 History
-                                    </Button>
-                                </Link>
-                            </>
-                        )}
+
+                            {moreMenuOpen && (
+                                <div
+                                    className='absolute left-0 mt-1 w-48 bg-background border border-border rounded-md shadow-lg overflow-hidden z-50'
+                                    role='menu'
+                                >
+                                    <Link
+                                        to='/leaderboards'
+                                        className='block px-4 py-2 text-sm hover:bg-muted transition-colors'
+                                        onClick={() => setMoreMenuOpen(false)}
+                                        role='menuitem'
+                                    >
+                                        🏆 {t('nav.leaderboards')}
+                                    </Link>
+                                    <Link
+                                        to='/playlists/discover'
+                                        className='block px-4 py-2 text-sm hover:bg-muted transition-colors'
+                                        onClick={() => setMoreMenuOpen(false)}
+                                        role='menuitem'
+                                    >
+                                        🎵 Playlists
+                                    </Link>
+                                    <Link
+                                        to='/watch-parties/browse'
+                                        className='block px-4 py-2 text-sm hover:bg-muted transition-colors'
+                                        onClick={() => setMoreMenuOpen(false)}
+                                        role='menuitem'
+                                    >
+                                        👥 Watch Parties
+                                    </Link>
+                                    {isAuthenticated && (
+                                        <Link
+                                            to='/discover/live'
+                                            className='block px-4 py-2 text-sm hover:bg-muted transition-colors'
+                                            onClick={() =>
+                                                setMoreMenuOpen(false)
+                                            }
+                                            role='menuitem'
+                                        >
+                                            🔴 Live
+                                        </Link>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     </nav>
 
                     {/* Right Side Actions */}
                     <div className='flex items-center gap-2'>
-                        {/* Language Switcher */}
-                        <div className='hidden md:flex'>
-                            {/* <LanguageSwitcher /> */}
-                        </div>
-
-                        {/* Theme Toggle */}
-                        {/* <div
-                            className='hidden md:flex gap-1'
-                            role='group'
-                            aria-label='Theme selection'
-                        >
-                            <Button
-                                variant='ghost'
-                                size='sm'
-                                onClick={() => setTheme('light')}
-                                className={
-                                    theme === 'light'
-                                        ? 'bg-primary-100 dark:bg-primary-900'
-                                        : ''
-                                }
-                                title={t('theme.light')}
-                                aria-label={t('theme.light')}
-                                aria-pressed={theme === 'light'}
-                            >
-                                ☀️
-                            </Button>
-                            <Button
-                                variant='ghost'
-                                size='sm'
-                                onClick={() => setTheme('dark')}
-                                className={
-                                    theme === 'dark'
-                                        ? 'bg-primary-100 dark:bg-primary-900'
-                                        : ''
-                                }
-                                title={t('theme.dark')}
-                                aria-label={t('theme.dark')}
-                                aria-pressed={theme === 'dark'}
-                            >
-                                🌙
-                            </Button>
-                        </div> */}
-
                         {/* User Menu or Login */}
                         {isAuthenticated ?
                             <div className='hidden md:flex items-center gap-2'>
@@ -173,7 +168,12 @@ export function Header() {
                                 <UserMenu />
                             </div>
                         :   <Link to='/login' className='hidden md:block'>
-                                <Button variant='primary' size='sm' data-testid='login-button' aria-label='Login'>
+                                <Button
+                                    variant='primary'
+                                    size='sm'
+                                    data-testid='login-button'
+                                    aria-label='Login'
+                                >
                                     {t('nav.login')}
                                 </Button>
                             </Link>
@@ -203,7 +203,7 @@ export function Header() {
                         role='navigation'
                         aria-label='Mobile navigation'
                     >
-                        <nav className='flex flex-col gap-2 mb-4'>
+                        <nav className='flex flex-col gap-1 mb-4'>
                             <Link
                                 to='/'
                                 onClick={() => setMobileMenuOpen(false)}
@@ -214,11 +214,11 @@ export function Header() {
                                     className='w-full justify-start'
                                     data-testid='mobile-nav-home'
                                 >
-                                    {t('nav.hot')}
+                                    🏠 Feed
                                 </Button>
                             </Link>
                             <Link
-                                to='/?sort=new'
+                                to='/discover'
                                 onClick={() => setMobileMenuOpen(false)}
                             >
                                 <Button
@@ -226,47 +226,15 @@ export function Header() {
                                     size='sm'
                                     className='w-full justify-start'
                                 >
-                                    {t('nav.new')}
+                                    🔍 Discover
                                 </Button>
                             </Link>
-                            <Link
-                                to='/?sort=top'
-                                onClick={() => setMobileMenuOpen(false)}
-                            >
-                                <Button
-                                    variant='ghost'
-                                    size='sm'
-                                    className='w-full justify-start'
-                                >
-                                    {t('nav.top')}
-                                </Button>
-                            </Link>
-                            <Link
-                                to='/?sort=rising'
-                                onClick={() => setMobileMenuOpen(false)}
-                            >
-                                <Button
-                                    variant='ghost'
-                                    size='sm'
-                                    className='w-full justify-start'
-                                >
-                                    {t('nav.rising')}
-                                </Button>
-                            </Link>
-                            {isAuthenticated && (
-                                <Link
-                                    to='/discover/live'
-                                    onClick={() => setMobileMenuOpen(false)}
-                                >
-                                    <Button
-                                        variant='ghost'
-                                        size='sm'
-                                        className='w-full justify-start'
-                                    >
-                                        🔴 Live
-                                    </Button>
-                                </Link>
-                            )}
+
+                            <div className='border-t border-border my-2'></div>
+                            <p className='px-3 text-xs text-muted-foreground uppercase tracking-wide'>
+                                Explore
+                            </p>
+
                             <Link
                                 to='/leaderboards'
                                 onClick={() => setMobileMenuOpen(false)}
@@ -303,10 +271,29 @@ export function Header() {
                                     👥 Watch Parties
                                 </Button>
                             </Link>
+                            {isAuthenticated && (
+                                <Link
+                                    to='/discover/live'
+                                    onClick={() => setMobileMenuOpen(false)}
+                                >
+                                    <Button
+                                        variant='ghost'
+                                        size='sm'
+                                        className='w-full justify-start'
+                                    >
+                                        🔴 Live
+                                    </Button>
+                                </Link>
+                            )}
                         </nav>
 
                         {isAuthenticated ?
-                            <div className='flex flex-col gap-2'>
+                            <div className='flex flex-col gap-1'>
+                                <div className='border-t border-border my-2'></div>
+                                <p className='px-3 text-xs text-muted-foreground uppercase tracking-wide'>
+                                    Your Stuff
+                                </p>
+
                                 <Link
                                     to='/submit'
                                     onClick={() => setMobileMenuOpen(false)}
@@ -316,7 +303,7 @@ export function Header() {
                                         size='sm'
                                         className='w-full'
                                     >
-                                        {t('nav.submit')}
+                                        ✨ {t('nav.submit')}
                                     </Button>
                                 </Link>
                                 <Link
@@ -328,7 +315,7 @@ export function Header() {
                                         size='sm'
                                         className='w-full justify-start'
                                     >
-                                        {t('nav.favorites')}
+                                        ⭐ {t('nav.favorites')}
                                     </Button>
                                 </Link>
                                 <Link
@@ -355,18 +342,12 @@ export function Header() {
                                         🕒 Watch History
                                     </Button>
                                 </Link>
-                                <Link
-                                    to='/submissions'
-                                    onClick={() => setMobileMenuOpen(false)}
-                                >
-                                    <Button
-                                        variant='ghost'
-                                        size='sm'
-                                        className='w-full justify-start'
-                                    >
-                                        📤 My Submissions
-                                    </Button>
-                                </Link>
+
+                                <div className='border-t border-border my-2'></div>
+                                <p className='px-3 text-xs text-muted-foreground uppercase tracking-wide'>
+                                    Account
+                                </p>
+
                                 <Link
                                     to='/profile'
                                     onClick={() => setMobileMenuOpen(false)}
@@ -376,7 +357,7 @@ export function Header() {
                                         size='sm'
                                         className='w-full justify-start'
                                     >
-                                        {t('nav.profile')}
+                                        👤 {t('nav.profile')}
                                     </Button>
                                 </Link>
                                 <Link
@@ -388,7 +369,7 @@ export function Header() {
                                         size='sm'
                                         className='w-full justify-start'
                                     >
-                                        {t('nav.settings')}
+                                        ⚙️ {t('nav.settings')}
                                     </Button>
                                 </Link>
                                 <Button
@@ -397,7 +378,7 @@ export function Header() {
                                     className='w-full justify-start text-error-600'
                                     onClick={handleLogout}
                                 >
-                                    {t('nav.logout')}
+                                    🚪 {t('nav.logout')}
                                 </Button>
                             </div>
                         :   <Link

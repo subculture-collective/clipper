@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import {
     Alert,
     Button,
@@ -51,7 +52,7 @@ const CLIP_DUPLICATE_PATTERNS = [
  * Note: Currently uses string matching. For better reliability,
  * consider updating backend to return error.code or error.type field
  * (e.g., { error: "...", code: "DUPLICATE_CLIP" })
- * 
+ *
  * Uses specific clip-related patterns to avoid false positives from
  * unrelated errors like "Email already taken" or "Username already exists"
  */
@@ -99,6 +100,8 @@ export function SubmitClipPage() {
     const { user, isAuthenticated } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
+    const queryClient = useQueryClient();
+    const [fromDiscover, setFromDiscover] = useState(false);
     const [formData, setFormData] = useState<SubmitClipRequest>({
         clip_url: '',
         custom_title: '',
@@ -155,16 +158,34 @@ export function SubmitClipPage() {
         []
     );
 
-    // Pre-fill from navigation state (e.g., when claiming a scraped clip)
+    // Pre-fill from navigation state or URL query (e.g., when claiming a scraped clip)
     // or restore from draft
     useEffect(() => {
         let timeoutId: number | undefined;
-        
-        const state = location.state as { clipUrl?: string } | null;
+
+        const state = location.state as { clipUrl?: string; fromDiscover?: boolean } | null;
+        const searchParams = new URLSearchParams(location.search);
+        const urlFromQuery =
+            searchParams.get('url') || searchParams.get('clip_url');
+
+        // Detect if user came from discover page
+        const cameFromDiscover =
+            state?.fromDiscover ||
+            searchParams.get('from') === 'discover' ||
+            document.referrer.includes('/discover');
+        if (cameFromDiscover) {
+            setFromDiscover(true);
+        }
+
         if (state?.clipUrl) {
             setFormData(prev => ({
                 ...prev,
                 clip_url: state.clipUrl!,
+            }));
+        } else if (urlFromQuery) {
+            setFormData(prev => ({
+                ...prev,
+                clip_url: urlFromQuery,
             }));
         } else {
             // Try to load draft if no state from navigation
@@ -177,13 +198,13 @@ export function SubmitClipPage() {
                 timeoutId = setTimeout(() => setShowDraftRestored(false), 5000) as unknown as number;
             }
         }
-        
+
         return () => {
             if (timeoutId !== undefined) {
                 clearTimeout(timeoutId);
             }
         };
-    }, [location.state, draft.loadDraft]);
+    }, [location.state, location.search, draft.loadDraft]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Load rate limit from localStorage on mount
     useEffect(() => {
@@ -269,7 +290,7 @@ export function SubmitClipPage() {
     // Also check for duplicates and show error proactively
     useEffect(() => {
         const clipID = extractClipIDFromURL(formData.clip_url);
-        
+
         // Clear duplicate error when URL is empty or invalid
         if (!clipID) {
             setDuplicateError(null);
@@ -280,12 +301,12 @@ export function SubmitClipPage() {
         checkClipStatus(clipID)
             .then(resp => {
                 if (!isActive) return;
-                
+
                 // Auto-set NSFW if clip already marked
                 if (resp?.clip?.is_nsfw) {
                     setFormData(prev => ({ ...prev, is_nsfw: true }));
                 }
-                
+
                 // Check if clip already exists (duplicate detection)
                 if (resp?.exists && !resp?.can_be_claimed) {
                     setDuplicateError({
@@ -348,7 +369,7 @@ export function SubmitClipPage() {
     // Auto-save draft every 30 seconds when form has content
     useEffect(() => {
         draft.startAutoSave(formData, selectedTags);
-    }, [formData, selectedTags, draft.startAutoSave]);
+    }, [formData, selectedTags, draft]);
 
     const handleCreateTag = async (name: string): Promise<Tag | null> => {
         const slug = slugify(name);
@@ -436,6 +457,9 @@ export function SubmitClipPage() {
             // Clear draft on successful submission
             draft.clearDraft();
 
+            // Invalidate scraped-clips cache so the submitted clip disappears from discovery
+            queryClient.invalidateQueries({ queryKey: ['scraped-clips'] });
+
             // Reset form
             setFormData({
                 clip_url: '',
@@ -475,7 +499,7 @@ export function SubmitClipPage() {
                         window: data.window,
                         retry_after: data.retry_after,
                     };
-                    
+
                     setRateLimitError(rateLimitData);
                     setError(null);
                     // Store in localStorage for persistence
@@ -508,7 +532,7 @@ export function SubmitClipPage() {
                 typeof data.error === 'string'
             ) {
                 errorMessage = data.error;
-                
+
                 if (isDuplicateError(errorMessage)) {
                     const { clipId, clipSlug } = extractClipInfo(data);
                     setDuplicateError({
@@ -537,7 +561,7 @@ export function SubmitClipPage() {
 
     const handleRateLimitExpire = () => {
         setRateLimitError(null);
-        
+
         // Read stored rate limit metadata before clearing
         let metadata: Record<string, unknown> = {};
         try {
@@ -553,7 +577,7 @@ export function SubmitClipPage() {
             // Ignore parsing errors
             console.warn('Failed to read rate limit metadata for analytics:', error);
         }
-        
+
         // Clear from localStorage
         try {
             localStorage.removeItem('submission_rate_limit');
@@ -561,7 +585,7 @@ export function SubmitClipPage() {
             // Ignore localStorage errors
             console.warn('Failed to remove rate limit from localStorage:', error);
         }
-        
+
         // Track rate limit expiration with metadata
         trackEvent(SubmissionEvents.SUBMISSION_RATE_LIMIT_EXPIRED, metadata);
     };
@@ -605,6 +629,7 @@ export function SubmitClipPage() {
                 <SubmissionConfirmation
                     submission={submittedClip}
                     onSubmitAnother={handleSubmitAnother}
+                    fromDiscover={fromDiscover}
                 />
             </Container>
         );
@@ -660,8 +685,8 @@ export function SubmitClipPage() {
                 )}
 
                 {showDraftRestored && (
-                    <Alert 
-                        variant='info' 
+                    <Alert
+                        variant='info'
                         className='mb-6'
                         dismissible={true}
                         onDismiss={() => setShowDraftRestored(false)}

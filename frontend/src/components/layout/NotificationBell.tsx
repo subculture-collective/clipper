@@ -9,17 +9,22 @@ import {
 } from '../../lib/notification-api';
 import type { Notification } from '../../types/notification';
 import { NotificationItem } from './NotificationItem';
+import { useAuth } from '../../context/AuthContext';
 
 export function NotificationBell() {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const queryClient = useQueryClient();
+    const { isAuthenticated, isLoading } = useAuth();
+    const isAuthReady = isAuthenticated && !isLoading;
 
     // Get unread count
     const { data: unreadCount = 0, refetch: refetchCount } = useQuery({
         queryKey: ['notifications', 'count'],
         queryFn: getUnreadCount,
-        refetchInterval: 30000, // Poll every 30 seconds
+        enabled: isAuthReady,
+        retry: false,
+        refetchInterval: isAuthReady ? 30000 : false, // Poll every 30 seconds
     });
 
     // Get recent notifications (for dropdown)
@@ -27,7 +32,8 @@ export function NotificationBell() {
         {
             queryKey: ['notifications', 'recent'],
             queryFn: () => getNotifications('all', 1, 5),
-            enabled: isOpen, // Only fetch when dropdown is open
+            enabled: isOpen && isAuthReady, // Only fetch when dropdown is open
+            retry: false,
         }
     );
 
@@ -71,10 +77,10 @@ export function NotificationBell() {
 
     // Refresh notifications when dropdown opens
     useEffect(() => {
-        if (isOpen) {
+        if (isOpen && isAuthReady) {
             refetchNotifications();
         }
-    }, [isOpen, refetchNotifications]);
+    }, [isOpen, isAuthReady, refetchNotifications]);
 
     const handleNotificationClick = (notification: Notification) => {
         if (!notification.is_read) {

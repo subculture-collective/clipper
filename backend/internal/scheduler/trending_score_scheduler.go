@@ -2,11 +2,16 @@ package scheduler
 
 import (
 	"context"
-	"log"
 	"sync"
 	"time"
 
 	"github.com/subculture-collective/clipper/pkg/metrics"
+	"github.com/subculture-collective/clipper/pkg/utils"
+)
+
+const (
+	trendingScoreSchedulerName = "trending_score"
+	trendingScoreJobName       = "trending_score_refresh"
 )
 
 // TrendingScoreRepositoryInterface defines the interface required by the trending score scheduler
@@ -33,7 +38,10 @@ func NewTrendingScoreScheduler(clipRepo TrendingScoreRepositoryInterface, interv
 
 // Start begins the periodic trending score refresh process
 func (s *TrendingScoreScheduler) Start(ctx context.Context) {
-	log.Printf("Starting trending score scheduler (interval: %v)", s.interval)
+	utils.Info("Starting trending score scheduler", map[string]interface{}{
+		"scheduler": trendingScoreSchedulerName,
+		"interval":  s.interval.String(),
+	})
 
 	ticker := time.NewTicker(s.interval)
 	defer ticker.Stop()
@@ -46,10 +54,14 @@ func (s *TrendingScoreScheduler) Start(ctx context.Context) {
 		case <-ticker.C:
 			s.refreshTrendingScores(ctx)
 		case <-s.stopChan:
-			log.Println("Trending score scheduler stopped")
+			utils.Info("Trending score scheduler stopped", map[string]interface{}{
+				"scheduler": trendingScoreSchedulerName,
+			})
 			return
 		case <-ctx.Done():
-			log.Println("Trending score scheduler stopped due to context cancellation")
+			utils.Info("Trending score scheduler stopped due to context cancellation", map[string]interface{}{
+				"scheduler": trendingScoreSchedulerName,
+			})
 			return
 		}
 	}
@@ -64,24 +76,34 @@ func (s *TrendingScoreScheduler) Stop() {
 
 // refreshTrendingScores executes a trending score refresh operation
 func (s *TrendingScoreScheduler) refreshTrendingScores(ctx context.Context) {
-	jobName := "trending_score_refresh"
-	log.Println("Starting scheduled trending score refresh...")
+	utils.Info("Starting scheduled trending score refresh", map[string]interface{}{
+		"scheduler": trendingScoreSchedulerName,
+		"job":       trendingScoreJobName,
+	})
 	startTime := time.Now()
 
 	rowsUpdated, err := s.clipRepo.UpdateTrendingScores(ctx)
 	duration := time.Since(startTime)
 
 	// Record metrics
-	metrics.JobExecutionDuration.WithLabelValues(jobName).Observe(duration.Seconds())
+	metrics.JobExecutionDuration.WithLabelValues(trendingScoreJobName).Observe(duration.Seconds())
 
 	if err != nil {
-		log.Printf("Trending score refresh failed: %v", err)
-		metrics.JobExecutionTotal.WithLabelValues(jobName, "failed").Inc()
+		utils.Error("Trending score refresh failed", err, map[string]interface{}{
+			"scheduler": trendingScoreSchedulerName,
+			"job":       trendingScoreJobName,
+		})
+		metrics.JobExecutionTotal.WithLabelValues(trendingScoreJobName, "failed").Inc()
 		return
 	}
 
-	metrics.JobExecutionTotal.WithLabelValues(jobName, "success").Inc()
-	metrics.JobLastSuccessTimestamp.WithLabelValues(jobName).Set(float64(time.Now().Unix()))
-	metrics.JobItemsProcessed.WithLabelValues(jobName, "success").Add(float64(rowsUpdated))
-	log.Printf("Trending score refresh completed in %v (updated %d clips)", duration, rowsUpdated)
+	metrics.JobExecutionTotal.WithLabelValues(trendingScoreJobName, "success").Inc()
+	metrics.JobLastSuccessTimestamp.WithLabelValues(trendingScoreJobName).Set(float64(time.Now().Unix()))
+	metrics.JobItemsProcessed.WithLabelValues(trendingScoreJobName, "success").Add(float64(rowsUpdated))
+	utils.Info("Trending score refresh completed", map[string]interface{}{
+		"scheduler":    trendingScoreSchedulerName,
+		"job":          trendingScoreJobName,
+		"duration":     duration.String(),
+		"rows_updated": rowsUpdated,
+	})
 }

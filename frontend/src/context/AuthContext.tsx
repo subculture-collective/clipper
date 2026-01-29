@@ -5,6 +5,7 @@ import { setUser as setSentryUser, clearUser as clearSentryUser } from '../lib/s
 import { resetUser, identifyUser, trackEvent, AuthEvents } from '../lib/telemetry';
 import type { User } from '../lib/auth-api';
 import type { UserProperties } from '../lib/telemetry';
+import { setUnauthorizedHandler } from '../lib/api';
 
 export interface AuthContextType {
   user: User | null;
@@ -25,9 +26,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const autoLoginAttemptedRef = useRef(false);
+  const unauthorizedHandledRef = useRef(false);
 
   const applyUserContext = useCallback((currentUser: User) => {
     setUser(currentUser);
+    unauthorizedHandledRef.current = false;
     setSentryUser(currentUser.id, currentUser.username);
     const userProperties: UserProperties = {
       user_id: currentUser.id,
@@ -92,6 +95,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
+
+  const handleUnauthorized = useCallback(async () => {
+    if (unauthorizedHandledRef.current) {
+      return;
+    }
+
+    unauthorizedHandledRef.current = true;
+    try {
+      const { clearAuthStorage } = await import('../lib/auth-storage');
+      await clearAuthStorage();
+    } catch (e) {
+      console.warn('[AuthContext] clearAuthStorage during unauthorized failed:', e);
+    }
+    setUser(null);
+    clearSentryUser();
+    resetUser();
+  }, []);
+
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      void handleUnauthorized();
+    });
+
+    return () => {
+      setUnauthorizedHandler(null);
+    };
+  }, [handleUnauthorized]);
 
   // Initiate OAuth login flow with PKCE
   const login = async () => {

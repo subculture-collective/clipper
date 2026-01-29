@@ -2,10 +2,13 @@ package scheduler
 
 import (
 	"context"
-	"log"
 	"sync"
 	"time"
+
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
+
+const mirrorSchedulerName = "mirror"
 
 // MirrorServiceInterface defines the interface required by the mirror scheduler
 type MirrorServiceInterface interface {
@@ -44,13 +47,19 @@ func (s *MirrorScheduler) Start(ctx context.Context) {
 	s.mu.Lock()
 	if s.running {
 		s.mu.Unlock()
-		log.Println("Mirror scheduler is already running")
+		utils.Warn("Mirror scheduler is already running", map[string]interface{}{
+			"scheduler": mirrorSchedulerName,
+		})
 		return
 	}
 	s.running = true
 	s.mu.Unlock()
 
-	log.Printf("Starting mirror scheduler (sync: %v, cleanup: %v)", s.syncInterval, s.cleanupInterval)
+	utils.Info("Starting mirror scheduler", map[string]interface{}{
+		"scheduler":        mirrorSchedulerName,
+		"sync_interval":    s.syncInterval.String(),
+		"cleanup_interval": s.cleanupInterval.String(),
+	})
 
 	syncTicker := time.NewTicker(s.syncInterval)
 	cleanupTicker := time.NewTicker(s.cleanupInterval)
@@ -72,10 +81,14 @@ func (s *MirrorScheduler) Start(ctx context.Context) {
 		case <-cleanupTicker.C:
 			s.cleanupMirrors(ctx)
 		case <-s.stopChan:
-			log.Println("Mirror scheduler stopped")
+			utils.Info("Mirror scheduler stopped", map[string]interface{}{
+				"scheduler": mirrorSchedulerName,
+			})
 			return
 		case <-ctx.Done():
-			log.Println("Mirror scheduler stopped due to context cancellation")
+			utils.Info("Mirror scheduler stopped due to context cancellation", map[string]interface{}{
+				"scheduler": mirrorSchedulerName,
+			})
 			return
 		}
 	}
@@ -90,29 +103,50 @@ func (s *MirrorScheduler) Stop() {
 
 // syncMirrors performs the mirror sync operation
 func (s *MirrorScheduler) syncMirrors(ctx context.Context) {
-	log.Println("Running mirror sync...")
+	utils.Info("Running mirror sync", map[string]interface{}{
+		"scheduler": mirrorSchedulerName,
+		"task":      "sync",
+	})
 	start := time.Now()
 
 	if err := s.mirrorService.SyncPopularClips(ctx); err != nil {
-		log.Printf("ERROR: Mirror sync failed: %v", err)
+		utils.Error("Mirror sync failed", err, map[string]interface{}{
+			"scheduler": mirrorSchedulerName,
+			"task":      "sync",
+		})
 		return
 	}
 
 	duration := time.Since(start)
-	log.Printf("Mirror sync completed in %v", duration)
+	utils.Info("Mirror sync completed", map[string]interface{}{
+		"scheduler": mirrorSchedulerName,
+		"task":      "sync",
+		"duration":  duration.String(),
+	})
 }
 
 // cleanupMirrors performs the mirror cleanup operation
 func (s *MirrorScheduler) cleanupMirrors(ctx context.Context) {
-	log.Println("Running mirror cleanup...")
+	utils.Info("Running mirror cleanup", map[string]interface{}{
+		"scheduler": mirrorSchedulerName,
+		"task":      "cleanup",
+	})
 	start := time.Now()
 
 	count, err := s.mirrorService.CleanupExpiredMirrors(ctx)
 	if err != nil {
-		log.Printf("ERROR: Mirror cleanup failed: %v", err)
+		utils.Error("Mirror cleanup failed", err, map[string]interface{}{
+			"scheduler": mirrorSchedulerName,
+			"task":      "cleanup",
+		})
 		return
 	}
 
 	duration := time.Since(start)
-	log.Printf("Mirror cleanup completed in %v: removed %d expired mirrors", duration, count)
+	utils.Info("Mirror cleanup completed", map[string]interface{}{
+		"scheduler": mirrorSchedulerName,
+		"task":      "cleanup",
+		"duration":  duration.String(),
+		"removed":   count,
+	})
 }

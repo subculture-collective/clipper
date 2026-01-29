@@ -25,6 +25,25 @@ let failedQueue: QueuedRequest[] = [];
 // Store CSRF token from response headers
 let csrfToken: string | null = null;
 
+type UnauthorizedHandler = (error: AxiosError) => void;
+
+let unauthorizedHandler: UnauthorizedHandler | null = null;
+
+export const setUnauthorizedHandler = (
+  handler: UnauthorizedHandler | null
+): void => {
+  unauthorizedHandler = handler;
+};
+
+const notifyUnauthorized = (error: AxiosError): void => {
+  if (unauthorizedHandler) {
+    unauthorizedHandler(error);
+  }
+};
+
+const isUnauthorizedError = (error: AxiosError): boolean =>
+  error.response?.status === 401;
+
 // Request interceptor to add CSRF token to state-changing requests
 apiClient.interceptors.request.use(
   (config) => {
@@ -70,9 +89,14 @@ apiClient.interceptors.response.use(
       _retry?: boolean;
     };
 
+    if (isUnauthorizedError(error) && originalRequest?._retry) {
+      notifyUnauthorized(error);
+      return Promise.reject(error);
+    }
+
     // If error is 401 and we haven't tried to refresh yet
     if (
-      error.response?.status === 401 &&
+      isUnauthorizedError(error) &&
       originalRequest &&
       !originalRequest._retry
     ) {
@@ -81,6 +105,7 @@ apiClient.interceptors.response.use(
         // Refresh token is invalid, logout user
         isRefreshing = false;
         processQueue(error, null);
+        notifyUnauthorized(error);
         // Let the AuthContext handle the logout
         return Promise.reject(error);
       }
@@ -114,7 +139,11 @@ apiClient.interceptors.response.use(
       } catch (refreshError) {
         // Refresh failed
         isRefreshing = false;
-        processQueue(refreshError as AxiosError, null);
+        const refreshAxiosError = refreshError as AxiosError;
+        processQueue(refreshAxiosError, null);
+        if (isUnauthorizedError(refreshAxiosError)) {
+          notifyUnauthorized(refreshAxiosError);
+        }
         return Promise.reject(refreshError);
       }
     }

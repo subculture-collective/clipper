@@ -6,13 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v2/opensearchapi"
 	"github.com/subculture-collective/clipper/pkg/opensearch"
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
 // IndexVersionService handles versioned index management for zero-downtime rebuilds
@@ -211,7 +211,7 @@ func (s *IndexVersionService) CreateVersionedIndex(ctx context.Context, baseInde
 		return fmt.Errorf("failed to create index: %s - %s", createRes.Status(), string(body))
 	}
 
-	log.Printf("Created versioned index: %s", indexName)
+	utils.Info("Created versioned index", map[string]interface{}{"index": indexName})
 	return nil
 }
 
@@ -285,14 +285,16 @@ func (s *IndexVersionService) SwapAlias(ctx context.Context, baseIndex string, n
 		return fmt.Errorf("failed to update aliases: %s - %s", aliasRes.Status(), string(body))
 	}
 
-	log.Printf("Swapped alias %s from %v to %s", baseIndex,
-		func() string {
+	utils.Info("Swapped alias", map[string]interface{}{
+		"alias": baseIndex,
+		"old_index": func() string {
 			if info.ActiveVersion != nil {
 				return info.ActiveVersion.Name
 			}
 			return "none"
 		}(),
-		newIndexName)
+		"new_index": newIndexName,
+	})
 
 	return nil
 }
@@ -352,7 +354,7 @@ func (s *IndexVersionService) DeleteOldVersions(ctx context.Context, baseIndex s
 
 		deleteRes, err := deleteReq.Do(ctx, s.osClient.GetClient())
 		if err != nil {
-			log.Printf("WARNING: Failed to delete index %s: %v", version.Name, err)
+			utils.Warn("Failed to delete index", map[string]interface{}{"index": version.Name, "error": err})
 			continue
 		}
 
@@ -360,13 +362,13 @@ func (s *IndexVersionService) DeleteOldVersions(ctx context.Context, baseIndex s
 		if deleteRes.IsError() {
 			body, _ := io.ReadAll(deleteRes.Body)
 			deleteRes.Body.Close()
-			log.Printf("WARNING: Failed to delete index %s: %s - %s", version.Name, deleteRes.Status(), string(body))
+			utils.Warn("Failed to delete index", map[string]interface{}{"index": version.Name, "status": deleteRes.Status(), "body": string(body)})
 			continue
 		}
 		deleteRes.Body.Close()
 
 		deletedIndices = append(deletedIndices, version.Name)
-		log.Printf("Deleted old index version: %s", version.Name)
+		utils.Info("Deleted old index version", map[string]interface{}{"index": version.Name})
 	}
 
 	return deletedIndices, nil

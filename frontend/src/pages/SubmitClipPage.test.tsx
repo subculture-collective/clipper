@@ -42,9 +42,13 @@ vi.mock('../lib/tag-api', () => ({
 }));
 
 // Mock the AuthContext
-vi.mock('../context/AuthContext', () => ({
-    useAuth: vi.fn(),
-}));
+vi.mock('../context/AuthContext', async () => {
+    const actual = await vi.importActual('../context/AuthContext');
+    return {
+        ...actual,
+        useAuth: vi.fn(),
+    };
+});
 
 // Mock react-router-dom
 const mockNavigate = vi.fn();
@@ -289,7 +293,9 @@ describe('SubmitClipPage', () => {
             const user = userEvent.setup();
             render(<SubmitClipPage />);
 
-            const customTitleInput = screen.getByLabelText(/Custom Title/);            await user.clear(customTitleInput);            await user.type(customTitleInput, 'My Custom Title');
+            const customTitleInput = screen.getByLabelText(/Custom Title/);
+            await user.clear(customTitleInput);
+            await user.type(customTitleInput, 'My Custom Title');
 
             expect(customTitleInput).toHaveValue('My Custom Title');
         });
