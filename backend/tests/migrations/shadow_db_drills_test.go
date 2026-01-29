@@ -164,8 +164,8 @@ func captureTables(ctx context.Context, pool *pgxpool.Pool) ([]TableInfo, error)
 
 	tablesMap := make(map[string]*TableInfo)
 	for rows.Next() {
-		var tableName, columnName, dataType string
-		var isNullable string
+		var tableName string
+		var columnName, dataType, isNullable sql.NullString
 		var defaultValue sql.NullString
 
 		err := rows.Scan(&tableName, &columnName, &dataType, &isNullable, &defaultValue)
@@ -177,13 +177,16 @@ func captureTables(ctx context.Context, pool *pgxpool.Pool) ([]TableInfo, error)
 			tablesMap[tableName] = &TableInfo{Name: tableName, Columns: []ColumnInfo{}}
 		}
 
-		col := ColumnInfo{
-			Name:         columnName,
-			DataType:     dataType,
-			IsNullable:   isNullable == "YES",
-			DefaultValue: defaultValue.String,
+		// Only add column if it exists (handle tables without columns)
+		if columnName.Valid && dataType.Valid && isNullable.Valid {
+			col := ColumnInfo{
+				Name:         columnName.String,
+				DataType:     dataType.String,
+				IsNullable:   isNullable.String == "YES",
+				DefaultValue: defaultValue.String,
+			}
+			tablesMap[tableName].Columns = append(tablesMap[tableName].Columns, col)
 		}
-		tablesMap[tableName].Columns = append(tablesMap[tableName].Columns, col)
 	}
 
 	var tables []TableInfo
@@ -225,6 +228,18 @@ func captureIndexes(ctx context.Context, pool *pgxpool.Pool) ([]IndexInfo, error
 // captureConstraints captures all constraints
 func captureConstraints(ctx context.Context, pool *pgxpool.Pool) ([]ConstraintInfo, error) {
 	query := `
+		WITH constraint_cols AS (
+			SELECT 
+				tc.constraint_name,
+				tc.table_name,
+				string_agg(kcu.column_name, ', ' ORDER BY kcu.ordinal_position) as columns
+			FROM information_schema.table_constraints tc
+			LEFT JOIN information_schema.key_column_usage kcu 
+				ON tc.constraint_name = kcu.constraint_name 
+				AND tc.table_schema = kcu.table_schema
+			WHERE tc.table_schema = 'public'
+			GROUP BY tc.constraint_name, tc.table_name
+		)
 		SELECT 
 			tc.constraint_name,
 			tc.table_name,
@@ -232,24 +247,26 @@ func captureConstraints(ctx context.Context, pool *pgxpool.Pool) ([]ConstraintIn
 			COALESCE(
 				CASE 
 					WHEN tc.constraint_type = 'FOREIGN KEY' THEN 
-						'FOREIGN KEY (' || kcu.column_name || ') REFERENCES ' || ccu.table_name || '(' || ccu.column_name || ')'
+						'FOREIGN KEY (' || cc.columns || ') REFERENCES ' || ccu.table_name || '(' || ccu.column_name || ')'
 					WHEN tc.constraint_type = 'CHECK' THEN 
-						cc.check_clause
+						cco.check_clause
 					WHEN tc.constraint_type = 'UNIQUE' THEN 
-						'UNIQUE (' || kcu.column_name || ')'
+						'UNIQUE (' || cc.columns || ')'
+					WHEN tc.constraint_type = 'PRIMARY KEY' THEN
+						'PRIMARY KEY (' || cc.columns || ')'
 					ELSE 'N/A'
 				END,
 				'N/A'
 			) as definition
 		FROM information_schema.table_constraints tc
-		LEFT JOIN information_schema.key_column_usage kcu 
-			ON tc.constraint_name = kcu.constraint_name 
-			AND tc.table_schema = kcu.table_schema
+		LEFT JOIN constraint_cols cc
+			ON tc.constraint_name = cc.constraint_name 
+			AND tc.table_name = cc.table_name
 		LEFT JOIN information_schema.constraint_column_usage ccu
 			ON tc.constraint_name = ccu.constraint_name
 			AND tc.table_schema = ccu.table_schema
-		LEFT JOIN information_schema.check_constraints cc
-			ON tc.constraint_name = cc.constraint_name
+		LEFT JOIN information_schema.check_constraints cco
+			ON tc.constraint_name = cco.constraint_name
 		WHERE tc.table_schema = 'public'
 		AND tc.constraint_type IN ('FOREIGN KEY', 'CHECK', 'UNIQUE', 'PRIMARY KEY')
 		-- Filter out auto-generated NOT NULL constraint names (pattern: schemaoid_tableoid_columnnum_not_null)
@@ -697,13 +714,16 @@ func TestShadowDatabaseMigrationDrills(t *testing.T) {
 		})
 
 		t.Run("TriggerIntegrity", func(t *testing.T) {
-			// Check for orphaned triggers
+			// Check for orphaned triggers (excluding internal/system triggers)
 			var orphanedTriggerCount int
 			query := `
 				SELECT COUNT(*)
 				FROM pg_trigger t
 				LEFT JOIN pg_class c ON t.tgrelid = c.oid
 				WHERE c.oid IS NULL
+				AND t.tgisinternal = false
+				AND t.tgname NOT LIKE 'RI_ConstraintTrigger_%'
+				AND t.tgname NOT LIKE 'pg_%'
 			`
 			err := mh.pool.QueryRow(ctx, query).Scan(&orphanedTriggerCount)
 			require.NoError(t, err)
