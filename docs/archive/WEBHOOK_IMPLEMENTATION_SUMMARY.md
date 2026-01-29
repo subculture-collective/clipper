@@ -1,3 +1,14 @@
+---
+title: Implementation Summary: Webhook Processor for Subscription Lifecycle
+summary: **Title**: Premium: Webhook processor for subscription lifecycle **Description**: Implement secure processing of Stripe webhooks for subscription...
+tags: ["archive", "implementation", "summary"]
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Implementation Summary: Webhook Processor for Subscription Lifecycle
 
 ## Issue

@@ -1,3 +1,14 @@
+---
+title: Development Setup Verification Checklist
+summary: Verifies that all required development tools are correctly installed and configured.
+tags: ["testing", "archive", "implementation"]
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Development Setup Verification Checklist
 
 ## Run this checklist to verify everything is configured correctly

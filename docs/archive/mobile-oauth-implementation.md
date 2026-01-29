@@ -1,7 +1,7 @@
 ---
 title: "OAuth PKCE Implementation Summary"
 summary: "This document describes the OAuth PKCE (Proof Key for Code Exchange) authentication implementation f"
-tags: ['mobile']
+tags: ["mobile"]
 area: "mobile"
 status: "stable"
 owner: "team-core"

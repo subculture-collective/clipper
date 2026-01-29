@@ -1,3 +1,14 @@
+---
+title: Paywall UI Implementation Summary
+summary: This implementation adds comprehensive paywall UI components and analytics tracking across web and mobile platforms to support the premium...
+tags: ["archive", "implementation", "summary"]
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Paywall UI Implementation Summary
 
 ## Overview

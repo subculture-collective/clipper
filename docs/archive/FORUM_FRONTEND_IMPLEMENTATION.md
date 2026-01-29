@@ -1,3 +1,14 @@
+---
+title: Forum Frontend UI Implementation Summary
+summary: This implementation adds a complete frontend UI for the forum feature, including thread list, thread detail, reply system, and thread creation. The...
+tags: ["archive", "implementation", "summary"]
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Forum Frontend UI Implementation Summary
 
 ## Overview

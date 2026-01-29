@@ -1,3 +1,14 @@
+---
+title: Chat Channel Migration Consolidation
+summary: This document describes the resolution of migration collisions and consolidation of chat channel CRUD functionality that occurred when PRs #746,...
+tags: ["archive", "implementation"]
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Chat Channel Migration Consolidation
 
 ## Overview

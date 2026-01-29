@@ -1,3 +1,14 @@
+---
+title: Search Implementation Summary
+summary: This document describes the search functionality implementation for the Clipper application, including full-text search capabilities with...
+tags: ["archive", "implementation", "summary"]
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 
 # Search Implementation Summary
 

@@ -1,3 +1,14 @@
+---
+title: Documentation Overhaul Summary
+summary: Consolidates and reorganizes project documentation into Obsidian-compatible vault with structured navigation.
+tags: ["archive", "implementation"]
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Documentation Overhaul Summary
 
 **Date**: 2025-12-11  

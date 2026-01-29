@@ -1,3 +1,14 @@
+---
+title: Centralized Logging Implementation - Final Report
+summary: This document provides a comprehensive summary of the centralized logging implementation for Clipper, completed as part of Epic #430 - Observability...
+tags: ["archive", "implementation"]
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Centralized Logging Implementation - Final Report
 
 ## Overview

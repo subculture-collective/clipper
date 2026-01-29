@@ -1,7 +1,7 @@
 ---
 title: "Submit Clip Flow - Implementation Summary"
 summary: "Successfully implemented a comprehensive multi-step wizard for submitting Twitch clips in the mobile"
-tags: ['mobile']
+tags: ["mobile"]
 area: "mobile"
 status: "stable"
 owner: "team-core"
