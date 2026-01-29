@@ -1,0 +1,292 @@
+name: Alert Validation
+
+on:
+  # Run on schedule (daily at 2 AM UTC)
+  schedule:
+    - cron: '0 2 * * *'
+  
+  # Run on push to monitoring configuration
+  push:
+    paths:
+      - 'monitoring/alerts.yml'
+      - 'monitoring/prometheus.yml'
+      - 'monitoring/alertmanager.yml'
+      - 'monitoring/tests/**'
+      - 'monitoring/tools/**'
+      - '.github/workflows/alert-validation.yml'
+  
+  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Test type to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - latency-alert
+          - error-rate-alert
+          - webhook-alert
+          - search-failover-alert
+          - cdn-failover-alert
+          - queue-alert
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  validate-alerts:
+    name: Validate Alert Rules
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    
+    services:
+      prometheus:
+        image: prom/prometheus:v2.48.0
+        ports:
+          - 9090:9090
+        volumes:
+          - ${{ github.workspace }}/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+          - ${{ github.workspace }}/monitoring/alerts.yml:/etc/prometheus/alerts.yml
+        options: >-
+          --health-cmd "wget --spider http://localhost:9090/-/healthy || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      alertmanager:
+        image: prom/alertmanager:v0.26.0
+        ports:
+          - 9093:9093
+        volumes:
+          - ${{ github.workspace }}/monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+        options: >-
+          --health-cmd "wget --spider http://localhost:9093/-/healthy || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      pushgateway:
+        image: prom/pushgateway:v1.6.2
+        ports:
+          - 9091:9091
+        options: >-
+          --health-cmd "wget --spider http://localhost:9091/-/healthy || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl jq bc
+      
+      - name: Wait for services to be ready
+        run: |
+          echo "Waiting for Prometheus..."
+          for i in {1..30}; do
+            if curl -s http://localhost:9090/-/healthy > /dev/null 2>&1; then
+              echo "Prometheus is ready"
+              break
+            fi
+            sleep 2
+          done
+          
+          echo "Waiting for Alertmanager..."
+          for i in {1..30}; do
+            if curl -s http://localhost:9093/-/healthy > /dev/null 2>&1; then
+              echo "Alertmanager is ready"
+              break
+            fi
+            sleep 2
+          done
+          
+          echo "Waiting for Pushgateway..."
+          for i in {1..30}; do
+            if curl -s http://localhost:9091/-/healthy > /dev/null 2>&1; then
+              echo "Pushgateway is ready"
+              break
+            fi
+            sleep 2
+          done
+      
+      - name: Validate alert rules syntax
+        run: |
+          cd monitoring
+          bash test-alerts.sh validate
+      
+      - name: Run alert validation tests
+        id: alert_tests
+        env:
+          PROMETHEUS_URL: http://localhost:9090
+          ALERTMANAGER_URL: http://localhost:9093
+          PROMETHEUS_PUSHGATEWAY: http://localhost:9091
+          ALERT_WAIT_TIME: 90
+          RECOVERY_WAIT_TIME: 90
+          FLAP_TOLERANCE: 2
+        run: |
+          cd monitoring/tests
+          
+          TEST_TYPE="${{ github.event.inputs.test_type || 'all' }}"
+          echo "Running test type: $TEST_TYPE"
+          
+          # Run tests and capture results
+          if bash alert-validation-test.sh "$TEST_TYPE" 2>&1 | tee alert-validation-results.txt; then
+            echo "test_result=success" >> $GITHUB_OUTPUT
+          else
+            echo "test_result=failure" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+      
+      - name: Run dashboard validation tests
+        id: dashboard_tests
+        if: success() || failure()
+        env:
+          PROMETHEUS_URL: http://localhost:9090
+          PROMETHEUS_PUSHGATEWAY: http://localhost:9091
+          METRIC_TOLERANCE: 0.05
+        run: |
+          cd monitoring/tests
+          
+          # Run dashboard validation
+          if bash dashboard-validation-test.sh all 2>&1 | tee dashboard-validation-results.txt; then
+            echo "test_result=success" >> $GITHUB_OUTPUT
+          else
+            echo "test_result=failure" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+      
+      - name: Generate validation report
+        if: always()
+        run: |
+          cat > monitoring/validation-report.md << 'EOF'
+          # Alert Validation Report
+          
+          **Date**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **Workflow**: ${{ github.workflow }}
+          **Run ID**: ${{ github.run_id }}
+          **Triggered by**: ${{ github.event_name }}
+          
+          ## Test Results
+          
+          ### Alert Validation Tests
+          
+          **Result**: ${{ steps.alert_tests.outputs.test_result || 'skipped' }}
+          
+          ```
+          $(cat monitoring/tests/alert-validation-results.txt 2>/dev/null || echo "No results available")
+          ```
+          
+          ### Dashboard Validation Tests
+          
+          **Result**: ${{ steps.dashboard_tests.outputs.test_result || 'skipped' }}
+          
+          ```
+          $(cat monitoring/tests/dashboard-validation-results.txt 2>/dev/null || echo "No results available")
+          ```
+          
+          ## Summary
+          
+          - Alert validation: ${{ steps.alert_tests.outputs.test_result || 'skipped' }}
+          - Dashboard validation: ${{ steps.dashboard_tests.outputs.test_result || 'skipped' }}
+          
+          See [Alert Validation Report](monitoring/docs/ALERT_VALIDATION_REPORT.md) for detailed threshold documentation.
+          EOF
+          
+          cat monitoring/validation-report.md
+      
+      - name: Upload validation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: alert-validation-report-${{ github.run_id }}
+          path: |
+            monitoring/validation-report.md
+            monitoring/tests/alert-validation-results.txt
+            monitoring/tests/dashboard-validation-results.txt
+          retention-days: 30
+      
+      - name: Comment on PR (if applicable)
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const reportPath = 'monitoring/validation-report.md';
+            
+            if (fs.existsSync(reportPath)) {
+              const report = fs.readFileSync(reportPath, 'utf8');
+              
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: report
+              });
+            }
+      
+      - name: Fail workflow if tests failed
+        if: steps.alert_tests.outputs.test_result == 'failure' || steps.dashboard_tests.outputs.test_result == 'failure'
+        run: |
+          echo "Alert validation tests failed. See artifacts for details."
+          exit 1
+
+  validate-syntax:
+    name: Validate Alert Syntax
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Install promtool
+        run: |
+          wget https://github.com/prometheus/prometheus/releases/download/v2.48.0/prometheus-2.48.0.linux-amd64.tar.gz
+          tar xzf prometheus-2.48.0.linux-amd64.tar.gz
+          sudo mv prometheus-2.48.0.linux-amd64/promtool /usr/local/bin/
+          promtool --version
+      
+      - name: Validate alert rules
+        run: |
+          cd monitoring
+          promtool check rules alerts.yml
+      
+      - name: Validate prometheus config
+        run: |
+          cd monitoring
+          promtool check config prometheus.yml
+      
+      - name: Check alert coverage
+        run: |
+          cd monitoring
+          bash test-alerts.sh validate
+
+  summary:
+    name: Validation Summary
+    runs-on: ubuntu-latest
+    needs: [validate-alerts, validate-syntax]
+    if: always()
+    
+    steps:
+      - name: Check validation results
+        run: |
+          echo "## Alert Validation Summary"
+          echo ""
+          echo "Syntax Validation: ${{ needs.validate-syntax.result }}"
+          echo "Alert Tests: ${{ needs.validate-alerts.result }}"
+          
+          if [ "${{ needs.validate-syntax.result }}" != "success" ] || [ "${{ needs.validate-alerts.result }}" != "success" ]; then
+            echo ""
+            echo "❌ Alert validation failed. Check job logs for details."
+            exit 1
+          else
+            echo ""
+            echo "✅ All alert validation checks passed!"
+          fi
