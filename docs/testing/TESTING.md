@@ -1235,6 +1235,314 @@ If blocked percentages deviate significantly from expected behavior, this indica
 - Redis connection issues affecting distributed rate limiting
 - Premium user multipliers not working correctly
 
+## Backup & Restore Validation Testing
+
+### Overview
+
+Clipper implements automated backup and restore validation to ensure disaster recovery capabilities meet defined RPO (Recovery Point Objective) and RTO (Recovery Time Objective) targets.
+
+**Targets:**
+- **RTO**: < 1 hour (restore operation completes within 60 minutes)
+- **RPO**: < 15 minutes (backup is less than 15 minutes old)
+- **Backup Frequency**: Nightly at 2 AM UTC
+- **Validation Frequency**: Nightly at 3 AM UTC (after backup completes)
+- **Restore Drill**: Monthly on the 1st at 4 AM UTC
+
+### Running Backup Validation
+
+Backup validation verifies that nightly backups are complete, encrypted, stored cross-region, and meet size requirements.
+
+**Local execution:**
+
+```bash
+# Set required environment variables
+export CLOUD_PROVIDER="gcp"  # or "aws", "azure"
+export BACKUP_BUCKET="clipper-backups-prod"
+export AZURE_STORAGE_ACCOUNT="clipperbackupsprod"  # Azure only
+export MAX_BACKUP_AGE_HOURS="24"
+export MIN_BACKUP_SIZE_MB="1"
+
+# Run validation
+bash scripts/validate-backup.sh
+```
+
+**Cloud provider setup:**
+
+For GCP:
+```bash
+# Authenticate with service account
+gcloud auth activate-service-account --key-file=/path/to/service-account-key.json
+```
+
+For AWS:
+```bash
+# Configure AWS credentials
+export AWS_ACCESS_KEY_ID="your_access_key"
+export AWS_SECRET_ACCESS_KEY="your_secret_key"
+export AWS_REGION="us-east-1"
+```
+
+For Azure:
+```bash
+# Login with service principal
+az login --service-principal -u <app-id> -p <password> --tenant <tenant-id>
+```
+
+**Validation checks:**
+
+1. **Backup Exists**: Latest backup file is found in cloud storage
+2. **Backup Age**: Backup is less than 24 hours old
+3. **Backup Size**: Backup file size is reasonable (> 1MB)
+4. **Encryption**: Backup is encrypted at rest
+5. **Cross-Region Storage**: Backup is stored in multi-region or geo-redundant storage
+
+**Expected output:**
+
+```
+=== Backup Validation Started at 2026-01-29 03:00:00 ===
+[INFO] Configuration:
+[INFO]   Cloud Provider: gcp
+[INFO]   Backup Bucket: clipper-backups-prod
+[INFO]   Max Backup Age: 24h
+[INFO]   Min Backup Size: 1MB
+[INFO] Checking GCS bucket: gs://clipper-backups-prod/database/
+[INFO] Latest backup: gs://clipper-backups-prod/database/postgres-backup-20260129-020000.sql.gz
+[INFO] Backup size: 147MB
+[INFO] Backup timestamp: 2026-01-29 02:00:00
+[INFO] Backup age: 1 hours
+[INFO] Verifying backup age...
+[INFO] ✓ Backup age is acceptable: 1h
+[INFO] Verifying backup size...
+[INFO] ✓ Backup size is acceptable: 147MB
+[INFO] Verifying backup encryption...
+[INFO] ✓ GCS bucket has encryption enabled
+[INFO] Verifying cross-region storage...
+[INFO] ✓ GCS bucket is multi-region: us-central1
+[INFO] ✓ All backup validations passed
+=== Backup Validation SUCCEEDED ===
+```
+
+### Running Restore Drill
+
+Restore drill performs a complete restore operation to validate that backups can be successfully restored and meet RTO/RPO targets.
+
+**Local execution:**
+
+```bash
+# Set required environment variables
+export CLOUD_PROVIDER="gcp"
+export BACKUP_BUCKET="clipper-backups-prod"
+export POSTGRES_HOST="localhost"
+export POSTGRES_PORT="5432"
+export POSTGRES_USER="clipper"
+export POSTGRES_PASSWORD="your_password"
+export POSTGRES_DB="clipper"
+export RTO_TARGET_SECONDS="3600"  # 1 hour
+export RPO_TARGET_SECONDS="900"   # 15 minutes
+
+# Run restore drill
+bash scripts/restore-drill.sh
+```
+
+**Drill operations:**
+
+1. **Download**: Retrieves latest backup from cloud storage
+2. **Calculate RPO**: Measures backup age (target: < 15 minutes)
+3. **Create Test DB**: Creates temporary test database
+4. **Restore**: Restores backup to test database (timed for RTO)
+5. **Validate**: Verifies restored data integrity (table counts, schema)
+6. **Check Targets**: Confirms RTO < 1h and RPO < 15m
+7. **Cleanup**: Removes test database and local backup file
+
+**Expected output:**
+
+```
+=== Restore Drill Started at 2026-02-01 04:00:00 ===
+[INFO] Configuration:
+[INFO]   Cloud Provider: gcp
+[INFO]   Backup Bucket: clipper-backups-prod
+[INFO]   PostgreSQL Host: localhost:5432
+[INFO]   RTO Target: 3600s (60 minutes)
+[INFO]   RPO Target: 900s (15 minutes)
+[INFO] Finding latest backup...
+[INFO] Downloading backup from GCS: gs://clipper-backups-prod/database/postgres-backup-20260201-020000.sql.gz
+[INFO] ✓ Backup downloaded: /tmp/restore-drill-20260201-040000.sql.gz
+[INFO]   Size: 147MB
+[INFO]   Backup timestamp: 2026-02-01 02:00:00
+[INFO]   RPO (backup age): 7200s (120 minutes)
+[INFO]   ✓ RPO target met
+[INFO] Creating test database: restore_drill_test_20260201_040000
+[INFO] ✓ Test database created
+[INFO] Starting restore operation...
+[INFO] ✓ Restore completed
+[INFO]   Duration: 1847s (30 minutes)
+[INFO]   ✓ RTO target met (1847s < 3600s)
+[INFO] Validating restored data...
+[INFO]   Clips count: 15423
+[INFO]   Users count: 3891
+[INFO]   Tables restored: 37
+[INFO] ✓ Data validation passed
+[INFO] ✓ All restore drill checks passed
+[INFO] Summary:
+[INFO]   - Restore Duration: 1847s (RTO: 3600s)
+[INFO]   - Backup Age: 7200s (RPO: 900s)
+[INFO]   - Clips: 15423
+[INFO]   - Users: 3891
+=== Restore Drill SUCCEEDED ===
+```
+
+### CI/CD Integration
+
+Both backup validation and restore drill are automated through GitHub Actions workflows.
+
+**Backup Validation Workflow** (`.github/workflows/backup-validation.yml`):
+- **Schedule**: Nightly at 3 AM UTC
+- **Trigger**: Can be manually triggered via GitHub Actions UI
+- **Artifacts**: Validation logs retained for 30 days
+- **Notifications**: Slack alerts on failure
+
+**Restore Drill Workflow** (`.github/workflows/restore-drill.yml`):
+- **Schedule**: Monthly on the 1st at 4 AM UTC
+- **Trigger**: Can be manually triggered via GitHub Actions UI
+- **Artifacts**: Drill logs retained for 90 days
+- **Notifications**: Slack alerts on success/failure with metrics
+
+**Triggering manually:**
+
+```bash
+# Using GitHub CLI
+gh workflow run backup-validation.yml
+gh workflow run restore-drill.yml
+
+# Or via GitHub Actions UI:
+# 1. Navigate to Actions tab
+# 2. Select workflow
+# 3. Click "Run workflow"
+```
+
+### Monitoring & Alerts
+
+Backup and restore validation metrics are reported to Prometheus and monitored via alerts.
+
+**Key metrics:**
+
+```promql
+# Backup validation
+backup_validation_success          # 1 = success, 0 = failure
+backup_validation_timestamp        # Unix timestamp of last validation
+backup_age_hours                   # Age of latest backup in hours
+backup_size_mb                     # Size of latest backup in MB
+backup_encryption_verified         # 1 = verified, 0 = not verified
+backup_cross_region_verified       # 1 = verified, 0 = not verified
+
+# Restore drill
+restore_drill_success              # 1 = success, 0 = failure
+restore_drill_timestamp            # Unix timestamp of last drill
+restore_drill_duration_seconds     # Restore operation duration
+restore_drill_rpo_seconds          # Backup age (RPO)
+restore_drill_clip_count           # Number of clips restored
+restore_drill_user_count           # Number of users restored
+restore_drill_rto_met              # 1 = RTO met, 0 = not met
+restore_drill_rpo_met              # 1 = RPO met, 0 = not met
+```
+
+**Active alerts** (configured in `monitoring/alerts.yml`):
+
+| Alert | Severity | Trigger | Description |
+|-------|----------|---------|-------------|
+| `BackupValidationFailed` | Critical | validation fails | Backup integrity compromised |
+| `BackupNotRunning` | Critical | No validation in 24h | Backup job not running |
+| `BackupTooOld` | Critical | Backup > 26h old | Daily backup failed |
+| `BackupSizeTooSmall` | Warning | Backup < 1MB | Incomplete backup detected |
+| `BackupEncryptionNotVerified` | Warning | Encryption not verified | Data security at risk |
+| `BackupCrossRegionNotVerified` | Warning | Replication not verified | DR capability limited |
+| `RestoreDrillFailed` | Critical | Drill fails | Recovery capability not verified |
+| `RestoreDrillNotRun` | Warning | No drill in 31 days | Monthly validation overdue |
+| `RestoreRTOExceeded` | Warning | Restore > 1h | RTO target missed |
+| `RestoreRPOExceeded` | Warning | Backup > 15m old | RPO target missed |
+| `RestoreDrillDurationCritical` | Critical | Restore > 2h | Severe performance issue |
+
+**Viewing metrics in Grafana:**
+
+1. Navigate to **System Health** dashboard
+2. Select **Backup & Recovery** panel
+3. View backup timeline, success rates, and RTO/RPO trends
+
+### Troubleshooting Backup/Restore Issues
+
+**Backup validation fails:**
+
+1. Check backup job logs:
+   ```bash
+   kubectl logs -n clipper-production -l app=postgres-backup --tail=100
+   # Or check GitHub Actions workflow logs
+   ```
+
+2. Verify cloud storage access:
+   ```bash
+   # GCP
+   gsutil ls gs://clipper-backups-prod/database/
+   
+   # AWS
+   aws s3 ls s3://clipper-backups-prod/database/
+   
+   # Azure
+   az storage blob list --account-name clipperbackupsprod --container-name clipper-backups-prod --prefix database/
+   ```
+
+3. Check for recent backups:
+   ```bash
+   # Should see files from last 24 hours
+   gsutil ls -l gs://clipper-backups-prod/database/ | grep postgres-backup | tail -5
+   ```
+
+**Restore drill fails:**
+
+1. Check PostgreSQL connectivity:
+   ```bash
+   psql -h $POSTGRES_HOST -p $POSTGRES_PORT -U $POSTGRES_USER -d postgres -c "SELECT version();"
+   ```
+
+2. Verify backup file integrity:
+   ```bash
+   # Download and test backup file
+   gsutil cp gs://clipper-backups-prod/database/postgres-backup-latest.sql.gz /tmp/
+   gunzip -t /tmp/postgres-backup-latest.sql.gz
+   ```
+
+3. Test restore manually:
+   ```bash
+   # Create test database
+   psql -h localhost -U clipper -d postgres -c "CREATE DATABASE restore_test;"
+   
+   # Restore backup
+   pg_restore -h localhost -U clipper -d restore_test -F c /tmp/backup.sql.gz
+   
+   # Verify data
+   psql -h localhost -U clipper -d restore_test -c "SELECT COUNT(*) FROM clips;"
+   ```
+
+**RTO target exceeded:**
+
+- Review database size and restore performance
+- Consider parallel restore: `pg_restore -j 4` (4 parallel jobs)
+- Increase restore resources (CPU/memory)
+- Use volume snapshots for faster recovery
+
+**RPO target exceeded:**
+
+- Check backup schedule frequency
+- Review WAL archiving status (for PITR)
+- Consider increasing backup frequency
+- Verify backup job completion time
+
+### Related Documentation
+
+- [Backup & Recovery Runbook](../operations/backup-recovery-runbook.md) - Complete operational procedures
+- [Kubernetes Backup CronJobs](../../infrastructure/k8s/base/backup-cronjobs.yaml) - K8s configuration
+- [Backup Script](../../scripts/backup.sh) - Docker-based backup script
+- [Monitoring Alerts](../../monitoring/alerts.yml) - Alert configurations
+
 ## Troubleshooting
 
 ### Test Database Connection Issues

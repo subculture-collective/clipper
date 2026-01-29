@@ -1,0 +1,105 @@
+name: Backup Validation
+
+on:
+  schedule:
+    # Run nightly at 3 AM UTC (after 2 AM backup)
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      cloud_provider:
+        description: 'Cloud provider (gcp, aws, azure)'
+        required: false
+        default: 'gcp'
+      backup_bucket:
+        description: 'Backup bucket name'
+        required: false
+        default: 'clipper-backups-prod'
+
+jobs:
+  validate-backup:
+    name: Validate Nightly Backup
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Cloud SDK (GCP)
+        if: ${{ github.event.inputs.cloud_provider == 'gcp' || github.event.inputs.cloud_provider == '' }}
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          export_default_credentials: true
+      
+      - name: Configure AWS credentials
+        if: ${{ github.event.inputs.cloud_provider == 'aws' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      
+      - name: Set up Azure CLI
+        if: ${{ github.event.inputs.cloud_provider == 'azure' }}
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      - name: Create log directory
+        run: |
+          sudo mkdir -p /var/log/clipper
+          sudo chown -R $USER:$USER /var/log/clipper
+      
+      - name: Run backup validation
+        id: validation
+        env:
+          CLOUD_PROVIDER: ${{ github.event.inputs.cloud_provider || 'gcp' }}
+          BACKUP_BUCKET: ${{ github.event.inputs.backup_bucket || secrets.BACKUP_BUCKET || 'clipper-backups-prod' }}
+          AZURE_STORAGE_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
+          MAX_BACKUP_AGE_HOURS: '24'
+          MIN_BACKUP_SIZE_MB: '1'
+          PROMETHEUS_PUSHGATEWAY: ${{ secrets.PROMETHEUS_PUSHGATEWAY }}
+        run: |
+          set +e
+          bash scripts/validate-backup.sh
+          exit_code=$?
+          echo "exit_code=$exit_code" >> $GITHUB_OUTPUT
+          exit $exit_code
+      
+      - name: Upload validation log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-validation-log-${{ github.run_number }}
+          path: /var/log/clipper/backup-validation.log
+          retention-days: 30
+      
+      - name: Check validation result
+        if: steps.validation.outputs.exit_code != '0'
+        run: |
+          echo "::error::Backup validation failed! Check the logs for details."
+          exit 1
+      
+      - name: Report success
+        if: steps.validation.outputs.exit_code == '0'
+        run: |
+          echo "::notice::Backup validation succeeded!"
+          cat /var/log/clipper/backup-validation.log
+      
+      - name: Notify on failure
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: |
+            🚨 Backup Validation Failed
+            
+            Workflow: ${{ github.workflow }}
+            Run: ${{ github.run_id }}
+            
+            Check logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_OPERATIONS }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_OPERATIONS }}

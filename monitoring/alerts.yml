@@ -1833,3 +1833,142 @@ groups:
           description: "{{ $value }} client errors per second (status {{ $labels.status_code }}) for {{ $labels.action }}."
           runbook: "Review request validation, check for malformed requests, verify user permissions and scopes."
 
+  # Backup & Restore Alerts
+  # Related Issues:
+  # - #863 - Automated Backup & Recovery
+  # - #805 - Observability Infrastructure
+  - name: backup_restore_alerts
+    interval: 60s
+    rules:
+      # Backup validation failed
+      - alert: BackupValidationFailed
+        expr: backup_validation_success == 0
+        for: 5m
+        labels:
+          severity: critical
+          category: backup
+        annotations:
+          summary: "Backup validation failed"
+          description: "The latest backup validation check failed. Backup integrity may be compromised."
+          runbook: "Check backup validation logs, verify backup exists and is not corrupted, ensure cloud storage is accessible. See docs/operations/backup-recovery-runbook.md"
+      
+      # No recent backup
+      - alert: BackupNotRunning
+        expr: (time() - backup_validation_timestamp) > 86400
+        for: 15m
+        labels:
+          severity: critical
+          category: backup
+        annotations:
+          summary: "No backup validation in 24 hours"
+          description: "No backup validation has been performed in the last 24 hours. Backup job may not be running."
+          runbook: "Check backup CronJob status in Kubernetes or GitHub Actions workflow status. Verify backup scripts are configured correctly."
+      
+      # Backup too old
+      - alert: BackupTooOld
+        expr: backup_age_hours > 26
+        for: 1h
+        labels:
+          severity: critical
+          category: backup
+        annotations:
+          summary: "Latest backup is too old"
+          description: "The latest backup is {{ $value }} hours old (threshold: 26 hours). Daily backup may have failed."
+          runbook: "Check backup job logs, verify backup CronJob schedule, ensure cloud storage is writable."
+      
+      # Backup size too small
+      - alert: BackupSizeTooSmall
+        expr: backup_size_mb < 1
+        for: 5m
+        labels:
+          severity: warning
+          category: backup
+        annotations:
+          summary: "Backup file is suspiciously small"
+          description: "Latest backup is only {{ $value }}MB, which may indicate an incomplete backup."
+          runbook: "Check backup logs for errors, verify database connection, ensure sufficient disk space during backup."
+      
+      # Backup encryption not verified
+      - alert: BackupEncryptionNotVerified
+        expr: backup_encryption_verified == 0
+        for: 15m
+        labels:
+          severity: warning
+          category: backup
+        annotations:
+          summary: "Backup encryption not verified"
+          description: "Unable to verify encryption on the latest backup. Data security may be at risk."
+          runbook: "Check cloud storage encryption settings, verify encryption keys are configured, review backup script encryption parameters."
+      
+      # Cross-region replication not verified
+      - alert: BackupCrossRegionNotVerified
+        expr: backup_cross_region_verified == 0
+        for: 30m
+        labels:
+          severity: warning
+          category: backup
+        annotations:
+          summary: "Cross-region backup storage not verified"
+          description: "Unable to verify cross-region replication for backups. Disaster recovery capability may be limited."
+          runbook: "Check cloud storage replication settings, verify multi-region bucket configuration, review storage redundancy settings."
+      
+      # Restore drill failed
+      - alert: RestoreDrillFailed
+        expr: restore_drill_success == 0
+        for: 5m
+        labels:
+          severity: critical
+          category: restore
+        annotations:
+          summary: "Restore drill failed"
+          description: "The latest restore drill test failed. Backup recovery capability is not verified."
+          runbook: "Check restore drill logs, verify backup file integrity, test restore process manually. See docs/operations/backup-recovery-runbook.md"
+      
+      # No recent restore drill
+      - alert: RestoreDrillNotRun
+        expr: (time() - restore_drill_timestamp) > 2678400
+        for: 1h
+        labels:
+          severity: warning
+          category: restore
+        annotations:
+          summary: "No restore drill in 31 days"
+          description: "Monthly restore drill has not been performed in over 31 days. Restore capability is not being validated."
+          runbook: "Check restore drill CronJob or GitHub Actions workflow schedule, trigger manual restore drill."
+      
+      # RTO target not met
+      - alert: RestoreRTOExceeded
+        expr: restore_drill_rto_met == 0
+        for: 5m
+        labels:
+          severity: warning
+          category: restore
+        annotations:
+          summary: "RTO target not met in restore drill"
+          description: "The restore operation took {{ restore_drill_duration_seconds }} seconds, exceeding the 1-hour RTO target."
+          runbook: "Review restore performance, consider optimizing restore process, increase restore resources if needed. Target: 3600s (1 hour)."
+      
+      # RPO target not met
+      - alert: RestoreRPOExceeded
+        expr: restore_drill_rpo_met == 0
+        for: 5m
+        labels:
+          severity: warning
+          category: restore
+        annotations:
+          summary: "RPO target not met"
+          description: "The backup is {{ restore_drill_rpo_seconds }} seconds old, exceeding the 15-minute RPO target."
+          runbook: "Review backup frequency, check WAL archiving lag, consider increasing backup frequency. Target: 900s (15 minutes)."
+      
+      # Restore drill duration critical
+      - alert: RestoreDrillDurationCritical
+        expr: restore_drill_duration_seconds > 7200
+        for: 5m
+        labels:
+          severity: critical
+          category: restore
+        annotations:
+          summary: "Restore drill duration critically high"
+          description: "Restore drill took {{ $value }} seconds (over 2 hours), significantly exceeding acceptable recovery time."
+          runbook: "Immediate optimization required. Review database size, backup format, network bandwidth, and restore process efficiency."
+
