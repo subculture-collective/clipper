@@ -72,7 +72,7 @@ generate_latency_signal() {
     
     local end_time=$(($(date +%s) + duration))
     
-    while [ "$(date +%s)" -lt $end_time ]; do
+    while [ "$(date +%s)" -lt "$end_time" ]; do
         # Generate high latency metric
         if ! curl --fail --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/${service}/instance/test 2>/dev/null <<EOF
 # HELP http_request_duration_seconds HTTP request duration in seconds
@@ -114,7 +114,7 @@ generate_error_rate_signal() {
     local error_requests=$(echo "$total_requests * $error_rate" | bc | cut -d. -f1)
     local success_requests=$((total_requests - error_requests))
     
-    while [ "$(date +%s)" -lt $end_time ]; do
+    while [ "$(date +%s)" -lt "$end_time" ]; do
         # Generate error rate metric
         if ! curl --fail --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/${service}/instance/test 2>/dev/null <<EOF
 # HELP http_requests_total Total HTTP requests
@@ -144,7 +144,7 @@ generate_queue_depth_signal() {
     
     local end_time=$(($(date +%s) + duration))
     
-    while [ "$(date +%s)" -lt $end_time ]; do
+    while [ "$(date +%s)" -lt "$end_time" ]; do
         # Generate queue depth metric
         if ! curl --fail --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/background-jobs/instance/test 2>/dev/null <<EOF
 # HELP ${queue_name}_size Current queue size
@@ -176,7 +176,7 @@ generate_webhook_failure_signal() {
     local failed_deliveries=$(echo "$total_deliveries * $failure_rate" | bc | cut -d. -f1)
     local success_deliveries=$((total_deliveries - failed_deliveries))
     
-    while [ "$(date +%s)" -lt $end_time ]; do
+    while [ "$(date +%s)" -lt "$end_time" ]; do
         # Generate webhook delivery metrics
         if ! curl --fail --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/${service}/instance/test 2>/dev/null <<EOF
 # HELP webhook_delivery_total Total webhook deliveries
@@ -206,7 +206,7 @@ generate_search_failover_signal() {
     
     local end_time=$(($(date +%s) + duration))
     
-    while [ "$(date +%s)" -lt $end_time ]; do
+    while [ "$(date +%s)" -lt "$end_time" ]; do
         # Generate search failover metrics
         if ! curl --fail --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/${service}/instance/test 2>/dev/null <<EOF
 # HELP search_failover_total Total search failovers
@@ -236,7 +236,7 @@ generate_cdn_failover_signal() {
     
     local end_time=$(($(date +%s) + duration))
     
-    while [ "$(date +%s)" -lt $end_time ]; do
+    while [ "$(date +%s)" -lt "$end_time" ]; do
         # Generate CDN failover metrics
         if ! curl --fail --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/${service}/instance/test 2>/dev/null <<EOF
 # HELP cdn_failover_total Total CDN failovers to origin
@@ -275,7 +275,7 @@ generate_recovery_signal() {
     
     case $signal_type in
         latency)
-            cat <<EOF | curl --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/${service}/instance/test
+            if ! curl --fail --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/${service}/instance/test 2>/dev/null <<EOF
 # HELP http_request_duration_seconds HTTP request duration in seconds
 # TYPE http_request_duration_seconds histogram
 http_request_duration_seconds_bucket{path="/api/v1/clips",method="GET",le="0.005"} 0
@@ -288,43 +288,67 @@ http_request_duration_seconds_bucket{path="/api/v1/clips",method="GET",le="+Inf"
 http_request_duration_seconds_sum{path="/api/v1/clips",method="GET"} 3.5
 http_request_duration_seconds_count{path="/api/v1/clips",method="GET"} 100
 EOF
+            then
+                log_error "Failed to push recovery signal for latency"
+                return 1
+            fi
             ;;
         error-rate)
-            cat <<EOF | curl --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/${service}/instance/test
+            if ! curl --fail --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/${service}/instance/test 2>/dev/null <<EOF
 # HELP http_requests_total Total HTTP requests
 # TYPE http_requests_total counter
 http_requests_total{status="2xx"} 998
 http_requests_total{status="5xx"} 2
 EOF
+            then
+                log_error "Failed to push recovery signal for error-rate"
+                return 1
+            fi
             ;;
         queue-depth)
-            cat <<EOF | curl --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/background-jobs/instance/test
+            if ! curl --fail --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/background-jobs/instance/test 2>/dev/null <<EOF
 # HELP webhook_retry_queue_size Current queue size
 # TYPE webhook_retry_queue_size gauge
 webhook_retry_queue_size{job_name="webhook_retry"} 10
 EOF
+            then
+                log_error "Failed to push recovery signal for queue-depth"
+                return 1
+            fi
             ;;
         webhook-failure)
-            cat <<EOF | curl --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/${service}/instance/test
+            if ! curl --fail --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/${service}/instance/test 2>/dev/null <<EOF
 # HELP webhook_delivery_total Total webhook deliveries
 # TYPE webhook_delivery_total counter
 webhook_delivery_total{status="success"} 95
 webhook_delivery_total{status="failed"} 5
 EOF
+            then
+                log_error "Failed to push recovery signal for webhook-failure"
+                return 1
+            fi
             ;;
         search-failover)
-            cat <<EOF | curl --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/clipper-search/instance/test
+            if ! curl --fail --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/clipper-search/instance/test 2>/dev/null <<EOF
 # HELP search_failover_total Total search failovers
 # TYPE search_failover_total counter
 search_failover_total{from="opensearch",to="postgres"} 1
 EOF
+            then
+                log_error "Failed to push recovery signal for search-failover"
+                return 1
+            fi
             ;;
         cdn-failover)
-            cat <<EOF | curl --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/clipper-cdn/instance/test
+            if ! curl --fail --data-binary @- ${PROMETHEUS_PUSHGATEWAY}/metrics/job/clipper-cdn/instance/test 2>/dev/null <<EOF
 # HELP cdn_failover_total Total CDN failovers to origin
 # TYPE cdn_failover_total counter
 cdn_failover_total{cdn="cloudflare"} 1
 EOF
+            then
+                log_error "Failed to push recovery signal for cdn-failover"
+                return 1
+            fi
             ;;
     esac
     
@@ -348,27 +372,27 @@ main() {
     case $signal_type in
         latency)
             local latency=${threshold:-150}
-            generate_latency_signal $duration $latency
+            generate_latency_signal "$duration" "$latency"
             ;;
         error-rate)
             local error_rate=${threshold:-0.01}
-            generate_error_rate_signal $duration $error_rate
+            generate_error_rate_signal "$duration" "$error_rate"
             ;;
         queue-depth)
             local queue_size=${threshold:-500}
-            generate_queue_depth_signal $duration $queue_size
+            generate_queue_depth_signal "$duration" "$queue_size"
             ;;
         webhook-failure)
             local failure_rate=${threshold:-0.15}
-            generate_webhook_failure_signal $duration $failure_rate
+            generate_webhook_failure_signal "$duration" "$failure_rate"
             ;;
         search-failover)
             local failover_rate=${threshold:-10}
-            generate_search_failover_signal $duration $failover_rate
+            generate_search_failover_signal "$duration" "$failover_rate"
             ;;
         cdn-failover)
             local failover_rate=${threshold:-10}
-            generate_cdn_failover_signal $duration $failover_rate
+            generate_cdn_failover_signal "$duration" "$failover_rate"
             ;;
         all)
             log_info "Running all signal generators..."
