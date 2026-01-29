@@ -1,7 +1,7 @@
 ---
 title: Stripe Integration Infrastructure - Implementation Complete
 summary: This document summarizes the implementation of Stripe integration infrastructure for the Clipper platform as specified in issue requirements.
-tags: ['archive', 'implementation', 'summary']
+tags: ["archive", "implementation", "summary"]
 area: docs
 status: archived
 owner: team-core

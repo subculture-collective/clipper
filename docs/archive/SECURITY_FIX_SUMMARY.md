@@ -1,7 +1,7 @@
 ---
 title: Security Fix Summary: Watch Party WebSocket Authentication and Rate Limiting
 summary: PR #749 introduced watch party chat/reactions with three critical security vulnerabilities: 1. **Weak Authentication**: WebSocket connections lacked...
-tags: ['security', 'archive', 'implementation']
+tags: ["security", "archive", "implementation"]
 area: docs
 status: archived
 owner: team-core

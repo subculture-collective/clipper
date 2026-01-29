@@ -1,7 +1,7 @@
 ---
 title: Main Branch Sync & Chunking Solution
 summary: Resolves main branch divergence and React initialization errors through optimized Vite configuration.
-tags: ['archive', 'implementation']
+tags: ["archive", "implementation"]
 area: docs
 status: archived
 owner: team-core

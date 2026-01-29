@@ -1,7 +1,7 @@
 ---
 title: Feed & Discovery Epic - Verification Checklist
 summary: Comprehensive verification checklist for backend and frontend builds of the feed and discovery epic.
-tags: ['testing', 'archive', 'implementation']
+tags: ["testing", "archive", "implementation"]
 area: docs
 status: archived
 owner: team-core

@@ -1,7 +1,7 @@
 ---
 title: Deep Linking Implementation Summary
 summary: This document provides a high-level summary of the deep linking and universal links implementation for the Clipper PWA.
-tags: ['archive', 'implementation']
+tags: ["archive", "implementation"]
 area: docs
 status: archived
 owner: team-core

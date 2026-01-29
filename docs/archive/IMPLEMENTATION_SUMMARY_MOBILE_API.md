@@ -1,7 +1,7 @@
 ---
 title: Implementation Summary: Mobile API Client Enhancement
 summary: Enhances the mobile API client with retry logic, network awareness, offline queueing, and error handling.
-tags: ['archive', 'implementation', 'summary']
+tags: ["archive", "implementation", "summary"]
 area: docs
 status: archived
 owner: team-core

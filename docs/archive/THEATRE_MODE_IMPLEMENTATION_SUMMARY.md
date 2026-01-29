@@ -1,7 +1,7 @@
 ---
 title: Theatre Mode Player Implementation Summary
 summary: Successfully implemented a complete theatre mode player with HLS streaming support, adaptive bitrate selection, and comprehensive quality controls...
-tags: ['archive', 'implementation', 'summary']
+tags: ["archive", "implementation", "summary"]
 area: docs
 status: archived
 owner: team-core

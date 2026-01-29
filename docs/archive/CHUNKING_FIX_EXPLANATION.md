@@ -1,7 +1,7 @@
 ---
 title: React Chunking Error Fix
 summary: Explains the React initialization error caused by asynchronous chunk loading and provides the solution.
-tags: ['archive', 'implementation']
+tags: ["archive", "implementation"]
 area: docs
 status: archived
 owner: team-core

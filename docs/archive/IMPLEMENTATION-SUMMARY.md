@@ -1,7 +1,7 @@
 ---
 title: Twitch OAuth Implementation Summary
 summary: This document summarizes the complete Twitch OAuth 2.0 authentication implementation for the Clipper backend.
-tags: ['archive', 'implementation', 'summary']
+tags: ["archive", "implementation", "summary"]
 area: docs
 status: archived
 owner: team-core

@@ -1,7 +1,7 @@
 ---
 title: Webhook Monitoring and Alerting Implementation Summary
 summary: Successfully implemented comprehensive monitoring and alerting infrastructure for the Clipper webhook delivery system, fulfilling all requirements...
-tags: ['archive', 'implementation', 'summary']
+tags: ["archive", "implementation", "summary"]
 area: docs
 status: archived
 owner: team-core

@@ -1,7 +1,7 @@
 ---
 title: Watch Party Chat & Emoji Reactions System
 summary: This document provides an overview of the chat and emoji reactions feature implementation for watch parties.
-tags: ['archive', 'implementation', 'summary']
+tags: ["archive", "implementation", "summary"]
 area: docs
 status: archived
 owner: team-core

@@ -1,7 +1,7 @@
 ---
 title: SendGrid Email Service - Implementation Summary
 summary: This document summarizes the SendGrid email service implementation and enhancements for the Clipper platform.
-tags: ['archive', 'implementation', 'summary']
+tags: ["archive", "implementation", "summary"]
 area: docs
 status: archived
 owner: team-core

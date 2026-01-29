@@ -1,7 +1,7 @@
 ---
 title: "Search Screen Implementation Summary"
 summary: "- **300ms debounce** applied to search queries to reduce API calls"
-tags: ['mobile']
+tags: ["mobile"]
 area: "mobile"
 status: "stable"
 owner: "team-core"

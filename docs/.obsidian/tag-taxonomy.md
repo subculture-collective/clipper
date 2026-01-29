@@ -97,7 +97,7 @@ Used for documentation about documentation:
 - `voting` - Voting/upvoting
 - `favorites` - Favorites/bookmarks
 - `playlists` - Playlist feature
-- `search` - Search features
+- `search-feature` - Search features
 - `recommendations` - Recommendation engine
 - `live-streams` - Live streaming
 - `watch-parties` - Watch party feature
@@ -204,10 +204,10 @@ Used for documentation about documentation:
 - `etl` - ETL processes
 - `ingestion` - Data ingestion
 - `processing` - Data processing
-- `analytics` - Data analytics
+- `data-analytics` - Data analytics
 - `ml` - Machine learning
 - `embeddings` - Vector embeddings
-- `recommendations` - Recommendation systems
+- `recommendation-systems` - Recommendation systems
 - `classification` - Classification models
 
 ### User-Facing

@@ -1,7 +1,7 @@
 ---
 title: Watch History & Playback Resumption Implementation Summary
 summary: This document summarizes the implementation of comprehensive watch history tracking with playback resumption and personalized viewing analytics for...
-tags: ['archive', 'implementation', 'summary']
+tags: ["archive", "implementation", "summary"]
 area: docs
 status: archived
 owner: team-core

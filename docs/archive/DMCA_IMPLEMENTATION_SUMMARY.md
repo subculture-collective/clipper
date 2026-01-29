@@ -1,7 +1,7 @@
 ---
 title: DMCA Takedown and Counter-Notice System - Implementation Summary
 summary: This document summarizes the implementation of the DMCA compliance system for Clipper. The system has been professionally implemented to handle...
-tags: ['archive', 'implementation', 'summary']
+tags: ["archive", "implementation", "summary"]
 area: docs
 status: archived
 owner: team-core

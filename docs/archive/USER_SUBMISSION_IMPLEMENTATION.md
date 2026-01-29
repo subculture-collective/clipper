@@ -1,7 +1,7 @@
 ---
 title: User-Submitted Clip System Implementation
 summary: This document describes the implementation of the user-submitted clip system with moderation queue for the Clipper application.
-tags: ['archive', 'implementation', 'summary']
+tags: ["archive", "implementation", "summary"]
 area: docs
 status: archived
 owner: team-core

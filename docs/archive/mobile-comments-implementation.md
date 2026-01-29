@@ -1,7 +1,7 @@
 ---
 title: "Mobile Comments UI Implementation"
 summary: "This document describes the implementation of the comments UI for the mobile app, including threaded"
-tags: ['mobile']
+tags: ["mobile"]
 area: "mobile"
 status: "stable"
 owner: "team-core"

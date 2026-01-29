@@ -1,7 +1,7 @@
 ---
 title: Forum Frontend Architecture
 summary: Documents the component hierarchy and architecture of the forum frontend application.
-tags: ['archive', 'implementation']
+tags: ["archive", "implementation"]
 area: docs
 status: archived
 owner: team-core

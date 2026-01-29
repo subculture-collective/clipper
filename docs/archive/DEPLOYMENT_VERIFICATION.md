@@ -1,7 +1,7 @@
 ---
 title: Deployment Verification - December 7, 2025
 summary: The React chunking fix has been successfully deployed to production.
-tags: ['testing', 'archive', 'deployment', 'implementation']
+tags: ["testing", "archive", "deployment", "implementation"]
 area: docs
 status: archived
 owner: team-core

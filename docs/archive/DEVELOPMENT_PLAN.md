@@ -1,7 +1,7 @@
 ---
 title: Clipper Development Plan
 summary: Development plan documenting architecture, service setup, and implementation strategy for the project.
-tags: ['archive', 'implementation']
+tags: ["archive", "implementation"]
 area: docs
 status: archived
 owner: team-core

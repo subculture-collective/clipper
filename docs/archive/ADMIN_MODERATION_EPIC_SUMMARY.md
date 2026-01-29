@@ -1,7 +1,7 @@
 ---
 title: Admin Moderation Dashboard Epic - Completion Summary
 summary: Completes the admin moderation dashboard epic with clip and comment queues, bulk actions, and audit logging.
-tags: ['archive', 'implementation']
+tags: ["archive", "implementation"]
 area: docs
 status: archived
 owner: team-core

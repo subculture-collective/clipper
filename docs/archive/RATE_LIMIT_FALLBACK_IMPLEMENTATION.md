@@ -1,7 +1,7 @@
 ---
 title: Rate Limiting Fallback Implementation
 summary: This document describes the implementation of a fallback rate limiting mechanism that prevents the system from "failing open" when Redis is...
-tags: ['archive', 'implementation', 'summary']
+tags: ["archive", "implementation", "summary"]
 area: docs
 status: archived
 owner: team-core

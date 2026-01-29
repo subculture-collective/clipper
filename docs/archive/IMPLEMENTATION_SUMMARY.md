@@ -1,7 +1,7 @@
 ---
 title: Mobile Clip Feed Implementation - Summary
 summary: Implements mobile clip feed with infinite scroll and pull-to-refresh functionality for seamless content browsing.
-tags: ['archive', 'implementation', 'summary']
+tags: ["archive", "implementation", "summary"]
 area: docs
 status: archived
 owner: team-core

@@ -1,7 +1,7 @@
 ---
 title: Twitch Chat Integration & OAuth Implementation Summary
 summary: This implementation adds Twitch chat integration with OAuth authentication to the Clipper platform, allowing users to view and interact with Twitch...
-tags: ['archive', 'implementation', 'summary']
+tags: ["archive", "implementation", "summary"]
 area: docs
 status: archived
 owner: team-core

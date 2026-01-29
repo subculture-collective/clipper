@@ -1,7 +1,7 @@
 ---
 title: WebSocket Server & Message Infrastructure Implementation Summary
 summary: Successfully implemented a complete WebSocket server infrastructure for real-time chat supporting 1000+ concurrent users per channel with Redis...
-tags: ['archive', 'implementation', 'summary']
+tags: ["archive", "implementation", "summary"]
 area: docs
 status: archived
 owner: team-core

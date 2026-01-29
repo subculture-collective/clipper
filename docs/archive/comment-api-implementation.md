@@ -1,7 +1,7 @@
 ---
 title: Comment API Endpoints - Implementation Summary
 summary: This document summarizes the implementation of nested comment tree structure support in the backend API.
-tags: ['archive', 'implementation', 'summary']
+tags: ["archive", "implementation", "summary"]
 area: docs
 status: archived
 owner: team-core

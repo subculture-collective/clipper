@@ -1,7 +1,7 @@
 ---
 title: Embedding Pipeline Implementation Summary
 summary: This implementation delivers a complete embedding pipeline for semantic search capabilities in the Clipper application. The system generates and...
-tags: ['archive', 'implementation', 'summary']
+tags: ["archive", "implementation", "summary"]
 area: docs
 status: archived
 owner: team-core

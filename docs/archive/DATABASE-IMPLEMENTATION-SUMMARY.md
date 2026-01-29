@@ -1,7 +1,7 @@
 ---
 title: Database Schema Implementation - Completion Summary
 summary: All tasks from the original issue have been successfully completed:
-tags: ['archive', 'implementation', 'summary']
+tags: ["archive", "implementation", "summary"]
 area: docs
 status: archived
 owner: team-core

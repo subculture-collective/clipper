@@ -1,7 +1,7 @@
 ---
 title: Analytics System Implementation Summary
 summary: This document summarizes the implementation of the comprehensive analytics system for the Clipper platform as specified in **Phase 2** of the project...
-tags: ['archive', 'implementation', 'summary']
+tags: ["archive", "implementation", "summary"]
 area: docs
 status: archived
 owner: team-core

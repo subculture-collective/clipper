@@ -1,7 +1,7 @@
 ---
 title: Feed Sorting & Trending Algorithms - Implementation Summary
 summary: This PR implements dynamic sorting algorithms (trending, hot, popular) for the feed with real-time ranking updates, as specified in issue #668.
-tags: ['archive', 'implementation']
+tags: ["archive", "implementation"]
 area: docs
 status: archived
 owner: team-core

@@ -1,7 +1,7 @@
 ---
 title: useClipById Hook Verification
 summary: PR #48 changed `useClipById` from using `useInfiniteQuery` to `useQuery`, removing the `initialPageParam` and `getNextPageParam` parameters. This...
-tags: ['testing', 'archive', 'implementation']
+tags: ["testing", "archive", "implementation"]
 area: docs
 status: archived
 owner: team-core

@@ -1,7 +1,7 @@
 ---
 title: Watch Party Reaction Overlay Usage Guide
 summary: Usage guide for the refactored ReactionOverlay component using React hooks and proper ref patterns.
-tags: ['archive', 'implementation']
+tags: ["archive", "implementation"]
 area: docs
 status: archived
 owner: team-core

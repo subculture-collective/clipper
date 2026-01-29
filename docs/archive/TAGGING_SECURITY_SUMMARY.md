@@ -1,7 +1,7 @@
 ---
 title: Security Summary - Tagging System Implementation
 summary: Documents security implementation and analysis of the tagging system with passed CodeQL verification.
-tags: ['security', 'archive', 'implementation']
+tags: ["security", "archive", "implementation"]
 area: docs
 status: archived
 owner: team-core

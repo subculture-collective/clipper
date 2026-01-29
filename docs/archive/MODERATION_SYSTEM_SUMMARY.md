@@ -1,7 +1,7 @@
 ---
 title: Content Moderation and Reporting System - Implementation Summary
 summary: This implementation adds a comprehensive content moderation and reporting system to Clipper, enabling users to report problematic content and...
-tags: ['archive', 'implementation']
+tags: ["archive", "implementation"]
 area: docs
 status: archived
 owner: team-core

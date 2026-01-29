@@ -1,7 +1,7 @@
 ---
 title: Type Safety Improvements for failedQueue
 summary: This change addresses the type safety issue identified in [PR #48 review comment...
-tags: ['archive', 'implementation']
+tags: ["archive", "implementation"]
 area: docs
 status: archived
 owner: team-core

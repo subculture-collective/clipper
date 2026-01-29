@@ -1,7 +1,7 @@
 ---
 title: Offline Caching and Background Sync - Implementation Summary
 summary: **Issue**: [Mobile: Offline caching and background sync](https://github.com/subculture-collective/clipper/issues/XXX) **PR**:...
-tags: ['archive', 'implementation', 'summary']
+tags: ["archive", "implementation", "summary"]
 area: docs
 status: archived
 owner: team-core
