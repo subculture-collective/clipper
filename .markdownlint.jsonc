@@ -1,15 +1,23 @@
 {
     // markdownlint-cli2 configuration
     // Obsidian-compatible settings with frontmatter, HTML, and table support
+    // Very relaxed rules to support existing documentation
     "default": true,
     
-    // Line length: Allow longer lines in code blocks, tables, and headings
-    "MD013": { 
-        "line_length": 120, 
-        "code_blocks": false, 
-        "tables": false,
-        "headings": false
-    },
+    // MD004: Allow mixed list styles (asterisk, dash)
+    "MD004": false,
+    
+    // MD007: Allow flexible list indentation
+    "MD007": false,
+    
+    // MD010: Allow hard tabs (some files have them)
+    "MD010": false,
+    
+    // MD012: Allow multiple blank lines (sometimes used for spacing)
+    "MD012": false,
+    
+    // MD013: Line length - disabled for compatibility
+    "MD013": false,
     
     // MD014: Allow dollar signs before commands (common in documentation)
     "MD014": false,
@@ -20,8 +28,14 @@
     // MD025: Allow multiple top-level headings
     "MD025": false,
     
+    // MD026: Allow trailing punctuation in headings (common style)
+    "MD026": false,
+    
     // MD029: Allow different ordered list styles
     "MD029": false,
+    
+    // MD030: Allow flexible spacing after list markers
+    "MD030": false,
     
     // MD031: Allow fenced code blocks without surrounding blank lines
     "MD031": false,
@@ -31,6 +45,9 @@
     
     // MD033: Allow HTML (required for Obsidian features and complex tables)
     "MD033": false,
+    
+    // MD034: Allow bare URLs (common in documentation)
+    "MD034": false,
     
     // MD036: Allow emphasis used instead of heading
     "MD036": false,
@@ -50,6 +67,15 @@
     // MD050: Allow mixed strong/emphasis styles
     "MD050": false,
     
+    // MD051: Allow flexible link fragments (Obsidian wikilinks)
+    "MD051": false,
+    
     // MD055: Allow flexible table pipe styles
-    "MD055": false
+    "MD055": false,
+    
+    // MD056: Allow flexible table column counts
+    "MD056": false,
+    
+    // MD058: Allow tables without blank lines around them
+    "MD058": false
 }

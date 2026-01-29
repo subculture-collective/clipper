@@ -209,22 +209,32 @@ Found an error or want to improve the documentation?
 1. Check [[contributing|Contributing Guide]] for guidelines
 2. Follow the [[.obsidian/templates/frontmatter-template|frontmatter template]] for new pages
 3. Use approved tags from [[.obsidian/tag-taxonomy|Tag Taxonomy]]
-4. Submit a PR with your changes
-5. Tag with `documentation` label
-6. Documentation changes are validated via CI
+4. Run quality checks locally: `npm run docs:check`
+5. Submit a PR with your changes
+6. Tag with `documentation` label
+7. Documentation changes are validated via CI (see [[contributing/docs-quality-checks|Quality Checks]])
 
 ## 📝 Documentation Validation
 
 All documentation is automatically validated on every commit:
 
 - **Markdown Linting**: Ensures consistent formatting
-- **Spell Checking**: Catches typos and errors
-- **Link Validation**: Verifies all links work
+- **Spell Checking**: Catches typos and errors (respects Obsidian patterns)
+- **Link Validation**: Verifies all links work (excludes localhost)
 - **Anchor Checking**: Confirms internal link targets exist
-- **Orphan Detection**: Finds unreachable documentation
+- **Orphan Detection**: Finds unreachable documentation (BFS from index.md)
 - **Asset Hygiene**: Checks for unused or oversized images
 
-See `.github/workflows/docs.yml` for the complete validation pipeline.
+**All checks exclude `/vault/**` directory.**
+
+📚 **See [[contributing/docs-quality-checks|Documentation Quality Checks]]** for:
+- How to run checks locally
+- Detailed explanation of each check
+- Troubleshooting common issues
+- Configuration file documentation
+- Best practices
+
+Related: [CI Workflow](.github/workflows/docs.yml) | Issues [#803](https://github.com/subculture-collective/clipper/issues/803), [#845](https://github.com/subculture-collective/clipper/issues/845), [#846](https://github.com/subculture-collective/clipper/issues/846), [#805](https://github.com/subculture-collective/clipper/issues/805)
 
 ## 🆘 Getting Help
 
