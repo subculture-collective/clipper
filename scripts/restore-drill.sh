@@ -159,8 +159,13 @@ download_latest_backup() {
     # Calculate RPO (time between backup and current time)
     if [ -n "$backup_timestamp" ]; then
         local backup_ts_epoch=$(date -d "$backup_timestamp" +%s 2>/dev/null || date -j -f "%Y-%m-%d %H:%M:%S" "$backup_timestamp" +%s 2>/dev/null || echo "0")
-        local current_ts=$(date +%s)
-        RPO_SECONDS=$((current_ts - backup_ts_epoch))
+        if [ "$backup_ts_epoch" = "0" ] || [ -z "$backup_ts_epoch" ]; then
+            log_warn "Failed to parse backup timestamp: $backup_timestamp"
+            RPO_SECONDS=999999  # Very large value to indicate failure
+        else
+            local current_ts=$(date +%s)
+            RPO_SECONDS=$((current_ts - backup_ts_epoch))
+        fi
         
         log_info "  RPO (backup age): ${RPO_SECONDS}s ($(($RPO_SECONDS / 60)) minutes)"
         
@@ -171,6 +176,10 @@ download_latest_backup() {
             log_warn "  ✗ RPO target exceeded (${RPO_SECONDS}s > ${RPO_TARGET_SECONDS}s)"
             RPO_MET=0
         fi
+    else
+        log_warn "Backup timestamp is empty, cannot calculate RPO"
+        RPO_SECONDS=999999
+        RPO_MET=0
     fi
     
     # Export for use in other functions
@@ -385,8 +394,16 @@ METRICS
 main() {
     local exit_code=0
     
+    # Validate required environment variables
+    if [ -z "${POSTGRES_PASSWORD:-}" ]; then
+        log_error "POSTGRES_PASSWORD environment variable is not set"
+        DRILL_SUCCESS=0
+        report_metrics
+        return 1
+    fi
+    
     # Ensure we cleanup on exit
-    trap cleanup_test_database EXIT
+    trap cleanup_test_database EXIT INT TERM
     
     # Download latest backup
     if ! download_latest_backup; then

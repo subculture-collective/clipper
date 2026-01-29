@@ -1317,7 +1317,7 @@ az login --service-principal -u <app-id> -p <password> --tenant <tenant-id>
 [INFO] Verifying backup encryption...
 [INFO] ✓ GCS bucket has encryption enabled
 [INFO] Verifying cross-region storage...
-[INFO] ✓ GCS bucket is multi-region: us-central1
+[INFO] ✓ GCS bucket is multi-region or geo-redundant: US
 [INFO] ✓ All backup validations passed
 === Backup Validation SUCCEEDED ===
 ```
@@ -1369,13 +1369,13 @@ bash scripts/restore-drill.sh
 [INFO] ✓ Backup downloaded: /tmp/restore-drill-20260201-040000.sql.gz
 [INFO]   Size: 147MB
 [INFO]   Backup timestamp: 2026-02-01 02:00:00
-[INFO]   RPO (backup age): 7200s (120 minutes)
+[INFO]   RPO (backup age): 720s (12 minutes)
 [INFO]   ✓ RPO target met
 [INFO] Creating test database: restore_drill_test_20260201_040000
 [INFO] ✓ Test database created
 [INFO] Starting restore operation...
 [INFO] ✓ Restore completed
-[INFO]   Duration: 1847s (30 minutes)
+[INFO]   Duration: 1847s (31 minutes)
 [INFO]   ✓ RTO target met (1847s < 3600s)
 [INFO] Validating restored data...
 [INFO]   Clips count: 15423
@@ -1385,7 +1385,7 @@ bash scripts/restore-drill.sh
 [INFO] ✓ All restore drill checks passed
 [INFO] Summary:
 [INFO]   - Restore Duration: 1847s (RTO: 3600s)
-[INFO]   - Backup Age: 7200s (RPO: 900s)
+[INFO]   - Backup Age: 720s (RPO: 900s)
 [INFO]   - Clips: 15423
 [INFO]   - Users: 3891
 === Restore Drill SUCCEEDED ===

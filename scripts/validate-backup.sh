@@ -151,11 +151,17 @@ get_latest_backup() {
     # Calculate backup age
     if [ -n "$backup_timestamp" ]; then
         local backup_ts_epoch=$(date -d "$backup_timestamp" +%s 2>/dev/null || date -j -f "%Y-%m-%d %H:%M:%S" "$backup_timestamp" +%s 2>/dev/null || echo "0")
+        if [ "$backup_ts_epoch" = "0" ] || [ -z "$backup_ts_epoch" ]; then
+            log_warn "Failed to parse backup timestamp: $backup_timestamp"
+            backup_ts_epoch=0
+        fi
         local current_ts=$(date +%s)
         local age_seconds=$((current_ts - backup_ts_epoch))
         BACKUP_AGE_HOURS=$((age_seconds / 3600))
         
         log_info "Backup age: ${BACKUP_AGE_HOURS} hours"
+    else
+        log_warn "Backup timestamp is empty, cannot calculate age"
     fi
     
     # Calculate backup size in MB
@@ -209,9 +215,10 @@ verify_encryption() {
         
     elif [ "$CLOUD_PROVIDER" = "aws" ]; then
         # Check if server-side encryption is enabled
+        local backup_filename="${LATEST_BACKUP##*/}"
         local encryption=$(aws s3api head-object \
             --bucket "${BACKUP_BUCKET}" \
-            --key "database/$(basename "$LATEST_BACKUP")" \
+            --key "database/${backup_filename}" \
             --query 'ServerSideEncryption' \
             --output text 2>/dev/null || echo "")
         
@@ -238,13 +245,13 @@ verify_cross_region() {
     
     if [ "$CLOUD_PROVIDER" = "gcp" ]; then
         # Check bucket location type
-        local location=$(gsutil ls -L -b "gs://${BACKUP_BUCKET}" 2>/dev/null | grep -i "location constraint" | awk '{print $NF}' || echo "")
+        local location=$(gsutil ls -L -b "gs://${BACKUP_BUCKET}" 2>/dev/null | grep -iE "Location type:|Location:" | awk '{print $NF}' || echo "")
         
-        if echo "$location" | grep -qE "multi-region|dual-region"; then
-            log_info "✓ GCS bucket is multi-region: $location"
+        if echo "$location" | grep -qiE "multi-region|dual-region|region-us|region-eu|region-asia"; then
+            log_info "✓ GCS bucket is multi-region or geo-redundant: $location"
             CROSS_REGION_VERIFIED=1
         else
-            log_warn "GCS bucket is not multi-region: $location"
+            log_warn "GCS bucket is single-region: $location"
         fi
         
     elif [ "$CLOUD_PROVIDER" = "aws" ]; then

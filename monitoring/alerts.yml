@@ -1945,9 +1945,9 @@ groups:
           category: restore
         annotations:
           summary: "RTO target not met in restore drill"
-          description: "The restore operation took {{ restore_drill_duration_seconds }} seconds, exceeding the 1-hour RTO target."
+          description: "The restore operation exceeded the 1-hour RTO target. Check restore_drill_duration_seconds metric for actual duration."
           runbook: "Review restore performance, consider optimizing restore process, increase restore resources if needed. Target: 3600s (1 hour)."
-      
+
       # RPO target not met
       - alert: RestoreRPOExceeded
         expr: restore_drill_rpo_met == 0
@@ -1957,12 +1957,20 @@ groups:
           category: restore
         annotations:
           summary: "RPO target not met"
-          description: "The backup is {{ restore_drill_rpo_seconds }} seconds old, exceeding the 15-minute RPO target."
+          description: "The backup exceeds the 15-minute RPO target. Check restore_drill_rpo_seconds metric for actual age."
           runbook: "Review backup frequency, check WAL archiving lag, consider increasing backup frequency. Target: 900s (15 minutes)."
-      
+
       # Restore drill duration critical
       - alert: RestoreDrillDurationCritical
         expr: restore_drill_duration_seconds > 7200
+        for: 5m
+        labels:
+          severity: critical
+          category: restore
+        annotations:
+          summary: "Restore drill duration critically high"
+          description: "Restore drill took {{ $value }} seconds (over 2 hours), significantly exceeding acceptable recovery time."
+          runbook: "Immediate optimization required. Review database size, backup format, network bandwidth, and restore process efficiency."
         for: 5m
         labels:
           severity: critical
