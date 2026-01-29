@@ -93,12 +93,11 @@ These tests run automatically in GitHub Actions:
 
 - **Workflow:** `.github/workflows/deployment-tests.yml`
 - **Triggers:**
-  - Push/PR to main/develop with script changes
-  - Weekly schedule (Monday 2 AM UTC)
-  - Manual via workflow_dispatch
+  - **Harness Tests:** Push/PR to main/develop with deployment script changes
+  - **Rollback Drills:** Weekly schedule (Monday 2 AM UTC), manual via workflow_dispatch, or commit message with `[rollback-drill]`
 - **Jobs:**
-  - `deployment-harness` - Runs test harness
-  - `rollback-drill` - Runs drill (DRY_RUN and LIVE)
+  - `deployment-harness` - Runs test harness on script changes
+  - `rollback-drill` - Runs drill (DRY_RUN and LIVE) on schedule/manual
   - `test-script-syntax` - Validates shell syntax
   - `integration-test` - Component integration tests
 

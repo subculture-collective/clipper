@@ -3,7 +3,8 @@
 # Tests deployment scripts (deploy, rollback, blue-green) in DRY_RUN and MOCK modes
 # with assertions for success/failure paths
 
-set -e
+# Note: set -e is disabled for test execution to allow aggregation of failures
+set +e
 
 # Colors
 RED='\033[0;31m'
@@ -459,7 +460,7 @@ test_exit_codes() {
 }
 
 # Test: Scripts support DRY_RUN or have validation
-test_dry_run_support() {
+test_rotation_scripts_dry_run() {
     # Check rotation scripts for DRY_RUN support
     local rotation_scripts=(
         "rotate-api-keys.sh"
@@ -486,6 +487,9 @@ cleanup() {
     fi
 }
 
+# Trap to ensure cleanup runs
+trap cleanup EXIT
+
 # Main test execution
 main() {
     echo -e "${GREEN}=== Deployment Scripts Testing Harness ===${NC}"
@@ -504,23 +508,22 @@ main() {
     # Run tests
     echo -e "${BLUE}=== Running Deployment Script Tests ===${NC}"
     
-    run_test "deploy.sh validation checks" test_deploy_validation
-    run_test "deploy.sh backup mechanism" test_deploy_backup
-    run_test "rollback.sh validation checks" test_rollback_validation
-    run_test "rollback.sh restore mechanism" test_rollback_restore
-    run_test "blue-green-deploy.sh exists" test_blue_green_exists
-    run_test "blue-green-deploy.sh environment detection" test_blue_green_env_detection
-    run_test "Scripts have error handling" test_error_handling
-    run_test "Scripts have exit codes" test_exit_codes
-    run_test "Scripts support DRY_RUN" test_dry_run_support
+    run_test "deploy.sh validation checks" test_deploy_validation || true
+    run_test "deploy.sh backup mechanism" test_deploy_backup || true
+    run_test "rollback.sh validation checks" test_rollback_validation || true
+    run_test "rollback.sh restore mechanism" test_rollback_restore || true
+    run_test "blue-green-deploy.sh exists" test_blue_green_exists || true
+    run_test "blue-green-deploy.sh environment detection" test_blue_green_env_detection || true
+    run_test "Scripts have error handling" test_error_handling || true
+    run_test "Scripts have exit codes" test_exit_codes || true
+    run_test "Rotation scripts support DRY_RUN" test_rotation_scripts_dry_run || true
     
     # Optional: Run actual deploy test in mock mode
     if [ "$MOCK" = true ]; then
-        run_test "deploy.sh dry run execution" test_deploy_dry_run
+        run_test "deploy.sh dry run execution" test_deploy_dry_run || true
     fi
     
-    # Cleanup
-    cleanup
+    # Cleanup is handled by trap, no need to call explicitly
     
     # Summary
     echo ""

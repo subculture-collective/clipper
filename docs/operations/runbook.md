@@ -302,9 +302,11 @@ The deployment tests run automatically in GitHub Actions:
 
 #### Workflow Triggers
 
-- **Push/PR** to main/develop with deployment script changes
-- **Schedule:** Weekly rollback drill (Monday 2 AM UTC)
-- **Manual:** Via workflow_dispatch
+- **Harness Tests:** Push/PR to main/develop with deployment script changes
+- **Rollback Drills:** 
+  - Weekly schedule (Monday 2 AM UTC)
+  - Manual via workflow_dispatch
+  - Commit message containing `[rollback-drill]`
 
 #### Viewing CI Results
 

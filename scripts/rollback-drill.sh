@@ -53,6 +53,13 @@ log_step() {
 check_prerequisites() {
     log_info "Checking prerequisites..."
     
+    # Skip Docker checks in DRY_RUN mode
+    if [ "$DRY_RUN" = true ]; then
+        log_info "DRY_RUN mode: Skipping Docker prerequisite checks"
+        log_success "Prerequisites check passed (DRY_RUN)"
+        return 0
+    fi
+    
     if ! command -v docker &> /dev/null; then
         log_error "Docker is not installed"
         exit 1
@@ -78,12 +85,14 @@ setup_drill_env() {
     echo "initial" > "$DRILL_DIR/state/current_state"
     
     # Create mock docker-compose file for drill
+    # Use dynamic project name to avoid conflicts
+    export COMPOSE_PROJECT_NAME="drill-${DRILL_RUN_ID:-$(date +%s)}"
+    
     cat > "$DRILL_DIR/docker-compose.drill.yml" <<'EOF'
 version: '3.8'
 services:
   backend:
-    image: nginx:alpine
-    container_name: drill-backend
+    image: ${BACKEND_IMAGE:-nginx:alpine}
     labels:
       app: clipper-drill
       version: "${VERSION:-v1}"
@@ -94,8 +103,7 @@ services:
       retries: 3
   
   frontend:
-    image: nginx:alpine
-    container_name: drill-frontend
+    image: ${FRONTEND_IMAGE:-nginx:alpine}
     labels:
       app: clipper-drill
       version: "${VERSION:-v1}"
@@ -111,6 +119,9 @@ EOF
 VERSION=v1.0.0
 ENVIRONMENT=$ENVIRONMENT
 DEPLOY_TAG=initial
+BACKEND_IMAGE=nginx:alpine
+FRONTEND_IMAGE=nginx:alpine
+COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME}
 EOF
     
     log_success "Drill environment created at $DRILL_DIR"
@@ -123,11 +134,18 @@ capture_initial_state() {
     # Save initial environment variables
     env | grep -E "VERSION|DEPLOY|ENVIRONMENT" > "$DRILL_DIR/state/initial.env" || true
     
-    # List running containers
-    docker ps --format "{{.Names}}" > "$DRILL_DIR/state/initial-containers.txt" || true
-    
-    # List docker images
-    docker images --format "{{.Repository}}:{{.Tag}}" | grep -E "drill|clipper" > "$DRILL_DIR/state/initial-images.txt" || true
+    # Skip Docker state capture in DRY_RUN mode
+    if [ "$DRY_RUN" != true ]; then
+        # List running containers
+        docker ps --format "{{.Names}}" > "$DRILL_DIR/state/initial-containers.txt" || true
+        
+        # List docker images
+        docker images --format "{{.Repository}}:{{.Tag}}" | grep -E "drill|clipper" > "$DRILL_DIR/state/initial-images.txt" || true
+    else
+        # Create empty state files for DRY_RUN
+        touch "$DRILL_DIR/state/initial-containers.txt"
+        touch "$DRILL_DIR/state/initial-images.txt"
+    fi
     
     log_success "Initial state captured"
 }
@@ -138,25 +156,36 @@ simulate_deployment() {
     
     cd "$DRILL_DIR" || exit 1
     
-    # Update version to v2
-    log_step "Updating version to v2.0.0"
-    cat > "$DRILL_DIR/.env" <<EOF
-VERSION=v2.0.0
-ENVIRONMENT=$ENVIRONMENT
-DEPLOY_TAG=v2-deployment-$(date +%s)
-EOF
-    
     # Backup current state (simulating deployment backup)
     log_step "Creating deployment backup"
     export BACKUP_TAG="backup-$(date +%Y%m%d-%H%M%S)"
     echo "$BACKUP_TAG" > "$DRILL_DIR/state/backup_tag"
     
-    # Simulate tagging backup images
-    if docker ps | grep -q "drill-backend"; then
-        docker commit drill-backend drill-backend:$BACKUP_TAG &> /dev/null || log_warn "Could not backup backend"
-    fi
-    if docker ps | grep -q "drill-frontend"; then
-        docker commit drill-frontend drill-frontend:$BACKUP_TAG &> /dev/null || log_warn "Could not backup frontend"
+    # Update version to v2 and backup images
+    log_step "Updating version to v2.0.0"
+    
+    if [ "$DRY_RUN" != true ]; then
+        # Tag current nginx:alpine as backup before changing to v2
+        docker tag nginx:alpine "drill-backup-v1:$BACKUP_TAG" 2>/dev/null || log_warn "Could not create v1 backup tag"
+        
+        # Update .env to point to new image versions
+        cat > "$DRILL_DIR/.env" <<EOF
+VERSION=v2.0.0
+ENVIRONMENT=$ENVIRONMENT
+DEPLOY_TAG=v2-deployment-$(date +%s)
+BACKEND_IMAGE=nginx:alpine
+FRONTEND_IMAGE=nginx:alpine
+COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME}
+EOF
+    else
+        cat > "$DRILL_DIR/.env" <<EOF
+VERSION=v2.0.0
+ENVIRONMENT=$ENVIRONMENT
+DEPLOY_TAG=v2-deployment-$(date +%s)
+BACKEND_IMAGE=nginx:alpine
+FRONTEND_IMAGE=nginx:alpine
+COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME}
+EOF
     fi
     
     # Deploy v2 (using docker-compose)
@@ -184,15 +213,18 @@ verify_deployment() {
         return 0
     fi
     
-    # Check if containers are running
+    # Check if containers are running (using project name prefix)
     log_step "Checking container health"
-    if ! docker ps | grep -q "drill-backend"; then
+    local backend_container=$(docker ps --filter "label=com.docker.compose.service=backend" --filter "label=com.docker.compose.project=${COMPOSE_PROJECT_NAME}" --format "{{.Names}}" | head -1)
+    local frontend_container=$(docker ps --filter "label=com.docker.compose.service=frontend" --filter "label=com.docker.compose.project=${COMPOSE_PROJECT_NAME}" --format "{{.Names}}" | head -1)
+    
+    if [ -z "$backend_container" ]; then
         log_error "Backend container not running"
         VERIFICATION_PASSED=false
         return 1
     fi
     
-    if ! docker ps | grep -q "drill-frontend"; then
+    if [ -z "$frontend_container" ]; then
         log_error "Frontend container not running"
         VERIFICATION_PASSED=false
         return 1
@@ -202,8 +234,8 @@ verify_deployment() {
     log_step "Waiting for health checks"
     sleep 10
     
-    BACKEND_HEALTHY=$(docker inspect drill-backend --format='{{.State.Health.Status}}' 2>/dev/null || echo "unknown")
-    FRONTEND_HEALTHY=$(docker inspect drill-frontend --format='{{.State.Health.Status}}' 2>/dev/null || echo "unknown")
+    BACKEND_HEALTHY=$(docker inspect "$backend_container" --format='{{.State.Health.Status}}' 2>/dev/null || echo "unknown")
+    FRONTEND_HEALTHY=$(docker inspect "$frontend_container" --format='{{.State.Health.Status}}' 2>/dev/null || echo "unknown")
     
     if [ "$BACKEND_HEALTHY" != "healthy" ] && [ "$BACKEND_HEALTHY" != "unknown" ]; then
         log_warn "Backend health: $BACKEND_HEALTHY"
@@ -243,9 +275,8 @@ execute_rollback() {
     # Restore from backup
     log_step "Restoring from backup"
     if [ "$DRY_RUN" != true ]; then
-        # Tag backup images as latest
-        docker tag "drill-backend:$BACKUP_TAG" "drill-backend:latest" 2>/dev/null || log_warn "Could not restore backend"
-        docker tag "drill-frontend:$BACKUP_TAG" "drill-frontend:latest" 2>/dev/null || log_warn "Could not restore frontend"
+        # Restore v1 backup image tag
+        docker tag "drill-backup-v1:$BACKUP_TAG" "nginx:alpine" 2>/dev/null || log_warn "Could not restore v1 images"
     else
         log_info "[DRY RUN] Would restore from backup"
     fi
@@ -256,6 +287,9 @@ execute_rollback() {
 VERSION=v1.0.0
 ENVIRONMENT=$ENVIRONMENT
 DEPLOY_TAG=rollback-$(date +%s)
+BACKEND_IMAGE=nginx:alpine
+FRONTEND_IMAGE=nginx:alpine
+COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME}
 EOF
     
     # Restart with rolled back version
@@ -284,13 +318,16 @@ verify_rollback() {
     
     # Check containers are running again
     log_step "Checking container health post-rollback"
-    if ! docker ps | grep -q "drill-backend"; then
+    local backend_container=$(docker ps --filter "label=com.docker.compose.service=backend" --filter "label=com.docker.compose.project=${COMPOSE_PROJECT_NAME}" --format "{{.Names}}" | head -1)
+    local frontend_container=$(docker ps --filter "label=com.docker.compose.service=frontend" --filter "label=com.docker.compose.project=${COMPOSE_PROJECT_NAME}" --format "{{.Names}}" | head -1)
+    
+    if [ -z "$backend_container" ]; then
         log_error "Backend container not running after rollback"
         VERIFICATION_PASSED=false
         return 1
     fi
     
-    if ! docker ps | grep -q "drill-frontend"; then
+    if [ -z "$frontend_container" ]; then
         log_error "Frontend container not running after rollback"
         VERIFICATION_PASSED=false
         return 1
@@ -308,8 +345,8 @@ verify_rollback() {
     log_step "Waiting for post-rollback health checks"
     sleep 10
     
-    BACKEND_HEALTHY=$(docker inspect drill-backend --format='{{.State.Health.Status}}' 2>/dev/null || echo "unknown")
-    FRONTEND_HEALTHY=$(docker inspect drill-frontend --format='{{.State.Health.Status}}' 2>/dev/null || echo "unknown")
+    BACKEND_HEALTHY=$(docker inspect "$backend_container" --format='{{.State.Health.Status}}' 2>/dev/null || echo "unknown")
+    FRONTEND_HEALTHY=$(docker inspect "$frontend_container" --format='{{.State.Health.Status}}' 2>/dev/null || echo "unknown")
     
     if [ "$BACKEND_HEALTHY" != "healthy" ] && [ "$BACKEND_HEALTHY" != "unknown" ]; then
         log_warn "Backend health after rollback: $BACKEND_HEALTHY"
@@ -352,12 +389,12 @@ verify_clean_state() {
         fi
     fi
     
-    # Check for orphaned resources
+    # Check for orphaned resources (filter by project name)
     log_step "Checking for orphaned resources"
     if [ "$DRY_RUN" != true ]; then
-        ORPHANED_CONTAINERS=$(docker ps -a | grep -c "drill" || echo "0")
+        ORPHANED_CONTAINERS=$(docker ps -a --filter "label=com.docker.compose.project=${COMPOSE_PROJECT_NAME}" --format "{{.Names}}" | wc -l)
         if [ "$ORPHANED_CONTAINERS" -gt 2 ]; then
-            log_warn "Found $ORPHANED_CONTAINERS drill containers (expected 2)"
+            log_warn "Found $ORPHANED_CONTAINERS drill containers for project ${COMPOSE_PROJECT_NAME} (expected 2)"
         fi
     fi
     
@@ -415,8 +452,12 @@ cleanup_drill() {
         log_step "Stopping drill containers"
         docker compose -f docker-compose.drill.yml down 2>/dev/null || true
         
-        log_step "Removing drill images"
-        docker images | grep "drill" | awk '{print $3}' | xargs -r docker rmi -f 2>/dev/null || true
+        log_step "Removing drill-specific images"
+        # Only remove images we explicitly created (backup tags)
+        if [ -f "$DRILL_DIR/state/backup_tag" ]; then
+            BACKUP_TAG=$(cat "$DRILL_DIR/state/backup_tag")
+            docker rmi "drill-backup-v1:$BACKUP_TAG" 2>/dev/null || true
+        fi
         
         log_step "Cleaning up drill directory"
         # Keep state files for analysis
