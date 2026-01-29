@@ -136,7 +136,7 @@ All documentation pages must include YAML frontmatter with these required fields
 |-------|------|-------------|
 | `title` | string | Human-readable page title |
 | `summary` | string | One-sentence description |
-| `tags` | array | Categorization tags (see [[.obsidian/tag-taxonomy\|Tag Taxonomy]]) |
+| `tags` | array | Categorization tags (see [[.obsidian/tag-taxonomy|Tag Taxonomy]]) |
 | `area` | string | Documentation section (backend, frontend, mobile, etc.) |
 | `status` | string | Document status (draft, review, stable, deprecated, archived) |
 | `owner` | string | Responsible team or individual |

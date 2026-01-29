@@ -1,6 +1,6 @@
 ---
 title: Feed & Discovery Epic - Verification Checklist
-summary: - [x] Backend builds successfully: `go build cmd/api/main.go` - [x] No compilation errors - [x] All dependencies resolved
+summary: Comprehensive verification checklist for backend and frontend builds of the feed and discovery epic.
 tags: ['testing', 'archive', 'implementation']
 area: docs
 status: archived

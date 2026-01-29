@@ -1,6 +1,6 @@
 ---
 title: Forum Frontend Architecture
-summary: App.tsx │ ├── /forum (ForumIndex) │ ├── ForumSearch │ ├── ForumFilters │ ├── SortSelector │ └── ThreadList │ └── ThreadCard (multiple) │ ├──...
+summary: Documents the component hierarchy and architecture of the forum frontend application.
 tags: ['archive', 'implementation']
 area: docs
 status: archived

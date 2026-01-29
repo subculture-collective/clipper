@@ -1,6 +1,6 @@
 ---
 title: Watch Party Reaction Overlay Usage Guide
-summary: The `ReactionOverlay` component has been refactored to use proper React patterns (forwardRef/useImperativeHandle) instead of window globals. This...
+summary: Usage guide for the refactored ReactionOverlay component using React hooks and proper ref patterns.
 tags: ['archive', 'implementation']
 area: docs
 status: archived

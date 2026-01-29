@@ -1,6 +1,6 @@
 ---
 title: Forum Frontend - Quick Start Guide
-summary: - Node.js 18+ installed - Backend API running on `http://localhost:8080` - Frontend dependencies installed (`npm install`)
+summary: Quick start guide for setting up and running the forum frontend development environment.
 tags: ['guide', 'archive', 'implementation']
 area: docs
 status: archived

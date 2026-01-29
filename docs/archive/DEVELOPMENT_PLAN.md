@@ -1,6 +1,6 @@
 ---
 title: Clipper Development Plan
-summary: - ✅ PostgreSQL (clipper-postgres:5436) - HEALTHY - ✅ Redis (clipper-redis:6379) - HEALTHY - ✅ Frontend (nginx:80) - UNHEALTHY (disconnected from...
+summary: Development plan documenting architecture, service setup, and implementation strategy for the project.
 tags: ['archive', 'implementation']
 area: docs
 status: archived

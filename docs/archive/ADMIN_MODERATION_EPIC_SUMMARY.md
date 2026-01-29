@@ -1,6 +1,6 @@
 ---
 title: Admin Moderation Dashboard Epic - Completion Summary
-summary: **Status:** ✅ COMPLETE **Priority:** P0 - Core Feature **Completion Date:** 2025-12-23 This epic has been successfully completed with all child...
+summary: Completes the admin moderation dashboard epic with clip and comment queues, bulk actions, and audit logging.
 tags: ['archive', 'implementation']
 area: docs
 status: archived
