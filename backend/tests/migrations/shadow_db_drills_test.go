@@ -252,6 +252,8 @@ func captureConstraints(ctx context.Context, pool *pgxpool.Pool) ([]ConstraintIn
 			ON tc.constraint_name = cc.constraint_name
 		WHERE tc.table_schema = 'public'
 		AND tc.constraint_type IN ('FOREIGN KEY', 'CHECK', 'UNIQUE', 'PRIMARY KEY')
+		-- Filter out auto-generated NOT NULL constraint names (pattern: schemaoid_tableoid_columnnum_not_null)
+		AND NOT (tc.constraint_type = 'CHECK' AND tc.constraint_name ~ '^\d+_\d+_\d+_not_null$')
 		ORDER BY tc.table_name, tc.constraint_name
 	`
 

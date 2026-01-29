@@ -85,3 +85,4 @@ docs/.obsidian/plugins
 /playwright/.cache/
 /playwright/.auth/
 coverage.html
+test-reports/
