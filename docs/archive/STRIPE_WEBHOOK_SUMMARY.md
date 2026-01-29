@@ -1,3 +1,14 @@
+---
+title: Stripe Webhook Implementation Summary
+summary: This document summarizes the Stripe webhook implementation for production-ready subscription management.
+tags: ['archive', 'implementation']
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Stripe Webhook Implementation Summary
 
 ## Overview

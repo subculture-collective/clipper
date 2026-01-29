@@ -1,3 +1,14 @@
+---
+title: Comment Privilege Suspension System - Implementation Summary
+summary: Successfully implemented a comprehensive comment privilege suspension system with warning escalation, temporary suspensions, and permanent bans. This...
+tags: ['archive', 'implementation', 'summary']
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Comment Privilege Suspension System - Implementation Summary
 
 ## Overview

@@ -1,3 +1,14 @@
+---
+title: Scraped Clips Section - Implementation Summary
+summary: This PR implements a complete scraped clips discovery section that allows users to browse and submit clips that have been automatically scraped from...
+tags: ['archive', 'implementation', 'summary']
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 
 # Scraped Clips Section - Implementation Summary
 

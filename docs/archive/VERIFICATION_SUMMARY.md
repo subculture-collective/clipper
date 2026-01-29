@@ -1,3 +1,14 @@
+---
+title: Summary: useClipById Verification Complete
+summary: PR #48 changed `useClipById` from `useInfiniteQuery` to `useQuery`, removing `initialPageParam` and `getNextPageParam`. This issue requested...
+tags: ['testing', 'archive', 'implementation']
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Summary: useClipById Verification Complete
 
 ## Issue

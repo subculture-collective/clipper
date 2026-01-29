@@ -1,3 +1,14 @@
+---
+title: Forum Admin Moderation Interface & Tools - Implementation Summary
+summary: This implementation adds a comprehensive admin moderation interface for forum management with thread locking, user banning, and content management...
+tags: ['archive', 'implementation', 'summary']
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Forum Admin Moderation Interface & Tools - Implementation Summary
 
 ## Overview

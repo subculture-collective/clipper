@@ -1,3 +1,14 @@
+---
+title: Forum Voting System & Reputation Mechanics - Implementation Summary
+summary: Successfully implemented a comprehensive voting system and reputation mechanics for the Clipper forum, enabling users to upvote/downvote replies and...
+tags: ['archive', 'implementation', 'summary']
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Forum Voting System & Reputation Mechanics - Implementation Summary
 
 ## Overview

@@ -1,3 +1,14 @@
+---
+title: WebSocket Chat Server & Redis Pub/Sub Backend Implementation
+summary: This implementation completes the real-time WebSocket chat server with Redis Pub/Sub backend for horizontal scaling. The system supports multiple...
+tags: ['archive', 'implementation', 'summary']
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # WebSocket Chat Server & Redis Pub/Sub Backend Implementation
 
 ## Summary

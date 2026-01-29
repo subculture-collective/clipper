@@ -1,3 +1,14 @@
+---
+title: Authorization Implementation Status
+summary: This document tracks the authorization status of all API endpoints and provides examples of how existing authorization logic aligns with the new...
+tags: ['archive', 'implementation']
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Authorization Implementation Status
 
 ## Overview

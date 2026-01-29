@@ -1,3 +1,14 @@
+---
+title: Type Safety Improvements for failedQueue
+summary: This change addresses the type safety issue identified in [PR #48 review comment...
+tags: ['archive', 'implementation']
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Type Safety Improvements for failedQueue
 
 ## Issue Reference

@@ -1,3 +1,14 @@
+---
+title: Forum Frontend Architecture
+summary: App.tsx │ ├── /forum (ForumIndex) │ ├── ForumSearch │ ├── ForumFilters │ ├── SortSelector │ └── ThreadList │ └── ThreadCard (multiple) │ ├──...
+tags: ['archive', 'implementation']
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Forum Frontend Architecture
 
 ## Component Hierarchy

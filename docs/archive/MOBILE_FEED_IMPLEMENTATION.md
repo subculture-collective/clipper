@@ -1,3 +1,14 @@
+---
+title: Mobile Clip Feed Implementation
+summary: This document describes the implementation of the mobile-optimized clip feed with infinite scroll and pull-to-refresh functionality.
+tags: ['archive', 'implementation', 'summary']
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Mobile Clip Feed Implementation
 
 ## Overview

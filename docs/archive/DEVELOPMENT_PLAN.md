@@ -1,3 +1,14 @@
+---
+title: Clipper Development Plan
+summary: - ✅ PostgreSQL (clipper-postgres:5436) - HEALTHY - ✅ Redis (clipper-redis:6379) - HEALTHY - ✅ Frontend (nginx:80) - UNHEALTHY (disconnected from...
+tags: ['archive', 'implementation']
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 
 # Clipper Development Plan
 

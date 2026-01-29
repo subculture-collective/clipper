@@ -1,3 +1,14 @@
+---
+title: Mobile Feed Performance Optimization - Implementation Summary
+summary: This PR implements comprehensive performance optimizations for the mobile feed to achieve the targets specified in Phase 2 (Mobile Feature Parity) —...
+tags: ['archive', 'implementation', 'summary']
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Mobile Feed Performance Optimization - Implementation Summary
 
 ## Overview

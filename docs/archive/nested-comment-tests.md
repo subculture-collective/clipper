@@ -1,3 +1,14 @@
+---
+title: Nested Comment Threading - Test Coverage Summary
+summary: This document summarizes the test coverage for nested comment threading functionality as requested in issue #631.
+tags: ['testing', 'archive', 'implementation']
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Nested Comment Threading - Test Coverage Summary
 
 ## Overview

@@ -1,3 +1,14 @@
+---
+title: Deployment Improvements Summary
+summary: **Problem:** Frontend bundled into single large file → loading timeouts **Fix:** Updated [frontend/vite.config.ts](frontend/vite.config.ts) - Removed...
+tags: ['archive', 'deployment', 'implementation']
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 
 # Deployment Improvements Summary
 

@@ -1,3 +1,14 @@
+---
+title: React Chunking Error Fix
+summary: **Error:** `Uncaught TypeError: Cannot set properties of undefined (setting 'Activity')` - Occurred in `react.production.js` at initialization -...
+tags: ['archive', 'implementation']
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # React Chunking Error Fix
 
 ## Problem

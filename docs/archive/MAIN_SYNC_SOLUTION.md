@@ -1,3 +1,14 @@
+---
+title: Main Branch Sync & Chunking Solution
+summary: - Main branch had diverged from origin/main - Attempted fixes made chunking worse, causing React initialization errors - Need stable, reliable builds...
+tags: ['archive', 'implementation']
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Main Branch Sync & Chunking Solution
 
 ## Problem

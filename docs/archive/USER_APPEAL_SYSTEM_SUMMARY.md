@@ -1,3 +1,14 @@
+---
+title: User Appeal System - Implementation Summary
+summary: Successfully implemented a comprehensive user appeal system for moderation decisions with full backend API, database schema, and frontend UI...
+tags: ['archive', 'implementation']
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # User Appeal System - Implementation Summary
 
 ## Overview

@@ -1,3 +1,14 @@
+---
+title: Watch Parties Implementation Summary
+summary: This document summarizes the implementation of the Watch Parties feature, enabling synchronized video watching with friends and community members.
+tags: ['archive', 'implementation', 'summary']
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Watch Parties Implementation Summary
 
 ## Overview

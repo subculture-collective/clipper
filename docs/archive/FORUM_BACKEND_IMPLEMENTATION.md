@@ -1,3 +1,14 @@
+---
+title: Forum Backend Implementation Summary
+summary: This implementation adds a complete forum backend with hierarchical threaded discussions supporting up to 10 levels of nested replies.
+tags: ['archive', 'implementation', 'summary']
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Forum Backend Implementation Summary
 
 ## Overview

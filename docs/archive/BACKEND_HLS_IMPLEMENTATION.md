@@ -1,3 +1,14 @@
+---
+title: Backend HLS Video Streaming Implementation Guide
+summary: This document outlines the backend requirements for supporting HLS (HTTP Live Streaming) video streaming for the Theatre Mode player.
+tags: ['archive', 'implementation', 'summary']
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Backend HLS Video Streaming Implementation Guide
 
 ## Overview

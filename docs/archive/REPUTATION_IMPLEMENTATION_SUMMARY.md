@@ -1,3 +1,14 @@
+---
+title: Reputation System Implementation Summary
+summary: This document summarizes the implementation of the User Reputation System with Badges and Ranks for Clipper.
+tags: ['archive', 'implementation', 'summary']
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 
 # Reputation System Implementation Summary
 

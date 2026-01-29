@@ -1,3 +1,14 @@
+---
+title: Feed Sorting & Trending Algorithms - Testing Guide
+summary: This document outlines how to test the new trending and popular sorting algorithms implemented for the feed.
+tags: ['testing', 'archive', 'implementation', 'guide']
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Feed Sorting & Trending Algorithms - Testing Guide
 
 This document outlines how to test the new trending and popular sorting algorithms implemented for the feed.
