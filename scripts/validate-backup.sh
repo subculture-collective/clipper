@@ -290,10 +290,7 @@ report_metrics() {
     
     log_info "Reporting metrics to $pushgateway..."
     
-    cat <<METRICS | curl --data-binary @- "${pushgateway}/metrics/job/backup_validation" 2>/dev/null || {
-        log_warn "Failed to push metrics to Prometheus"
-        return 0
-    }
+    cat <<METRICS | curl --data-binary @- "${pushgateway}/metrics/job/backup_validation" 2>/dev/null || log_warn "Failed to push metrics to Prometheus"
 # TYPE backup_validation_success gauge
 # HELP backup_validation_success Whether the last backup validation succeeded (1 = success, 0 = failure)
 backup_validation_success ${VALIDATION_SUCCESS}

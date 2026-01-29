@@ -1,3 +1,4 @@
+---
 name: Restore Drill
 
 on:
@@ -24,7 +25,7 @@ jobs:
     name: Monthly Restore Drill
     runs-on: ubuntu-latest
     timeout-minutes: 120
-    
+
     services:
       postgres:
         image: postgres:17-alpine
@@ -39,11 +40,11 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: Set up Cloud SDK (GCP)
         if: ${{ github.event.inputs.cloud_provider == 'gcp' || github.event.inputs.cloud_provider == '' }}
         uses: google-github-actions/setup-gcloud@v2
@@ -51,7 +52,7 @@ jobs:
           service_account_key: ${{ secrets.GCP_SA_KEY }}
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           export_default_credentials: true
-      
+
       - name: Configure AWS credentials
         if: ${{ github.event.inputs.cloud_provider == 'aws' }}
         uses: aws-actions/configure-aws-credentials@v4
@@ -59,18 +60,18 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-      
+
       - name: Set up Azure CLI
         if: ${{ github.event.inputs.cloud_provider == 'azure' }}
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-      
+
       - name: Create log directory
         run: |
           sudo mkdir -p /var/log/clipper
           sudo chown -R $USER:$USER /var/log/clipper
-      
+
       - name: Wait for PostgreSQL to be ready
         run: |
           until pg_isready -h localhost -p 5432 -U clipper; do
@@ -78,7 +79,7 @@ jobs:
             sleep 2
           done
           echo "PostgreSQL is ready!"
-      
+
       - name: Run restore drill
         id: drill
         env:
@@ -99,7 +100,7 @@ jobs:
           exit_code=$?
           echo "exit_code=$exit_code" >> $GITHUB_OUTPUT
           exit $exit_code
-      
+
       - name: Upload drill log
         if: always()
         uses: actions/upload-artifact@v4
@@ -107,7 +108,7 @@ jobs:
           name: restore-drill-log-${{ github.run_number }}
           path: /var/log/clipper/restore-drill.log
           retention-days: 90
-      
+
       - name: Parse drill results
         if: always()
         id: results
@@ -118,12 +119,12 @@ jobs:
             rpo_seconds=$(grep "RPO (backup age):" /var/log/clipper/restore-drill.log | grep -oP '\d+s' | head -1 | tr -d 's' || echo "0")
             clip_count=$(grep "Clips count:" /var/log/clipper/restore-drill.log | grep -oP '\d+' || echo "0")
             user_count=$(grep "Users count:" /var/log/clipper/restore-drill.log | grep -oP '\d+' || echo "0")
-            
+
             echo "restore_duration=$restore_duration" >> $GITHUB_OUTPUT
             echo "rpo_seconds=$rpo_seconds" >> $GITHUB_OUTPUT
             echo "clip_count=$clip_count" >> $GITHUB_OUTPUT
             echo "user_count=$user_count" >> $GITHUB_OUTPUT
-            
+
             echo "### Restore Drill Results" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "- **Restore Duration**: ${restore_duration}s (Target: 3600s)" >> $GITHUB_STEP_SUMMARY
@@ -131,19 +132,19 @@ jobs:
             echo "- **Clips Restored**: ${clip_count}" >> $GITHUB_STEP_SUMMARY
             echo "- **Users Restored**: ${user_count}" >> $GITHUB_STEP_SUMMARY
           fi
-      
+
       - name: Check drill result
         if: steps.drill.outputs.exit_code != '0'
         run: |
           echo "::error::Restore drill failed! RTO or RPO targets not met or validation failed."
           exit 1
-      
+
       - name: Report success
         if: steps.drill.outputs.exit_code == '0'
         run: |
           echo "::notice::Restore drill succeeded! RTO < 1h and RPO < 15m demonstrated."
           cat /var/log/clipper/restore-drill.log
-      
+
       - name: Notify on failure
         if: failure()
         uses: 8398a7/action-slack@v3
@@ -151,18 +152,18 @@ jobs:
           status: ${{ job.status }}
           text: |
             🚨 Monthly Restore Drill Failed
-            
+
             Workflow: ${{ github.workflow }}
             Run: ${{ github.run_id }}
-            
+
             Restore Duration: ${{ steps.results.outputs.restore_duration }}s (Target: 3600s)
             RPO: ${{ steps.results.outputs.rpo_seconds }}s (Target: 900s)
-            
+
             Check logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           webhook_url: ${{ secrets.SLACK_WEBHOOK_OPERATIONS }}
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_OPERATIONS }}
-      
+
       - name: Notify on success
         if: success()
         uses: 8398a7/action-slack@v3

@@ -351,10 +351,7 @@ report_metrics() {
     
     log_info "Reporting metrics to $pushgateway..."
     
-    cat <<METRICS | curl --data-binary @- "${pushgateway}/metrics/job/restore_drill" 2>/dev/null || {
-        log_warn "Failed to push metrics to Prometheus"
-        return 0
-    }
+    cat <<METRICS | curl --data-binary @- "${pushgateway}/metrics/job/restore_drill" 2>/dev/null || log_warn "Failed to push metrics to Prometheus"
 # TYPE restore_drill_success gauge
 # HELP restore_drill_success Whether the last restore drill succeeded (1 = success, 0 = failure)
 restore_drill_success ${DRILL_SUCCESS}
