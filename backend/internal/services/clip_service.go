@@ -394,9 +394,10 @@ func (s *ClipService) VoteOnClip(ctx context.Context, userID, clipID uuid.UUID, 
 	oldVote, _ := s.voteRepo.GetVote(ctx, userID, clipID)
 
 	if voteType == 0 {
-		// Remove vote
 		if oldVote != nil {
-			return s.voteRepo.DeleteVote(ctx, userID, clipID)
+			if err := s.voteRepo.DeleteVote(ctx, userID, clipID); err != nil {
+				return err
+			}
 		}
 		return nil
 	}
@@ -404,10 +405,8 @@ func (s *ClipService) VoteOnClip(ctx context.Context, userID, clipID uuid.UUID, 
 	// Calculate if this vote will increase the score (only notify on increases)
 	scoreWillIncrease := false
 	if oldVote == nil {
-		// New vote - increases if upvote
 		scoreWillIncrease = (voteType == 1)
 	} else if oldVote.VoteType != voteType {
-		// Changed vote - increases if changing from downvote to upvote
 		scoreWillIncrease = (oldVote.VoteType == -1 && voteType == 1)
 	}
 
@@ -532,6 +531,9 @@ func (s *ClipService) buildCacheKey(filters repository.ClipFilters, page, limit 
 	if filters.BroadcasterID != nil {
 		key += fmt.Sprintf(":broadcaster:%s", *filters.BroadcasterID)
 	}
+	if filters.CreatorID != nil {
+		key += fmt.Sprintf(":creator:%s", *filters.CreatorID)
+	}
 	if filters.Tag != nil {
 		key += fmt.Sprintf(":tag:%s", *filters.Tag)
 	}
@@ -541,6 +543,13 @@ func (s *ClipService) buildCacheKey(filters repository.ClipFilters, page, limit 
 	if filters.Timeframe != nil {
 		key += fmt.Sprintf(":timeframe:%s", *filters.Timeframe)
 	}
+	if filters.Language != nil {
+		key += fmt.Sprintf(":language:%s", *filters.Language)
+	}
+
+	key += fmt.Sprintf(":top10k:%t", filters.Top10kStreamers)
+	key += fmt.Sprintf(":show_hidden:%t", filters.ShowHidden)
+	key += fmt.Sprintf(":user_submitted_only:%t", filters.UserSubmittedOnly)
 
 	return key
 }
@@ -586,7 +595,7 @@ func (s *ClipService) CanManageClip(ctx context.Context, userID uuid.UUID, clipI
 	}
 
 	// Check if user is the creator (by matching Twitch ID)
-	if clip.CreatorID != nil && user.TwitchID == *clip.CreatorID {
+	if clip.CreatorID != nil && user.TwitchID != nil && *user.TwitchID == *clip.CreatorID {
 		return true, nil
 	}
 
@@ -681,7 +690,7 @@ func (s *ClipService) ListCreatorClips(ctx context.Context, creatorTwitchID stri
 		user, err := s.userRepo.GetByID(ctx, *userID)
 		if err == nil {
 			// Show hidden clips if user is the creator or an admin/moderator
-			if user.TwitchID == creatorTwitchID || user.Role == "admin" || user.Role == "moderator" {
+			if (user.TwitchID != nil && *user.TwitchID == creatorTwitchID) || user.Role == "admin" || user.Role == "moderator" {
 				showHidden = true
 			}
 		}
@@ -728,4 +737,40 @@ func (s *ClipService) ListCreatorClips(ctx context.Context, creatorTwitchID stri
 	}
 
 	return clipsWithData, total, nil
+}
+
+// ClipMediaInfo contains the media URLs for a clip
+type ClipMediaInfo struct {
+	ID           uuid.UUID `json:"id"`
+	EmbedURL     string    `json:"embed_url"`
+	ThumbnailURL *string   `json:"thumbnail_url,omitempty"`
+}
+
+// BatchGetClipMedia retrieves media URLs for multiple clips efficiently
+func (s *ClipService) BatchGetClipMedia(ctx context.Context, clipIDs []uuid.UUID) ([]ClipMediaInfo, error) {
+	if len(clipIDs) == 0 {
+		return []ClipMediaInfo{}, nil
+	}
+
+	// Limit batch size to prevent abuse
+	if len(clipIDs) > 100 {
+		return nil, errors.New("batch size exceeds maximum of 100 clips")
+	}
+
+	clips, err := s.clipRepo.GetClipsByIDs(ctx, clipIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch clips: %w", err)
+	}
+
+	// Build result slice with media info
+	result := make([]ClipMediaInfo, 0, len(clips))
+	for _, clip := range clips {
+		result = append(result, ClipMediaInfo{
+			ID:           clip.ID,
+			EmbedURL:     clip.EmbedURL,
+			ThumbnailURL: clip.ThumbnailURL,
+		})
+	}
+
+	return result, nil
 }

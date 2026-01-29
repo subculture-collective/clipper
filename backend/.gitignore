@@ -9,6 +9,9 @@ dist/
 # Ignore generated API binary/source at backend/api but allow cmd/api
 /api
 cmd/api/api
+# Ignore main binary in root of backend
+/main
+/clipper
 
 # Test binary, built with `go test -c`
 *.test
@@ -27,6 +30,10 @@ go.work.sum
 .env
 .env.local
 .env.*.local
+.env.test
+
+# Test output
+test-output.log
 
 # IDE
 .idea/

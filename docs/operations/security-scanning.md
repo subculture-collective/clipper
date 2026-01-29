@@ -1,47 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Security Scanning and Vulnerability Management](#security-scanning-and-vulnerability-management)
-  - [Overview](#overview)
-  - [Security Scanning Tools](#security-scanning-tools)
-    - [1. CodeQL (SAST)](#1-codeql-sast)
-    - [2. Dependabot (Dependency Scanning)](#2-dependabot-dependency-scanning)
-    - [3. Secret Scanning](#3-secret-scanning)
-    - [4. GitHub Advanced Security](#4-github-advanced-security)
-  - [Current Security Status](#current-security-status)
-    - [Dependency Vulnerabilities (as of 2025-11-14)](#dependency-vulnerabilities-as-of-2025-11-14)
-    - [CodeQL Analysis](#codeql-analysis)
-    - [Secret Scanning](#secret-scanning)
-  - [Vulnerability Response Workflow](#vulnerability-response-workflow)
-    - [High/Critical Severity](#highcritical-severity)
-    - [Medium Severity](#medium-severity)
-    - [Low Severity](#low-severity)
-  - [Manual Security Scanning](#manual-security-scanning)
-    - [Running CodeQL Locally](#running-codeql-locally)
-    - [Running Dependency Audits](#running-dependency-audits)
-    - [Running Secret Scanning Locally](#running-secret-scanning-locally)
-  - [Security Best Practices](#security-best-practices)
-    - [For Developers](#for-developers)
-    - [For Repository Admins](#for-repository-admins)
-  - [CI/CD Integration](#cicd-integration)
-    - [On Pull Requests](#on-pull-requests)
-    - [On Merge to Main](#on-merge-to-main)
-    - [Weekly Scheduled Scans](#weekly-scheduled-scans)
-  - [Compliance and Reporting](#compliance-and-reporting)
-    - [Security Metrics](#security-metrics)
-    - [Monthly Security Report](#monthly-security-report)
-  - [Troubleshooting](#troubleshooting)
-    - [CodeQL Analysis Fails](#codeql-analysis-fails)
-    - [Dependabot PRs Not Appearing](#dependabot-prs-not-appearing)
-    - [False Positive Alerts](#false-positive-alerts)
-  - [Resources](#resources)
-    - [Documentation](#documentation)
-    - [Tools](#tools)
-    - [Security References](#security-references)
-  - [See Also](#see-also)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Security Scanning and Vulnerability Management"
 summary: "**Last Updated**: 2025-11-14"
@@ -170,15 +126,18 @@ This document describes the automated security scanning and vulnerability manage
 ### Dependency Vulnerabilities (as of 2025-11-14)
 
 #### Frontend
+
 - ✅ **0 vulnerabilities** (all fixed)
 - Recent fix: js-yaml upgraded from 4.1.0 → 4.1.1 (CVE fix for prototype pollution)
 
 #### Mobile
+
 - ⚠️ **23 moderate vulnerabilities** in development dependencies (Jest)
 - **Status**: Acceptable - only affects test environment
 - **Risk**: Low (not in production code)
 
 #### Backend
+
 - ✅ **0 known vulnerabilities** in Go dependencies
 - Regular monitoring via Dependabot
 

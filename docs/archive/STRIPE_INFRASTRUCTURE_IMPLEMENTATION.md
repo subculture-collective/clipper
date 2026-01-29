@@ -1,37 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Stripe Integration Infrastructure - Implementation Complete](#stripe-integration-infrastructure---implementation-complete)
-  - [Overview](#overview)
-  - [Implementation Date](#implementation-date)
-  - [Status](#status)
-  - [Changes Made](#changes-made)
-    - [1. Database Schema (Migration 000040)](#1-database-schema-migration-000040)
-    - [2. Webhook Event Handlers](#2-webhook-event-handlers)
-    - [3. Event Router Enhancement](#3-event-router-enhancement)
-    - [4. Documentation Updates](#4-documentation-updates)
-  - [Infrastructure Already in Place](#infrastructure-already-in-place)
-    - [Existing Tables](#existing-tables)
-    - [Existing Services](#existing-services)
-    - [Existing Webhook Handlers](#existing-webhook-handlers)
-  - [Testing & Validation](#testing--validation)
-    - [Build Status](#build-status)
-    - [Code Review](#code-review)
-    - [Security Scan](#security-scan)
-    - [Existing Tests](#existing-tests)
-  - [Configuration](#configuration)
-  - [Acceptance Criteria](#acceptance-criteria)
-  - [Error Handling & Recovery](#error-handling--recovery)
-  - [Security](#security)
-  - [Migration Instructions](#migration-instructions)
-  - [Next Steps (Optional Enhancements)](#next-steps-optional-enhancements)
-  - [Files Modified](#files-modified)
-    - [New Files](#new-files)
-    - [Modified Files](#modified-files)
-  - [Conclusion](#conclusion)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 # Stripe Integration Infrastructure - Implementation Complete
 
 ## Overview
@@ -39,9 +5,11 @@
 This document summarizes the implementation of Stripe integration infrastructure for the Clipper platform as specified in issue requirements.
 
 ## Implementation Date
+
 December 11, 2024
 
 ## Status
+
 ✅ **COMPLETE** - All requirements from the task have been successfully implemented.
 
 ## Changes Made
@@ -51,6 +19,7 @@ December 11, 2024
 Created four new tables to support comprehensive Stripe tracking:
 
 #### stripe_customers
+
 - **Purpose**: Tracks Stripe customer records synced with user accounts
 - **Key Fields**:
   - `user_id` (UUID, unique FK to users)
@@ -60,6 +29,7 @@ Created four new tables to support comprehensive Stripe tracking:
 - **Indexes**: user_id, stripe_customer_id
 
 #### stripe_subscriptions
+
 - **Purpose**: Detailed subscription lifecycle tracking separate from internal subscriptions
 - **Key Fields**:
   - `stripe_subscription_id` (VARCHAR, unique)
@@ -71,6 +41,7 @@ Created four new tables to support comprehensive Stripe tracking:
 - **Indexes**: subscription_id, customer_id, status
 
 #### stripe_payment_intents
+
 - **Purpose**: Tracks all payment intent attempts with idempotency support
 - **Key Fields**:
   - `stripe_intent_id` (VARCHAR, unique)
@@ -84,6 +55,7 @@ Created four new tables to support comprehensive Stripe tracking:
 - **Indexes**: intent_id, user_id, customer_id, status, idempotency_key
 
 #### stripe_webhooks_log
+
 - **Purpose**: Comprehensive audit log of all webhook events
 - **Key Fields**:
   - `event_type` (VARCHAR)
@@ -99,6 +71,7 @@ Created four new tables to support comprehensive Stripe tracking:
 Added two new handlers in `subscription_service.go`:
 
 #### handlePaymentIntentSucceeded
+
 - Processes `payment_intent.succeeded` events
 - Logs successful payment attempts
 - Safely handles nil customer references
@@ -106,6 +79,7 @@ Added two new handlers in `subscription_service.go`:
 - Links to subscriptions when available
 
 #### handlePaymentIntentFailed
+
 - Processes `payment_intent.payment_failed` events
 - Logs failed payment attempts
 - Captures error codes and messages
@@ -133,6 +107,7 @@ Updated `docs/STRIPE_INTEGRATION_SUMMARY.md`:
 The following components were already implemented in previous work:
 
 ### Existing Tables
+
 - `subscriptions` - Core subscription records
 - `subscription_events` - Subscription lifecycle audit log
 - `webhook_retry_queue` - Failed webhook retry management
@@ -141,6 +116,7 @@ The following components were already implemented in previous work:
 - `dunning_attempts` - Payment failure communications
 
 ### Existing Services
+
 - Stripe API client initialization
 - Customer creation with metadata
 - Webhook signature verification (multi-secret support)
@@ -150,6 +126,7 @@ The following components were already implemented in previous work:
 - Idempotency checking for webhook events
 
 ### Existing Webhook Handlers
+
 - `customer.subscription.created`
 - `customer.subscription.updated`
 - `customer.subscription.deleted`
@@ -160,18 +137,22 @@ The following components were already implemented in previous work:
 ## Testing & Validation
 
 ### Build Status
+
 ✅ **Successful** - No compilation errors or warnings
 
 ### Code Review
+
 ✅ **Passed** - All feedback addressed:
 - Fixed nil pointer dereferences in payment intent handlers
 - Added safe customer ID extraction
 - Added safe error message extraction
 
 ### Security Scan
+
 ✅ **Passed** - CodeQL analysis found **0 alerts**
 
 ### Existing Tests
+
 ✅ **Passing** - All subscription service tests pass
 
 ## Configuration
@@ -244,10 +225,12 @@ The infrastructure is complete and production-ready. Optional future enhancement
 ## Files Modified
 
 ### New Files
+
 - `backend/migrations/000040_add_stripe_infrastructure_tables.up.sql`
 - `backend/migrations/000040_add_stripe_infrastructure_tables.down.sql`
 
 ### Modified Files
+
 - `backend/internal/services/subscription_service.go` - Added payment intent handlers
 - `docs/STRIPE_INTEGRATION_SUMMARY.md` - Updated documentation
 

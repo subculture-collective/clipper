@@ -1,40 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Clipper Component Library](#clipper-component-library)
-  - [🎨 Features](#-features)
-  - [📦 Components](#-components)
-    - [Layout Components](#layout-components)
-    - [Form Components](#form-components)
-    - [Feedback Components](#feedback-components)
-    - [Data Display Components](#data-display-components)
-  - [🚀 Usage](#-usage)
-    - [Basic Example](#basic-example)
-    - [Theme System](#theme-system)
-  - [🎨 Design System](#-design-system)
-    - [Color Palette](#color-palette)
-    - [Typography](#typography)
-    - [Spacing & Layout](#spacing--layout)
-    - [Dark Mode](#dark-mode)
-  - [🔧 Component Props](#-component-props)
-    - [Button](#button)
-    - [Input](#input)
-    - [Card](#card)
-  - [♿ Accessibility](#-accessibility)
-    - [Keyboard Navigation](#keyboard-navigation)
-  - [📱 Responsive Design](#-responsive-design)
-  - [🔨 Development](#-development)
-    - [Available Scripts](#available-scripts)
-    - [Project Structure](#project-structure)
-  - [🎯 Best Practices](#-best-practices)
-    - [Component Usage](#component-usage)
-    - [Styling](#styling)
-  - [📄 License](#-license)
-  - [🤝 Contributing](#-contributing)
-  - [📚 Additional Resources](#-additional-resources)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Clipper Component Library"
 summary: "A comprehensive, production-ready component library built with React, TypeScript, and TailwindCSS v4"
@@ -119,30 +82,6 @@ function MyComponent() {
 }
 ```
 
-### Theme System
-
-```tsx
-import { ThemeProvider, useTheme } from '@/context/ThemeContext';
-
-function App() {
-  return (
-    <ThemeProvider>
-      <YourApp />
-    </ThemeProvider>
-  );
-}
-
-function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
-  
-  return (
-    <Button onClick={() => setTheme('dark')}>
-      Toggle Dark Mode
-    </Button>
-  );
-}
-```
-
 ## 🎨 Design System
 
 ### Color Palette
@@ -171,13 +110,7 @@ function ThemeToggle() {
 
 ### Dark Mode
 
-The theme system supports three modes:
-
-- **Light**: Bright, high-contrast interface
-- **Dark**: Reduced eye strain in low-light
-- **System**: Matches OS preference
-
-Theme preference is persisted in localStorage.
+The application uses dark mode exclusively for a modern, comfortable viewing experience that reduces eye strain.
 
 ## 🔧 Component Props
 

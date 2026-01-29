@@ -73,6 +73,12 @@ type GamesResponse struct {
 	Data []Game `json:"data"`
 }
 
+// TopGamesResponse represents the response from the top games endpoint
+type TopGamesResponse struct {
+	Data       []Game     `json:"data"`
+	Pagination Pagination `json:"pagination"`
+}
+
 // Pagination contains cursor information for paginated responses
 type Pagination struct {
 	Cursor string `json:"cursor"`
@@ -166,4 +172,42 @@ type FollowersResponse struct {
 	Data       []Follower `json:"data"`
 	Total      int        `json:"total"`
 	Pagination Pagination `json:"pagination"`
+}
+
+// BannedUser represents a banned user from the moderation/banned endpoint
+type BannedUser struct {
+	UserID      string    `json:"user_id"`
+	UserLogin   string    `json:"user_login"`
+	UserName    string    `json:"user_name"`
+	ExpiresAt   time.Time `json:"expires_at"` // Empty/zero time for permanent bans (Twitch API returns empty string)
+	CreatedAt   time.Time `json:"created_at"`
+	Reason      string    `json:"reason"`
+	ModeratorID string    `json:"moderator_id"`
+}
+
+// BannedUsersResponse represents the response from the moderation/banned endpoint
+type BannedUsersResponse struct {
+	Data       []BannedUser `json:"data"`
+	Pagination Pagination   `json:"pagination"`
+}
+
+// BanUserRequest represents the request body for banning a user
+type BanUserRequest struct {
+	UserID   string  `json:"user_id"`
+	Duration *int    `json:"duration,omitempty"` // Duration in seconds for timeout, omit for permanent ban
+	Reason   *string `json:"reason,omitempty"`
+}
+
+// BanUserResponse represents the response from the ban user endpoint
+type BanUserResponse struct {
+	Data []BanData `json:"data"`
+}
+
+// BanData represents ban information returned from ban/unban endpoints
+type BanData struct {
+	BroadcasterID string `json:"broadcaster_id"`
+	ModeratorID   string `json:"moderator_id"`
+	UserID        string `json:"user_id"`
+	CreatedAt     string `json:"created_at,omitempty"`
+	EndTime       string `json:"end_time,omitempty"` // For temporary bans
 }

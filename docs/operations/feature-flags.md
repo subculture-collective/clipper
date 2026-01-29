@@ -1,46 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Feature Flags Guide](#feature-flags-guide)
-  - [Table of Contents](#table-of-contents)
-  - [Overview](#overview)
-  - [Available Feature Flags](#available-feature-flags)
-    - [FEATURE_SEMANTIC_SEARCH](#feature_semantic_search)
-    - [FEATURE_PREMIUM_SUBSCRIPTIONS](#feature_premium_subscriptions)
-    - [FEATURE_EMAIL_NOTIFICATIONS](#feature_email_notifications)
-    - [FEATURE_PUSH_NOTIFICATIONS](#feature_push_notifications)
-    - [FEATURE_ANALYTICS](#feature_analytics)
-    - [FEATURE_MODERATION](#feature_moderation)
-    - [FEATURE_DISCOVERY_LISTS](#feature_discovery_lists)
-  - [Configuration](#configuration)
-    - [Environment Variables](#environment-variables)
-    - [Configuration File](#configuration-file)
-  - [Usage in Code](#usage-in-code)
-    - [Backend (Go)](#backend-go)
-    - [Frontend (TypeScript/React)](#frontend-typescriptreact)
-  - [Deployment Strategy](#deployment-strategy)
-    - [Phase 1: Development Testing](#phase-1-development-testing)
-    - [Phase 2: Staging Validation](#phase-2-staging-validation)
-    - [Phase 3: Production Rollout](#phase-3-production-rollout)
-  - [Best Practices](#best-practices)
-    - [1. Default to Safe Values](#1-default-to-safe-values)
-    - [2. Document Dependencies](#2-document-dependencies)
-    - [3. Fail Gracefully](#3-fail-gracefully)
-    - [4. Monitor Flag Usage](#4-monitor-flag-usage)
-    - [5. Clean Up Old Flags](#5-clean-up-old-flags)
-    - [6. Test Both States](#6-test-both-states)
-    - [7. Communicate Changes](#7-communicate-changes)
-    - [8. Monitor After Enabling](#8-monitor-after-enabling)
-  - [Runtime Flag Updates](#runtime-flag-updates)
-  - [Checklist for New Feature Flags](#checklist-for-new-feature-flags)
-  - [Examples](#examples)
-    - [Example: Gradual Premium Rollout](#example-gradual-premium-rollout)
-    - [Example: Emergency Disable](#example-emergency-disable)
-  - [References](#references)
-  - [Version History](#version-history)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Feature Flags"
 summary: "Feature flag system for gradual rollouts and testing."
@@ -178,6 +135,23 @@ Enables curated discovery lists and featured content.
 
 **Use case**: Enable when editorial process and list management tools are ready.
 
+### FEATURE_TWITCH_MODERATION
+
+**Default**: `false`  
+**Dependencies**: Requires Twitch OAuth with `moderator:manage:banned_users` or `channel:manage:banned_users` scopes
+
+Enables Twitch ban/unban moderation actions for broadcasters and channel moderators.
+
+**When enabled:**
+- Broadcasters can ban/unban users on Twitch from Clipper
+- Twitch channel moderators can perform ban/unban actions
+- Permanent bans and temporary timeouts supported
+- Ban reasons tracked and logged
+- Audit logging for all moderation actions
+- Site moderators remain read-only (cannot perform Twitch actions)
+
+**Use case**: Enable after Twitch OAuth integration is complete and E2E tests pass. Follow gradual rollout plan (see [Twitch Moderation Rollout Plan](./twitch-moderation-rollout-plan.md)).
+
 ## Configuration
 
 ### Environment Variables
@@ -193,6 +167,7 @@ FEATURE_PUSH_NOTIFICATIONS=false
 FEATURE_ANALYTICS=true
 FEATURE_MODERATION=true
 FEATURE_DISCOVERY_LISTS=false
+FEATURE_TWITCH_MODERATION=true  # Enable in dev for testing
 ```
 
 ```bash
@@ -204,6 +179,7 @@ FEATURE_PUSH_NOTIFICATIONS=false     # Enable with mobile app launch
 FEATURE_ANALYTICS=true               # Always enabled
 FEATURE_MODERATION=true              # Always enabled
 FEATURE_DISCOVERY_LISTS=false        # Enable when lists are curated
+FEATURE_TWITCH_MODERATION=false      # Follow gradual rollout plan
 ```
 
 ### Configuration File

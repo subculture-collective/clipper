@@ -2,9 +2,16 @@ package scheduler
 
 import (
 	"context"
-	"log"
 	"sync"
 	"time"
+
+	"github.com/subculture-collective/clipper/pkg/metrics"
+	"github.com/subculture-collective/clipper/pkg/utils"
+)
+
+const (
+	hotScoreSchedulerName = "hot_score"
+	hotScoreJobName       = "hot_score_refresh"
 )
 
 // ClipRepositoryInterface defines the interface required by the hot score scheduler
@@ -31,7 +38,10 @@ func NewHotScoreScheduler(clipRepo ClipRepositoryInterface, intervalMinutes int)
 
 // Start begins the periodic hot score refresh process
 func (s *HotScoreScheduler) Start(ctx context.Context) {
-	log.Printf("Starting hot score scheduler (interval: %v)", s.interval)
+	utils.Info("Starting hot score scheduler", map[string]interface{}{
+		"scheduler": hotScoreSchedulerName,
+		"interval":  s.interval.String(),
+	})
 
 	ticker := time.NewTicker(s.interval)
 	defer ticker.Stop()
@@ -44,10 +54,14 @@ func (s *HotScoreScheduler) Start(ctx context.Context) {
 		case <-ticker.C:
 			s.refreshHotScores(ctx)
 		case <-s.stopChan:
-			log.Println("Hot score scheduler stopped")
+			utils.Info("Hot score scheduler stopped", map[string]interface{}{
+				"scheduler": hotScoreSchedulerName,
+			})
 			return
 		case <-ctx.Done():
-			log.Println("Hot score scheduler stopped due to context cancellation")
+			utils.Info("Hot score scheduler stopped due to context cancellation", map[string]interface{}{
+				"scheduler": hotScoreSchedulerName,
+			})
 			return
 		}
 	}
@@ -62,15 +76,32 @@ func (s *HotScoreScheduler) Stop() {
 
 // refreshHotScores executes a hot score refresh operation
 func (s *HotScoreScheduler) refreshHotScores(ctx context.Context) {
-	log.Println("Starting scheduled hot score refresh...")
+	utils.Info("Starting scheduled hot score refresh", map[string]interface{}{
+		"scheduler": hotScoreSchedulerName,
+		"job":       hotScoreJobName,
+	})
 	startTime := time.Now()
 
 	err := s.clipRepo.RefreshHotScores(ctx)
+	duration := time.Since(startTime)
+
+	// Record metrics
+	metrics.JobExecutionDuration.WithLabelValues(hotScoreJobName).Observe(duration.Seconds())
+
 	if err != nil {
-		log.Printf("Hot score refresh failed: %v", err)
+		utils.Error("Hot score refresh failed", err, map[string]interface{}{
+			"scheduler": hotScoreSchedulerName,
+			"job":       hotScoreJobName,
+		})
+		metrics.JobExecutionTotal.WithLabelValues(hotScoreJobName, "failed").Inc()
 		return
 	}
 
-	duration := time.Since(startTime)
-	log.Printf("Hot score refresh completed in %v", duration)
+	metrics.JobExecutionTotal.WithLabelValues(hotScoreJobName, "success").Inc()
+	metrics.JobLastSuccessTimestamp.WithLabelValues(hotScoreJobName).Set(float64(time.Now().Unix()))
+	utils.Info("Hot score refresh completed", map[string]interface{}{
+		"scheduler": hotScoreSchedulerName,
+		"job":       hotScoreJobName,
+		"duration":  duration.String(),
+	})
 }

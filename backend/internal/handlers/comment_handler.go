@@ -37,6 +37,7 @@ func (h *CommentHandler) ListComments(c *gin.Context) {
 	sortBy := c.DefaultQuery("sort", "best")
 	limitStr := c.DefaultQuery("limit", "50")
 	cursorStr := c.DefaultQuery("cursor", "0")
+	includeRepliesStr := c.DefaultQuery("include_replies", "false")
 
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil || limit < 1 || limit > 100 {
@@ -48,6 +49,8 @@ func (h *CommentHandler) ListComments(c *gin.Context) {
 		offset = 0
 	}
 
+	includeReplies := includeRepliesStr == "true"
+
 	// Get user ID if authenticated
 	var userID *uuid.UUID
 	if userIDVal, exists := c.Get("user_id"); exists {
@@ -56,8 +59,8 @@ func (h *CommentHandler) ListComments(c *gin.Context) {
 		}
 	}
 
-	// List comments
-	comments, err := h.commentService.ListComments(c.Request.Context(), clipID, sortBy, limit, offset, userID)
+	// List comments with optional nested replies
+	comments, err := h.commentService.ListCommentsWithReplies(c.Request.Context(), clipID, sortBy, limit, offset, userID, includeReplies)
 	if err != nil {
 		// Log the actual error for debugging
 		_ = c.Error(err)

@@ -15,14 +15,25 @@ type FeedService struct {
 	clipRepo        *repository.ClipRepository
 	userRepo        *repository.UserRepository
 	broadcasterRepo *repository.BroadcasterRepository
+	voteRepo        *repository.VoteRepository
+	favoriteRepo    *repository.FavoriteRepository
 }
 
-func NewFeedService(feedRepo *repository.FeedRepository, clipRepo *repository.ClipRepository, userRepo *repository.UserRepository, broadcasterRepo *repository.BroadcasterRepository) *FeedService {
+func NewFeedService(
+	feedRepo *repository.FeedRepository,
+	clipRepo *repository.ClipRepository,
+	userRepo *repository.UserRepository,
+	broadcasterRepo *repository.BroadcasterRepository,
+	voteRepo *repository.VoteRepository,
+	favoriteRepo *repository.FavoriteRepository,
+) *FeedService {
 	return &FeedService{
 		feedRepo:        feedRepo,
 		clipRepo:        clipRepo,
 		userRepo:        userRepo,
 		broadcasterRepo: broadcasterRepo,
+		voteRepo:        voteRepo,
+		favoriteRepo:    favoriteRepo,
 	}
 }
 
@@ -266,4 +277,60 @@ func (s *FeedService) GetFollowingFeed(ctx context.Context, userID uuid.UUID, li
 	}
 
 	return clips, total, nil
+}
+
+// GetFilteredClips retrieves clips with comprehensive filtering
+func (s *FeedService) GetFilteredClips(ctx context.Context, filters repository.ClipFilters, limit, offset int) ([]models.Clip, int, error) {
+	return s.clipRepo.ListWithFilters(ctx, filters, limit, offset)
+}
+
+// ClipWithUserContext extends Clip with user-specific fields for feed responses
+type ClipWithUserContext struct {
+	models.Clip
+	UserVote      *int16 `json:"user_vote,omitempty"`
+	IsFavorited   bool   `json:"is_favorited"`
+	UpvoteCount   int    `json:"upvote_count"`
+	DownvoteCount int    `json:"downvote_count"`
+}
+
+// GetFilteredClipsWithUserData retrieves clips with comprehensive filtering and user-specific data
+func (s *FeedService) GetFilteredClipsWithUserData(ctx context.Context, filters repository.ClipFilters, limit, offset int, userID *uuid.UUID) ([]ClipWithUserContext, int, error) {
+	clips, total, err := s.clipRepo.ListWithFilters(ctx, filters, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Convert to ClipWithUserContext and enrich with user data if authenticated
+	enrichedClips := make([]ClipWithUserContext, len(clips))
+	for i, clip := range clips {
+		enrichedClip := ClipWithUserContext{
+			Clip: clip,
+		}
+
+		// Get vote counts for each clip
+		upvotes, downvotes, err := s.voteRepo.GetVoteCounts(ctx, clip.ID)
+		if err == nil {
+			enrichedClip.UpvoteCount = upvotes
+			enrichedClip.DownvoteCount = downvotes
+		}
+
+		// Add user-specific data if authenticated
+		if userID != nil {
+			// Get user's vote
+			vote, err := s.voteRepo.GetVote(ctx, *userID, clip.ID)
+			if err == nil && vote != nil {
+				enrichedClip.UserVote = &vote.VoteType
+			}
+
+			// Check if favorited
+			isFavorited, err := s.favoriteRepo.IsFavorited(ctx, *userID, clip.ID)
+			if err == nil {
+				enrichedClip.IsFavorited = isFavorited
+			}
+		}
+
+		enrichedClips[i] = enrichedClip
+	}
+
+	return enrichedClips, total, nil
 }

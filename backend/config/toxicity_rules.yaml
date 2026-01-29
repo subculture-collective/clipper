@@ -1,0 +1,88 @@
+# Toxicity Detection Rules Configuration
+# This file defines patterns and rules for detecting toxic content
+# Categories: hate_speech, profanity, harassment, sexual_content, violence, spam
+
+rules:
+  # Hate Speech - High Severity
+  - pattern: '\b(n[i1!]gg[e3]r|n[i1!]gg[a@]|f[a@]gg[o0]t|k[i1!]k[e3]|tr[a@]nn[y1!]|r[e3]t[a@]rd)\b'
+    category: hate_speech
+    severity: high
+    weight: 1.0
+    description: "Racial, ethnic, and identity-based slurs"
+
+  # Profanity - Medium to High Severity
+  - pattern: '\b(f[u*@]ck|sh[i1!]t|b[i1!]tch|c[u*]nt|p[i1!]ss|d[a@]mn)\b'
+    category: profanity
+    severity: medium
+    weight: 0.5
+    description: "Common profanity"
+
+  - pattern: '\b([a@]ssh[o0]l[e3]|[a@]ssf[a@]c[e3]|d[i1!]ckh[e3][a@]d|motherf[u*]ck)\b'
+    category: profanity
+    severity: high
+    weight: 0.7
+    description: "Aggressive profanity"
+
+  # Harassment - High Severity
+  - pattern: '\b(k[i1!]ll\s+(your)?self|(?:go\s+d[i1!][e3]|you\s+should\s+d[i1!][e3])|hurt\s+you|beat\s+you|threatening|attack)\b'
+    category: harassment
+    severity: high
+    weight: 0.9
+    description: "Threats and violent language toward individuals"
+
+  - pattern: '\b(you\s+are\s+(stupid|dumb|[i1!]d[i1!][o0]t|worthless|pathetic))\b'
+    category: harassment
+    severity: medium
+    weight: 0.6
+    description: "Personal attacks and insults"
+
+  # Sexual Content - Medium to High Severity  
+  - pattern: '\b(p[o0]rn|xxx|cock|d[i1!]ck|pussy|v[a@]g[i1!]n[a@]|t[i1!]ts|b[o0][o0]bs)\b'
+    category: sexual_content
+    severity: medium
+    weight: 0.5
+    description: "Explicit sexual language"
+
+  - pattern: '\b(r[a@]p[e3]|mol[e3]st|s[e3]xu[a@]l\s+[a@]ss[a@]ult|p[e3]doph[i1!]l[e3])\b'
+    category: sexual_content
+    severity: high
+    weight: 0.95
+    description: "Sexual violence and abuse"
+
+  # Violence - High Severity
+  - pattern: '\b(murder|torture|bl[o0][o0]d|g[o0]r[e3]|v[i1!][o0]l[e3]nt|brut[a@]l)\b'
+    category: violence
+    severity: high
+    weight: 0.8
+    description: "Violent and graphic content"
+
+  # Spam - Low to Medium Severity
+  - pattern: '(buy\s+now|click\s+here|limited\s+time|act\s+now)'
+    category: spam
+    severity: low
+    weight: 0.3
+    description: "Promotional or spam content"
+
+  - pattern: '(a{10,}|b{10,}|c{10,}|d{10,}|e{10,}|f{10,}|g{10,}|h{10,}|i{10,}|j{10,}|k{10,}|l{10,}|m{10,}|n{10,}|o{10,}|p{10,}|q{10,}|r{10,}|s{10,}|t{10,}|u{10,}|v{10,}|w{10,}|x{10,}|y{10,}|z{10,}|0{10,}|1{10,}|2{10,}|3{10,}|4{10,}|5{10,}|6{10,}|7{10,}|8{10,}|9{10,})'
+    category: spam
+    severity: medium
+    weight: 0.4
+    description: "Excessive character repetition"
+
+# Whitelist - words that may trigger false positives but are legitimate
+whitelist:
+  - "scunthorpe"     # Town name containing profanity pattern
+  - "assassin"       # Valid word containing "ass"
+  - "assume"         # Valid word containing "ass"
+  - "assault"        # Valid word for reporting/discussion
+  - "class"          # Valid word containing "ass"
+  - "classic"        # Valid word containing "ass"
+  - "glass"          # Valid word containing "ass"
+  - "mass"           # Valid word
+  - "pass"           # Valid word
+  - "bass"           # Valid word
+  - "grass"          # Valid word
+  - "assignment"     # Valid word
+  - "dickens"        # Author name
+  - "cockerel"       # Valid word (rooster)
+  - "sussex"         # Place name

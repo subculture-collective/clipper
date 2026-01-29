@@ -16,6 +16,8 @@ interface CommentActionsProps {
     createdAt: string;
     onReply?: () => void;
     onEdit?: () => void;
+    depth?: number;
+    maxDepth?: number;
     className?: string;
 }
 
@@ -29,6 +31,8 @@ export const CommentActions: React.FC<CommentActionsProps> = ({
     createdAt,
     onReply,
     onEdit,
+    depth = 0,
+    maxDepth = 10,
     className,
 }) => {
     const isAuthenticated = useIsAuthenticated();
@@ -49,7 +53,7 @@ export const CommentActions: React.FC<CommentActionsProps> = ({
 
     // Track whether the comment is still within the editable window
     const [isWithinEditWindow, setIsWithinEditWindow] = React.useState(() =>
-        computeWithinEditWindow()
+        computeWithinEditWindow(),
     );
 
     React.useEffect(() => {
@@ -63,6 +67,7 @@ export const CommentActions: React.FC<CommentActionsProps> = ({
 
     const canEdit = isAuthor && isWithinEditWindow;
     const canDelete = isAuthor || isAdmin;
+    const canReply = isAuthenticated && depth < maxDepth;
 
     const handleDelete = () => {
         deleteComment(commentId, {
@@ -89,10 +94,10 @@ export const CommentActions: React.FC<CommentActionsProps> = ({
                     setShowReportDialog(false);
                     setReportDescription('');
                     toast.success(
-                        'Comment reported. Thank you for helping keep our community safe.'
+                        'Comment reported. Thank you for helping keep our community safe.',
                     );
                 },
-            }
+            },
         );
     };
 
@@ -106,7 +111,7 @@ export const CommentActions: React.FC<CommentActionsProps> = ({
     return (
         <>
             <div className={cn('flex items-center gap-3 text-sm', className)}>
-                {isAuthenticated && (
+                {canReply && (
                     <button
                         onClick={onReply}
                         className='text-muted-foreground hover:text-foreground transition-colors font-medium'

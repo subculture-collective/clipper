@@ -1,75 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Search Incidents Playbook](#search-incidents-playbook)
-  - [Table of Contents](#table-of-contents)
-  - [Overview](#overview)
-    - [Architecture](#architecture)
-    - [Key Metrics](#key-metrics)
-  - [Quick Reference](#quick-reference)
-    - [Dashboard Links](#dashboard-links)
-    - [Log Queries](#log-queries)
-    - [Quick Health Checks](#quick-health-checks)
-  - [High Latency](#high-latency)
-    - [Symptoms](#symptoms)
-    - [Investigation Steps](#investigation-steps)
-    - [Mitigation](#mitigation)
-    - [Resolution Criteria](#resolution-criteria)
-  - [Critical Latency](#critical-latency)
-    - [Symptoms](#symptoms-1)
-    - [Immediate Actions](#immediate-actions)
-    - [Investigation](#investigation)
-    - [Escalation](#escalation)
-  - [Embedding Failures](#embedding-failures)
-    - [Symptoms](#symptoms-2)
-    - [Investigation Steps](#investigation-steps-1)
-    - [Common Causes & Fixes](#common-causes--fixes)
-    - [Mitigation](#mitigation-1)
-    - [Resolution Criteria](#resolution-criteria-1)
-  - [Low Coverage](#low-coverage)
-    - [Symptoms](#symptoms-3)
-    - [Investigation Steps](#investigation-steps-2)
-    - [Mitigation](#mitigation-2)
-    - [Resolution Criteria](#resolution-criteria-2)
-  - [Cache Issues](#cache-issues)
-    - [Symptoms](#symptoms-4)
-    - [Investigation Steps](#investigation-steps-3)
-    - [Common Causes & Fixes](#common-causes--fixes-1)
-    - [Mitigation](#mitigation-3)
-    - [Resolution Criteria](#resolution-criteria-3)
-  - [Zero Results](#zero-results)
-    - [Symptoms](#symptoms-5)
-    - [Investigation Steps](#investigation-steps-4)
-    - [Common Causes & Fixes](#common-causes--fixes-2)
-    - [Mitigation](#mitigation-4)
-    - [Resolution Criteria](#resolution-criteria-4)
-  - [Fallback Issues](#fallback-issues)
-    - [Symptoms](#symptoms-6)
-    - [Investigation Steps](#investigation-steps-5)
-    - [Resolution](#resolution)
-  - [Indexing Failures](#indexing-failures)
-    - [Symptoms](#symptoms-7)
-    - [Investigation Steps](#investigation-steps-6)
-    - [Common Causes & Fixes](#common-causes--fixes-3)
-    - [Resolution Criteria](#resolution-criteria-5)
-  - [Vector Search Slow](#vector-search-slow)
-    - [Symptoms](#symptoms-8)
-    - [Investigation Steps](#investigation-steps-7)
-    - [Mitigation](#mitigation-5)
-  - [BM25 Search Slow](#bm25-search-slow)
-    - [Symptoms](#symptoms-9)
-    - [Investigation Steps](#investigation-steps-8)
-    - [Mitigation](#mitigation-6)
-  - [Escalation](#escalation-1)
-    - [When to Escalate](#when-to-escalate)
-    - [Escalation Contacts](#escalation-contacts)
-  - [Post-Incident](#post-incident)
-    - [Checklist](#checklist)
-    - [Post-Mortem Template](#post-mortem-template)
-  - [References](#references)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Search Incidents Playbook"
 summary: "On-call playbook for semantic search incidents including embedding, indexing, and latency issues."
@@ -90,6 +18,7 @@ This playbook provides step-by-step guidance for on-call engineers responding to
 
 - [Overview](#overview)
 - [Quick Reference](#quick-reference)
+- [Search Failover](#search-failover)
 - [High Latency](#high-latency)
 - [Critical Latency](#critical-latency)
 - [Embedding Failures](#embedding-failures)
@@ -97,6 +26,7 @@ This playbook provides step-by-step guidance for on-call engineers responding to
 - [Cache Issues](#cache-issues)
 - [Zero Results](#zero-results)
 - [Fallback Issues](#fallback-issues)
+- [Fallback Latency](#fallback-latency)
 - [Indexing Failures](#indexing-failures)
 - [Vector Search Slow](#vector-search-slow)
 - [BM25 Search Slow](#bm25-search-slow)
@@ -164,6 +94,111 @@ curl -s "http://localhost:8080/api/v1/search?q=test" | jq '.meta'
 # Check OpenSearch
 curl -s "http://opensearch:9200/_cluster/health" | jq
 ```
+
+---
+
+## Search Failover
+
+**Alert**: `SearchFailoverRateHigh`, `SearchFailoverRateCritical`
+**Severity**: Warning (>5/sec), Critical (>20/sec)
+**Condition**: Search failing over to PostgreSQL at high rate
+
+### Symptoms
+
+- Search requests return results but with `X-Search-Failover: true` header
+- OpenSearch errors in logs: timeouts, connection refused, 5xx errors
+- Increased PostgreSQL load
+- Slightly higher search latency (still functional)
+
+### Investigation Steps
+
+1. **Check OpenSearch health**:
+   ```bash
+   # Check if OpenSearch is responding
+   curl -X GET "https://opensearch:9200/_cluster/health?pretty" -u "$OPENSEARCH_USER:$OPENSEARCH_PASSWORD"
+   
+   # Check OpenSearch service status
+   docker ps | grep opensearch
+   docker logs --tail=100 opensearch-container
+   
+   # Check OpenSearch metrics
+   curl "https://opensearch:9200/_nodes/stats?pretty" -u "$OPENSEARCH_USER:$OPENSEARCH_PASSWORD" | jq '.nodes[].os, .nodes[].jvm'
+   ```
+
+2. **Review failover metrics**:
+   ```bash
+   # Query Prometheus for failover rate and reasons
+   # In Grafana: Semantic Search Observability → Failover Rate panel
+   
+   # Or via promtool:
+   promtool query instant http://prometheus:9090 \
+     'sum by (reason) (rate(search_fallback_total[5m]))'
+   ```
+
+3. **Check recent changes**:
+   - Review recent deployments to OpenSearch
+   - Verify index rebuild is not in progress
+   - Check network connectivity: `docker exec backend-container nc -zv opensearch 9200`
+
+4. **Review backend logs for OpenSearch errors**:
+   ```bash
+   docker logs backend-container --since 15m | grep -i "opensearch\|search error"
+   ```
+
+### Resolution
+
+**If OpenSearch is down**:
+```bash
+# Restart OpenSearch service
+docker restart opensearch-container
+
+# Wait for cluster to turn green
+watch -n 5 'curl -s "https://opensearch:9200/_cluster/health" -u admin:password | jq ".status"'
+```
+
+**If OpenSearch is slow/timing out**:
+```bash
+# Check for pending tasks
+curl "https://opensearch:9200/_cluster/pending_tasks?pretty" -u admin:password
+
+# Check if heap is exhausted
+curl "https://opensearch:9200/_nodes/stats/jvm?pretty" -u admin:password | jq '.nodes[].jvm.mem.heap_used_percent'
+
+# If heap >90%, restart OpenSearch
+docker restart opensearch-container
+```
+
+**If connection issues**:
+```bash
+# Test connectivity from backend
+docker exec backend-container curl -v https://opensearch:9200
+
+# Check Docker network
+docker network inspect clipper_default
+
+# Verify DNS resolution
+docker exec backend-container nslookup opensearch
+```
+
+### Mitigation
+
+**Temporary**: PostgreSQL fallback will continue serving requests
+
+**If critical and OpenSearch cannot be recovered quickly**:
+```bash
+# Update docker-compose.yml to set the environment variable, then restart:
+# environment:
+#   - USE_OPENSEARCH=false
+docker-compose restart backend
+```
+
+### Follow-up
+
+1. Monitor failover rate returning to 0
+2. Verify search latency returns to baseline (<200ms p95)
+3. Review PostgreSQL load during incident - ensure it handled the increased traffic
+4. Update capacity planning if PostgreSQL struggled during failover
+5. Consider increasing OpenSearch resources if it was resource-constrained
 
 ---
 
@@ -532,6 +567,129 @@ If not resolved in 15 minutes:
 ### Resolution
 
 Address the root cause based on fallback reason.
+
+---
+
+## Fallback Latency
+
+**Alert**: `SearchFailoverLatencyHigh`
+**Severity**: Warning
+**Condition**: P95 fallback path latency > 500ms for 5 minutes
+
+### Symptoms
+
+- Search results load slowly even when using PostgreSQL fallback
+- High `search_fallback_duration_ms` metric
+- Degraded user experience during OpenSearch outages
+- Increased PostgreSQL query times
+
+### Investigation Steps
+
+1. **Check PostgreSQL performance**:
+   ```bash
+   # Connect to PostgreSQL
+   docker exec -it postgres-container psql -U clipper -d clipper_db
+   
+   # Check slow queries
+   SELECT query, mean_exec_time, calls 
+   FROM pg_stat_statements 
+   WHERE query LIKE '%search%' 
+   ORDER BY mean_exec_time DESC 
+   LIMIT 10;
+   
+   # Check connection pool status
+   SELECT count(*), state 
+   FROM pg_stat_activity 
+   GROUP BY state;
+   ```
+
+2. **Review database load**:
+   ```bash
+   # Check PostgreSQL metrics
+   docker exec postgres-container psql -U clipper -d clipper_db \
+     -c "SELECT * FROM pg_stat_database WHERE datname='clipper_db';"
+   
+   # Check table/index sizes
+   docker exec postgres-container psql -U clipper -d clipper_db \
+     -c "SELECT schemaname, tablename, pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size 
+         FROM pg_tables WHERE tablename='clips' ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;"
+   ```
+
+3. **Verify FTS indices are healthy**:
+   ```sql
+   -- Check search-related indices
+   SELECT schemaname, tablename, indexname, idx_scan, idx_tup_read, idx_tup_fetch
+   FROM pg_stat_user_indexes
+   WHERE indexname LIKE '%search%' OR indexname LIKE '%fts%'
+   ORDER BY idx_scan DESC;
+   ```
+
+4. **Check query plans**:
+   ```sql
+   -- Analyze actual search query performance
+   EXPLAIN ANALYZE 
+   SELECT * FROM clips 
+   WHERE search_vector @@ plainto_tsquery('english', 'test query') 
+   LIMIT 20;
+   ```
+
+### Common Causes & Fixes
+
+| Cause | Fix |
+|-------|-----|
+| Stale statistics | Run `ANALYZE clips;` |
+| Bloated indices | Run `REINDEX INDEX search_clips_fts;` |
+| Connection pool exhausted | Increase `DATABASE_MAX_CONNECTIONS` |
+| Missing indices | Verify FTS indices exist and are used |
+| High concurrent load | Scale PostgreSQL or add read replicas |
+
+### Resolution
+
+**If PostgreSQL is overloaded**:
+```sql
+-- Analyze and vacuum tables
+ANALYZE clips;
+VACUUM ANALYZE clips;
+
+-- If bloated, rebuild FTS index
+REINDEX INDEX CONCURRENTLY search_clips_fts;
+```
+
+**If connection pool exhausted**:
+```bash
+# Increase connection pool size in backend config
+# docker-compose.yml or environment:
+DATABASE_MAX_CONNECTIONS=50  # Adjust based on load
+
+# Restart backend to apply
+docker-compose restart backend
+```
+
+**If slow query patterns**:
+```sql
+-- Check if proper indices are being used
+EXPLAIN ANALYZE 
+SELECT * FROM clips 
+WHERE search_vector @@ plainto_tsquery('english', 'query') 
+LIMIT 20;
+
+-- Should use Index Scan on search_clips_fts
+-- If not, rebuild index
+```
+
+### Follow-up
+
+1. Monitor fallback latency returning to <200ms p95
+2. Consider optimizing PostgreSQL FTS configuration if issue persists
+3. Review if additional indices are needed
+4. Plan for horizontal scaling if PostgreSQL is at capacity
+5. Verify fallback performance is acceptable for prolonged OpenSearch outages
+
+### Resolution Criteria
+
+- P95 fallback latency < 200ms
+- PostgreSQL query times within normal range
+- No connection pool exhaustion
 
 ---
 

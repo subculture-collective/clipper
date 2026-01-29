@@ -1,20 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Entitlements](#entitlements)
-  - [Principles](#principles)
-  - [Entitlement Check](#entitlement-check)
-  - [Feature Gates](#feature-gates)
-    - [Quota-Based](#quota-based)
-    - [Filter-Based](#filter-based)
-    - [Access-Based](#access-based)
-  - [Implementation](#implementation)
-  - [Upgrade Flow](#upgrade-flow)
-  - [Grace Period](#grace-period)
-  - [Testing](#testing)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Entitlements"
 summary: "Feature access control and gating based on subscription tier."

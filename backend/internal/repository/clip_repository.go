@@ -14,17 +14,24 @@ import (
 const (
 	// HotClipsMaterializedView is the name of the materialized view for hot clips
 	HotClipsMaterializedView = "hot_clips_materialized"
+
+	// Pagination limits for clip queries
+	DefaultClipLimit = 50
+	MaxClipLimit     = 1000
+	MaxClipOffset    = 1000
 )
 
 // ClipRepository handles database operations for clips
 type ClipRepository struct {
-	pool *pgxpool.Pool
+	pool   *pgxpool.Pool
+	helper *RepositoryHelper
 }
 
 // NewClipRepository creates a new ClipRepository
 func NewClipRepository(pool *pgxpool.Pool) *ClipRepository {
 	return &ClipRepository{
-		pool: pool,
+		pool:   pool,
+		helper: NewRepositoryHelper(pool),
 	}
 }
 
@@ -35,9 +42,12 @@ func (r *ClipRepository) Create(ctx context.Context, clip *models.Clip) error {
 			id, twitch_clip_id, twitch_clip_url, embed_url, title,
 			creator_name, creator_id, broadcaster_name, broadcaster_id,
 			game_id, game_name, language, thumbnail_url, duration,
-			view_count, created_at, imported_at
+			view_count, created_at, imported_at, vote_score, comment_count, favorite_count,
+			is_featured, is_nsfw, is_removed, is_hidden,
+			submitted_by_user_id, submitted_at
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17,
+			$18, $19, $20, $21, $22, $23, $24, $25, $26
 		)
 	`
 
@@ -46,11 +56,52 @@ func (r *ClipRepository) Create(ctx context.Context, clip *models.Clip) error {
 		clip.Title, clip.CreatorName, clip.CreatorID, clip.BroadcasterName,
 		clip.BroadcasterID, clip.GameID, clip.GameName, clip.Language,
 		clip.ThumbnailURL, clip.Duration, clip.ViewCount, clip.CreatedAt,
-		clip.ImportedAt,
+		clip.ImportedAt, clip.VoteScore, clip.CommentCount, clip.FavoriteCount,
+		clip.IsFeatured, clip.IsNSFW, clip.IsRemoved, clip.IsHidden,
+		clip.SubmittedByUserID, clip.SubmittedAt,
 	)
 
 	if err != nil {
 		return fmt.Errorf("failed to create clip: %w", err)
+	}
+
+	return nil
+}
+
+// CreateStreamClip inserts a new clip created from a stream into the database
+func (r *ClipRepository) CreateStreamClip(ctx context.Context, clip *models.Clip) error {
+	query := `
+		INSERT INTO clips (
+			id, twitch_clip_id, twitch_clip_url, embed_url, title,
+			creator_name, creator_id, broadcaster_name, broadcaster_id,
+			game_id, game_name, language, thumbnail_url, duration,
+			view_count, created_at, imported_at, vote_score, comment_count, favorite_count,
+			is_featured, is_nsfw, is_removed, is_hidden,
+			submitted_by_user_id, submitted_at,
+			stream_source, status, quality, start_time, end_time
+		) VALUES (
+			$1, $2, $3, $4, $5,
+			$6, $7, $8, $9,
+			$10, $11, $12, $13, $14,
+			$15, $16, $17, $18, $19,
+			$20, $21, $22, $23,
+			$24, $25,
+			$26, $27, $28, $29, $30, $31
+		)
+	`
+
+	_, err := r.pool.Exec(ctx, query,
+		clip.ID, clip.TwitchClipID, clip.TwitchClipURL, clip.EmbedURL, clip.Title,
+		clip.CreatorName, clip.CreatorID, clip.BroadcasterName, clip.BroadcasterID,
+		clip.GameID, clip.GameName, clip.Language, clip.ThumbnailURL, clip.Duration,
+		clip.ViewCount, clip.CreatedAt, clip.ImportedAt, clip.VoteScore, clip.CommentCount, clip.FavoriteCount,
+		clip.IsFeatured, clip.IsNSFW, clip.IsRemoved, clip.IsHidden,
+		clip.SubmittedByUserID, clip.SubmittedAt,
+		clip.StreamSource, clip.Status, clip.Quality, clip.StartTime, clip.EndTime,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to create stream clip: %w", err)
 	}
 
 	return nil
@@ -186,7 +237,8 @@ func (r *ClipRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Cli
 			creator_name, creator_id, broadcaster_name, broadcaster_id,
 			game_id, game_name, language, thumbnail_url, duration,
 			view_count, created_at, imported_at, vote_score, comment_count,
-			favorite_count, is_featured, is_nsfw, is_removed, removed_reason, is_hidden
+			favorite_count, is_featured, is_nsfw, is_removed, removed_reason, is_hidden,
+			submitted_by_user_id, submitted_at
 		FROM clips
 		WHERE id = $1 AND is_removed = false
 	`
@@ -199,6 +251,7 @@ func (r *ClipRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Cli
 		&clip.ThumbnailURL, &clip.Duration, &clip.ViewCount, &clip.CreatedAt,
 		&clip.ImportedAt, &clip.VoteScore, &clip.CommentCount, &clip.FavoriteCount,
 		&clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason, &clip.IsHidden,
+		&clip.SubmittedByUserID, &clip.SubmittedAt,
 	)
 
 	if err != nil {
@@ -210,6 +263,9 @@ func (r *ClipRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Cli
 
 // List retrieves clips with pagination
 func (r *ClipRepository) List(ctx context.Context, limit, offset int) ([]models.Clip, error) {
+	// Enforce pagination limits
+	r.helper.EnforcePaginationLimits(&limit, &offset)
+
 	// Delegate to ListWithFilters with empty filters for reuse and to reduce duplication.
 	clips, total, err := r.ListWithFilters(ctx, ClipFilters{Sort: "new"}, limit, offset)
 	if err != nil {
@@ -227,7 +283,8 @@ func (r *ClipRepository) GetRecentClips(ctx context.Context, hours int, limit in
 			creator_name, creator_id, broadcaster_name, broadcaster_id,
 			game_id, game_name, language, thumbnail_url, duration,
 			view_count, created_at, imported_at, vote_score, comment_count,
-			favorite_count, is_featured, is_nsfw, is_removed, removed_reason
+			favorite_count, is_featured, is_nsfw, is_removed, removed_reason,
+			submitted_by_user_id, submitted_at
 		FROM clips
 		WHERE is_removed = false AND created_at > NOW() - INTERVAL '1 hour' * $1
 		ORDER BY view_count DESC, created_at DESC
@@ -250,6 +307,7 @@ func (r *ClipRepository) GetRecentClips(ctx context.Context, hours int, limit in
 			&clip.ThumbnailURL, &clip.Duration, &clip.ViewCount, &clip.CreatedAt,
 			&clip.ImportedAt, &clip.VoteScore, &clip.CommentCount, &clip.FavoriteCount,
 			&clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason,
+			&clip.SubmittedByUserID, &clip.SubmittedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan clip: %w", err)
@@ -302,18 +360,84 @@ type ClipFilters struct {
 	GameID            *string
 	BroadcasterID     *string
 	Tag               *string
+	ExcludeTags       []string // Exclude clips with any of these tag slugs
 	Search            *string
 	Language          *string // Language code (e.g., en, es, fr)
 	Timeframe         *string // hour, day, week, month, year, all
-	Sort              string  // hot, new, top, rising, discussed
+	DateFrom          *string // ISO 8601 date string for custom date range start
+	DateTo            *string // ISO 8601 date string for custom date range end
+	Sort              string  // hot, new, top, rising, discussed, trending
 	Top10kStreamers   bool    // Filter clips to only top 10k streamers
 	ShowHidden        bool    // If true, include hidden clips (for owners/admins)
 	CreatorID         *string // Filter by creator ID (for creator dashboard)
+	SubmittedByUserID *string // Filter by submitted_by_user_id (for user profile submissions)
 	UserSubmittedOnly bool    // If true, only show clips with submitted_by_user_id IS NOT NULL
+	Cursor            *string // Cursor for cursor-based pagination (base64 encoded)
+}
+
+// buildDateFilterClauses adds date range and timeframe filtering clauses
+// Note: DateFrom and DateTo are validated before being passed to this function
+// to prevent SQL injection. See validateDateFilter in handlers.
+func buildDateFilterClauses(filters ClipFilters, whereClauses []string) []string {
+	// Add custom date range filter (overrides timeframe if provided)
+	// Date strings should already be validated as ISO 8601 format by the handler
+	if filters.DateFrom != nil && *filters.DateFrom != "" {
+		whereClauses = append(whereClauses, fmt.Sprintf("c.created_at >= '%s'", *filters.DateFrom))
+	}
+	if filters.DateTo != nil && *filters.DateTo != "" {
+		whereClauses = append(whereClauses, fmt.Sprintf("c.created_at <= '%s'", *filters.DateTo))
+	}
+
+	// Only apply timeframe if custom date range is not provided
+	customDateRangeProvided := (filters.DateFrom != nil && *filters.DateFrom != "") || (filters.DateTo != nil && *filters.DateTo != "")
+
+	if !customDateRangeProvided {
+		// Add timeframe filter for top sort
+		if filters.Sort == "top" && filters.Timeframe != nil {
+			switch *filters.Timeframe {
+			case "hour":
+				whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '1 hour'")
+			case "day":
+				whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '1 day'")
+			case "week":
+				whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '7 days'")
+			case "month":
+				whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '30 days'")
+			case "year":
+				whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '365 days'")
+			}
+		}
+
+		// Add timeframe for rising (recent clips only)
+		if filters.Sort == "rising" {
+			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '48 hours'")
+		}
+
+		// Add timeframe for discussed (recent clips only, optional)
+		if filters.Sort == "discussed" && filters.Timeframe != nil {
+			switch *filters.Timeframe {
+			case "hour":
+				whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '1 hour'")
+			case "day":
+				whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '1 day'")
+			case "week":
+				whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '7 days'")
+			case "month":
+				whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '30 days'")
+			case "year":
+				whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '365 days'")
+			}
+		}
+	}
+
+	return whereClauses
 }
 
 // ListWithFilters retrieves clips with filters, sorting, and pagination
 func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilters, limit, offset int) ([]models.Clip, int, error) {
+	// Enforce pagination limits
+	r.helper.EnforcePaginationLimits(&limit, &offset)
+
 	// Build WHERE clause
 	whereClauses := []string{"c.is_removed = false"}
 
@@ -348,6 +472,12 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 		argIndex++
 	}
 
+	if filters.SubmittedByUserID != nil {
+		whereClauses = append(whereClauses, fmt.Sprintf("c.submitted_by_user_id = %s", utils.SQLPlaceholder(argIndex)))
+		args = append(args, *filters.SubmittedByUserID)
+		argIndex++
+	}
+
 	if filters.Tag != nil {
 		whereClauses = append(whereClauses, fmt.Sprintf(`EXISTS (
 			SELECT 1 FROM clip_tags ct
@@ -355,6 +485,17 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 			WHERE ct.clip_id = c.id AND t.slug = %s
 		)`, utils.SQLPlaceholder(argIndex)))
 		args = append(args, *filters.Tag)
+		argIndex++
+	}
+
+	// Exclude clips with any of the specified tags
+	if len(filters.ExcludeTags) > 0 {
+		whereClauses = append(whereClauses, fmt.Sprintf(`NOT EXISTS (
+			SELECT 1 FROM clip_tags ct
+			JOIN tags t ON ct.tag_id = t.id
+			WHERE ct.clip_id = c.id AND t.slug = ANY(%s)
+		)`, utils.SQLPlaceholder(argIndex)))
+		args = append(args, filters.ExcludeTags)
 		argIndex++
 	}
 
@@ -366,7 +507,7 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 
 	if filters.Language != nil && *filters.Language != "" {
 		placeholder := utils.SQLPlaceholder(argIndex)
-		whereClauses = append(whereClauses, fmt.Sprintf("(c.language = %s OR c.language = split_part(%s, '-', 1) OR c.language IS NULL OR c.language = '')", placeholder, placeholder))
+		whereClauses = append(whereClauses, fmt.Sprintf("(c.language = %s OR c.language = split_part(%s, '-', 1))", placeholder, placeholder))
 		args = append(args, *filters.Language)
 		argIndex++
 	}
@@ -379,40 +520,73 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 		)`)
 	}
 
-	// Add timeframe filter for top sort
-	if filters.Sort == "top" && filters.Timeframe != nil {
-		switch *filters.Timeframe {
-		case "hour":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '1 hour'")
-		case "day":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '1 day'")
-		case "week":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '7 days'")
-		case "month":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '30 days'")
-		case "year":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '365 days'")
+	// Add date range and timeframe filtering
+	whereClauses = buildDateFilterClauses(filters, whereClauses)
+
+	// Add cursor-based filtering if cursor is provided
+	if filters.Cursor != nil && *filters.Cursor != "" {
+		cursor, err := utils.DecodeCursor(*filters.Cursor)
+		if err != nil {
+			return nil, 0, fmt.Errorf("invalid cursor: %w", err)
 		}
-	}
 
-	// Add timeframe for rising (recent clips only)
-	if filters.Sort == "rising" {
-		whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '48 hours'")
-	}
+		// Validate that cursor sort key matches requested sort
+		if cursor.SortKey != filters.Sort {
+			return nil, 0, fmt.Errorf("cursor sort key %q does not match requested sort %q", cursor.SortKey, filters.Sort)
+		}
 
-	// Add timeframe for discussed (recent clips only, optional)
-	if filters.Sort == "discussed" && filters.Timeframe != nil {
-		switch *filters.Timeframe {
-		case "hour":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '1 hour'")
-		case "day":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '1 day'")
-		case "week":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '7 days'")
-		case "month":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '30 days'")
-		case "year":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '365 days'")
+		// Add cursor WHERE clause based on sort type
+		// For DESC sorts: WHERE (sort_field < cursor_value) OR (sort_field = cursor_value AND id < cursor_id)
+		// This ensures stable pagination even with duplicate sort values
+		cursorTimestamp := time.Unix(cursor.CreatedAt, 0)
+
+		switch filters.Sort {
+		case "trending":
+			whereClauses = append(whereClauses, fmt.Sprintf(
+				"(COALESCE(c.trending_score, calculate_trending_score(c.view_count, c.vote_score, c.comment_count, c.favorite_count, c.created_at)) < %s OR (COALESCE(c.trending_score, calculate_trending_score(c.view_count, c.vote_score, c.comment_count, c.favorite_count, c.created_at)) = %s AND (c.created_at < %s OR (c.created_at = %s AND c.id < %s))))",
+				utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex+1), utils.SQLPlaceholder(argIndex+2), utils.SQLPlaceholder(argIndex+3), utils.SQLPlaceholder(argIndex+4)))
+			args = append(args, cursor.SortValue, cursor.SortValue, cursorTimestamp, cursorTimestamp, cursor.ClipID)
+			argIndex += 5
+		case "popular":
+			whereClauses = append(whereClauses, fmt.Sprintf(
+				"(COALESCE(c.popularity_index, c.engagement_count, (c.view_count + c.vote_score * 2 + c.comment_count * 3 + c.favorite_count * 2)) < %s OR (COALESCE(c.popularity_index, c.engagement_count, (c.view_count + c.vote_score * 2 + c.comment_count * 3 + c.favorite_count * 2)) = %s AND (c.created_at < %s OR (c.created_at = %s AND c.id < %s))))",
+				utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex+1), utils.SQLPlaceholder(argIndex+2), utils.SQLPlaceholder(argIndex+3), utils.SQLPlaceholder(argIndex+4)))
+			args = append(args, cursor.SortValue, cursor.SortValue, cursorTimestamp, cursorTimestamp, cursor.ClipID)
+			argIndex += 5
+		case "new":
+			whereClauses = append(whereClauses, fmt.Sprintf(
+				"(c.created_at < %s OR (c.created_at = %s AND c.id < %s))",
+				utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex+1), utils.SQLPlaceholder(argIndex+2)))
+			args = append(args, cursorTimestamp, cursorTimestamp, cursor.ClipID)
+			argIndex += 3
+		case "top":
+			whereClauses = append(whereClauses, fmt.Sprintf(
+				"(c.vote_score < %s OR (c.vote_score = %s AND (c.created_at < %s OR (c.created_at = %s AND c.id < %s))))",
+				utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex+1), utils.SQLPlaceholder(argIndex+2), utils.SQLPlaceholder(argIndex+3), utils.SQLPlaceholder(argIndex+4)))
+			args = append(args, cursor.SortValue, cursor.SortValue, cursorTimestamp, cursorTimestamp, cursor.ClipID)
+			argIndex += 5
+		case "discussed":
+			whereClauses = append(whereClauses, fmt.Sprintf(
+				"(c.comment_count < %s OR (c.comment_count = %s AND (c.created_at < %s OR (c.created_at = %s AND c.id < %s))))",
+				utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex+1), utils.SQLPlaceholder(argIndex+2), utils.SQLPlaceholder(argIndex+3), utils.SQLPlaceholder(argIndex+4)))
+			args = append(args, cursor.SortValue, cursor.SortValue, cursorTimestamp, cursorTimestamp, cursor.ClipID)
+			argIndex += 5
+		case "hot", "rising":
+			// For hot and rising, we use created_at as the cursor since the score is dynamically calculated
+			// Note: This means pagination is based on created_at, not the hot/rising score
+			// This is a known limitation but avoids storing calculated scores
+			whereClauses = append(whereClauses, fmt.Sprintf(
+				"(c.created_at < %s OR (c.created_at = %s AND c.id < %s))",
+				utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex+1), utils.SQLPlaceholder(argIndex+2)))
+			args = append(args, cursorTimestamp, cursorTimestamp, cursor.ClipID)
+			argIndex += 3
+		default:
+			// Default to hot score behavior
+			whereClauses = append(whereClauses, fmt.Sprintf(
+				"(c.created_at < %s OR (c.created_at = %s AND c.id < %s))",
+				utils.SQLPlaceholder(argIndex), utils.SQLPlaceholder(argIndex+1), utils.SQLPlaceholder(argIndex+2)))
+			args = append(args, cursorTimestamp, cursorTimestamp, cursor.ClipID)
+			argIndex += 3
 		}
 	}
 
@@ -425,19 +599,25 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 	var orderBy string
 	switch filters.Sort {
 	case "hot":
-		orderBy = "ORDER BY calculate_hot_score(c.vote_score, c.created_at) DESC"
+		orderBy = "ORDER BY calculate_hot_score(c.vote_score, c.created_at) DESC, c.created_at DESC, c.id DESC"
 	case "new":
-		orderBy = "ORDER BY c.created_at DESC"
+		orderBy = "ORDER BY c.created_at DESC, c.id DESC"
 	case "top":
-		orderBy = "ORDER BY c.vote_score DESC, c.created_at DESC"
+		orderBy = "ORDER BY c.vote_score DESC, c.created_at DESC, c.id DESC"
+	case "trending":
+		// Trending: uses pre-calculated trending_score (engagement/age) with fallback to real-time calculation
+		orderBy = "ORDER BY COALESCE(c.trending_score, calculate_trending_score(c.view_count, c.vote_score, c.comment_count, c.favorite_count, c.created_at)) DESC, c.created_at DESC, c.id DESC"
+	case "popular":
+		// Popular: uses pre-calculated popularity_index (total engagement) with fallback
+		orderBy = "ORDER BY COALESCE(c.popularity_index, c.engagement_count, (c.view_count + c.vote_score * 2 + c.comment_count * 3 + c.favorite_count * 2)) DESC, c.created_at DESC, c.id DESC"
 	case "rising":
 		// Rising: recent clips with high velocity (view_count + vote_score combined with recency)
-		orderBy = "ORDER BY (c.vote_score + (c.view_count / 100)) * (1 + 1.0 / (EXTRACT(EPOCH FROM (NOW() - c.created_at)) / 3600.0 + 2)) DESC"
+		orderBy = "ORDER BY (c.vote_score + (c.view_count / 100)) * (1 + 1.0 / (EXTRACT(EPOCH FROM (NOW() - c.created_at)) / 3600.0 + 2)) DESC, c.created_at DESC, c.id DESC"
 	case "discussed":
 		// Discussed: clips with most comments, breaking ties by creation date
-		orderBy = "ORDER BY c.comment_count DESC, c.created_at DESC"
+		orderBy = "ORDER BY c.comment_count DESC, c.created_at DESC, c.id DESC"
 	default:
-		orderBy = "ORDER BY calculate_hot_score(c.vote_score, c.created_at) DESC"
+		orderBy = "ORDER BY calculate_hot_score(c.vote_score, c.created_at) DESC, c.created_at DESC, c.id DESC"
 	}
 
 	// Count query
@@ -456,7 +636,9 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 			c.creator_name, c.creator_id, c.broadcaster_name, c.broadcaster_id,
 			c.game_id, c.game_name, c.language, c.thumbnail_url, c.duration,
 			c.view_count, c.created_at, c.imported_at, c.vote_score, c.comment_count,
-			c.favorite_count, c.is_featured, c.is_nsfw, c.is_removed, c.removed_reason, c.is_hidden
+			c.favorite_count, c.is_featured, c.is_nsfw, c.is_removed, c.removed_reason, c.is_hidden,
+			c.submitted_by_user_id, c.submitted_at,
+			c.trending_score, c.hot_score, c.popularity_index, c.engagement_count
 		FROM clips c
 		%s
 		%s
@@ -479,6 +661,8 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 			&clip.ThumbnailURL, &clip.Duration, &clip.ViewCount, &clip.CreatedAt,
 			&clip.ImportedAt, &clip.VoteScore, &clip.CommentCount, &clip.FavoriteCount,
 			&clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason, &clip.IsHidden,
+			&clip.SubmittedByUserID, &clip.SubmittedAt,
+			&clip.TrendingScore, &clip.HotScore, &clip.PopularityIndex, &clip.EngagementCount,
 		)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan clip: %w", err)
@@ -524,6 +708,9 @@ func (r *ClipRepository) ListScrapedClipsWithFilters(ctx context.Context, filter
 		argIndex++
 	}
 
+	// Note: SubmittedByUserID filter is intentionally not applied here since this method
+	// retrieves only scraped clips (submitted_by_user_id IS NULL). Use ListWithFilters instead.
+
 	if filters.Tag != nil {
 		whereClauses = append(whereClauses, fmt.Sprintf(`EXISTS (
 			SELECT 1 FROM clip_tags ct
@@ -531,6 +718,17 @@ func (r *ClipRepository) ListScrapedClipsWithFilters(ctx context.Context, filter
 			WHERE ct.clip_id = c.id AND t.slug = %s
 		)`, utils.SQLPlaceholder(argIndex)))
 		args = append(args, *filters.Tag)
+		argIndex++
+	}
+
+	// Exclude clips with any of the specified tags
+	if len(filters.ExcludeTags) > 0 {
+		whereClauses = append(whereClauses, fmt.Sprintf(`NOT EXISTS (
+			SELECT 1 FROM clip_tags ct
+			JOIN tags t ON ct.tag_id = t.id
+			WHERE ct.clip_id = c.id AND t.slug = ANY(%s)
+		)`, utils.SQLPlaceholder(argIndex)))
+		args = append(args, filters.ExcludeTags)
 		argIndex++
 	}
 
@@ -555,42 +753,8 @@ func (r *ClipRepository) ListScrapedClipsWithFilters(ctx context.Context, filter
 		)`)
 	}
 
-	// Add timeframe filter for top sort
-	if filters.Sort == "top" && filters.Timeframe != nil {
-		switch *filters.Timeframe {
-		case "hour":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '1 hour'")
-		case "day":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '1 day'")
-		case "week":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '7 days'")
-		case "month":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '30 days'")
-		case "year":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '365 days'")
-		}
-	}
-
-	// Add timeframe for rising (recent clips only)
-	if filters.Sort == "rising" {
-		whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '48 hours'")
-	}
-
-	// Add timeframe for discussed (recent clips only, optional)
-	if filters.Sort == "discussed" && filters.Timeframe != nil {
-		switch *filters.Timeframe {
-		case "hour":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '1 hour'")
-		case "day":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '1 day'")
-		case "week":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '7 days'")
-		case "month":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '30 days'")
-		case "year":
-			whereClauses = append(whereClauses, "c.created_at > NOW() - INTERVAL '365 days'")
-		}
-	}
+	// Add date range and timeframe filtering
+	whereClauses = buildDateFilterClauses(filters, whereClauses)
 
 	whereClause := "WHERE " + whereClauses[0]
 	for i := 1; i < len(whereClauses); i++ {
@@ -637,7 +801,8 @@ func (r *ClipRepository) ListScrapedClipsWithFilters(ctx context.Context, filter
 			c.creator_name, c.creator_id, c.broadcaster_name, c.broadcaster_id,
 			c.game_id, c.game_name, c.language, c.thumbnail_url, c.duration,
 			c.view_count, c.created_at, c.imported_at, c.vote_score, c.comment_count,
-			c.favorite_count, c.is_featured, c.is_nsfw, c.is_removed, c.removed_reason, c.is_hidden
+			c.favorite_count, c.is_featured, c.is_nsfw, c.is_removed, c.removed_reason, c.is_hidden,
+			c.submitted_by_user_id, c.submitted_at
 		FROM clips c
 		%s
 		%s
@@ -660,6 +825,7 @@ func (r *ClipRepository) ListScrapedClipsWithFilters(ctx context.Context, filter
 			&clip.ThumbnailURL, &clip.Duration, &clip.ViewCount, &clip.CreatedAt,
 			&clip.ImportedAt, &clip.VoteScore, &clip.CommentCount, &clip.FavoriteCount,
 			&clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason, &clip.IsHidden,
+			&clip.SubmittedByUserID, &clip.SubmittedAt,
 		)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan scraped clip: %w", err)
@@ -690,6 +856,24 @@ func (r *ClipRepository) IncrementViewCount(ctx context.Context, clipID uuid.UUI
 	}
 
 	return newViewCount, nil
+}
+
+// UpdateVoteScore increments the vote_score by the provided delta and returns the new score
+func (r *ClipRepository) UpdateVoteScore(ctx context.Context, clipID uuid.UUID, delta int64) (int64, error) {
+	query := `
+		UPDATE clips
+		SET vote_score = vote_score + $2
+		WHERE id = $1
+		RETURNING vote_score
+	`
+
+	var newScore int64
+	err := r.pool.QueryRow(ctx, query, clipID, delta).Scan(&newScore)
+	if err != nil {
+		return 0, fmt.Errorf("failed to update vote score: %w", err)
+	}
+
+	return newScore, nil
 }
 
 // Update updates a clip (for admin operations)
@@ -737,6 +921,30 @@ func (r *ClipRepository) SoftDelete(ctx context.Context, clipID uuid.UUID, reaso
 	_, err := r.pool.Exec(ctx, query, clipID, reason)
 	if err != nil {
 		return fmt.Errorf("failed to soft delete clip: %w", err)
+	}
+
+	return nil
+}
+
+// Delete removes a clip record permanently. Accepts either uuid.UUID or string identifiers.
+func (r *ClipRepository) Delete(ctx context.Context, clipID interface{}) error {
+	var id uuid.UUID
+
+	switch v := clipID.(type) {
+	case uuid.UUID:
+		id = v
+	case string:
+		parsed, err := uuid.Parse(v)
+		if err != nil {
+			return fmt.Errorf("invalid clip id: %w", err)
+		}
+		id = parsed
+	default:
+		return fmt.Errorf("unsupported clip id type %T", v)
+	}
+
+	if _, err := r.pool.Exec(ctx, "DELETE FROM clips WHERE id = $1", id); err != nil {
+		return fmt.Errorf("failed to delete clip: %w", err)
 	}
 
 	return nil
@@ -908,7 +1116,8 @@ func (r *ClipRepository) GetByIDs(ctx context.Context, clipIDs []uuid.UUID) ([]m
 			creator_name, creator_id, broadcaster_name, broadcaster_id,
 			game_id, game_name, language, thumbnail_url, duration,
 			view_count, created_at, imported_at, vote_score, comment_count,
-			favorite_count, is_featured, is_nsfw, is_removed, removed_reason
+			favorite_count, is_featured, is_nsfw, is_removed, removed_reason,
+			submitted_by_user_id, submitted_at
 		FROM clips
 		WHERE id = ANY($1)
 	`
@@ -930,6 +1139,7 @@ func (r *ClipRepository) GetByIDs(ctx context.Context, clipIDs []uuid.UUID) ([]m
 			&clip.ThumbnailURL, &clip.Duration, &clip.ViewCount, &clip.CreatedAt,
 			&clip.ImportedAt, &clip.VoteScore, &clip.CommentCount, &clip.FavoriteCount,
 			&clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason,
+			&clip.SubmittedByUserID, &clip.SubmittedAt,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan clip: %w", err)
 		}
@@ -1204,4 +1414,97 @@ AND c.submitted_by_user_id NOT IN (SELECT blocked_user_id FROM blocked_users)
 	}
 
 	return clips, total, nil
+}
+
+// UpdateTrendingScores updates trending_score, hot_score, popularity_index, and engagement_count for all clips
+// This should be called periodically (e.g., hourly) by a scheduler job
+func (r *ClipRepository) UpdateTrendingScores(ctx context.Context) (int64, error) {
+	query := `
+UPDATE clips
+SET
+engagement_count = view_count + (vote_score * 2) + (comment_count * 3) + (favorite_count * 2),
+trending_score = calculate_trending_score(view_count, vote_score, comment_count, favorite_count, created_at),
+hot_score = trending_score,
+popularity_index = view_count + (vote_score * 2) + (comment_count * 3) + (favorite_count * 2)
+WHERE is_removed = false AND is_hidden = false
+`
+
+	result, err := r.pool.Exec(ctx, query)
+	if err != nil {
+		return 0, fmt.Errorf("failed to update trending scores: %w", err)
+	}
+
+	return result.RowsAffected(), nil
+}
+
+// UpdateTrendingScoresForTimeWindow updates trending scores for clips within a specific time window
+// This can be used to update only recent clips for better performance
+func (r *ClipRepository) UpdateTrendingScoresForTimeWindow(ctx context.Context, hours int) (int64, error) {
+	query := `
+UPDATE clips
+SET
+engagement_count = view_count + (vote_score * 2) + (comment_count * 3) + (favorite_count * 2),
+trending_score = calculate_trending_score(view_count, vote_score, comment_count, favorite_count, created_at),
+hot_score = trending_score,
+popularity_index = view_count + (vote_score * 2) + (comment_count * 3) + (favorite_count * 2)
+WHERE is_removed = false
+AND is_hidden = false
+AND created_at > NOW() - INTERVAL '1 hour' * $1
+`
+
+	result, err := r.pool.Exec(ctx, query, hours)
+	if err != nil {
+		return 0, fmt.Errorf("failed to update trending scores for time window: %w", err)
+	}
+
+	return result.RowsAffected(), nil
+}
+
+// GetClipsByIDs retrieves multiple clips by their IDs
+func (r *ClipRepository) GetClipsByIDs(ctx context.Context, clipIDs []uuid.UUID) ([]models.Clip, error) {
+	if len(clipIDs) == 0 {
+		return []models.Clip{}, nil
+	}
+
+	query := `
+SELECT
+id, twitch_clip_id, twitch_clip_url, embed_url, title,
+creator_name, creator_id, broadcaster_name, broadcaster_id,
+game_id, game_name, language, thumbnail_url, duration,
+view_count, created_at, imported_at, vote_score, comment_count,
+favorite_count, is_featured, is_nsfw, is_removed, removed_reason,
+is_hidden, submitted_by_user_id, submitted_at
+FROM clips
+WHERE id = ANY($1)
+AND is_removed = false
+`
+
+	rows, err := r.pool.Query(ctx, query, clipIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query clips: %w", err)
+	}
+	defer rows.Close()
+
+	var clips []models.Clip
+	for rows.Next() {
+		var clip models.Clip
+		err := rows.Scan(
+			&clip.ID, &clip.TwitchClipID, &clip.TwitchClipURL, &clip.EmbedURL, &clip.Title,
+			&clip.CreatorName, &clip.CreatorID, &clip.BroadcasterName, &clip.BroadcasterID,
+			&clip.GameID, &clip.GameName, &clip.Language, &clip.ThumbnailURL, &clip.Duration,
+			&clip.ViewCount, &clip.CreatedAt, &clip.ImportedAt, &clip.VoteScore, &clip.CommentCount,
+			&clip.FavoriteCount, &clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason,
+			&clip.IsHidden, &clip.SubmittedByUserID, &clip.SubmittedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan clip: %w", err)
+		}
+		clips = append(clips, clip)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows iteration error: %w", err)
+	}
+
+	return clips, nil
 }

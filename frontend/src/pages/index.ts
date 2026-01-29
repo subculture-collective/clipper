@@ -26,14 +26,22 @@ export { AuthCallbackPage } from './AuthCallbackPage';
 
 // Protected pages
 export { FavoritesPage } from './FavoritesPage';
+export { WatchHistoryPage } from './WatchHistoryPage';
 export { ProfilePage } from './ProfilePage';
 export { SubmitClipPage } from './SubmitClipPage';
 export { UserSubmissionsPage } from './UserSubmissionsPage';
 export { SettingsPage } from './SettingsPage';
 export { CreatorDashboardPage } from './CreatorDashboardPage';
+export { ChatPage } from './ChatPage';
 export { default as PricingPage } from './PricingPage';
 export { default as SubscriptionSuccessPage } from './SubscriptionSuccessPage';
 export { default as SubscriptionCancelPage } from './SubscriptionCancelPage';
+
+// Watch Party pages
+export { WatchPartyPage } from './WatchPartyPage';
+export { WatchPartyBrowsePage } from './WatchPartyBrowsePage';
+export { WatchPartyCreatePage } from './WatchPartyCreatePage';
+export { WatchPartySettingsPage } from './WatchPartySettingsPage';
 
 // Admin pages
 export { AdminDashboard } from './admin/AdminDashboard';

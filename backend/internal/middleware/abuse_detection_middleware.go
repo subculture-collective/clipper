@@ -34,6 +34,12 @@ var abuseDetectionExemptPaths = map[string]bool{
 	"/api/v1/auth/me":              true,
 }
 
+// Localhost IPs are always allowed (developer workflows)
+var abuseDetectionLocalIPs = map[string]bool{
+	"127.0.0.1": true,
+	"::1":       true,
+}
+
 // AbuseDetectionMiddleware monitors and blocks abusive IPs
 func AbuseDetectionMiddleware(redis *redispkg.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -50,6 +56,10 @@ func AbuseDetectionMiddleware(redis *redispkg.Client) gin.HandlerFunc {
 		}
 
 		ip := c.ClientIP()
+		if abuseDetectionLocalIPs[ip] {
+			c.Next()
+			return
+		}
 		ctx := c.Request.Context()
 
 		// Check if IP is banned

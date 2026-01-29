@@ -3,50 +3,50 @@ package services
 import (
 	"testing"
 	"time"
+
+	"github.com/subculture-collective/clipper/internal/repository"
 )
 
 func TestBuildCacheKey(t *testing.T) {
-	// This would be tested with actual ClipService instance
-	// For now, validating the format and logic
+	svc := &ClipService{}
 
-	tests := []struct {
-		name   string
-		sort   string
-		page   int
-		limit  int
-		gameID string
-		want   string
-	}{
-		{
-			name:  "Basic hot sort",
-			sort:  "hot",
-			page:  1,
-			limit: 25,
-			want:  "clips:list:hot:page:1:limit:25",
-		},
-		{
-			name:   "With game filter",
-			sort:   "top",
-			page:   2,
-			limit:  50,
-			gameID: "123",
-			want:   "clips:list:top:page:2:limit:50:game:123",
-		},
+	gameID := "123"
+	broadcasterID := "456"
+	creatorID := "creator-1"
+	tag := "funny"
+	search := "frog"
+	timeframe := "week"
+	language := "en"
+
+	key := svc.buildCacheKey(repository.ClipFilters{
+		Sort:              "hot",
+		GameID:            &gameID,
+		BroadcasterID:     &broadcasterID,
+		CreatorID:         &creatorID,
+		Tag:               &tag,
+		Search:            &search,
+		Language:          &language,
+		Timeframe:         &timeframe,
+		Top10kStreamers:   true,
+		ShowHidden:        true,
+		UserSubmittedOnly: true,
+	}, 2, 50)
+
+	expected := "clips:list:hot:page:2:limit:50:game:123:broadcaster:456:creator:creator-1:tag:funny:search:frog:timeframe:week:language:en:top10k:true:show_hidden:true:user_submitted_only:true"
+
+	if key != expected {
+		t.Fatalf("expected cache key %q, got %q", expected, key)
 	}
+}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Basic validation that the cache key format is consistent
-			if tt.sort == "" {
-				t.Error("Sort parameter should not be empty")
-			}
-			if tt.page < 1 {
-				t.Error("Page should be at least 1")
-			}
-			if tt.limit < 1 {
-				t.Error("Limit should be at least 1")
-			}
-		})
+func TestBuildCacheKeySeparatesSubmissionScopes(t *testing.T) {
+	svc := &ClipService{}
+
+	userOnly := svc.buildCacheKey(repository.ClipFilters{Sort: "hot", UserSubmittedOnly: true}, 1, 25)
+	showAll := svc.buildCacheKey(repository.ClipFilters{Sort: "hot", UserSubmittedOnly: false}, 1, 25)
+
+	if userOnly == showAll {
+		t.Fatalf("cache key should differ when user-submitted-only flag changes: %q", userOnly)
 	}
 }
 

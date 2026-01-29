@@ -35,7 +35,9 @@ export type NotificationType =
   | 'system_alert'
   | 'clip_comment'
   | 'clip_view_threshold'
-  | 'clip_vote_threshold';
+  | 'clip_vote_threshold'
+  | 'broadcaster_live'
+  | 'stream_live';
 
 export interface NotificationPreferences {
   user_id: string;
@@ -71,6 +73,10 @@ export interface NotificationPreferences {
   notify_clip_rejected: boolean;
   notify_clip_comments: boolean;
   notify_clip_threshold: boolean;
+  
+  // Broadcaster & Stream notifications
+  notify_broadcaster_live: boolean;
+  notify_stream_live: boolean;
   
   // Global preferences
   notify_marketing: boolean;

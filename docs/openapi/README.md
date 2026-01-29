@@ -1,27 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [OpenAPI Specifications](#openapi-specifications)
-  - [Available Specifications](#available-specifications)
-    - [Clip Submission API](#clip-submission-api)
-  - [Viewing the Specifications](#viewing-the-specifications)
-    - [Online Viewers](#online-viewers)
-    - [VS Code Extension](#vs-code-extension)
-  - [Generating Client SDKs](#generating-client-sdks)
-    - [TypeScript/JavaScript](#typescriptjavascript)
-    - [Python](#python)
-    - [Go](#go)
-    - [Other Languages](#other-languages)
-  - [Validating Specifications](#validating-specifications)
-  - [Testing the API](#testing-the-api)
-    - [Using the Swagger UI](#using-the-swagger-ui)
-    - [Using Postman](#using-postman)
-    - [Using cURL](#using-curl)
-  - [Contributing](#contributing)
-  - [Related Documentation](#related-documentation)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 # OpenAPI Specifications
 
 This directory contains OpenAPI 3.0 specifications for the Clipper API.
@@ -29,6 +5,7 @@ This directory contains OpenAPI 3.0 specifications for the Clipper API.
 ## Available Specifications
 
 ### Clip Submission API
+
 - **File**: [`clip-submission-api.yaml`](./clip-submission-api.yaml)
 - **Description**: API for submitting Twitch clips to the platform
 - **Version**: 1.0.0
@@ -38,13 +15,30 @@ This directory contains OpenAPI 3.0 specifications for the Clipper API.
   - `GET /api/v1/submissions` - List user's submissions
   - `GET /api/v1/submissions/stats` - Get submission statistics
 
+### Comments API
+
+- **File**: [`comments-api.yaml`](./comments-api.yaml)
+- **Description**: API for managing comments on clips with nested threading support
+- **Version**: 1.0.0
+- **Endpoints**:
+  - `GET /api/v1/clips/{clipId}/comments` - List comments for a clip (with optional nested replies)
+  - `POST /api/v1/clips/{clipId}/comments` - Create a comment on a clip
+  - `GET /api/v1/comments/{commentId}/replies` - Get direct replies to a comment
+- **Features**:
+  - Flat list or nested tree structure (up to 10 levels deep)
+  - Vote scores and user vote status
+  - Reply counts
+  - Markdown rendering
+  - Author information
+  - Moderation fields (is_removed, removed_reason)
+
 ## Viewing the Specifications
 
 ### Online Viewers
 
 You can view and interact with these specifications using:
 
-1. **Swagger Editor**: https://editor.swagger.io/
+1. **Swagger Editor**: <https://editor.swagger.io/>
    - Copy and paste the YAML content into the editor
 
 2. **Redoc**: Generate a beautiful HTML documentation
@@ -56,7 +50,7 @@ You can view and interact with these specifications using:
    ```bash
    docker run -p 8081:8080 -e SWAGGER_JSON=/api/clip-submission-api.yaml -v $(pwd)/docs/openapi:/api swaggerapi/swagger-ui
    ```
-   Then visit http://localhost:8081
+   Then visit <http://localhost:8081>
 
 ### VS Code Extension
 
@@ -71,6 +65,7 @@ Install the [OpenAPI (Swagger) Editor](https://marketplace.visualstudio.com/item
 You can generate client libraries in various languages using [OpenAPI Generator](https://openapi-generator.tech/):
 
 ### TypeScript/JavaScript
+
 ```bash
 npx @openapitools/openapi-generator-cli generate \
   -i docs/openapi/clip-submission-api.yaml \
@@ -79,6 +74,7 @@ npx @openapitools/openapi-generator-cli generate \
 ```
 
 ### Python
+
 ```bash
 npx @openapitools/openapi-generator-cli generate \
   -i docs/openapi/clip-submission-api.yaml \
@@ -87,6 +83,7 @@ npx @openapitools/openapi-generator-cli generate \
 ```
 
 ### Go
+
 ```bash
 npx @openapitools/openapi-generator-cli generate \
   -i docs/openapi/clip-submission-api.yaml \

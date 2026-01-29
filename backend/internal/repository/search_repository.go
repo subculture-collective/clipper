@@ -147,9 +147,9 @@ func (r *SearchRepository) searchClips(ctx context.Context, tsQuery string, req 
 	// Handle tag filters
 	if len(req.Tags) > 0 {
 		whereClause += fmt.Sprintf(` AND c.id IN (
-			SELECT ct.clip_id 
-			FROM clip_tags ct 
-			JOIN tags t ON ct.tag_id = t.id 
+			SELECT ct.clip_id
+			FROM clip_tags ct
+			JOIN tags t ON ct.tag_id = t.id
 			WHERE t.slug = ANY(%s)
 		)`, utils.SQLPlaceholder(argPos))
 		args = append(args, req.Tags)
@@ -175,7 +175,14 @@ func (r *SearchRepository) searchClips(ctx context.Context, tsQuery string, req 
 	// Get paginated results
 	offset := (req.Page - 1) * req.Limit
 	query := fmt.Sprintf(`
-		SELECT c.* FROM clips c
+		SELECT
+			c.id, c.twitch_clip_id, c.twitch_clip_url, c.embed_url,
+			c.title, c.creator_name, c.creator_id, c.broadcaster_name,
+			c.broadcaster_id, c.game_id, c.game_name, c.language,
+			c.thumbnail_url, c.duration, c.view_count, c.created_at,
+			c.imported_at, c.vote_score, c.comment_count, c.favorite_count,
+			c.is_featured, c.is_nsfw, c.is_removed, c.removed_reason
+		FROM clips c
 		WHERE %s
 		ORDER BY %s
 		LIMIT %s OFFSET %s
@@ -237,7 +244,12 @@ func (r *SearchRepository) searchCreators(ctx context.Context, tsQuery string, r
 	// Get paginated results
 	offset := (req.Page - 1) * req.Limit
 	query := fmt.Sprintf(`
-		SELECT u.* FROM users u
+		SELECT
+			u.id, u.twitch_id, u.username, u.display_name,
+			u.email, u.avatar_url, u.bio, u.karma_points,
+			u.role, u.is_banned, u.created_at, u.updated_at,
+			u.last_login_at
+		FROM users u
 		WHERE %s
 		ORDER BY %s
 		LIMIT %s OFFSET %s
@@ -282,8 +294,8 @@ func (r *SearchRepository) searchGames(ctx context.Context, tsQuery string, req 
 
 	// Get total count
 	countQuery := fmt.Sprintf(`
-		SELECT COUNT(DISTINCT c.game_id) 
-		FROM clips c 
+		SELECT COUNT(DISTINCT c.game_id)
+		FROM clips c
 		WHERE %s
 	`, whereClause)
 	var totalCount int
@@ -396,8 +408,8 @@ func (r *SearchRepository) GetSuggestions(ctx context.Context, query string, lim
 
 	// Search for matching games
 	gameQuery := `
-		SELECT DISTINCT game_name 
-		FROM clips 
+		SELECT DISTINCT game_name
+		FROM clips
 		WHERE game_name ILIKE $1 AND game_name IS NOT NULL AND is_removed = false
 		ORDER BY COUNT(*) OVER (PARTITION BY game_name) DESC
 		LIMIT $2
@@ -418,8 +430,8 @@ func (r *SearchRepository) GetSuggestions(ctx context.Context, query string, lim
 
 	// Search for matching creators
 	creatorQuery := `
-		SELECT DISTINCT creator_name 
-		FROM clips 
+		SELECT DISTINCT creator_name
+		FROM clips
 		WHERE creator_name ILIKE $1 AND is_removed = false
 		ORDER BY COUNT(*) OVER (PARTITION BY creator_name) DESC
 		LIMIT $2
@@ -440,8 +452,8 @@ func (r *SearchRepository) GetSuggestions(ctx context.Context, query string, lim
 
 	// Search for matching tags
 	tagQuery := `
-		SELECT name 
-		FROM tags 
+		SELECT name
+		FROM tags
 		WHERE name ILIKE $1
 		ORDER BY usage_count DESC
 		LIMIT $2
@@ -470,6 +482,158 @@ func (r *SearchRepository) TrackSearch(ctx context.Context, userID *uuid.UUID, q
 		VALUES ($1, $2, $3)
 	`, userID, query, resultCount)
 	return err
+}
+
+// GetTrendingSearches returns the most popular search queries in a given time period
+func (r *SearchRepository) GetTrendingSearches(ctx context.Context, days int, limit int) ([]models.TrendingSearch, error) {
+	if days <= 0 {
+		days = 7
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+
+	query := `
+		SELECT
+			query,
+			COUNT(*) as search_count,
+			COUNT(DISTINCT user_id) as unique_users,
+			AVG(result_count)::int as avg_results
+		FROM search_queries
+		WHERE created_at >= NOW() - $1 * INTERVAL '1 day'
+			AND query != ''
+		GROUP BY query
+		ORDER BY search_count DESC
+		LIMIT $2
+	`
+
+	rows, err := r.db.Query(ctx, query, days, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get trending searches: %w", err)
+	}
+	defer rows.Close()
+
+	var searches []models.TrendingSearch
+	for rows.Next() {
+		var search models.TrendingSearch
+		if err := rows.Scan(&search.Query, &search.SearchCount, &search.UniqueUsers, &search.AvgResults); err != nil {
+			return nil, fmt.Errorf("failed to scan trending search: %w", err)
+		}
+		searches = append(searches, search)
+	}
+
+	return searches, nil
+}
+
+// GetFailedSearches returns searches that returned no results
+func (r *SearchRepository) GetFailedSearches(ctx context.Context, days int, limit int) ([]models.FailedSearch, error) {
+	if days <= 0 {
+		days = 7
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+
+	query := `
+		SELECT
+			query,
+			COUNT(*) as search_count,
+			MAX(created_at) as last_searched
+		FROM search_queries
+		WHERE created_at >= NOW() - $1 * INTERVAL '1 day'
+			AND result_count = 0
+			AND query != ''
+		GROUP BY query
+		ORDER BY search_count DESC
+		LIMIT $2
+	`
+
+	rows, err := r.db.Query(ctx, query, days, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get failed searches: %w", err)
+	}
+	defer rows.Close()
+
+	var searches []models.FailedSearch
+	for rows.Next() {
+		var search models.FailedSearch
+		if err := rows.Scan(&search.Query, &search.SearchCount, &search.LastSearched); err != nil {
+			return nil, fmt.Errorf("failed to scan failed search: %w", err)
+		}
+		searches = append(searches, search)
+	}
+
+	return searches, nil
+}
+
+// GetUserSearchHistory returns a user's recent search queries
+func (r *SearchRepository) GetUserSearchHistory(ctx context.Context, userID uuid.UUID, limit int) ([]models.SearchHistoryItem, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+
+	query := `
+		SELECT
+			query,
+			result_count,
+			created_at
+		FROM search_queries
+		WHERE user_id = $1
+		ORDER BY created_at DESC
+		LIMIT $2
+	`
+
+	rows, err := r.db.Query(ctx, query, userID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user search history: %w", err)
+	}
+	defer rows.Close()
+
+	var history []models.SearchHistoryItem
+	for rows.Next() {
+		var item models.SearchHistoryItem
+		if err := rows.Scan(&item.Query, &item.ResultCount, &item.CreatedAt); err != nil {
+			return nil, fmt.Errorf("failed to scan search history item: %w", err)
+		}
+		history = append(history, item)
+	}
+
+	return history, nil
+}
+
+// GetSearchAnalyticsSummary returns overall search analytics
+func (r *SearchRepository) GetSearchAnalyticsSummary(ctx context.Context, days int) (*models.SearchAnalyticsSummary, error) {
+	if days <= 0 {
+		days = 7
+	}
+
+	query := `
+		SELECT
+			COUNT(*) as total_searches,
+			COUNT(DISTINCT user_id) as unique_users,
+			COUNT(CASE WHEN result_count = 0 THEN 1 END) as failed_searches,
+			AVG(result_count)::int as avg_results_per_search
+		FROM search_queries
+		WHERE created_at >= NOW() - $1 * INTERVAL '1 day'
+	`
+
+	var summary models.SearchAnalyticsSummary
+	err := r.db.QueryRow(ctx, query, days).Scan(
+		&summary.TotalSearches,
+		&summary.UniqueUsers,
+		&summary.FailedSearches,
+		&summary.AvgResultsPerSearch,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get search analytics summary: %w", err)
+	}
+
+	// Calculate success rate
+	if summary.TotalSearches > 0 {
+		summary.SuccessRate = float64(summary.TotalSearches-summary.FailedSearches) / float64(summary.TotalSearches) * 100
+	}
+
+	return &summary, nil
 }
 
 // parseQueryToTSQuery converts a search query to PostgreSQL tsquery format

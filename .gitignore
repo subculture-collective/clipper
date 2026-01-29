@@ -1,17 +1,36 @@
-# Environment files
+# Environment files - NEVER commit these!
 .env
 .env.local
 .env.*.local
+*.env
 backend/.env
+backend/.env.*
 backend/env.production
+backend/.env.production
 frontend/.env
+frontend/.env.*
 frontend/env.production
+frontend/frontend.env
+mobile/.env
+mobile/.env.*
+
+# Secrets and Vault files - NEVER commit these!
 secrets/
 vault/approle/role_id
 vault/approle/secret_id
-vault/rendered/backend.env
-vault/rendered/frontend.env
+vault/approle/frontend_role_id
+vault/approle/frontend_secret_id
 vault/rendered/
+vault/rendered/*
+*.pem
+*.key
+*_key
+*_secret
+
+# Rotation and backup files
+rotation-log.txt
+/secure/
+*.emergency
 
 # Dependencies
 node_modules/
@@ -19,8 +38,6 @@ vendor/
 
 # OS files
 .DS_Store
-.env.*.local
-frontend/frontend.env
 Thumbs.db
 
 # IDE
@@ -37,6 +54,7 @@ logs/
 # Temporary files
 tmp/
 temp/
+.tmp/
 
 # Build outputs
 dist/
@@ -48,6 +66,8 @@ build/
 coverage/
 coverage.out
 coverage.html
+coverage-integration.out
+coverage-integration.html
 *.coverprofile
 
 # Test artifacts
@@ -57,10 +77,12 @@ test-results/
 
 # k6 test results
 summary.json
-vault/approle/frontend_role_id
-vault/approle/frontend_secret_id
-frontend/frontend.env
-<<<<<<< HEAD
-=======
-backend/.env.production
->>>>>>> main
+docs/.obsidian/plugins
+
+# Playwright
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+coverage.html
+test-reports/

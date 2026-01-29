@@ -1,43 +1,12 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
--   [Scraped Clips Feature Documentation](#scraped-clips-feature-documentation)
-    -   [Overview](#overview)
-    -   [Feature Description](#feature-description)
-        -   [Purpose](#purpose)
-        -   [User Experience](#user-experience)
-    -   [Technical Implementation](#technical-implementation)
-        -   [Frontend Components](#frontend-components)
-        -   [Backend API](#backend-api)
-        -   [Navigation Integration](#navigation-integration)
-        -   [Data Model](#data-model)
-    -   [User Flows](#user-flows)
-        -   [Discovering Scraped Clips](#discovering-scraped-clips)
-        -   [Submitting a Scraped Clip](#submitting-a-scraped-clip)
-    -   [Analytics Considerations](#analytics-considerations)
-    -   [Future Enhancements](#future-enhancements)
-    -   [Testing](#testing)
-        -   [Frontend Testing](#frontend-testing)
-        -   [Backend Testing](#backend-testing)
-        -   [Integration Testing](#integration-testing)
-    -   [Configuration](#configuration)
-    -   [Security Considerations](#security-considerations)
-    -   [Performance](#performance)
-    -   [Deployment](#deployment)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
-
-title: "Scraped Clips Feature Documentation"
-summary: "The Scraped Clips feature provides a separate UI section for discovering clips that have been automa"
+title: 'Scraped Clips Feature Documentation'
+summary: 'The Scraped Clips feature provides a separate UI section for discovering clips that have been automa'
 tags: ['product']
-area: "product"
-status: "stable"
-owner: "team-core"
-version: "1.0"
+area: 'product'
+status: 'stable'
+owner: 'team-core'
+version: '1.0'
 last_reviewed: 2025-12-11
-
 ---
 
 # Scraped Clips Feature Documentation
@@ -52,10 +21,10 @@ The Scraped Clips feature provides a separate UI section for discovering clips t
 
 ### Purpose
 
--   Provide users with a curated feed of interesting Twitch clips
--   Encourage community engagement by allowing users to submit discovered clips
--   Create a clear distinction between user-submitted and auto-discovered content
--   Serve as a content pool for users to discover and post clips
+- Provide users with a curated feed of interesting Twitch clips
+- Encourage community engagement by allowing users to submit discovered clips
+- Create a clear distinction between user-submitted and auto-discovered content
+- Serve as a content pool for users to discover and post clips
 
 ### Content Filtering Strategy
 
@@ -86,30 +55,30 @@ Users can:
 
 #### 1. ScrapedClipsPage (`/frontend/src/pages/ScrapedClipsPage.tsx`)
 
--   Main page component for scraped clips discovery
--   Located at route: `/discover/scraped`
--   Features:
-    -   Page header with description
-    -   Info banner explaining the "From Twitch" nature
-    -   Tabbed interface (Trending, Latest, Top Views)
-    -   Top 10k streamers toggle
-    -   Integration with ScrapedClipFeed component
+- Main page component for scraped clips discovery
+- Located at route: `/discover/scraped`
+- Features:
+    - Page header with description
+    - Info banner explaining the "From Twitch" nature
+    - Tabbed interface (Trending, Latest, Top Views)
+    - Top 10k streamers toggle
+    - Integration with ScrapedClipFeed component
 
 #### 2. ScrapedClipFeed (`/frontend/src/components/clip/ScrapedClipFeed.tsx`)
 
--   Feed component for displaying scraped clips
--   Reuses existing ClipCard component
--   Features:
-    -   Infinite scroll pagination
-    -   Pull-to-refresh (mobile)
-    -   Filter and sort controls
-    -   Loading/error/empty states
-    -   Responsive design
+- Feed component for displaying scraped clips
+- Reuses existing ClipCard component
+- Features:
+    - Infinite scroll pagination
+    - Pull-to-refresh (mobile)
+    - Filter and sort controls
+    - Loading/error/empty states
+    - Responsive design
 
 #### 3. ClipCard Component
 
--   Existing component automatically shows "Post This Clip" button for clips without `submitted_by` data
--   Button navigates to submit page with clip URL pre-filled
+- Existing component automatically shows "Post This Clip" button for clips without `submitted_by` data
+- Button navigates to submit page with clip URL pre-filled
 
 ### Backend API
 
@@ -119,16 +88,16 @@ Users can:
 
 **Query Parameters:**
 
--   `page` (integer): Page number for pagination (default: 1)
--   `limit` (integer): Items per page (default: 25, max: 100)
--   `sort` (string): Sort order - `trending`, `new`, `views`, `top`, `rising`, `discussed` (default: `new`)
--   `timeframe` (string): Time filter for top/discussed sorts - `hour`, `day`, `week`, `month`, `year`, `all`
--   `game_id` (string): Filter by game ID
--   `broadcaster_id` (string): Filter by broadcaster ID
--   `tag` (string): Filter by tag slug
--   `search` (string): Search in clip titles
--   `language` (string): Filter by language code
--   `top10k_streamers` (boolean): Only show clips from top 10k streamers
+- `page` (integer): Page number for pagination (default: 1)
+- `limit` (integer): Items per page (default: 25, max: 100)
+- `sort` (string): Sort order - `trending`, `new`, `views`, `top`, `rising`, `discussed` (default: `new`)
+- `timeframe` (string): Time filter for top/discussed sorts - `hour`, `day`, `week`, `month`, `year`, `all`
+- `game_id` (string): Filter by game ID
+- `broadcaster_id` (string): Filter by broadcaster ID
+- `tag` (string): Filter by tag slug
+- `search` (string): Search in clip titles
+- `language` (string): Filter by language code
+- `top10k_streamers` (boolean): Only show clips from top 10k streamers
 
 **Response:**
 
@@ -164,17 +133,17 @@ Users can:
 
 **Repository Method:** `ListScrapedClipsWithFilters`
 
--   Location: `/backend/internal/repository/clip_repository.go`
--   Filters clips where `submitted_by_user_id IS NULL`
--   Supports same filtering/sorting as regular clips
--   Excludes removed and optionally hidden clips
+- Location: `/backend/internal/repository/clip_repository.go`
+- Filters clips where `submitted_by_user_id IS NULL`
+- Supports same filtering/sorting as regular clips
+- Excludes removed and optionally hidden clips
 
 **Service Method:** `ListScrapedClips`
 
--   Location: `/backend/internal/services/clip_service.go`
--   Adds Redis caching for non-authenticated requests
--   Enriches clips with vote counts and user-specific data
--   Returns clips with `ClipWithUserData` structure
+- Location: `/backend/internal/services/clip_service.go`
+- Adds Redis caching for non-authenticated requests
+- Enriches clips with vote counts and user-specific data
+- Returns clips with `ClipWithUserData` structure
 
 ### Navigation Integration
 
@@ -188,9 +157,9 @@ The feature is accessible through:
 
 Scraped clips are identified by:
 
--   `submitted_by_user_id` field is `NULL`
--   Automatically imported from Twitch via sync jobs
--   Can be "claimed" when a user submits them (field becomes non-null)
+- `submitted_by_user_id` field is `NULL`
+- Automatically imported from Twitch via sync jobs
+- Can be "claimed" when a user submits them (field becomes non-null)
 
 ## User Flows
 
@@ -214,11 +183,11 @@ Scraped clips are identified by:
 
 The following analytics should be tracked (future enhancement):
 
--   Page views for `/discover/scraped`
--   "Post This Clip" button clicks
--   Conversion rate (views → clip submissions)
--   Most viewed/engaged scraped clips
--   Filter/sort usage patterns
+- Page views for `/discover/scraped`
+- "Post This Clip" button clicks
+- Conversion rate (views → clip submissions)
+- Most viewed/engaged scraped clips
+- Filter/sort usage patterns
 
 ## Future Enhancements
 
@@ -234,48 +203,48 @@ Potential improvements:
 
 ### Frontend Testing
 
--   Component renders without errors
--   Pagination works correctly
--   Filters apply properly
--   "Post This Clip" button navigates correctly
--   Responsive design on mobile/desktop
+- Component renders without errors
+- Pagination works correctly
+- Filters apply properly
+- "Post This Clip" button navigates correctly
+- Responsive design on mobile/desktop
 
 ### Backend Testing
 
--   API endpoint returns correct data
--   Filters work as expected
--   Pagination metadata accurate
--   Only returns unclaimed clips
--   Proper error handling
+- API endpoint returns correct data
+- Filters work as expected
+- Pagination metadata accurate
+- Only returns unclaimed clips
+- Proper error handling
 
 ### Integration Testing
 
--   End-to-end clip discovery flow
--   Clip submission from scraped feed
--   Clip claiming mechanism works correctly
+- End-to-end clip discovery flow
+- Clip submission from scraped feed
+- Clip claiming mechanism works correctly
 
 ## Configuration
 
 No special configuration required. The feature uses existing:
 
--   Database schema (clips table)
--   Authentication system
--   Caching infrastructure (Redis)
--   API infrastructure
+- Database schema (clips table)
+- Authentication system
+- Caching infrastructure (Redis)
+- API infrastructure
 
 ## Security Considerations
 
--   Public endpoint (no authentication required)
--   Read-only access to scraped clips
--   Submission requires authentication (existing flow)
--   Rate limiting applies to submission endpoint
+- Public endpoint (no authentication required)
+- Read-only access to scraped clips
+- Submission requires authentication (existing flow)
+- Rate limiting applies to submission endpoint
 
 ## Performance
 
--   Redis caching reduces database load
--   Pagination limits response size
--   Infinite scroll provides smooth UX
--   Materialized views could be added for hot/trending sorts if needed
+- Redis caching reduces database load
+- Pagination limits response size
+- Infinite scroll provides smooth UX
+- Materialized views could be added for hot/trending sorts if needed
 
 ## Deployment
 

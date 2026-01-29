@@ -1,16 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Pipelines: Data Ingestion](#pipelines-data-ingestion)
-  - [Overview](#overview)
-  - [User Submission Flow](#user-submission-flow)
-  - [Twitch API Integration](#twitch-api-integration)
-  - [Validation](#validation)
-  - [Background Discovery (Future)](#background-discovery-future)
-  - [Error Handling](#error-handling)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Data Ingestion"
 summary: "How Clipper ingests Twitch clips into the platform."

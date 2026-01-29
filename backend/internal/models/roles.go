@@ -9,10 +9,17 @@ const (
 
 // Account type constants
 const (
-	AccountTypeMember      = "member"
-	AccountTypeBroadcaster = "broadcaster"
-	AccountTypeModerator   = "moderator"
-	AccountTypeAdmin       = "admin"
+	AccountTypeMember             = "member"
+	AccountTypeBroadcaster        = "broadcaster"
+	AccountTypeModerator          = "moderator"
+	AccountTypeCommunityModerator = "community_moderator"
+	AccountTypeAdmin              = "admin"
+)
+
+// Moderator scope constants
+const (
+	ModeratorScopeSite      = "site"
+	ModeratorScopeCommunity = "community"
 )
 
 // Permission constants
@@ -31,6 +38,11 @@ const (
 	PermissionModerateContent      = "moderate:content"
 	PermissionModerateUsers        = "moderate:users"
 	PermissionCreateDiscoveryLists = "create:discovery_lists"
+
+	// Community Moderator permissions (channel-scoped moderation)
+	PermissionCommunityModerate    = "community:moderate"
+	PermissionViewChannelAnalytics = "view:channel_analytics"
+	PermissionManageModerators     = "manage:moderators"
 
 	// Admin permissions (includes all permissions)
 	PermissionManageUsers            = "manage:users"
@@ -69,6 +81,23 @@ var accountTypePermissions = map[string][]string{
 		PermissionModerateContent,
 		PermissionModerateUsers,
 		PermissionCreateDiscoveryLists,
+		// User management permissions
+		PermissionManageUsers,
+	},
+	// Community Moderator: Channel-scoped moderator with limited permissions
+	// Has exactly 4 permissions for managing their assigned channel(s):
+	// 1. community:moderate - Core community moderation capability
+	// 2. moderate:users - Ability to moderate user actions within their scope
+	// 3. view:channel_analytics - Access to channel-specific analytics
+	// 4. manage:moderators - Ability to manage other moderators in their channel
+	// NOTE: Permissions are currently global. Future issues will add channel-scoping
+	// logic to limit these permissions to only the channels where the user is assigned
+	// as a community moderator
+	AccountTypeCommunityModerator: {
+		PermissionCommunityModerate,
+		PermissionModerateUsers,
+		PermissionViewChannelAnalytics,
+		PermissionManageModerators,
 	},
 	AccountTypeAdmin: {
 		// All moderator permissions
@@ -81,6 +110,10 @@ var accountTypePermissions = map[string][]string{
 		PermissionModerateContent,
 		PermissionModerateUsers,
 		PermissionCreateDiscoveryLists,
+		// Community moderator permissions
+		PermissionCommunityModerate,
+		PermissionViewChannelAnalytics,
+		PermissionManageModerators,
 		// Admin-specific permissions
 		PermissionManageUsers,
 		PermissionManageSystem,
@@ -102,7 +135,7 @@ func IsValidRole(role string) bool {
 // IsValidAccountType checks if an account type string is valid
 func IsValidAccountType(accountType string) bool {
 	switch accountType {
-	case AccountTypeMember, AccountTypeBroadcaster, AccountTypeModerator, AccountTypeAdmin:
+	case AccountTypeMember, AccountTypeBroadcaster, AccountTypeModerator, AccountTypeCommunityModerator, AccountTypeAdmin:
 		return true
 	default:
 		return false
@@ -183,4 +216,29 @@ func (u *User) GetAccountType() string {
 func (u *User) GetPermissions() []string {
 	accountType := u.GetAccountType()
 	return GetAccountTypePermissions(accountType)
+}
+
+// IsValidModerator checks if the user has valid moderator configuration
+func (u *User) IsValidModerator() bool {
+	// If ModeratorScope is not set, user is not a moderator
+	if u.ModeratorScope == "" {
+		return true // Not a moderator is valid
+	}
+
+	// Validate scope value
+	if u.ModeratorScope != ModeratorScopeSite && u.ModeratorScope != ModeratorScopeCommunity {
+		return false
+	}
+
+	// Site moderators should have empty channel list
+	if u.ModeratorScope == ModeratorScopeSite && len(u.ModerationChannels) > 0 {
+		return false
+	}
+
+	// Community moderators must have at least one channel
+	if u.ModeratorScope == ModeratorScopeCommunity && len(u.ModerationChannels) == 0 {
+		return false
+	}
+
+	return true
 }

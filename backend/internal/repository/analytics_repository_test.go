@@ -126,3 +126,7 @@ func TestExtractCountryFromIP(t *testing.T) {
 		})
 	}
 }
+
+// Note: Trivial struct field tests removed as they provide no value.
+// Integration tests with actual database operations would be more valuable
+// but are beyond the scope of this implementation.

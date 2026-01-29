@@ -14,6 +14,7 @@ export function RisingFeedPage() {
           title="Rising Clips"
           description="Clips trending upward"
           defaultSort="rising"
+          showSearch
         />
       </Container>
     </>

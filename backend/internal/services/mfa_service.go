@@ -50,9 +50,9 @@ const (
 	backupCodeLength = 8
 
 	// Security configuration
-	maxFailedAttempts = 5
-	lockoutDuration   = 1 * time.Hour
-	trustedDeviceTTL  = 30 * 24 * time.Hour // 30 days
+	// maxFailedAttempts = 5
+	// lockoutDuration   = 1 * time.Hour
+	trustedDeviceTTL = 30 * 24 * time.Hour // 30 days
 
 	// Rate limiting
 	rateLimitWindow = 15 * time.Minute
@@ -436,12 +436,22 @@ func (s *MFAService) GetMFAStatus(ctx context.Context, userID uuid.UUID) (*model
 		Enabled:              false,
 		BackupCodesRemaining: 0,
 		TrustedDevicesCount:  0,
+		Required:             false,
+		InGracePeriod:        false,
 	}
 
-	if mfa != nil && mfa.Enabled {
-		status.Enabled = true
+	if mfa != nil {
+		status.Enabled = mfa.Enabled
 		status.EnrolledAt = mfa.EnrolledAt
 		status.BackupCodesRemaining = len(mfa.BackupCodes)
+		status.Required = mfa.MFARequired
+		status.RequiredAt = mfa.MFARequiredAt
+		status.GracePeriodEnd = mfa.GracePeriodEnd
+
+		// Check if in grace period
+		if mfa.MFARequired && !mfa.Enabled && mfa.GracePeriodEnd != nil {
+			status.InGracePeriod = time.Now().Before(*mfa.GracePeriodEnd)
+		}
 
 		// Count trusted devices
 		devices, _ := s.mfaRepo.GetTrustedDevices(ctx, userID)
@@ -650,4 +660,59 @@ func GenerateDeviceFingerprint(userAgent, ipAddress string) string {
 	data := fmt.Sprintf("%s:%s", userAgent, ipAddress)
 	hash := sha256.Sum256([]byte(data))
 	return hex.EncodeToString(hash[:])
+}
+
+// SetMFARequired marks MFA as required for a user (e.g., when promoted to admin/moderator)
+func (s *MFAService) SetMFARequired(ctx context.Context, userID uuid.UUID) error {
+	// Set MFA required with 7-day grace period
+	gracePeriodDays := 7
+	return s.mfaRepo.SetMFARequired(ctx, userID, gracePeriodDays)
+}
+
+// CheckMFARequired checks if MFA is required for a user and returns enforcement status
+func (s *MFAService) CheckMFARequired(ctx context.Context, userID uuid.UUID) (required bool, enabled bool, inGracePeriod bool, err error) {
+	mfa, err := s.mfaRepo.GetMFAByUserID(ctx, userID)
+	if err != nil {
+		return false, false, false, fmt.Errorf("failed to check MFA requirement: %w", err)
+	}
+
+	if mfa == nil {
+		return false, false, false, nil
+	}
+
+	required = mfa.MFARequired
+	enabled = mfa.Enabled
+
+	// Check if in grace period
+	if required && !enabled && mfa.GracePeriodEnd != nil {
+		inGracePeriod = time.Now().Before(*mfa.GracePeriodEnd)
+	}
+
+	return required, enabled, inGracePeriod, nil
+}
+
+// IsAdminActionAllowed checks if an admin/moderator action is allowed based on MFA status
+func (s *MFAService) IsAdminActionAllowed(ctx context.Context, userID uuid.UUID) (bool, string, error) {
+	required, enabled, inGracePeriod, err := s.CheckMFARequired(ctx, userID)
+	if err != nil {
+		return false, "", err
+	}
+
+	// If MFA is not required, allow action
+	if !required {
+		return true, "", nil
+	}
+
+	// If MFA is enabled, allow action
+	if enabled {
+		return true, "", nil
+	}
+
+	// If in grace period, allow action with warning
+	if inGracePeriod {
+		return true, "MFA setup required: Please enable MFA soon. Your grace period will expire.", nil
+	}
+
+	// Grace period expired and MFA not enabled - block action
+	return false, "MFA is required for admin actions. Please enable MFA to continue.", nil
 }

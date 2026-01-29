@@ -233,6 +233,24 @@ We may offer free trial periods for Premium Subscriptions. If you sign up for a 
 
 The Service integrates with Twitch and displays content from Twitch. Your use of Twitch content through the Service is subject to [Twitch's Terms of Service](https://www.twitch.tv/p/legal/terms-of-service/) and [Twitch's Community Guidelines](https://www.twitch.tv/p/legal/community-guidelines/). We are not responsible for Twitch content or any interruption in Twitch's services.
 
+**Important Twitch Compliance Disclosures:**
+
+- **Content Ownership:** All Twitch clips, streams, and other content displayed on Clipper remain the property of their respective creators and Twitch. Clipper does not claim ownership of any Twitch content.
+
+- **Embed-Only Playback:** All Twitch videos and clips are displayed using official Twitch embed players. We do NOT download, re-host, proxy, or redistribute Twitch video files.
+
+- **Official APIs Only:** We access Twitch data exclusively through official Twitch Helix API endpoints. We do not scrape, parse, or use unofficial methods to access Twitch data.
+
+- **Creator Rights:** Creators retain all rights to their content. If a clip is deleted by its creator or removed from Twitch, it will no longer be available on Clipper.
+
+- **DMCA Compliance:** We comply with all DMCA takedown requests. If Twitch removes content due to copyright claims, that content will automatically become unavailable on Clipper.
+
+- **OAuth Authorization:** When you connect your Twitch account to Clipper, you explicitly authorize us to access only the scopes you approve (e.g., chat:read, chat:edit). You can revoke this authorization at any time.
+
+- **Data Usage:** We use Twitch data only for providing Service functionality (clip discovery, stream viewing, chat integration). We do NOT sell, license, or redistribute Twitch data to third parties.
+
+For complete details on our Twitch compliance practices, see our [Twitch Compliance Documentation](/docs/compliance/).
+
 ### 8.2 Third-Party Links
 
 The Service may contain links to third-party websites, services, or resources. We are not responsible for the content, policies, or practices of any third-party websites or services. You access third-party links at your own risk.

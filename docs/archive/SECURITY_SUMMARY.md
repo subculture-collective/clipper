@@ -1,35 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Security Summary](#security-summary)
-  - [Security Scanning and Vulnerability Management](#security-scanning-and-vulnerability-management)
-  - [Executive Summary](#executive-summary)
-  - [Security Scanning Infrastructure](#security-scanning-infrastructure)
-    - [1. Static Application Security Testing (SAST)](#1-static-application-security-testing-sast)
-    - [2. Dependency Vulnerability Scanning](#2-dependency-vulnerability-scanning)
-    - [3. Secret Scanning](#3-secret-scanning)
-  - [Vulnerability Fixes Applied](#vulnerability-fixes-applied)
-    - [1. js-yaml Prototype Pollution (Moderate Severity)](#1-js-yaml-prototype-pollution-moderate-severity)
-  - [Security Best Practices Implemented](#security-best-practices-implemented)
-    - [Code Security](#code-security)
-    - [Infrastructure Security](#infrastructure-security)
-    - [Development Security](#development-security)
-  - [Compliance Status](#compliance-status)
-    - [OWASP Top 10 (2021)](#owasp-top-10-2021)
-  - [CI/CD Security Integration](#cicd-security-integration)
-    - [Pull Request Checks](#pull-request-checks)
-    - [Continuous Monitoring](#continuous-monitoring)
-  - [Recommendations](#recommendations)
-    - [Immediate Actions](#immediate-actions)
-    - [Short-term (Next 30 days)](#short-term-next-30-days)
-    - [Long-term (Next 90 days)](#long-term-next-90-days)
-  - [Security Metrics](#security-metrics)
-    - [Current Status](#current-status)
-    - [Scanning Coverage](#scanning-coverage)
-  - [Audit Trail](#audit-trail)
-  - [Conclusion](#conclusion)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 # Security Summary
 
@@ -84,11 +52,13 @@
 **Latest Results**:
 
 #### Frontend Dependencies
+
 - ✅ **0 vulnerabilities** (100% clean)
 - ✅ Recent fix: js-yaml 4.1.0 → 4.1.1 (prototype pollution CVE)
 - ✅ All 629 dependencies scanned
 
 #### Mobile Dependencies
+
 - ⚠️ **23 moderate severity** vulnerabilities
 - **Status**: Acceptable (development dependencies only)
 - **Affected**: Jest testing framework dependencies
@@ -96,6 +66,7 @@
 - **Action**: Monitor for upstream fixes
 
 #### Backend Dependencies
+
 - ✅ **0 known vulnerabilities**
 - ✅ All Go modules up to date
 - ✅ Monitored by Dependabot
@@ -132,6 +103,7 @@
 ## Security Best Practices Implemented
 
 ### Code Security
+
 - ✅ Input validation and sanitization (see `SECURITY.md`)
 - ✅ CSRF protection with double-submit pattern
 - ✅ Content Security Policy (CSP) headers
@@ -139,6 +111,7 @@
 - ✅ SQL injection prevention (parameterized queries)
 
 ### Infrastructure Security
+
 - ✅ Rate limiting per endpoint
 - ✅ Abuse detection and IP banning
 - ✅ Secure cookie configuration
@@ -146,6 +119,7 @@
 - ✅ Security headers (HSTS, X-Frame-Options, etc.)
 
 ### Development Security
+
 - ✅ Pre-commit secret scanning
 - ✅ Automated dependency updates
 - ✅ Security-focused code reviews
@@ -171,12 +145,14 @@
 ## CI/CD Security Integration
 
 ### Pull Request Checks
+
 - ✅ CodeQL analysis required
 - ✅ Secret scanning required
 - ✅ Dependency review required
 - ✅ All checks must pass before merge
 
 ### Continuous Monitoring
+
 - ✅ Weekly CodeQL deep scans
 - ✅ Weekly Dependabot updates
 - ✅ Daily secret scanning
@@ -185,14 +161,17 @@
 ## Recommendations
 
 ### Immediate Actions
+
 None - all critical and high-severity vulnerabilities are addressed.
 
 ### Short-term (Next 30 days)
+
 1. ✅ Monitor mobile Jest dependencies for upstream fixes
 2. Document security incident response procedures
 3. Set up security metrics dashboard
 
 ### Long-term (Next 90 days)
+
 1. Implement automated security testing in pre-commit hooks
 2. Conduct penetration testing
 3. Add security training for contributors
@@ -201,6 +180,7 @@ None - all critical and high-severity vulnerabilities are addressed.
 ## Security Metrics
 
 ### Current Status
+
 - **Total Vulnerabilities**: 23 (all moderate severity, dev dependencies only)
 - **Critical**: 0
 - **High**: 0
@@ -209,6 +189,7 @@ None - all critical and high-severity vulnerabilities are addressed.
 - **Mean Time to Fix**: <24 hours (for production vulnerabilities)
 
 ### Scanning Coverage
+
 - **Code Coverage**: 100% (all languages)
 - **Dependency Coverage**: 100% (all ecosystems)
 - **Secret Scanning**: 100% (full repository)

@@ -187,24 +187,27 @@ func (s *AuthService) HandleCallback(ctx context.Context, code, state, codeVerif
 	_ = s.userRepo.UpdateLastLogin(ctx, user.ID)
 
 	// Generate JWT tokens
-	accessToken, err := s.jwtManager.GenerateAccessToken(user.ID, user.Role)
+	accessToken, refreshToken, err := s.generateTokens(ctx, user)
 	if err != nil {
-		return nil, "", "", fmt.Errorf("failed to generate access token: %w", err)
-	}
-
-	refreshToken, err := s.jwtManager.GenerateRefreshToken(user.ID)
-	if err != nil {
-		return nil, "", "", fmt.Errorf("failed to generate refresh token: %w", err)
-	}
-
-	// Store refresh token in database
-	tokenHash := jwtpkg.HashToken(refreshToken)
-	expiresAt := time.Now().Add(7 * 24 * time.Hour)
-	if err := s.refreshTokenRepo.Create(ctx, user.ID, tokenHash, expiresAt); err != nil {
-		return nil, "", "", fmt.Errorf("failed to store refresh token: %w", err)
+		return nil, "", "", err
 	}
 
 	return user, accessToken, refreshToken, nil
+}
+
+// GenerateTokensForUser issues fresh tokens for an existing user (used by non-production test logins)
+func (s *AuthService) GenerateTokensForUser(ctx context.Context, user *models.User) (string, string, error) {
+	return s.generateTokens(ctx, user)
+}
+
+// GetUserByID returns a user by UUID
+func (s *AuthService) GetUserByID(ctx context.Context, id uuid.UUID) (*models.User, error) {
+	return s.userRepo.GetByID(ctx, id)
+}
+
+// GetUserByUsername returns a user by username (case-insensitive)
+func (s *AuthService) GetUserByUsername(ctx context.Context, username string) (*models.User, error) {
+	return s.userRepo.GetByUsername(ctx, username)
 }
 
 // RefreshAccessToken refreshes an access token using a refresh token
@@ -287,6 +290,34 @@ func (s *AuthService) GetUserFromToken(ctx context.Context, token string) (*mode
 	}
 
 	return user, nil
+}
+
+// generateTokens centralizes token generation + persistence for a user
+func (s *AuthService) generateTokens(ctx context.Context, user *models.User) (string, string, error) {
+	if user.IsBanned {
+		return "", "", ErrUserBanned
+	}
+
+	// Update last login timestamp (best effort)
+	_ = s.userRepo.UpdateLastLogin(ctx, user.ID)
+
+	accessToken, err := s.jwtManager.GenerateAccessToken(user.ID, user.Role)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to generate access token: %w", err)
+	}
+
+	refreshToken, err := s.jwtManager.GenerateRefreshToken(user.ID)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to generate refresh token: %w", err)
+	}
+
+	tokenHash := jwtpkg.HashToken(refreshToken)
+	expiresAt := time.Now().Add(7 * 24 * time.Hour)
+	if err := s.refreshTokenRepo.Create(ctx, user.ID, tokenHash, expiresAt); err != nil {
+		return "", "", fmt.Errorf("failed to store refresh token: %w", err)
+	}
+
+	return accessToken, refreshToken, nil
 }
 
 // exchangeCodeForToken exchanges an authorization code for an access token
@@ -386,17 +417,19 @@ func (s *AuthService) createOrUpdateUser(ctx context.Context, twitchUser *Twitch
 
 	// Create new user
 	now := time.Now()
+	twitchID := twitchUser.ID
 	user := &models.User{
-		ID:          uuid.New(),
-		TwitchID:    twitchUser.ID,
-		Username:    twitchUser.Login,
-		DisplayName: twitchUser.DisplayName,
-		Email:       &twitchUser.Email,
-		AvatarURL:   &twitchUser.ProfileImageURL,
-		Role:        "user",
-		KarmaPoints: s.cfg.Karma.InitialKarmaPoints,
-		IsBanned:    false,
-		LastLoginAt: &now,
+		ID:            uuid.New(),
+		TwitchID:      &twitchID,
+		Username:      twitchUser.Login,
+		DisplayName:   twitchUser.DisplayName,
+		Email:         &twitchUser.Email,
+		AvatarURL:     &twitchUser.ProfileImageURL,
+		Role:          "user",
+		AccountStatus: "active",
+		KarmaPoints:   s.cfg.Karma.InitialKarmaPoints,
+		IsBanned:      false,
+		LastLoginAt:   &now,
 	}
 
 	if twitchUser.Description != "" {

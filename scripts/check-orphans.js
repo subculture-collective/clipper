@@ -21,8 +21,8 @@ const ALLOWLIST = new Set([
   'CONTRIBUTING.md',
 ]);
 
-// Directories to skip (archives, etc.)
-const SKIP_DIRS = new Set(['archive', '.obsidian', 'adr']);
+// Directories to skip (archives, vault for secrets, etc.)
+const SKIP_DIRS = new Set(['archive', '.obsidian', 'adr', 'vault']);
 
 /**
  * Walk directory and collect all markdown files

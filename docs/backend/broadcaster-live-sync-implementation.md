@@ -1,32 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Broadcaster Live Status Sync Implementation](#broadcaster-live-status-sync-implementation)
-  - [Summary](#summary)
-  - [Implementation Details](#implementation-details)
-    - [Architecture](#architecture)
-    - [Key Components](#key-components)
-    - [Data Flow](#data-flow)
-    - [Notification Content](#notification-content)
-    - [Performance Considerations](#performance-considerations)
-    - [Monitoring & Observability](#monitoring--observability)
-  - [Testing](#testing)
-    - [Unit Tests](#unit-tests)
-    - [Integration Testing](#integration-testing)
-  - [Limitations & Future Enhancements](#limitations--future-enhancements)
-    - [Not Implemented (Per Requirements)](#not-implemented-per-requirements)
-    - [Possible Future Enhancements](#possible-future-enhancements)
-  - [Configuration](#configuration)
-    - [Environment Variables](#environment-variables)
-    - [Database](#database)
-  - [Deployment Notes](#deployment-notes)
-  - [Acceptance Criteria Status](#acceptance-criteria-status)
-  - [Security Considerations](#security-considerations)
-  - [Code Quality](#code-quality)
-  - [Support & Troubleshooting](#support--troubleshooting)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Broadcaster Live Status Sync Implementation"
 summary: "Synchronizes broadcaster live status and notifies followers when broadcasters go live"
@@ -94,6 +65,7 @@ This implementation fulfills the requirement to synchronize broadcaster live sta
 ### Key Components
 
 #### 1. LiveStatusService (Enhanced)
+
 **File:** `internal/services/live_status_service.go`
 
 **Key Changes:**
@@ -111,6 +83,7 @@ This implementation fulfills the requirement to synchronize broadcaster live sta
 - `logSyncEvent(ctx, broadcasterID, statusChange, error)` - Logs sync events
 
 #### 2. BroadcasterRepository (Enhanced)
+
 **File:** `internal/repository/broadcaster_repository.go`
 
 **New Methods:**
@@ -120,6 +93,7 @@ This implementation fulfills the requirement to synchronize broadcaster live sta
 - `GetFollowerUserIDs(ctx, broadcasterID)` - Get all followers of a broadcaster
 
 #### 3. Database Schema
+
 **Migration 000038:** `broadcaster_sync_tables`
 
 New Tables:
@@ -132,7 +106,8 @@ Updates:
 - Added `notify_broadcaster_live` column to `notification_preferences`
 
 #### 4. Notification System Updates
-**Files:** 
+
+**Files:**
 - `internal/models/models.go`
 - `internal/services/notification_service.go`
 
@@ -142,6 +117,7 @@ Updates:
 - Updated `shouldNotify()` method to check broadcaster live preference
 
 #### 5. Scheduler Configuration
+
 **File:** `cmd/api/main.go`
 
 **Changes:**
@@ -195,6 +171,7 @@ When a broadcaster goes live, followers receive:
 ### Monitoring & Observability
 
 #### Logs
+
 - Sync start/completion with duration
 - Broadcaster count being checked
 - Notification delivery success/failure per follower
@@ -202,6 +179,7 @@ When a broadcaster goes live, followers receive:
 - Database errors with broadcaster ID
 
 #### Database
+
 - `broadcaster_sync_log` tracks all events
 - Can query for sync failures
 - Can track status change frequency
@@ -210,20 +188,24 @@ When a broadcaster goes live, followers receive:
 ## Testing
 
 ### Unit Tests
+
 - `TestShouldNotifyBroadcasterLive`: Validates notification preference logic
 - All existing service tests pass
 
 ### Integration Testing
+
 See `backend/docs/BROADCASTER_LIVE_SYNC_TESTING.md` for detailed manual testing procedures.
 
 ## Limitations & Future Enhancements
 
 ### Not Implemented (Per Requirements)
+
 1. **WebSocket Events**: No existing WebSocket infrastructure in codebase
 2. **Email Notifications**: Can be enabled via user preferences (infrastructure exists)
 3. **Browser Push Notifications**: Not implemented
 
 ### Possible Future Enhancements
+
 1. Add WebSocket support for real-time updates
 2. Implement feed reordering when broadcaster goes live
 3. Add metrics/monitoring dashboard
@@ -234,6 +216,7 @@ See `backend/docs/BROADCASTER_LIVE_SYNC_TESTING.md` for detailed manual testing 
 ## Configuration
 
 ### Environment Variables
+
 ```env
 # Existing Twitch configuration
 TWITCH_CLIENT_ID=your_client_id
@@ -244,6 +227,7 @@ TWITCH_CLIENT_SECRET=your_client_secret
 ```
 
 ### Database
+
 Migrations run automatically on startup or via:
 ```bash
 make migrate-up

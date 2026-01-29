@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, InfiniteData } from '@tanstack/react-query';
 import { createElement, type ReactNode } from 'react';
 import {
   useComments,
@@ -47,13 +47,14 @@ const mockComment: Comment = {
   user_avatar: 'https://example.com/avatar.png',
   user_karma: 1234,
   user_role: 'user',
-  parent_id: null,
+  parent_comment_id: null,
   content: 'Test comment',
   vote_score: 5,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
   is_deleted: false,
   is_removed: false,
+  reply_count: 0,
   depth: 0,
   child_count: 0,
   user_vote: null,
@@ -89,6 +90,7 @@ describe('useComments', () => {
         sort: 'best',
         pageParam: 1,
         limit: 10,
+        includeReplies: true,
       });
     });
 
@@ -141,6 +143,7 @@ describe('useComments', () => {
         sort: 'new',
         pageParam: 1,
         limit: 10,
+        includeReplies: true,
       });
     });
 
@@ -173,7 +176,7 @@ describe('useComments', () => {
       const payload: CreateCommentPayload = {
         clip_id: 'clip-1',
         content: 'New comment',
-        parent_id: null,
+        parent_comment_id: null,
       };
 
       result.current.mutate(payload);
@@ -221,6 +224,115 @@ describe('useComments', () => {
       await waitFor(() => {
         expect(result.current.isPending).toBe(true);
       });
+    });
+
+    it('should optimistically update child_count when creating a reply', async () => {
+      const parentComment: Comment = {
+        ...mockComment,
+        id: 'parent-1',
+        reply_count: 2,
+        child_count: 2,
+        replies: [],
+      };
+
+      const replyComment: Comment = {
+        ...mockComment,
+        id: 'reply-1',
+        parent_comment_id: 'parent-1',
+        content: 'Reply comment',
+        reply_count: 0,
+      };
+
+      vi.mocked(commentApi.createComment).mockResolvedValue(replyComment);
+
+      const queryClient = new QueryClient({
+        defaultOptions: {
+          queries: { retry: false },
+          mutations: { retry: false },
+        },
+      });
+
+      // Pre-populate the query cache with parent comment
+      queryClient.setQueryData(['comments', 'clip-1'], {
+        pages: [{
+          comments: [parentComment],
+          total: 1,
+          page: 1,
+          limit: 10,
+          has_more: false,
+        }],
+        pageParams: [1],
+      });
+
+      const wrapper = ({ children }: { children: React.ReactNode }) =>
+        createElement(QueryClientProvider, { client: queryClient }, children);
+
+      const { result } = renderHook(() => useCreateComment(), { wrapper });
+
+      const payload: CreateCommentPayload = {
+        clip_id: 'clip-1',
+        content: 'Reply comment',
+        parent_comment_id: 'parent-1',
+      };
+
+      result.current.mutate(payload);
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      // Verify child_count was updated
+      const updatedData = queryClient.getQueryData(['comments', 'clip-1']) as InfiniteData<CommentFeedResponse>;
+      expect(updatedData.pages[0].comments[0].child_count).toBe(3);
+    });
+
+    it('should rollback child_count on error when creating a reply fails', async () => {
+      const parentComment: Comment = {
+        ...mockComment,
+        id: 'parent-1',
+        child_count: 2,
+        replies: [],
+      };
+
+      const error = new Error('Failed to create reply');
+      vi.mocked(commentApi.createComment).mockRejectedValue(error);
+
+      const queryClient = new QueryClient({
+        defaultOptions: {
+          queries: { retry: false },
+          mutations: { retry: false },
+        },
+      });
+
+      // Pre-populate the query cache with parent comment
+      queryClient.setQueryData(['comments', 'clip-1'], {
+        pages: [{
+          comments: [parentComment],
+          total: 1,
+          page: 1,
+          limit: 10,
+          has_more: false,
+        }],
+        pageParams: [1],
+      });
+
+      const wrapper = ({ children }: { children: React.ReactNode }) =>
+        createElement(QueryClientProvider, { client: queryClient }, children);
+
+      const { result } = renderHook(() => useCreateComment(), { wrapper });
+
+      const payload: CreateCommentPayload = {
+        clip_id: 'clip-1',
+        content: 'Reply comment',
+        parent_comment_id: 'parent-1',
+      };
+
+      result.current.mutate(payload);
+
+      await waitFor(() => expect(result.current.isError).toBe(true));
+
+      // Verify child_count was rolled back to original value
+      const rolledBackData = queryClient.getQueryData(['comments', 'clip-1']) as InfiniteData<CommentFeedResponse>;
+      expect(rolledBackData.pages[0].comments[0].child_count).toBe(2);
+      expect(result.current.error).toEqual(error);
     });
   });
 

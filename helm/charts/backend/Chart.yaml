@@ -1,0 +1,17 @@
+apiVersion: v2
+name: clipper-backend
+description: Clipper Backend API Service
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - clipper
+  - backend
+  - api
+  - golang
+maintainers:
+  - name: Clipper Team
+    url: https://github.com/subculture-collective/clipper
+home: https://github.com/subculture-collective/clipper
+sources:
+  - https://github.com/subculture-collective/clipper

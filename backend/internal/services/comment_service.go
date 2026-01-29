@@ -38,13 +38,15 @@ const (
 type CommentService struct {
 	repo                *repository.CommentRepository
 	clipRepo            *repository.ClipRepository
+	userRepo            *repository.UserRepository
 	markdown            goldmark.Markdown
 	sanitizer           *bluemonday.Policy
 	notificationService *NotificationService
+	toxicityClassifier  *ToxicityClassifier
 }
 
 // NewCommentService creates a new CommentService
-func NewCommentService(repo *repository.CommentRepository, clipRepo *repository.ClipRepository, notificationService *NotificationService) *CommentService {
+func NewCommentService(repo *repository.CommentRepository, clipRepo *repository.ClipRepository, userRepo *repository.UserRepository, notificationService *NotificationService, toxicityClassifier *ToxicityClassifier) *CommentService {
 	// Configure markdown processor
 	md := goldmark.New(
 		goldmark.WithExtensions(
@@ -75,9 +77,11 @@ func NewCommentService(repo *repository.CommentRepository, clipRepo *repository.
 	return &CommentService{
 		repo:                repo,
 		clipRepo:            clipRepo,
+		userRepo:            userRepo,
 		markdown:            md,
 		sanitizer:           sanitizer,
 		notificationService: notificationService,
+		toxicityClassifier:  toxicityClassifier,
 	}
 }
 
@@ -139,6 +143,24 @@ func (s *CommentService) ValidateCreateComment(ctx context.Context, req *CreateC
 
 // CreateComment creates a new comment
 func (s *CommentService) CreateComment(ctx context.Context, req *CreateCommentRequest, clipID, userID uuid.UUID) (*repository.CommentWithAuthor, error) {
+	// Check if user can comment (not suspended)
+	canComment, err := s.userRepo.CanUserComment(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check comment privileges: %w", err)
+	}
+	if !canComment {
+		// Get suspension details for better error message
+		suspendedUntil, err := s.userRepo.GetCommentSuspensionInfo(ctx, userID)
+		if err == nil && suspendedUntil != nil {
+			// Check if it's a permanent suspension (year 9999)
+			if suspendedUntil.Year() >= 9999 {
+				return nil, fmt.Errorf("your comment privileges have been permanently suspended. Please contact support if you believe this is a mistake")
+			}
+			return nil, fmt.Errorf("your comment privileges are suspended until %s. Please contact support if you believe this is a mistake", suspendedUntil.Format("2006-01-02 15:04 MST"))
+		}
+		return nil, fmt.Errorf("comment privileges are currently suspended. Please try again later or contact support if you believe this is a mistake")
+	}
+
 	// Validate request
 	if err := s.ValidateCreateComment(ctx, req, clipID); err != nil {
 		return nil, err
@@ -152,6 +174,7 @@ func (s *CommentService) CreateComment(ctx context.Context, req *CreateCommentRe
 		ParentCommentID: req.ParentCommentID,
 		Content:         strings.TrimSpace(req.Content),
 		VoteScore:       0,
+		ReplyCount:      0,
 		IsEdited:        false,
 		IsRemoved:       false,
 		CreatedAt:       time.Now(),
@@ -195,6 +218,33 @@ func (s *CommentService) CreateComment(ctx context.Context, req *CreateCommentRe
 			// Log error but don't fail the comment creation
 			fmt.Printf("Warning: failed to send reply notification: %v\n", err)
 		}
+	}
+
+	// Perform toxicity classification (async - don't block comment creation)
+	if s.toxicityClassifier != nil {
+		go func() {
+			// Create a new context with timeout for async processing
+			asyncCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+
+			// Classify the comment content
+			score, err := s.toxicityClassifier.ClassifyComment(asyncCtx, comment.Content)
+			if err != nil {
+				// Log error but don't fail - this is a non-critical enhancement
+				fmt.Printf("Warning: failed to classify comment %s for toxicity: %v\n", comment.ID, err)
+				return
+			}
+
+			// Record the prediction for metrics
+			if err := s.toxicityClassifier.RecordPrediction(asyncCtx, comment.ID, score); err != nil {
+				fmt.Printf("Warning: failed to record toxicity prediction for comment %s: %v\n", comment.ID, err)
+				// Continue even if recording fails
+			}
+
+			// Note: The database trigger will automatically add high-confidence toxic comments
+			// to the moderation queue when RecordPrediction inserts into toxicity_predictions.
+			// No need to call AddToModerationQueue explicitly here.
+		}()
 	}
 
 	// Fetch the complete comment with author info and vote status
@@ -373,6 +423,86 @@ func (s *CommentService) ListComments(ctx context.Context, clipID uuid.UUID, sor
 			RenderedContent:   s.RenderMarkdown(c.Content),
 			Replies:           []CommentTreeNode{},
 		}
+		nodes = append(nodes, node)
+	}
+
+	return nodes, nil
+}
+
+// ListCommentsWithReplies retrieves comments for a clip with optional nested replies
+func (s *CommentService) ListCommentsWithReplies(ctx context.Context, clipID uuid.UUID, sortBy string, limit, offset int, userID *uuid.UUID, includeReplies bool) ([]CommentTreeNode, error) {
+	// Get top-level comments
+	comments, err := s.repo.ListByClipID(ctx, clipID, sortBy, limit, offset, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list comments: %w", err)
+	}
+
+	// Return empty slice if no comments (not nil)
+	if len(comments) == 0 {
+		return []CommentTreeNode{}, nil
+	}
+
+	// Build tree nodes with rendered content
+	var nodes []CommentTreeNode
+	for _, c := range comments {
+		node := CommentTreeNode{
+			CommentWithAuthor: c,
+			RenderedContent:   s.RenderMarkdown(c.Content),
+			Replies:           []CommentTreeNode{},
+		}
+
+		// Recursively load replies if requested
+		if includeReplies {
+			replies, err := s.buildReplyTree(ctx, c.ID, userID, 1)
+			if err != nil {
+				return nil, fmt.Errorf("failed to build reply tree: %w", err)
+			}
+			node.Replies = replies
+		}
+
+		nodes = append(nodes, node)
+	}
+
+	return nodes, nil
+}
+
+// buildReplyTree recursively builds a tree of replies up to MaxNestingDepth
+func (s *CommentService) buildReplyTree(ctx context.Context, parentID uuid.UUID, userID *uuid.UUID, currentDepth int) ([]CommentTreeNode, error) {
+	// Stop recursion if we've reached max depth
+	if currentDepth >= MaxNestingDepth {
+		return []CommentTreeNode{}, nil
+	}
+
+	// Get direct replies to this comment
+	// Use a reasonable limit for nested replies to prevent performance issues
+	// We fetch more replies than typical pagination to provide a better UX for nested threads
+	const maxRepliesPerLevel = 50
+	replies, err := s.repo.GetReplies(ctx, parentID, maxRepliesPerLevel, 0, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get replies: %w", err)
+	}
+
+	// Return empty slice if no replies
+	if len(replies) == 0 {
+		return []CommentTreeNode{}, nil
+	}
+
+	// Build tree nodes with rendered content and recursively load their replies
+	var nodes []CommentTreeNode
+	for _, r := range replies {
+		node := CommentTreeNode{
+			CommentWithAuthor: r,
+			RenderedContent:   s.RenderMarkdown(r.Content),
+			Replies:           []CommentTreeNode{},
+		}
+
+		// Recursively load nested replies
+		nestedReplies, err := s.buildReplyTree(ctx, r.ID, userID, currentDepth+1)
+		if err != nil {
+			return nil, fmt.Errorf("failed to build nested reply tree: %w", err)
+		}
+		node.Replies = nestedReplies
+
 		nodes = append(nodes, node)
 	}
 

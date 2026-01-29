@@ -153,8 +153,6 @@ func (h *CategoryHandler) ListCategoryClips(c *gin.Context) {
 	}
 
 	// Get games in category (to filter clips by game IDs)
-	// Note: This currently fetches clips from the first game only
-	// TODO: Optimize to properly aggregate clips from all games in the category
 	games, err := h.categoryRepo.GetGamesInCategory(c.Request.Context(), category.ID, userID, 100, 0)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -175,30 +173,52 @@ func (h *CategoryHandler) ListCategoryClips(c *gin.Context) {
 		return
 	}
 
-	// For now, we'll fetch clips for the first game in the category
-	// TODO: Optimize this to handle multiple games
-	gameID := &games[0].TwitchGameID
+	// Fetch clips from all games in the category
+	// We'll fetch more clips than needed and then paginate
+	allClips := []models.Clip{}
 
-	// Build filters for clips
-	filters := repository.ClipFilters{
-		GameID:    gameID,
-		Sort:      sort,
-		Timeframe: &timeframe,
+	for _, game := range games {
+		gameID := game.TwitchGameID
+		filters := repository.ClipFilters{
+			GameID:    &gameID,
+			Sort:      sort,
+			Timeframe: &timeframe,
+		}
+
+		// Fetch a larger batch to account for filtering
+		clips, _, err := h.clipRepo.ListWithFilters(c.Request.Context(), filters, 1000, 0)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Failed to fetch clips",
+			})
+			return
+		}
+
+		allClips = append(allClips, clips...)
 	}
 
-	clips, total, err := h.clipRepo.ListWithFilters(c.Request.Context(), filters, limit, offset)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to fetch clips",
-		})
-		return
+	// Calculate pagination
+	total := len(allClips)
+	start := offset
+	end := offset + limit
+
+	if start > total {
+		start = total
+	}
+	if end > total {
+		end = total
+	}
+
+	paginatedClips := []models.Clip{}
+	if start < total {
+		paginatedClips = allClips[start:end]
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"clips":    clips,
+		"clips":    paginatedClips,
 		"total":    total,
 		"page":     page,
 		"limit":    limit,
-		"has_more": offset+len(clips) < total,
+		"has_more": end < total,
 	})
 }

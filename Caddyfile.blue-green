@@ -1,0 +1,168 @@
+# Caddyfile for Blue/Green Deployment
+# This configuration allows zero-downtime deployments by switching traffic between blue and green environments
+# 
+# Usage:
+#   1. To switch to green: echo "green" > /data/active_env && caddy reload
+#   2. To switch to blue: echo "blue" > /data/active_env && caddy reload
+#   3. Check current: cat /data/active_env
+
+{
+    # Global options
+    admin localhost:2019  # Restrict admin API to localhost for security
+    auto_https off  # Manage SSL externally or enable for automatic HTTPS
+    log {
+        output stdout
+        format json
+        level INFO
+    }
+}
+
+# Helper snippet for health checks
+(health_check) {
+    health_uri /health
+    health_interval 30s
+    health_timeout 10s
+    health_status 200
+}
+
+# Helper snippet for common headers
+(common_headers) {
+    header {
+        # Security headers
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        
+        # CORS headers (adjust as needed)
+        Access-Control-Allow-Origin "*"
+        Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+        Access-Control-Allow-Headers "Content-Type, Authorization"
+        
+        # Remove server identification
+        -Server
+    }
+}
+
+# Main site configuration
+:80, :443 {
+    # Import common headers
+    import common_headers
+    
+    # Read active environment from file (blue or green)
+    # Default to blue if file doesn't exist
+    vars active_env {$ACTIVE_ENV:blue}
+    
+    # Log requests
+    log {
+        output file /var/log/caddy/access.log {
+            roll_size 100mb
+            roll_keep 10
+        }
+        format json
+    }
+    
+    # Health check endpoint (always accessible, checks active environment)
+    handle /health {
+        reverse_proxy {
+            to {$ACTIVE_ENV:blue}_backend:8080
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+    
+    # API routes go to backend
+    handle /api/* {
+        reverse_proxy {
+            # Select backend based on ACTIVE_ENV environment variable
+            # Both blue and green backends run on port 8080 (internal to containers)
+            dynamic backends {
+                resolve {$ACTIVE_ENV:blue}_backend
+            }
+            
+            to http://clipper-backend-{$ACTIVE_ENV:blue}:8080
+            
+            # Load balancing and health checks
+            lb_policy first
+            import health_check
+            
+            # Request headers
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
+            
+            # Timeouts
+            transport http {
+                dial_timeout 30s
+                response_header_timeout 60s
+                expect_continue_timeout 10s
+            }
+        }
+    }
+    
+    # WebSocket support for real-time features
+    handle /ws/* {
+        reverse_proxy {
+            to http://clipper-backend-{$ACTIVE_ENV:blue}:8080
+            header_up Upgrade {>Upgrade}
+            header_up Connection {>Connection}
+            header_up Host {host}
+        }
+    }
+    
+    # All other routes go to frontend (SPA)
+    handle /* {
+        reverse_proxy {
+            to http://clipper-frontend-{$ACTIVE_ENV:blue}:80
+            
+            # Load balancing and health checks
+            lb_policy first
+            
+            # Request headers
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            
+            # Health check for frontend
+            health_uri /health.html
+            health_interval 30s
+            health_timeout 10s
+            health_status 200
+        }
+        
+        # SPA fallback - serve index.html for non-file routes
+        try_files {path} /index.html
+    }
+    
+    # Compression
+    encode gzip zstd
+    
+    # File server for static assets (if needed)
+    file_server {
+        hide .git .env
+    }
+}
+
+# Admin API endpoint (internal only, use with caution)
+:2019 {
+    # Caddy admin endpoint for management
+    # Access via: curl http://localhost:2019/config/
+}
+
+# Blue environment explicit configuration (for reference)
+# Uncomment and use if dynamic selection doesn't work
+# :8080 {
+#     reverse_proxy clipper-backend-blue:8080
+# }
+
+# Green environment explicit configuration (for reference)
+# Uncomment and use if dynamic selection doesn't work
+# :8080 {
+#     reverse_proxy clipper-backend-green:8080
+# }

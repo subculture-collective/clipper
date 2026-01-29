@@ -1,20 +1,5 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Changelog](#changelog)
-  - [[Unreleased]](#unreleased)
-    - [Added](#added)
-    - [Changed](#changed)
-    - [Deprecated](#deprecated)
-    - [Removed](#removed)
-    - [Fixed](#fixed)
-    - [Security](#security)
-  - [Release Notes](#release-notes)
-    - [Upcoming Releases](#upcoming-releases)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
+
 title: "Changelog"
 summary: "Version history and release notes for Clipper."
 tags: ["docs", "changelog", "releases"]
@@ -24,6 +9,7 @@ owner: "team-core"
 version: "1.0"
 last_reviewed: 2025-12-01
 aliases: ["releases", "version history"]
+
 ---
 
 # Changelog
@@ -37,12 +23,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Web Application Firewall (WAF) Documentation** - Comprehensive documentation of existing security protections:
+  - Backend rate limiting (Redis-backed, tier-aware, 10-100 req/hour)
+  - Abuse detection with automatic IP banning (1000 req/hour threshold)
+  - CSRF protection (token-based)
+  - Input validation (SQLi, XSS, path traversal prevention)
+  - Configuration guidance for external Caddy container
+  - Testing and monitoring procedures
+  - Troubleshooting guides
+  - Related to Roadmap 5.0 Phase 5.4
+- **Reddit-Style Nested Comment Threading** - Complete nested comment system with:
+  - Up to 10 levels of nesting for in-depth conversations
+  - Collapse/expand functionality at all depths
+  - Visual indentation showing conversation hierarchy
+  - "Load more replies" pagination for large threads
+  - Max depth enforcement with "View N more replies" link
+- **Comment Voting System** - Upvote/downvote on nested comments with:
+  - Optimistic UI updates (< 100ms response)
+  - Vote persistence across page reloads
+  - Karma system integration
+- **Comment Markdown Support** - Rich text formatting with:
+  - Bold, italic, strikethrough, links, code blocks, tables
+  - XSS protection via sanitized HTML output
+  - Auto-nofollow/noreferrer on external links
+- **Comment Moderation** - Soft-delete preserving thread structure:
+  - Author deletion shows "[deleted]"
+  - Moderator removal shows "[removed]" with optional reason
+  - Nested replies remain visible
+- **Comment Editing** - 15-minute edit window for authors, unlimited for admins
+- **Performance Optimizations** - Tested with 1000+ comments per clip:
+  - Recursive CTEs for efficient tree traversal
+  - Denormalized reply_count for fast pagination
+  - Database indexes optimized for nested queries
+  - Load testing validated: < 2s initial load, < 500ms expand, 60 FPS scrolling
+- **Cross-Platform Comment Parity** - Identical functionality on web and mobile
+- **Comment API Endpoints** - Complete REST API for comment operations
+- **Comment Load Testing** - k6 scenarios for performance validation
+- **Comment System Documentation** - Comprehensive docs in `docs/features/comments.md`
 - Initial project structure with frontend and backend
 - Twitch OAuth authentication flow
 - User profile system with karma tracking
 - Clip browsing and filtering functionality
 - Voting system for clips (upvote/downvote)
-- Comment system with markdown support
 - Search functionality for clips
 - Favorites system for saving clips
 - Tagging system for clip categorization
@@ -71,7 +93,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- N/A
+- Frontend: Home feed now includes both user-submitted and scraped clips by default (`show_all_clips=true`).
+  This aligns with the total set of approved clips and provides a richer browsing experience.
+- Frontend: Removed implicit UI language filtering from clip feeds.
+  Language is now only applied when explicitly selected via filters.
 
 ### Deprecated
 
@@ -83,7 +108,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- N/A
+- Home page previously displayed only two clips regardless of sort due to restrictive defaults
+  (implicit language filter and user-submitted-only). Now the feed shows a broader set and
+  sorting works across Hot/New/Top/Rising/Discussed.
 
 ### Security
 

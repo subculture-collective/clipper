@@ -8,11 +8,357 @@ This directory contains automation scripts for deploying, managing, and maintain
 |--------|---------|---------------|
 | `deploy.sh` | Deploy application with automated backup and rollback | No |
 | `rollback.sh` | Rollback to a previous version | No |
+| **`blue-green-deploy.sh`** | **Zero-downtime blue/green deployment** | **No** |
+| **`rollback-blue-green.sh`** | **Rollback blue/green deployment** | **No** |
+| **`check-migration-compatibility.sh`** | **Check database migrations for backward compatibility** | **No** |
+| **`test-blue-green-deployment.sh`** | **Test blue/green deployment in staging** | **No** |
 | `preflight-check.sh` | Run comprehensive pre-deployment validation | No |
 | `staging-rehearsal.sh` | Complete staging deployment rehearsal | No |
 | `health-check.sh` | Run health checks on all services | No |
 | `backup.sh` | Backup database and configuration | No |
 | `setup-ssl.sh` | Set up SSL/TLS certificates | Yes |
+
+## Blue/Green Deployment Scripts (NEW)
+
+### blue-green-deploy.sh
+
+**Zero-downtime deployment** using blue/green strategy. Automatically switches between two production environments.
+
+**Features**:
+- Automatic active/target environment detection
+- Pull latest images for target environment
+- Health check verification (30 retries with 10s intervals)
+- Database migration execution
+- Traffic switching via Caddy proxy
+- Post-switch monitoring (30s)
+- Automatic rollback on failure
+- Deployment notifications (if monitoring enabled)
+
+**Usage**:
+
+```bash
+# Standard deployment
+cd /opt/clipper
+./scripts/blue-green-deploy.sh
+
+# Deploy specific version
+IMAGE_TAG=v1.2.3 ./scripts/blue-green-deploy.sh
+
+# Deploy with monitoring notifications
+MONITORING_ENABLED=true WEBHOOK_URL="https://hooks.slack.com/..." ./scripts/blue-green-deploy.sh
+
+# Custom configuration
+DEPLOY_DIR=/opt/clipper \
+HEALTH_CHECK_RETRIES=60 \
+HEALTH_CHECK_INTERVAL=5 \
+./scripts/blue-green-deploy.sh
+```
+
+**Environment Variables**:
+- `DEPLOY_DIR`: Deployment directory (default: `/opt/clipper`)
+- `COMPOSE_FILE`: Compose file name (default: `docker-compose.blue-green.yml`)
+- `REGISTRY`: Container registry (default: `ghcr.io/subculture-collective/clipper`)
+- `IMAGE_TAG`: Image tag to deploy (default: `latest`)
+- `HEALTH_CHECK_RETRIES`: Max health check attempts (default: `30`)
+- `HEALTH_CHECK_INTERVAL`: Seconds between checks (default: `10`)
+- `BACKUP_DIR`: Backup directory (default: `/opt/clipper/backups`)
+- `MONITORING_ENABLED`: Enable notifications (default: `false`)
+- `WEBHOOK_URL`: Webhook for notifications (if monitoring enabled)
+
+**Example Output**:
+
+```
+╔════════════════════════════════════════════════╗
+║   Clipper Blue-Green Deployment Script        ║
+╚════════════════════════════════════════════════╝
+
+[INFO] Running pre-deployment checks...
+[SUCCESS] Prerequisites check passed
+[STEP] Detecting active environment...
+[INFO] Active environment: blue
+[INFO] Target environment: green
+
+[STEP] Creating backup...
+[SUCCESS] Backup created: /opt/clipper/backups/deployment-20250116-120000.tar.gz
+
+[STEP] Pulling latest images for green environment...
+[SUCCESS] Images pulled successfully
+
+[STEP] Running database migrations...
+[SUCCESS] Database migration check complete
+
+[STEP] Starting green environment...
+[SUCCESS] green environment started
+
+[INFO] Waiting for green environment to initialize...
+
+[STEP] Running health checks for green environment...
+[INFO] Backend health check passed (attempt 1/30)
+[SUCCESS] green environment is healthy
+
+[STEP] Switching traffic to green environment...
+[SUCCESS] Traffic switched to green environment
+
+[STEP] Monitoring new environment for 30 seconds...
+
+[SUCCESS] green environment is healthy
+
+[STEP] Stopping blue environment...
+[SUCCESS] blue environment stopped
+
+╔════════════════════════════════════════════════╗
+║   Deployment Successful! ✓                     ║
+╚════════════════════════════════════════════════╝
+
+[SUCCESS] Blue-Green deployment completed successfully
+[INFO] Previous environment: blue (stopped)
+[INFO] Current environment: green (active)
+[INFO] Backup: /opt/clipper/backups/deployment-20250116-120000.tar.gz
+```
+
+### rollback-blue-green.sh
+
+**Quick rollback** for blue/green deployments. Switches traffic back to the previous stable environment.
+
+**Features**:
+- Automatic active/target environment detection
+- Start target environment if not running
+- Health check verification before switch
+- Traffic switching with verification
+- Post-rollback monitoring
+- Optional old environment cleanup
+- Confirmation prompts (can be skipped with `-y`)
+
+**Usage**:
+
+```bash
+# Interactive rollback with confirmations
+./scripts/rollback-blue-green.sh
+
+# Automatic rollback (skip confirmations)
+./scripts/rollback-blue-green.sh --yes
+
+# Custom deployment directory
+DEPLOY_DIR=/opt/clipper ./scripts/rollback-blue-green.sh -y
+```
+
+**Options**:
+- `-y, --yes`: Skip confirmation prompts
+- `-h, --help`: Show help message
+
+**Example Output**:
+
+```
+╔════════════════════════════════════════════════╗
+║   Clipper Blue-Green Rollback Script          ║
+╚════════════════════════════════════════════════╝
+
+[WARN] Current environment: green
+[INFO] Target environment: blue
+
+WARNING: This will switch traffic from green to blue
+Are you sure you want to proceed? (yes/no): yes
+
+[INFO] blue environment is already running
+
+[INFO] Waiting for blue environment to initialize...
+
+[INFO] Checking health of blue environment...
+[SUCCESS] blue environment is healthy
+
+[INFO] Switching traffic to blue environment...
+[SUCCESS] Caddy restarted with blue configuration
+[SUCCESS] Traffic switched successfully to blue
+
+[INFO] Monitoring blue environment for 30 seconds...
+
+[INFO] Checking health of blue environment...
+[SUCCESS] blue environment is healthy
+
+Stop green environment? (yes/no): yes
+[INFO] Stopping green environment...
+[SUCCESS] green environment stopped
+
+╔════════════════════════════════════════════════╗
+║   Rollback Completed Successfully! ✓          ║
+╚════════════════════════════════════════════════╝
+
+[SUCCESS] Rollback completed successfully
+[INFO] Previous environment: green
+[INFO] Current environment: blue (active)
+
+[INFO] Next steps:
+  1. Monitor application metrics
+  2. Check error logs: docker compose logs --tail=100
+  3. Investigate cause of original deployment issue
+  4. Document incident and lessons learned
+```
+
+### check-migration-compatibility.sh
+
+**Analyze database migrations** for backward compatibility issues before blue/green deployment.
+
+**Features**:
+- Scan all migration files in migrations directory
+- Detect potentially breaking changes
+- Identify safe operations
+- Provide recommendations for backward-compatible migrations
+- Generate compatibility report
+
+**Usage**:
+
+```bash
+# Check migrations in default directory
+./scripts/check-migration-compatibility.sh
+
+# Check custom migrations directory
+MIGRATIONS_DIR=/path/to/migrations ./scripts/check-migration-compatibility.sh
+```
+
+**Environment Variables**:
+- `MIGRATIONS_DIR`: Path to migrations directory (default: `./backend/migrations`)
+- `DB_CONNECTION`: Database connection string (optional, for version checks)
+
+**Example Output**:
+
+```
+╔════════════════════════════════════════════════╗
+║  Database Migration Compatibility Checker      ║
+╚════════════════════════════════════════════════╝
+
+[INFO] Scanning migrations in: ./backend/migrations
+
+[INFO] Analyzing: 001_create_users.up.sql
+  ✓ Creates new table (safe)
+
+[INFO] Analyzing: 002_add_featured_column.up.sql
+  ✓ Adds column with default (safe)
+
+[INFO] Analyzing: 003_add_index.up.sql
+  ✓ Creates index (safe)
+
+════════════════════════════════════════════════
+
+[INFO] Analyzed 3 migration(s)
+[SUCCESS] No backward compatibility issues detected
+[SUCCESS] Migrations appear safe for blue-green deployment
+
+╔════════════════════════════════════════════════════════════════╗
+║  Backward Compatible Migration Guidelines                     ║
+╚════════════════════════════════════════════════════════════════╝
+
+✓ SAFE operations for blue-green deployment:
+  - CREATE TABLE (new tables)
+  - ADD COLUMN (with DEFAULT value or NULL allowed)
+  - CREATE INDEX (improves performance)
+  - INSERT data (add new reference data)
+
+✗ UNSAFE operations (require two-phase migration):
+  - DROP TABLE
+  - DROP COLUMN
+  - RENAME TABLE/COLUMN
+  - ALTER COLUMN to NOT NULL (without default)
+  - Change column types
+
+🔄 Two-phase migration pattern:
+  Phase 1 (before old version stops):
+    - ADD new columns/tables
+    - Keep old columns/tables
+    - Update code to write to both old and new
+
+  Phase 2 (after new version is stable):
+    - Remove old columns/tables
+    - Clean up deprecated code
+```
+
+### test-blue-green-deployment.sh
+
+**Comprehensive test suite** for blue/green deployment functionality in staging.
+
+**Features**:
+- Test all deployment components
+- Verify both environments can run simultaneously
+- Test traffic switching in both directions
+- Measure zero-downtime capability
+- Test rollback functionality
+- Generate test report
+- Automatic cleanup
+
+**Usage**:
+
+```bash
+# Run full test suite
+./scripts/test-blue-green-deployment.sh
+
+# Test in specific directory
+DEPLOY_DIR=/opt/clipper-staging ./scripts/test-blue-green-deployment.sh
+
+# Custom environment name
+TEST_ENV=staging ./scripts/test-blue-green-deployment.sh
+```
+
+**Environment Variables**:
+- `TEST_ENV`: Environment name (default: `staging`)
+- `DEPLOY_DIR`: Deployment directory (default: `.`)
+- `COMPOSE_FILE`: Compose file name (default: `docker-compose.blue-green.yml`)
+
+**Tests Included**:
+1. Prerequisites installed
+2. Compose file valid
+3. Shared services start
+4. Blue environment starts
+5. Blue health checks pass
+6. Caddy proxy starts
+7. Traffic flows through blue
+8. Green environment starts
+9. Green health checks pass
+10. Both environments run simultaneously
+11. Traffic switches to green
+12. Traffic switches back to blue
+13. Zero downtime during switch
+14. Rollback functionality
+15. Environment cleanup
+
+**Example Output**:
+
+```
+╔════════════════════════════════════════════════╗
+║  Blue-Green Deployment Test Suite             ║
+╚════════════════════════════════════════════════╝
+
+[INFO] Testing environment: staging
+[INFO] Deploy directory: .
+
+[TEST] Running: Prerequisites installed
+[PASS] Prerequisites installed
+[TEST] Running: Compose file valid
+[PASS] Compose file valid
+...
+[TEST] Running: Zero downtime during switch
+[PASS] Zero downtime during switch
+...
+
+════════════════════════════════════════════════
+
+Blue-Green Deployment Test Report
+==================================
+Date: Mon Jan 16 12:00:00 UTC 2025
+Environment: staging
+
+Test Results:
+  Total Tests: 15
+  Passed: 15
+  Failed: 0
+  Success Rate: 100%
+
+Status: ✓ ALL TESTS PASSED
+
+[INFO] Report saved to: /tmp/blue-green-test-results/test-report-20250116-120000.txt
+
+╔════════════════════════════════════════════════╗
+║  All Tests Passed! ✓                           ║
+╚════════════════════════════════════════════════╝
+```
 
 ## Usage
 
@@ -688,4 +1034,189 @@ Next steps:
 ```
 
 See [Migration Plan](../docs/MIGRATION_PLAN.md) for detailed procedures.
+
+## Backup & Restore Validation Scripts
+
+### validate-backup.sh
+
+**NEW** - Automated nightly backup validation script that verifies backup completion, encryption, and cross-region storage.
+
+**Features**:
+- Verifies latest backup exists in cloud storage (GCP, AWS, or Azure)
+- Checks backup age (< 24 hours by default)
+- Validates backup size meets minimum requirements
+- Verifies encryption at rest
+- Checks cross-region/geo-redundant storage
+- Reports metrics to Prometheus pushgateway
+- Generates validation log with timestamps
+
+**Usage**:
+
+```bash
+# Run backup validation
+export CLOUD_PROVIDER="gcp"  # or "aws", "azure"
+export BACKUP_BUCKET="clipper-backups-prod"
+./scripts/validate-backup.sh
+
+# With custom settings
+export MAX_BACKUP_AGE_HOURS="24"
+export MIN_BACKUP_SIZE_MB="1"
+export PROMETHEUS_PUSHGATEWAY="http://prometheus-pushgateway:9091"
+./scripts/validate-backup.sh
+```
+
+**Environment Variables**:
+- `CLOUD_PROVIDER`: Cloud provider (gcp, aws, or azure)
+- `BACKUP_BUCKET`: Backup bucket/container name
+- `AZURE_STORAGE_ACCOUNT`: Azure storage account (Azure only)
+- `MAX_BACKUP_AGE_HOURS`: Maximum acceptable backup age (default: 24)
+- `MIN_BACKUP_SIZE_MB`: Minimum backup size in MB (default: 1)
+- `PROMETHEUS_PUSHGATEWAY`: Pushgateway URL for metrics (optional)
+- `VALIDATION_LOG`: Log file path (default: /var/log/clipper/backup-validation.log)
+
+**Validation Checks**:
+1. Backup exists in cloud storage
+2. Backup age < 24 hours
+3. Backup size > 1 MB
+4. Encryption enabled
+5. Cross-region storage configured
+
+**Exit Codes**:
+- `0`: All validations passed
+- `1`: One or more validations failed
+
+**Example Output**:
+
+```
+=== Backup Validation Started at 2026-01-29 03:00:00 ===
+[INFO] Configuration:
+[INFO]   Cloud Provider: gcp
+[INFO]   Backup Bucket: clipper-backups-prod
+[INFO]   Max Backup Age: 24h
+[INFO]   Min Backup Size: 1MB
+[INFO] Checking GCS bucket: gs://clipper-backups-prod/database/
+[INFO] Latest backup: gs://clipper-backups-prod/database/postgres-backup-20260129-020000.sql.gz
+[INFO] Backup size: 147MB
+[INFO] Backup timestamp: 2026-01-29 02:00:00
+[INFO] Backup age: 1 hours
+[INFO] Verifying backup age...
+[INFO] ✓ Backup age is acceptable: 1h
+[INFO] Verifying backup size...
+[INFO] ✓ Backup size is acceptable: 147MB
+[INFO] Verifying backup encryption...
+[INFO] ✓ GCS bucket has encryption enabled
+[INFO] Verifying cross-region storage...
+[INFO] ✓ GCS bucket is multi-region or geo-redundant: US
+[INFO] ✓ All backup validations passed
+=== Backup Validation SUCCEEDED ===
+```
+
+**CI/CD Integration**:
+
+Automated via GitHub Actions workflow `.github/workflows/backup-validation.yml` - runs nightly at 3 AM UTC.
+
+### restore-drill.sh
+
+**NEW** - Monthly restore drill script that performs complete backup restoration and validates RTO/RPO targets.
+
+**Features**:
+- Downloads latest backup from cloud storage
+- Measures RPO (backup age) - target < 15 minutes
+- Creates temporary test database
+- Performs full restore operation
+- Measures RTO (restore duration) - target < 1 hour
+- Validates restored data integrity
+- Checks table counts and schema
+- Reports metrics to Prometheus pushgateway
+- Automatic cleanup of test resources
+
+**Usage**:
+
+```bash
+# Run restore drill
+export CLOUD_PROVIDER="gcp"
+export BACKUP_BUCKET="clipper-backups-prod"
+export POSTGRES_HOST="localhost"
+export POSTGRES_PASSWORD="your_password"
+./scripts/restore-drill.sh
+
+# With custom RTO/RPO targets
+export RTO_TARGET_SECONDS="3600"  # 1 hour
+export RPO_TARGET_SECONDS="900"   # 15 minutes
+./scripts/restore-drill.sh
+```
+
+**Environment Variables**:
+- `CLOUD_PROVIDER`: Cloud provider (gcp, aws, or azure)
+- `BACKUP_BUCKET`: Backup bucket/container name
+- `AZURE_STORAGE_ACCOUNT`: Azure storage account (Azure only)
+- `POSTGRES_HOST`: PostgreSQL host (default: localhost)
+- `POSTGRES_PORT`: PostgreSQL port (default: 5432)
+- `POSTGRES_USER`: PostgreSQL user (default: clipper)
+- `POSTGRES_PASSWORD`: PostgreSQL password (required)
+- `POSTGRES_DB`: PostgreSQL database (default: clipper)
+- `RTO_TARGET_SECONDS`: RTO target in seconds (default: 3600)
+- `RPO_TARGET_SECONDS`: RPO target in seconds (default: 900)
+- `PROMETHEUS_PUSHGATEWAY`: Pushgateway URL for metrics (optional)
+- `DRILL_LOG`: Log file path (default: /var/log/clipper/restore-drill.log)
+
+**Drill Operations**:
+1. Download latest backup
+2. Calculate RPO (backup age)
+3. Create test database
+4. Restore backup (timed for RTO)
+5. Validate data integrity
+6. Check RTO/RPO targets
+7. Cleanup test resources
+
+**Exit Codes**:
+- `0`: Drill passed, RTO/RPO targets met
+- `1`: Drill failed or targets not met
+
+**Example Output**:
+
+```
+=== Restore Drill Started at 2026-02-01 04:00:00 ===
+[INFO] Configuration:
+[INFO]   Cloud Provider: gcp
+[INFO]   Backup Bucket: clipper-backups-prod
+[INFO]   PostgreSQL Host: localhost:5432
+[INFO]   RTO Target: 3600s (60 minutes)
+[INFO]   RPO Target: 900s (15 minutes)
+[INFO] Finding latest backup...
+[INFO] Downloading backup from GCS...
+[INFO] ✓ Backup downloaded: /tmp/restore-drill-20260201-040000.sql.gz
+[INFO]   Size: 147MB
+[INFO]   Backup timestamp: 2026-02-01 02:00:00
+[INFO]   RPO (backup age): 720s (12 minutes)
+[INFO]   ✓ RPO target met
+[INFO] Creating test database: restore_drill_test_20260201_040000
+[INFO] ✓ Test database created
+[INFO] Starting restore operation...
+[INFO] ✓ Restore completed
+[INFO]   Duration: 1847s (31 minutes)
+[INFO]   ✓ RTO target met (1847s < 3600s)
+[INFO] Validating restored data...
+[INFO]   Clips count: 15423
+[INFO]   Users count: 3891
+[INFO]   Tables restored: 37
+[INFO] ✓ Data validation passed
+[INFO] ✓ All restore drill checks passed
+[INFO] Summary:
+[INFO]   - Restore Duration: 1847s (RTO: 3600s)
+[INFO]   - Backup Age: 720s (RPO: 900s)
+[INFO]   - Clips: 15423
+[INFO]   - Users: 3891
+=== Restore Drill SUCCEEDED ===
+```
+
+**CI/CD Integration**:
+
+Automated via GitHub Actions workflow `.github/workflows/restore-drill.yml` - runs monthly on the 1st at 4 AM UTC.
+
+**RTO/RPO Targets**:
+- **RTO (Recovery Time Objective)**: < 1 hour (3600 seconds)
+- **RPO (Recovery Point Objective)**: < 15 minutes (900 seconds)
+
+See [Backup & Recovery Runbook](../docs/operations/backup-recovery-runbook.md) for complete documentation.
 

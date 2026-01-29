@@ -1,35 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Search Platform](#search-platform)
-  - [Overview](#overview)
-  - [Architecture](#architecture)
-    - [Components](#components)
-    - [Indices](#indices)
-  - [Setup](#setup)
-    - [1. Start OpenSearch](#1-start-opensearch)
-    - [2. Environment](#2-environment)
-    - [3. Initialize Indices](#3-initialize-indices)
-    - [4. Backfill Existing Data](#4-backfill-existing-data)
-  - [API Usage](#api-usage)
-    - [Search Endpoint](#search-endpoint)
-    - [Advanced Query Language](#advanced-query-language)
-    - [Legacy Parameters (Deprecated)](#legacy-parameters-deprecated)
-  - [Features](#features)
-    - [Typo Tolerance](#typo-tolerance)
-    - [Autocomplete](#autocomplete)
-    - [Multi-Field Search](#multi-field-search)
-    - [Filters and Sorting](#filters-and-sorting)
-  - [Index Mappings](#index-mappings)
-    - [Clips](#clips)
-    - [Custom Analyzer](#custom-analyzer)
-  - [PostgreSQL Fallback](#postgresql-fallback)
-  - [Performance](#performance)
-  - [Monitoring](#monitoring)
-  - [Troubleshooting](#troubleshooting)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Search Platform"
 summary: "OpenSearch-based search with hybrid BM25 + semantic vector ranking."
@@ -61,12 +29,14 @@ See [[semantic-search|Semantic Search]] for vector search details.
 ## Architecture
 
 ### Components
+
 1. OpenSearch Client (`pkg/opensearch/client.go`)
 2. Search Indexer Service (`internal/services/search_indexer_service.go`)
 3. OpenSearch Search Service (`internal/services/opensearch_search_service.go`)
 4. Search Handler (`internal/handlers/search_handler.go`)
 
 ### Indices
+
 - clips: Twitch clips with metadata
 - users: User profiles (creators/broadcasters)
 - games: Game information aggregated from clips
@@ -75,12 +45,14 @@ See [[semantic-search|Semantic Search]] for vector search details.
 ## Setup
 
 ### 1. Start OpenSearch
+
 ```bash
 docker compose up -d opensearch
 curl http://localhost:9200/_cluster/health
 ```
 
 ### 2. Environment
+
 ```bash
 OPENSEARCH_URL=http://localhost:9200
 OPENSEARCH_USERNAME=
@@ -89,11 +61,13 @@ OPENSEARCH_INSECURE_SKIP_VERIFY=true  # Dev only!
 ```
 
 ### 3. Initialize Indices
+
 ```bash
 go run cmd/backfill-search/main.go
 ```
 
 ### 4. Backfill Existing Data
+
 ```bash
 cd backend
 go run cmd/backfill-search/main.go -batch 100
@@ -102,12 +76,14 @@ go run cmd/backfill-search/main.go -batch 100
 ## API Usage
 
 ### Search Endpoint
+
 ```
 GET /api/v1/search
 ```
 See [[api|API Reference]].
 
 ### Advanced Query Language
+
 Use the `q` parameter:
 ```bash
 ?q=valorant
@@ -131,30 +107,36 @@ Features:
 - Sort: `sort:popular`, `sort:recent`
 
 ### Legacy Parameters (Deprecated)
+
 Supported for compatibility; will be removed in v2.0.
 
 ## Features
 
 ### Typo Tolerance
+
 OpenSearch fuzzy matching (edit distance 2).
 
 ### Autocomplete
+
 ```
 GET /search/suggestions?q=val
 ```
 Returns prefix matches using edge n-grams.
 
 ### Multi-Field Search
+
 Boosting:
 - `title^3`, `description^2`, `tags^2`, `broadcaster_name`, `game_name`
 
 ### Filters and Sorting
+
 Filters: game, creator, tag, votes, duration, after/before, is
 Sort: relevance, recent, popular, hot, top
 
 ## Index Mappings
 
 ### Clips
+
 ```json
 {
   "mappings": {
@@ -183,6 +165,7 @@ Sort: relevance, recent, popular, hot, top
 ```
 
 ### Custom Analyzer
+
 ```json
 {
   "analyzer": {
@@ -195,6 +178,7 @@ Sort: relevance, recent, popular, hot, top
 ```
 
 ## PostgreSQL Fallback
+
 ```sql
 SELECT * FROM clips
 WHERE to_tsvector('english', title || ' ' || description)
@@ -203,17 +187,20 @@ ORDER BY ts_rank(...) DESC;
 ```
 
 ## Performance
+
 Targets (p95): Search <100ms, Autocomplete <50ms, Index <10ms, Bulk(100) <200ms.
 
 Optimizations: Redis caching, pagination, connection pooling, bulk indexing, refresh interval.
 
 ## Monitoring
+
 - Cluster health: `/_cluster/health`
 - Index stats: `/clips/_stats`
 - Slow log thresholds per index
 See [[../operations/monitoring|Monitoring]].
 
 ## Troubleshooting
+
 - Reinitialize indices: `go run cmd/backfill-search/main.go`
 - Force refresh: `POST /_refresh`
 - Check analyzers & boosts for relevance

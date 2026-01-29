@@ -3,29 +3,98 @@ package services
 import (
 	"context"
 	"fmt"
-	"log"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
-	"github.com/subculture-collective/clipper/internal/utils"
+	internalutils "github.com/subculture-collective/clipper/internal/utils"
+	redispkg "github.com/subculture-collective/clipper/pkg/redis"
 	"github.com/subculture-collective/clipper/pkg/twitch"
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
+
+const (
+	justChattingGameID       = "509658"
+	justChattingPerGameLimit = 50
+	defaultPerGameLimit      = 5
+	maxTrendingGames         = 10
+	defaultTrendingMaxPages  = 3
+)
+
+// DefaultTrendingPageWindow exposes the default page rotation window for schedulers
+const DefaultTrendingPageWindow = defaultTrendingMaxPages
+
+var defaultTrendingGameIDs = []string{
+	justChattingGameID, // Just Chatting
+	"32982",            // Grand Theft Auto V
+	"33214",            // Fortnite
+	"516575",           // Valorant
+	"21779",            // League of Legends
+	"27471",            // Minecraft
+	"512710",           // Call of Duty: Warzone
+	"511224",           // Apex Legends
+	"29595",            // Dota 2
+	"488552",           // Overwatch 2
+}
+
+// SyncClipsByGameOptions controls pagination behaviour for game syncs
+type SyncClipsByGameOptions struct {
+	InitialCursor  string
+	SinglePage     bool
+	PageIndex      int
+	LanguageFilter string
+}
+
+// TrendingGameConfig pairs a game with its per-run fetch limit
+type TrendingGameConfig struct {
+	GameID string
+	Limit  int
+}
+
+// TrendingSyncOptions configures a trending sync run
+type TrendingSyncOptions struct {
+	Games                []TrendingGameConfig
+	StateStore           TrendingStateStore
+	MaxPages             int
+	ForceResetPagination bool
+	LanguageFilter       string
+}
 
 // ClipSyncService handles fetching and syncing clips from Twitch
 type ClipSyncService struct {
 	twitchClient *twitch.Client
 	clipRepo     *repository.ClipRepository
+	tagRepo      *repository.TagRepository
+	userRepo     *repository.UserRepository
+	stateStore   TrendingStateStore
+	maxPages     int
+	defaultLang  string
 }
 
 // NewClipSyncService creates a new ClipSyncService
-func NewClipSyncService(twitchClient *twitch.Client, clipRepo *repository.ClipRepository) *ClipSyncService {
+func NewClipSyncService(twitchClient *twitch.Client, clipRepo *repository.ClipRepository, tagRepo *repository.TagRepository, userRepo *repository.UserRepository, redisClient *redispkg.Client) *ClipSyncService {
+	var stateStore TrendingStateStore
+	if redisClient != nil {
+		stateStore = NewRedisTrendingStateStore(redisClient)
+	}
+
 	return &ClipSyncService{
 		twitchClient: twitchClient,
 		clipRepo:     clipRepo,
+		tagRepo:      tagRepo,
+		userRepo:     userRepo,
+		stateStore:   stateStore,
+		maxPages:     defaultTrendingMaxPages,
+		defaultLang:  normalizeLanguageFilter("en"),
 	}
+}
+
+// SetDefaultLanguage overrides the service-level language filter (use "all" or "" to disable)
+func (s *ClipSyncService) SetDefaultLanguage(lang string) {
+	s.defaultLang = normalizeLanguageFilter(lang)
 }
 
 // SyncStats contains statistics about a sync operation
@@ -40,12 +109,10 @@ type SyncStats struct {
 }
 
 // SyncClipsByGame fetches and syncs clips for a specific game
-func (s *ClipSyncService) SyncClipsByGame(ctx context.Context, gameID string, hours int, limit int) (*SyncStats, error) {
-	stats := &SyncStats{
-		StartTime: time.Now(),
-	}
+func (s *ClipSyncService) SyncClipsByGame(ctx context.Context, gameID string, hours int, limit int, opts *SyncClipsByGameOptions) (*SyncStats, string, error) {
+	stats := &SyncStats{StartTime: time.Now()}
+	languageFilter := s.defaultLang
 
-	// Calculate time range
 	endTime := time.Now()
 	startTime := endTime.Add(-time.Duration(hours) * time.Hour)
 
@@ -53,23 +120,47 @@ func (s *ClipSyncService) SyncClipsByGame(ctx context.Context, gameID string, ho
 		GameID:    gameID,
 		StartedAt: startTime,
 		EndedAt:   endTime,
-		First:     utils.Min(limit, 100), // Twitch API max is 100
+		First:     internalutils.Min(limit, 100), // Twitch API max is 100
 	}
 
-	log.Printf("Syncing clips for game %s from %v to %v", gameID, startTime, endTime)
+	pageIndex := 1
+	if opts != nil {
+		if opts.InitialCursor != "" {
+			params.After = opts.InitialCursor
+		}
+		if opts.PageIndex > 0 {
+			pageIndex = opts.PageIndex
+		}
+		if opts.LanguageFilter != "" {
+			languageFilter = opts.LanguageFilter
+		}
+	}
 
-	// Fetch clips with pagination
+	languageFilter = normalizeLanguageFilter(languageFilter)
+
+	utils.Info("Syncing clips for game", map[string]interface{}{
+		"game_id":    gameID,
+		"start_time": startTime,
+		"end_time":   endTime,
+		"page":       pageIndex,
+		"cursor":     params.After,
+		"limit":      params.First,
+	})
+
 	totalFetched := 0
+	var nextCursor string
+	var fetchErr error
+
 	for totalFetched < limit {
 		clipsResp, err := s.twitchClient.GetClips(ctx, params)
 		if err != nil {
-			// Check if it's a 404 error (invalid/removed game category)
 			if strings.Contains(err.Error(), "404") {
 				stats.Errors = append(stats.Errors, fmt.Sprintf("Game category %s not found (404) - may have been removed or merged", gameID))
-				log.Printf("[Warning] Game category %s returned 404 - skipping", gameID)
+				utils.Warn("Game category returned 404 - skipping", map[string]interface{}{"game_id": gameID})
 			} else {
 				stats.Errors = append(stats.Errors, fmt.Sprintf("Failed to fetch clips: %v", err))
 			}
+			fetchErr = err
 			break
 		}
 
@@ -77,9 +168,26 @@ func (s *ClipSyncService) SyncClipsByGame(ctx context.Context, gameID string, ho
 			break
 		}
 
-		// Process each clip
+		var channelTags map[string][]string
+		if s.tagRepo != nil {
+			ids := make([]string, 0, len(clipsResp.Data))
+			seenIDs := map[string]bool{}
+			for _, clip := range clipsResp.Data {
+				if clip.BroadcasterID != "" && !seenIDs[clip.BroadcasterID] {
+					seenIDs[clip.BroadcasterID] = true
+					ids = append(ids, clip.BroadcasterID)
+				}
+			}
+			channelTags = s.fetchChannelTags(ctx, ids)
+		}
+
 		for _, twitchClip := range clipsResp.Data {
-			if err := s.processClip(ctx, &twitchClip, stats); err != nil {
+			if !languageMatches(twitchClip.Language, languageFilter) {
+				stats.ClipsSkipped++
+				continue
+			}
+
+			if err := s.processClip(ctx, &twitchClip, stats, channelTags[twitchClip.BroadcasterID]); err != nil {
 				stats.Errors = append(stats.Errors, fmt.Sprintf("Failed to process clip %s: %v", twitchClip.ID, err))
 			}
 			totalFetched++
@@ -88,28 +196,45 @@ func (s *ClipSyncService) SyncClipsByGame(ctx context.Context, gameID string, ho
 			}
 		}
 
-		// Check if there are more pages
-		if clipsResp.Pagination.Cursor == "" || totalFetched >= limit {
+		nextCursor = clipsResp.Pagination.Cursor
+		if opts != nil && opts.SinglePage {
+			break
+		}
+		if nextCursor == "" || totalFetched >= limit {
 			break
 		}
 
-		params.After = clipsResp.Pagination.Cursor
+		params.After = nextCursor
 	}
 
 	stats.ClipsFetched = totalFetched
 	stats.EndTime = time.Now()
 
-	log.Printf("Sync completed: fetched=%d created=%d updated=%d skipped=%d errors=%d duration=%v",
-		stats.ClipsFetched, stats.ClipsCreated, stats.ClipsUpdated, stats.ClipsSkipped,
-		len(stats.Errors), stats.EndTime.Sub(stats.StartTime))
+	utils.Info("Sync completed", map[string]interface{}{
+		"fetched":     stats.ClipsFetched,
+		"created":     stats.ClipsCreated,
+		"updated":     stats.ClipsUpdated,
+		"skipped":     stats.ClipsSkipped,
+		"errors":      len(stats.Errors),
+		"duration":    stats.EndTime.Sub(stats.StartTime),
+		"next_cursor": nextCursor,
+	})
 
-	return stats, nil
+	return stats, nextCursor, fetchErr
 }
 
 // SyncClipsByBroadcaster fetches and syncs clips for a specific broadcaster
-func (s *ClipSyncService) SyncClipsByBroadcaster(ctx context.Context, broadcasterID string, hours int, limit int) (*SyncStats, error) {
+type SyncClipsByBroadcasterOptions struct {
+	LanguageFilter string
+}
+
+func (s *ClipSyncService) SyncClipsByBroadcaster(ctx context.Context, broadcasterID string, hours int, limit int, opts *SyncClipsByBroadcasterOptions) (*SyncStats, error) {
 	stats := &SyncStats{
 		StartTime: time.Now(),
+	}
+	languageFilter := normalizeLanguageFilter(s.defaultLang)
+	if opts != nil && opts.LanguageFilter != "" {
+		languageFilter = normalizeLanguageFilter(opts.LanguageFilter)
 	}
 
 	// Calculate time range
@@ -120,10 +245,14 @@ func (s *ClipSyncService) SyncClipsByBroadcaster(ctx context.Context, broadcaste
 		BroadcasterID: broadcasterID,
 		StartedAt:     startTime,
 		EndedAt:       endTime,
-		First:         utils.Min(limit, 100),
+		First:         internalutils.Min(limit, 100),
 	}
 
-	log.Printf("Syncing clips for broadcaster %s from %v to %v", broadcasterID, startTime, endTime)
+	utils.Info("Syncing clips for broadcaster", map[string]interface{}{
+		"broadcaster_id": broadcasterID,
+		"start_time":     startTime,
+		"end_time":       endTime,
+	})
 
 	// Fetch clips with pagination
 	totalFetched := 0
@@ -138,9 +267,19 @@ func (s *ClipSyncService) SyncClipsByBroadcaster(ctx context.Context, broadcaste
 			break
 		}
 
+		var channelTags map[string][]string
+		if s.tagRepo != nil {
+			channelTags = s.fetchChannelTags(ctx, []string{broadcasterID})
+		}
+
 		// Process each clip
 		for _, twitchClip := range clipsResp.Data {
-			if err := s.processClip(ctx, &twitchClip, stats); err != nil {
+			if !languageMatches(twitchClip.Language, languageFilter) {
+				stats.ClipsSkipped++
+				continue
+			}
+
+			if err := s.processClip(ctx, &twitchClip, stats, channelTags[twitchClip.BroadcasterID]); err != nil {
 				stats.Errors = append(stats.Errors, fmt.Sprintf("Failed to process clip %s: %v", twitchClip.ID, err))
 			}
 			totalFetched++
@@ -160,60 +299,249 @@ func (s *ClipSyncService) SyncClipsByBroadcaster(ctx context.Context, broadcaste
 	stats.ClipsFetched = totalFetched
 	stats.EndTime = time.Now()
 
-	log.Printf("Sync completed: fetched=%d created=%d updated=%d skipped=%d errors=%d duration=%v",
-		stats.ClipsFetched, stats.ClipsCreated, stats.ClipsUpdated, stats.ClipsSkipped,
-		len(stats.Errors), stats.EndTime.Sub(stats.StartTime))
+	utils.Info("Sync completed", map[string]interface{}{
+		"fetched":  stats.ClipsFetched,
+		"created":  stats.ClipsCreated,
+		"updated":  stats.ClipsUpdated,
+		"skipped":  stats.ClipsSkipped,
+		"errors":   len(stats.Errors),
+		"duration": stats.EndTime.Sub(stats.StartTime),
+	})
 
 	return stats, nil
 }
 
-// SyncTrendingClips fetches trending clips from multiple top games
-func (s *ClipSyncService) SyncTrendingClips(ctx context.Context, hours int, clipsPerGame int) (*SyncStats, error) {
-	stats := &SyncStats{
-		StartTime: time.Now(),
+// SyncTrendingClips fetches trending clips from multiple top games with pagination rotation
+func (s *ClipSyncService) SyncTrendingClips(ctx context.Context, hours int, opts *TrendingSyncOptions) (*SyncStats, error) {
+	stats := &SyncStats{StartTime: time.Now()}
+	resolved := s.applyTrendingDefaults(opts)
+
+	games := append([]TrendingGameConfig(nil), resolved.Games...)
+	if len(games) == 0 {
+		resolvedGames, resolveErr := s.resolveTrendingGames(ctx, resolved.StateStore)
+		if resolveErr != nil {
+			stats.Errors = append(stats.Errors, resolveErr.Error())
+		}
+		games = resolvedGames
 	}
 
-	// List of popular game IDs (top games on Twitch as of 2024)
-	// In a real implementation, this could be fetched dynamically from Twitch's Get Top Games endpoint
-	popularGameIDs := []string{
-		"32982",  // Grand Theft Auto V
-		"33214",  // Fortnite
-		"516575", // Valorant
-		"21779",  // League of Legends
-		"27471",  // Minecraft
-		"512710", // Call of Duty: Warzone
-		"511224", // Apex Legends
-		"29595",  // Dota 2
-		"488552", // Overwatch 2 (Note: This ID may return 404 if category was removed/merged)
-		"518203", // Sports
+	if len(games) == 0 {
+		games = buildTrendingGameConfigs(defaultTrendingGameIDs)
 	}
 
-	log.Printf("Syncing trending clips from %d games, %d clips per game", len(popularGameIDs), clipsPerGame)
+	utils.Info("Syncing trending clips", map[string]interface{}{
+		"games":       len(games),
+		"max_pages":   resolved.MaxPages,
+		"force_reset": resolved.ForceResetPagination,
+	})
 
-	for _, gameID := range popularGameIDs {
-		gameStats, err := s.SyncClipsByGame(ctx, gameID, hours, clipsPerGame)
-		if err != nil {
-			// Log warning but continue with other games
-			log.Printf("[Warning] Failed to sync game %s: %v", gameID, err)
-			stats.Errors = append(stats.Errors, fmt.Sprintf("Failed to sync game %s: %v", gameID, err))
-			continue
+	for _, game := range games {
+		var cursorState *TrendingCursorState
+		if resolved.StateStore != nil && !resolved.ForceResetPagination {
+			state, err := resolved.StateStore.GetCursor(ctx, game.GameID)
+			if err != nil {
+				stats.Errors = append(stats.Errors, fmt.Sprintf("Failed to load cursor for game %s: %v", game.GameID, err))
+			} else {
+				cursorState = state
+			}
 		}
 
-		// Aggregate stats
+		pageIndex := 1
+		initialCursor := ""
+		if cursorState != nil {
+			initialCursor = cursorState.Cursor
+			if cursorState.Page > 0 {
+				pageIndex = cursorState.Page
+			}
+		}
+
+		gameStats, nextCursor, err := s.SyncClipsByGame(ctx, game.GameID, hours, game.Limit, &SyncClipsByGameOptions{
+			InitialCursor:  initialCursor,
+			SinglePage:     true,
+			PageIndex:      pageIndex,
+			LanguageFilter: resolved.LanguageFilter,
+		})
+		if err != nil {
+			utils.Warn("Failed to sync game", map[string]interface{}{"game_id": game.GameID, "error": err})
+			stats.Errors = append(stats.Errors, fmt.Sprintf("Failed to sync game %s: %v", game.GameID, err))
+		}
+
 		stats.ClipsFetched += gameStats.ClipsFetched
 		stats.ClipsCreated += gameStats.ClipsCreated
 		stats.ClipsUpdated += gameStats.ClipsUpdated
 		stats.ClipsSkipped += gameStats.ClipsSkipped
 		stats.Errors = append(stats.Errors, gameStats.Errors...)
+
+		// For admin-triggered runs we force page 1 and leave stored cursors untouched
+		if resolved.ForceResetPagination || resolved.StateStore == nil {
+			utils.Info("Trending game sync", map[string]interface{}{
+				"game_id":    game.GameID,
+				"page":       pageIndex,
+				"cursor_in":  initialCursor,
+				"cursor_out": nextCursor,
+				"reset":      true,
+				"fetched":    gameStats.ClipsFetched,
+			})
+			continue
+		}
+
+		nextPage := pageIndex + 1
+		shouldReset := nextCursor == "" || (resolved.MaxPages > 0 && nextPage > resolved.MaxPages)
+		if shouldReset {
+			if err := resolved.StateStore.ClearCursor(ctx, game.GameID); err != nil {
+				stats.Errors = append(stats.Errors, fmt.Sprintf("Failed to clear cursor for game %s: %v", game.GameID, err))
+			}
+		} else {
+			if err := resolved.StateStore.SaveCursor(ctx, game.GameID, &TrendingCursorState{Cursor: nextCursor, Page: nextPage}); err != nil {
+				stats.Errors = append(stats.Errors, fmt.Sprintf("Failed to persist cursor for game %s: %v", game.GameID, err))
+			}
+		}
+
+		utils.Info("Trending game sync", map[string]interface{}{
+			"game_id":    game.GameID,
+			"page":       pageIndex,
+			"next_page":  nextPage,
+			"cursor_in":  initialCursor,
+			"cursor_out": nextCursor,
+			"reset":      shouldReset,
+			"fetched":    gameStats.ClipsFetched,
+		})
 	}
 
 	stats.EndTime = time.Now()
 
-	log.Printf("Trending sync completed: fetched=%d created=%d updated=%d skipped=%d errors=%d duration=%v",
-		stats.ClipsFetched, stats.ClipsCreated, stats.ClipsUpdated, stats.ClipsSkipped,
-		len(stats.Errors), stats.EndTime.Sub(stats.StartTime))
+	utils.Info("Trending sync completed", map[string]interface{}{
+		"fetched":  stats.ClipsFetched,
+		"created":  stats.ClipsCreated,
+		"updated":  stats.ClipsUpdated,
+		"skipped":  stats.ClipsSkipped,
+		"errors":   len(stats.Errors),
+		"duration": stats.EndTime.Sub(stats.StartTime),
+	})
 
 	return stats, nil
+}
+
+func (s *ClipSyncService) applyTrendingDefaults(opts *TrendingSyncOptions) *TrendingSyncOptions {
+	resolved := &TrendingSyncOptions{
+		MaxPages:       defaultTrendingMaxPages,
+		StateStore:     s.stateStore,
+		LanguageFilter: normalizeLanguageFilter(s.defaultLang),
+	}
+
+	if s.maxPages > 0 {
+		resolved.MaxPages = s.maxPages
+	}
+
+	if opts != nil {
+		resolved.ForceResetPagination = opts.ForceResetPagination
+		if opts.MaxPages > 0 {
+			resolved.MaxPages = opts.MaxPages
+		}
+		if opts.StateStore != nil {
+			resolved.StateStore = opts.StateStore
+		}
+		resolved.Games = append(resolved.Games, opts.Games...)
+		if opts.LanguageFilter != "" {
+			resolved.LanguageFilter = opts.LanguageFilter
+		}
+	}
+
+	if resolved.MaxPages == 0 {
+		resolved.MaxPages = defaultTrendingMaxPages
+	}
+
+	return resolved
+}
+
+func (s *ClipSyncService) resolveTrendingGames(ctx context.Context, store TrendingStateStore) ([]TrendingGameConfig, error) {
+	if s.twitchClient != nil {
+		topGamesResp, err := s.twitchClient.GetTopGames(ctx, maxTrendingGames, "")
+		if err == nil && topGamesResp != nil && len(topGamesResp.Data) > 0 {
+			ids := ensureTrendingGameIDs(topGamesResp.Data)
+			configs := buildTrendingGameConfigs(ids)
+			if store != nil {
+				if err := store.SaveGameIDs(ctx, ids); err != nil {
+					utils.Warn("Failed to cache trending game IDs", map[string]interface{}{"error": err})
+				}
+			}
+			return configs, nil
+		}
+		if err != nil {
+			utils.Warn("Failed to fetch top games", map[string]interface{}{"error": err})
+		}
+	}
+
+	if store != nil {
+		cached, err := store.LoadGameIDs(ctx)
+		if err != nil {
+			utils.Warn("Failed to load cached top games", map[string]interface{}{"error": err})
+		} else if len(cached) > 0 {
+			return buildTrendingGameConfigs(ensureJustChattingGameIDs(cached)), nil
+		}
+	}
+
+	return buildTrendingGameConfigs(defaultTrendingGameIDs), fmt.Errorf("using fallback trending game list")
+}
+
+func ensureTrendingGameIDs(games []twitch.Game) []string {
+	ids := make([]string, 0, len(games))
+	for _, g := range games {
+		if g.ID != "" {
+			ids = append(ids, g.ID)
+		}
+	}
+	return ensureJustChattingGameIDs(ids)
+}
+
+func ensureJustChattingGameIDs(ids []string) []string {
+	seen := map[string]bool{}
+	result := make([]string, 0, maxTrendingGames)
+
+	// Ensure Just Chatting is always present and first
+	seen[justChattingGameID] = true
+	result = append(result, justChattingGameID)
+
+	for _, id := range ids {
+		if id == "" || seen[id] {
+			continue
+		}
+		seen[id] = true
+		result = append(result, id)
+		if len(result) >= maxTrendingGames {
+			break
+		}
+	}
+
+	if len(result) > maxTrendingGames {
+		return result[:maxTrendingGames]
+	}
+
+	return result
+}
+
+func buildTrendingGameConfigs(gameIDs []string) []TrendingGameConfig {
+	ids := ensureJustChattingGameIDs(gameIDs)
+	if len(ids) > maxTrendingGames {
+		ids = ids[:maxTrendingGames]
+	}
+
+	configs := make([]TrendingGameConfig, 0, len(ids))
+	for _, id := range ids {
+		configs = append(configs, TrendingGameConfig{
+			GameID: id,
+			Limit:  perGameLimit(id),
+		})
+	}
+
+	return configs
+}
+
+func perGameLimit(gameID string) int {
+	if gameID == justChattingGameID {
+		return justChattingPerGameLimit
+	}
+	return defaultPerGameLimit
 }
 
 // FetchClipByURL fetches a single clip by its Twitch URL or ID
@@ -257,11 +585,17 @@ func (s *ClipSyncService) FetchClipByURL(ctx context.Context, clipURLOrID string
 		return nil, fmt.Errorf("failed to save clip: %w", err)
 	}
 
+	if s.tagRepo != nil && twitchClip.BroadcasterID != "" {
+		if tags := s.fetchChannelTags(ctx, []string{twitchClip.BroadcasterID}); len(tags) > 0 {
+			_ = s.applyStreamerTags(ctx, clip, tags[twitchClip.BroadcasterID])
+		}
+	}
+
 	return clip, nil
 }
 
 // processClip processes a single clip from Twitch (create or update)
-func (s *ClipSyncService) processClip(ctx context.Context, twitchClip *twitch.Clip, stats *SyncStats) error {
+func (s *ClipSyncService) processClip(ctx context.Context, twitchClip *twitch.Clip, stats *SyncStats, streamerTags []string) error {
 	// Check if clip already exists
 	exists, err := s.clipRepo.ExistsByTwitchClipID(ctx, twitchClip.ID)
 	if err != nil {
@@ -280,9 +614,23 @@ func (s *ClipSyncService) processClip(ctx context.Context, twitchClip *twitch.Cl
 	// Transform Twitch clip to our model
 	clip := transformTwitchClip(twitchClip)
 
+	// Ensure unclaimed users exist for creator and broadcaster
+	if err := s.ensureUnclaimedUser(ctx, twitchClip.CreatorID, twitchClip.CreatorName); err != nil {
+		utils.Warn("Failed to ensure unclaimed user for creator", map[string]interface{}{"creator": twitchClip.CreatorName, "error": err})
+	}
+	if err := s.ensureUnclaimedUser(ctx, twitchClip.BroadcasterID, twitchClip.BroadcasterName); err != nil {
+		utils.Warn("Failed to ensure unclaimed user for broadcaster", map[string]interface{}{"broadcaster": twitchClip.BroadcasterName, "error": err})
+	}
+
 	// Save to database
 	if err := s.clipRepo.Create(ctx, clip); err != nil {
 		return fmt.Errorf("failed to create clip: %w", err)
+	}
+
+	if len(streamerTags) > 0 && s.tagRepo != nil {
+		if err := s.applyStreamerTags(ctx, clip, streamerTags); err != nil {
+			stats.Errors = append(stats.Errors, err.Error())
+		}
 	}
 
 	stats.ClipsCreated++
@@ -298,14 +646,14 @@ func transformTwitchClip(twitchClip *twitch.Clip) *models.Clip {
 		EmbedURL:        twitchClip.EmbedURL,
 		Title:           twitchClip.Title,
 		CreatorName:     twitchClip.CreatorName,
-		CreatorID:       utils.StringPtr(twitchClip.CreatorID),
+		CreatorID:       internalutils.StringPtr(twitchClip.CreatorID),
 		BroadcasterName: twitchClip.BroadcasterName,
-		BroadcasterID:   utils.StringPtr(twitchClip.BroadcasterID),
-		GameID:          utils.StringPtr(twitchClip.GameID),
+		BroadcasterID:   internalutils.StringPtr(twitchClip.BroadcasterID),
+		GameID:          internalutils.StringPtr(twitchClip.GameID),
 		GameName:        nil, // Will be enriched separately if needed
-		Language:        utils.StringPtr(twitchClip.Language),
-		ThumbnailURL:    utils.StringPtr(twitchClip.ThumbnailURL),
-		Duration:        utils.Float64Ptr(twitchClip.Duration),
+		Language:        internalutils.StringPtr(twitchClip.Language),
+		ThumbnailURL:    internalutils.StringPtr(twitchClip.ThumbnailURL),
+		Duration:        internalutils.Float64Ptr(twitchClip.Duration),
 		ViewCount:       twitchClip.ViewCount,
 		CreatedAt:       twitchClip.CreatedAt,
 		ImportedAt:      time.Now(),
@@ -317,6 +665,158 @@ func transformTwitchClip(twitchClip *twitch.Clip) *models.Clip {
 		IsRemoved:       false,
 		RemovedReason:   nil,
 	}
+}
+
+// ensureUnclaimedUser creates an unclaimed user account if one doesn't exist for the given Twitch ID
+func (s *ClipSyncService) ensureUnclaimedUser(ctx context.Context, twitchID, displayName string) error {
+	if s.userRepo == nil || twitchID == "" {
+		return nil
+	}
+
+	// Check if user already exists with this Twitch ID
+	_, err := s.userRepo.GetByTwitchID(ctx, twitchID)
+	if err == nil {
+		// User already exists, nothing to do
+		return nil
+	}
+
+	// If error is not "not found", return it
+	if err != repository.ErrUserNotFound {
+		return fmt.Errorf("failed to check user existence: %w", err)
+	}
+
+	// Create unclaimed user account
+	username := generateUnclaimedUsername(displayName, twitchID)
+	unclaimedUser := &models.User{
+		ID:            uuid.New(),
+		TwitchID:      &twitchID,
+		Username:      username,
+		DisplayName:   displayName,
+		Role:          "user",
+		AccountType:   models.AccountTypeMember,
+		AccountStatus: "unclaimed",
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
+	}
+
+	if err := s.userRepo.Create(ctx, unclaimedUser); err != nil {
+		// Ignore duplicate errors (race condition)
+		if err == repository.ErrUserAlreadyExists {
+			return nil
+		}
+		return fmt.Errorf("failed to create unclaimed user: %w", err)
+	}
+
+	utils.Info("Created unclaimed user account", map[string]interface{}{"display_name": displayName, "twitch_id": twitchID})
+	return nil
+}
+
+// generateUnclaimedUsername creates a username for unclaimed accounts
+func generateUnclaimedUsername(displayName, twitchID string) string {
+	// Normalize the display name to create a username
+	username := strings.ToLower(displayName)
+	username = regexp.MustCompile(`[^a-z0-9_]`).ReplaceAllString(username, "_")
+	username = regexp.MustCompile(`_+`).ReplaceAllString(username, "_")
+	username = strings.Trim(username, "_")
+
+	// If username is empty or too short, use a prefix
+	if len(username) < 3 {
+		username = "user_" + twitchID[:8]
+	}
+
+	// Truncate if too long (max 50 chars from schema)
+	if len(username) > 50 {
+		username = username[:50]
+	}
+
+	return username
+}
+
+func (s *ClipSyncService) fetchChannelTags(ctx context.Context, broadcasterIDs []string) map[string][]string {
+	result := make(map[string][]string, len(broadcasterIDs))
+	if s.twitchClient == nil || len(broadcasterIDs) == 0 {
+		return result
+	}
+
+	resp, err := s.twitchClient.GetChannels(ctx, broadcasterIDs)
+	if err != nil || resp == nil {
+		return result
+	}
+
+	for _, ch := range resp.Data {
+		if len(ch.Tags) > 0 {
+			result[ch.BroadcasterID] = append([]string{}, ch.Tags...)
+		}
+	}
+
+	return result
+}
+
+func (s *ClipSyncService) applyStreamerTags(ctx context.Context, clip *models.Clip, tags []string) error {
+	if s.tagRepo == nil || len(tags) == 0 || clip == nil {
+		return nil
+	}
+
+	seen := make(map[string]bool, len(tags))
+	var lastErr error
+
+	for _, raw := range tags {
+		name := strings.TrimSpace(raw)
+		if name == "" {
+			continue
+		}
+		slug := slugifyTag(name)
+		if slug == "" || seen[slug] {
+			continue
+		}
+		seen[slug] = true
+
+		tag, err := s.tagRepo.GetOrCreateTag(ctx, name, slug, nil)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+
+		if err := s.tagRepo.AddTagToClip(ctx, clip.ID, tag.ID); err != nil {
+			lastErr = err
+		}
+	}
+
+	if lastErr != nil {
+		return fmt.Errorf("failed to apply streamer tags: %w", lastErr)
+	}
+
+	return nil
+}
+
+func normalizeLanguageFilter(lang string) string {
+	lang = strings.TrimSpace(strings.ToLower(lang))
+	if lang == "" || lang == "*" || lang == "all" {
+		return ""
+	}
+	return lang
+}
+
+func languageMatches(clipLang, filter string) bool {
+	filter = normalizeLanguageFilter(filter)
+	if filter == "" {
+		return true
+	}
+	clipLang = strings.ToLower(strings.TrimSpace(clipLang))
+	if clipLang == "" {
+		return false
+	}
+	return clipLang == filter || strings.HasPrefix(clipLang, filter+"-")
+}
+
+func slugifyTag(s string) string {
+	s = strings.ToLower(s)
+	reg := regexp.MustCompile(`[^a-z0-9\s-]`)
+	s = reg.ReplaceAllString(s, "")
+	s = strings.TrimSpace(s)
+	s = regexp.MustCompile(`\s+`).ReplaceAllString(s, "-")
+	s = strings.Trim(s, "-")
+	return s
 }
 
 // ExtractClipID extracts the clip ID from a Twitch clip URL or returns the ID if already provided

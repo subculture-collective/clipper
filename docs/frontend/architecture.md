@@ -1,27 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Frontend Architecture](#frontend-architecture)
-  - [Overview](#overview)
-  - [Project Structure](#project-structure)
-  - [Component Architecture](#component-architecture)
-    - [Component Hierarchy](#component-hierarchy)
-    - [Component Patterns](#component-patterns)
-  - [State Management](#state-management)
-    - [Server State (TanStack Query)](#server-state-tanstack-query)
-    - [Client State (Zustand)](#client-state-zustand)
-  - [Routing](#routing)
-  - [Styling](#styling)
-    - [TailwindCSS](#tailwindcss)
-    - [CSS Modules](#css-modules)
-    - [Dark Mode](#dark-mode)
-  - [API Integration](#api-integration)
-  - [Authentication](#authentication)
-  - [Performance](#performance)
-  - [Build & Deploy](#build--deploy)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Frontend Architecture"
 summary: "React frontend architecture, components, state management, and patterns."
@@ -121,22 +97,14 @@ const mutation = useMutation({
 });
 ```
 
-### Client State (Zustand)
+### Client State
 
 For UI state:
-- Theme (dark/light)
 - Sidebar open/closed
 - Modal visibility
 - User preferences
 
-```tsx
-const useThemeStore = create<ThemeState>((set) => ({
-  theme: 'dark',
-  toggleTheme: () => set((state) => ({
-    theme: state.theme === 'dark' ? 'light' : 'dark'
-  }))
-}));
-```
+Applications can use React Context API or custom hooks for client-side state management as needed.
 
 ## Routing
 
@@ -217,12 +185,12 @@ const AuthContext = createContext<AuthState | null>(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState<User | null>(null);
-  
+
   useEffect(() => {
     // Fetch current user on mount
     api.getCurrentUser().then(setUser).catch(() => setUser(null));
   }, []);
-  
+
   return (
     <AuthContext.Provider value={{ user, setUser }}>
       {children}

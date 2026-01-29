@@ -134,7 +134,16 @@ var (
 			Name: "search_fallback_total",
 			Help: "Total number of search fallbacks",
 		},
-		[]string{"reason"}, // "embedding_error", "opensearch_error", "no_results"
+		[]string{"reason"}, // "timeout", "error"
+	)
+
+	SearchFallbackDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "search_fallback_duration_ms",
+			Help:    "Duration of search fallback path in milliseconds",
+			Buckets: []float64{1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000},
+		},
+		[]string{"reason"}, // "timeout", "error"
 	)
 )
 
@@ -159,4 +168,5 @@ func init() {
 	prometheus.MustRegister(VectorSearchDuration)
 	prometheus.MustRegister(BM25SearchDuration)
 	prometheus.MustRegister(SearchFallbackTotal)
+	prometheus.MustRegister(SearchFallbackDuration)
 }

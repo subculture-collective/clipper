@@ -25,18 +25,21 @@ export function ConsentBanner({ className }: ConsentBannerProps) {
   } = useConsent();
 
   const [showDetails, setShowDetails] = useState(false);
-  const [localPreferences, setLocalPreferences] = useState({
+  // Derive local preferences from consent to avoid sync issues
+  const [pendingPreferences, setPendingPreferences] = useState({
     functional: consent.functional,
     analytics: consent.analytics,
     advertising: consent.advertising,
   });
 
-  // Sync local preferences when consent changes (e.g., from settings page)
+  // Update pending preferences when consent changes (e.g., from settings page)
   useEffect(() => {
-    setLocalPreferences({
-      functional: consent.functional,
-      analytics: consent.analytics,
-      advertising: consent.advertising,
+    queueMicrotask(() => {
+      setPendingPreferences({
+        functional: consent.functional,
+        analytics: consent.analytics,
+        advertising: consent.advertising,
+      });
     });
   }, [consent.functional, consent.analytics, consent.advertising]);
 
@@ -45,7 +48,7 @@ export function ConsentBanner({ className }: ConsentBannerProps) {
   }
 
   const handleSavePreferences = () => {
-    updateConsent(localPreferences);
+    updateConsent(pendingPreferences);
   };
 
   return (
@@ -64,7 +67,7 @@ export function ConsentBanner({ className }: ConsentBannerProps) {
         {doNotTrack && (
           <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
             <p className="text-sm text-blue-800 dark:text-blue-200">
-              <strong>Do Not Track detected:</strong> We respect your browser's Do Not Track setting. 
+              <strong>Do Not Track detected:</strong> We respect your browser's Do Not Track setting.
               Personalized ads and analytics tracking will be disabled even if you consent.
             </p>
           </div>
@@ -78,7 +81,7 @@ export function ConsentBanner({ className }: ConsentBannerProps) {
                 Privacy & Cookie Preferences
               </h2>
               <p id="consent-banner-description" className="text-sm text-muted-foreground">
-                We use cookies and similar technologies to personalize ads, analyze traffic, 
+                We use cookies and similar technologies to personalize ads, analyze traffic,
                 and improve your experience. You can customize your preferences or accept/reject all.{' '}
                 <Link to="/privacy" className="text-primary-500 hover:underline">
                   Learn more in our Privacy Policy
@@ -129,7 +132,7 @@ export function ConsentBanner({ className }: ConsentBannerProps) {
                 </svg>
               </button>
             </div>
-            
+
             <div className="grid gap-4 md:grid-cols-2">
               {/* Essential - Always enabled */}
               <div className="p-4 bg-muted/50 rounded-lg">
@@ -140,7 +143,7 @@ export function ConsentBanner({ className }: ConsentBannerProps) {
                   </span>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Required for the website to function properly. Includes authentication, 
+                  Required for the website to function properly. Includes authentication,
                   security features, and your saved preferences.
                 </p>
               </div>
@@ -150,17 +153,17 @@ export function ConsentBanner({ className }: ConsentBannerProps) {
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-medium">Functional</h3>
                   <Toggle
-                    checked={localPreferences.functional}
-                    onChange={(e) => setLocalPreferences(prev => ({ 
-                      ...prev, 
-                      functional: e.target.checked 
+                    checked={pendingPreferences.functional}
+                    onChange={(e) => setPendingPreferences(prev => ({
+                      ...prev,
+                      functional: e.target.checked
                     }))}
                     disabled={doNotTrack}
                     aria-describedby="functional-description"
                   />
                 </div>
                 <p id="functional-description" className="text-sm text-muted-foreground">
-                  Remember your preferences like language, theme, and other settings 
+                  Remember your preferences like language, theme, and other settings
                   to enhance your experience.
                 </p>
               </div>
@@ -170,17 +173,17 @@ export function ConsentBanner({ className }: ConsentBannerProps) {
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-medium">Analytics</h3>
                   <Toggle
-                    checked={localPreferences.analytics}
-                    onChange={(e) => setLocalPreferences(prev => ({ 
-                      ...prev, 
-                      analytics: e.target.checked 
+                    checked={pendingPreferences.analytics}
+                    onChange={(e) => setPendingPreferences(prev => ({
+                      ...prev,
+                      analytics: e.target.checked
                     }))}
                     disabled={doNotTrack}
                     aria-describedby="analytics-description"
                   />
                 </div>
                 <p id="analytics-description" className="text-sm text-muted-foreground">
-                  Help us understand how you use clpr so we can improve the platform. 
+                  Help us understand how you use clpr so we can improve the platform.
                   This includes page views, feature usage, and error tracking.
                 </p>
               </div>
@@ -190,17 +193,17 @@ export function ConsentBanner({ className }: ConsentBannerProps) {
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-medium">Advertising</h3>
                   <Toggle
-                    checked={localPreferences.advertising}
-                    onChange={(e) => setLocalPreferences(prev => ({ 
-                      ...prev, 
-                      advertising: e.target.checked 
+                    checked={pendingPreferences.advertising}
+                    onChange={(e) => setPendingPreferences(prev => ({
+                      ...prev,
+                      advertising: e.target.checked
                     }))}
                     disabled={doNotTrack}
                     aria-describedby="advertising-description"
                   />
                 </div>
                 <p id="advertising-description" className="text-sm text-muted-foreground">
-                  Allow us to show ads tailored to your interests based on your viewing history 
+                  Allow us to show ads tailored to your interests based on your viewing history
                   and preferences. Without this, you'll see contextual ads instead.
                 </p>
               </div>

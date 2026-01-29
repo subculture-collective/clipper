@@ -1,0 +1,14 @@
+# Patterns to ignore when building packages
+.git/
+.gitignore
+.github/
+examples/
+README.md
+*.md
+.DS_Store
+*.swp
+*.bak
+*.tmp
+*~
+charts/
+Chart.lock

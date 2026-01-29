@@ -1,20 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Roadmap](#roadmap)
-  - [Current Status](#current-status)
-  - [Milestones](#milestones)
-    - [v0.1.0 - MVP (Q1 2025)](#v010---mvp-q1-2025)
-    - [v0.2.0 - Search & Discovery (Q1 2025)](#v020---search--discovery-q1-2025)
-    - [v0.3.0 - Mobile Apps (Q2 2025)](#v030---mobile-apps-q2-2025)
-    - [v1.0.0 - General Availability (Q2 2025)](#v100---general-availability-q2-2025)
-    - [v1.1.0 - Growth (Q3 2025)](#v110---growth-q3-2025)
-    - [v1.2.0 - Community (Q4 2025)](#v120---community-q4-2025)
-  - [Future Considerations](#future-considerations)
-  - [Feature Requests](#feature-requests)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Roadmap"
 summary: "Product roadmap and upcoming features for Clipper."
@@ -103,8 +86,34 @@ Enhanced community features.
 - [ ] User-created collections (public)
 - [ ] Follow users/streamers
 - [ ] Clip compilation playlists
-- [ ] Community moderation tools
+- [x] Community moderation tools
+- [x] Twitch moderation actions (ban/unban)
 - [ ] Achievements/badges
+
+## Recent Additions (2026)
+
+### Twitch Moderation Actions ✅
+
+**Status**: Completed January 2026  
+**Epic**: #1059
+
+- [x] OAuth scope integration (`channel:manage:banned_users`, `moderator:manage:banned_users`)
+- [x] Backend API endpoints (ban/unban)
+- [x] Frontend UI components
+- [x] Permission gating (broadcaster/Twitch mod only)
+- [x] Site moderator read-only enforcement
+- [x] Audit logging
+- [x] E2E test coverage
+- [x] Documentation and rollout plan
+
+**Features:**
+- Permanent bans and temporary timeouts (1s - 14 days)
+- Ban reason tracking
+- Rate limiting (10 actions/hour)
+- Comprehensive error handling
+- Audit trail for all actions
+
+See: [Twitch Moderation Actions Docs](./twitch-moderation-actions.md)
 
 ## Future Considerations
 

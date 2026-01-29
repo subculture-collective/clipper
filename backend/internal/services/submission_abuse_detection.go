@@ -3,11 +3,11 @@ package services
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/google/uuid"
 	redispkg "github.com/subculture-collective/clipper/pkg/redis"
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
 // SubmissionAbuseDetector detects and prevents abusive submission patterns
@@ -65,7 +65,7 @@ func (d *SubmissionAbuseDetector) CheckSubmissionAbuse(ctx context.Context, user
 
 	// Check burst detection (most immediate threat)
 	if violated, err := d.checkBurstViolation(ctx, userID); err != nil {
-		log.Printf("Error checking burst violation: %v", err)
+		utils.Warn("Error checking burst violation", map[string]interface{}{"error": err})
 	} else if violated {
 		cooldownUntil := time.Now().Add(burstCooldown)
 		_ = d.setCooldown(ctx, userID, burstCooldown, "burst")
@@ -81,7 +81,7 @@ func (d *SubmissionAbuseDetector) CheckSubmissionAbuse(ctx context.Context, user
 
 	// Check velocity (sustained rapid submissions)
 	if violated, err := d.checkVelocityViolation(ctx, userID); err != nil {
-		log.Printf("Error checking velocity violation: %v", err)
+		utils.Warn("Error checking velocity violation", map[string]interface{}{"error": err})
 	} else if violated {
 		cooldownUntil := time.Now().Add(velocityCooldown)
 		_ = d.setCooldown(ctx, userID, velocityCooldown, "velocity")
@@ -97,7 +97,7 @@ func (d *SubmissionAbuseDetector) CheckSubmissionAbuse(ctx context.Context, user
 
 	// Check IP-based patterns (multiple users from same IP)
 	if warning, err := d.checkIPSharing(ctx, userID, ip); err != nil {
-		log.Printf("Error checking IP sharing: %v", err)
+		utils.Warn("Error checking IP sharing", map[string]interface{}{"error": err})
 	} else if warning {
 		// Log but don't block (could be legitimate shared network)
 		d.logAbuseAttempt(ctx, userID, ip, "ip_sharing_detected", fmt.Sprintf("Multiple users from IP %s", ip))
@@ -245,7 +245,12 @@ func (d *SubmissionAbuseDetector) trackSubmission(ctx context.Context, userID uu
 // logAbuseAttempt logs an abuse attempt for monitoring
 func (d *SubmissionAbuseDetector) logAbuseAttempt(ctx context.Context, userID uuid.UUID, ip string, abuseType string, details string) {
 	// Log to application logs
-	log.Printf("[ABUSE DETECTION] type=%s user_id=%s ip=%s details=%s", abuseType, userID, ip, details)
+	utils.Warn("Abuse detection triggered", map[string]interface{}{
+		"type":    abuseType,
+		"user_id": userID,
+		"ip":      ip,
+		"details": details,
+	})
 
 	// Store in Redis for admin dashboard
 	key := fmt.Sprintf("abuse:log:%s:%d", abuseType, time.Now().Unix())

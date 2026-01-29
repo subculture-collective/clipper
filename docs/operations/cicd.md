@@ -1,19 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Operations: CI/CD](#operations-cicd)
-  - [Overview](#overview)
-  - [Workflows](#workflows)
-    - [PR Checks (`.github/workflows/pr.yml`)](#pr-checks-githubworkflowspryml)
-    - [Build & Push (`.github/workflows/build.yml`)](#build--push-githubworkflowsbuildyml)
-    - [Deploy Staging (`.github/workflows/deploy-staging.yml`)](#deploy-staging-githubworkflowsdeploy-stagingyml)
-    - [Deploy Production (`.github/workflows/deploy-prod.yml`)](#deploy-production-githubworkflowsdeploy-prodyml)
-  - [Secrets](#secrets)
-  - [Deployment Strategy](#deployment-strategy)
-  - [Monitoring Deployments](#monitoring-deployments)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "CI/CD Pipeline"
 summary: "Continuous integration and deployment pipelines with GitHub Actions."

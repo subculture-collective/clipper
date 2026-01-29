@@ -2,6 +2,50 @@
 
 This directory contains K6 load testing scenarios for the Clipper API. These tests help establish performance baselines and identify bottlenecks under various load conditions.
 
+**Test Types**:
+- **Load Tests**: Standard performance testing with realistic user loads
+- **Stress Tests**: Push system beyond capacity to find breaking points
+- **Soak Tests**: Extended duration (24h) testing for memory leaks and stability
+
+## Quick Links
+
+- **[Quick Start Guide](QUICK_START.md)** - Get started quickly with new features
+- **[Stress & Soak Testing Guide](STRESS_SOAK_GUIDE.md)** - Comprehensive guide for stress and endurance testing
+- **[Execution Guide](EXECUTION_GUIDE.md)** - Step-by-step test execution instructions
+- **[Performance Summary](PERFORMANCE_SUMMARY.md)** - Performance targets and baselines
+- **[Dashboard Guide](../../monitoring/dashboards/LOAD_TEST_DASHBOARD.md)** - Grafana dashboard documentation
+- **[Baseline Management](baselines/README.md)** - Guide to baseline storage and regression detection
+
+## New Features
+
+### 🎨 HTML Report Generation
+Generate beautiful, interactive HTML reports for your load tests:
+```bash
+# Generate HTML reports for all scenarios
+make test-load-html
+
+# Or generate for a specific scenario
+./backend/tests/load/scripts/generate_html_report.sh feed_browsing
+```
+
+### 📊 Baseline Storage & Regression Detection
+Capture and compare performance baselines across versions:
+```bash
+# Capture baseline for a version
+make test-load-baseline-capture VERSION=v1.0.0
+
+# Compare current performance against baseline
+make test-load-baseline-compare VERSION=v1.0.0
+
+# Compare against the latest baseline
+make test-load-baseline-compare VERSION=current
+```
+
+Baselines are stored in `baselines/` organized by version, enabling:
+- Automatic regression detection (>10% p95 latency increase)
+- Performance trend tracking across releases
+- SLO validation gates in CI/CD
+
 ## Prerequisites
 
 Install K6:
@@ -65,7 +109,31 @@ make test-load-clip          # Clip detail views
 make test-load-search        # Search functionality
 make test-load-comments      # Comments (read-only without auth)
 make test-load-mixed         # Mixed user behavior (recommended)
+
+# Moderation performance tests
+make test-load-moderation-ban-sync        # Ban sync (10K+ bans)
+make test-load-moderation-audit-logs      # Audit log queries (50K+ entries)
+make test-load-moderation-permissions     # Permission checks (100+ users)
+make test-load-moderation-stress          # Comprehensive stress test
+make test-load-moderation-all             # Run all moderation tests
 ```
+
+For detailed moderation testing guide, see [MODERATION_PERFORMANCE_GUIDE.md](./MODERATION_PERFORMANCE_GUIDE.md).
+
+## Quick Start: Generate Full Report
+
+For a comprehensive load test report covering all scenarios:
+
+```bash
+# Ensure backend is running
+make backend-dev
+
+# In another terminal, generate report
+cd backend/tests/load
+./generate_report.sh
+```
+
+This will run all load test scenarios and generate a comprehensive report in `backend/tests/load/reports/`.
 
 ## Test Scenarios
 
@@ -158,7 +226,33 @@ k6 run backend/tests/load/scenarios/comments.js
 k6 run -e AUTH_TOKEN=your_jwt_token backend/tests/load/scenarios/comments.js
 ```
 
-### 5. Clip Submission (`scenarios/submit.js`)
+### 5. Authentication (`scenarios/authentication.js`)
+
+Tests authentication workflow performance including user profile fetching, token refresh simulation, and logout operations.
+
+**Load Pattern:**
+- Ramp up: 30s to 5 users, 1m to 10 users, 2m to 20 users
+- Sustain: 2m at 20 users (20 auth flows/minute)
+- Ramp down: 30s to 0 users
+
+**Thresholds:**
+- User profile fetch p95: <50ms
+- Token refresh p95: <100ms
+- Logout p95: <30ms
+
+**Run:**
+```bash
+make test-load-auth
+# or
+k6 run backend/tests/load/scenarios/authentication.js
+```
+
+**Run (with authentication):**
+```bash
+k6 run -e AUTH_TOKEN=your_jwt_token backend/tests/load/scenarios/authentication.js
+```
+
+### 6. Clip Submission (`scenarios/submit.js`)
 
 Tests clip submission workflow (requires authentication).
 
@@ -179,7 +273,7 @@ k6 run -e AUTH_TOKEN=your_jwt_token backend/tests/load/scenarios/submit.js
 make test-load-submit AUTH_TOKEN=your_jwt_token
 ```
 
-### 6. Mixed User Behavior (`scenarios/mixed_behavior.js`) **[Recommended]**
+### 7. Mixed User Behavior (`scenarios/mixed_behavior.js`) **[Recommended]**
 
 Simulates realistic user behavior with mixed activity patterns:
 - 40% Casual browsers (feed browsing)
@@ -205,6 +299,51 @@ make test-load-mixed
 # or
 k6 run backend/tests/load/scenarios/mixed_behavior.js
 ```
+
+### 8. Rate Limiting Accuracy (`scenarios/rate_limiting.js`)
+
+Tests rate limiting enforcement and accuracy across key endpoints. Validates that rate limits are correctly applied and that headers are accurate.
+
+**Endpoints Tested:**
+- Submission: 10/hour (basic), 50/hour (premium)
+- Metadata: 100/hour (basic), 500/hour (premium)
+- Watch party create: 10/hour
+- Watch party join: 30/hour
+- Search: Variable rate limiting
+
+**Load Pattern:**
+- 5 concurrent scenarios testing different endpoints
+- Each scenario runs for 2 minutes
+- Intentionally exceeds rate limits to validate enforcement
+
+**Thresholds:**
+- Submission p95: <250ms
+- Metadata p95: <150ms
+- Watch party create p95: <200ms
+- Watch party join p95: <150ms
+- Rate limit accuracy: 20-60% requests should be rate limited
+- Error rate: <1% (excluding expected 429s)
+
+**Validations:**
+- Allowed vs blocked request counts match expected ratios (±5%)
+- Rate limit headers present and accurate (X-RateLimit-Limit, X-RateLimit-Remaining, etc.)
+- Retry-After headers present on 429 responses
+- p95 latency remains acceptable even under rate limiting
+
+**Run:**
+```bash
+make test-load-rate-limiting
+# or
+k6 run -e AUTH_TOKEN=your_jwt_token backend/tests/load/scenarios/rate_limiting.js
+```
+
+**Expected Results:**
+
+Because the tests send multiple requests in a 2-minute window while rate limits are configured per hour:
+- Most requests beyond the allowed rate will be blocked (429 responses)
+- The first few requests within the hourly allowance will succeed
+- Rate limit headers should be accurate on all responses
+- Latency should remain acceptable even under rate limiting
 
 ## Environment Variables
 
@@ -303,10 +442,86 @@ Key metrics to monitor:
 
 ## CI/CD Integration
 
-Add load tests to your CI/CD pipeline:
+### GitHub Actions Workflow
+
+Load tests are fully integrated into CI/CD with a dedicated workflow:
+
+**Workflow File**: `.github/workflows/load-tests.yml`
+
+#### Available Test Types
+
+- `all` - Run all standard load tests
+- `feed` - Feed browsing test
+- `clip` - Clip detail test
+- `search` - Search functionality test
+- `comments` - Comments test
+- `auth` - Authentication test
+- `submit` - Submission test
+- `mixed` - Mixed behavior test (recommended)
+- `rate-limiting` - Rate limiting accuracy and performance test
+- `stress-lite` - Stress test (5 min, suitable for CI)
+- `soak-short` - Soak test (1 hour version)
+
+#### Automated Nightly Runs
+
+Load tests run automatically every night at 2 AM UTC. Results are available as artifacts in the GitHub Actions workflow runs.
+
+#### Manual Trigger
+
+You can manually trigger load tests from the GitHub Actions UI:
+
+1. Go to **Actions** tab in GitHub
+2. Select **Load Tests** workflow
+3. Click **Run workflow**
+4. Select test type (all, feed, clip, search, comments, auth, submit, mixed)
+5. Click **Run workflow**
+
+#### What the Workflow Does
+
+1. **Sets up environment**: PostgreSQL, Redis, Go, K6
+2. **Prepares data**: Runs migrations and seeds load test data
+3. **Starts backend**: Launches API server
+4. **Runs tests**: Executes selected load test scenarios
+5. **Generates reports**: Creates comprehensive markdown and HTML reports
+6. **Baseline comparison**: Compares results against stored baselines (if available)
+7. **Regression detection**: Fails build if performance regressions detected
+8. **Uploads artifacts**: Stores reports, metrics, and HTML visualizations
+
+#### Accessing Results
+
+**From GitHub Actions:**
+
+1. Go to workflow run in Actions tab
+2. View summary in the run page
+3. Download artifacts:
+   - `load-test-reports-*` - Markdown reports, HTML visualizations, and detailed outputs
+   - `load-test-metrics-*` - JSON metrics for trend analysis
+   - `load-test-baselines-*` - Baseline files (365-day retention)
+
+**In Grafana Dashboard:**
+
+- View real-time metrics at `https://clpr.tv/grafana`
+- Dashboard: "K6 Load Test Trends" (UID: `k6-load-test-trends`)
+- See `monitoring/dashboards/LOAD_TEST_DASHBOARD.md` for details
+
+#### Baseline Management in CI
+
+The CI workflow automatically:
+- Stores baseline files as artifacts (retained for 365 days)
+- Compares test results against baselines when available
+- Fails the build if performance regressions exceed thresholds
+- Generates comparison reports showing changes
+
+To update baselines after performance improvements:
+1. Run tests locally and capture new baseline
+2. Commit baseline files to `backend/tests/load/baselines/`
+3. CI will use new baselines for future comparisons
+
+#### Example: Adding to Your Workflow
+
+To add load tests to your own workflow:
 
 ```yaml
-# Example GitHub Actions workflow
 - name: Run Load Tests
   run: |
     make docker-up
@@ -315,6 +530,24 @@ Add load tests to your CI/CD pipeline:
     make backend-dev &
     sleep 10
     make test-load-mixed
+```
+
+Or trigger the dedicated workflow:
+
+```yaml
+- name: Trigger Load Tests
+  uses: actions/github-script@v7
+  with:
+    script: |
+      await github.rest.actions.createWorkflowDispatch({
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        workflow_id: 'load-tests.yml',
+        ref: 'main',
+        inputs: {
+          test_type: 'all'
+        }
+      })
 ```
 
 ## Troubleshooting
@@ -345,6 +578,94 @@ make migrate-seed-load-test
 ### K6 not installed
 
 Install K6 following the prerequisites section above.
+
+## Generating Reports
+
+### Comprehensive Load Test Report
+
+Generate a full report covering all load test scenarios:
+
+```bash
+# Start backend server
+make backend-dev
+
+# In another terminal, generate report
+cd backend/tests/load
+./generate_report.sh
+```
+
+The script will:
+1. Execute all load test scenarios
+2. Collect performance metrics
+3. Generate a comprehensive Markdown report
+4. Save detailed results for each scenario
+
+Reports are saved to `backend/tests/load/reports/load_test_report_TIMESTAMP.md`
+
+### Viewing Historical Trends
+
+**GitHub Actions Artifacts:**
+
+All nightly and manual load test runs store their results as artifacts:
+
+1. Navigate to **Actions** → **Load Tests** in GitHub
+2. Browse historical workflow runs
+3. Download artifacts to compare results over time
+4. Artifacts are retained for 90 days
+
+**Grafana Dashboard:**
+
+For real-time monitoring and trend visualization:
+
+1. Access Grafana at `https://clpr.tv/grafana`
+2. Open "K6 Load Test Trends" dashboard
+3. View metrics:
+   - Response time trends (p95, p99) over time
+   - Error rates by scenario
+   - Throughput patterns
+   - Check success rates
+4. Adjust time range to view historical data
+
+See `monitoring/dashboards/LOAD_TEST_DASHBOARD.md` for dashboard details.
+
+**Trend Analysis Script:**
+
+For offline analysis of historical results:
+
+```bash
+# Download multiple test artifacts from GitHub Actions
+# Extract JSON files to a directory
+# Run the analysis script
+./backend/tests/load/analyze_trends.sh ./path/to/json/files
+```
+
+The script will:
+- Analyze multiple K6 JSON outputs
+- Calculate statistics (average, min, max) for key metrics
+- Show trends comparing earliest vs. latest results
+- Identify performance improvements or regressions
+
+Example output:
+```
+Response Time Statistics (ms):
+  p95: Average: 45.2, Min: 38.1, Max: 52.3
+  p99: Average: 89.5, Min: 76.2, Max: 98.1
+
+p95 Response Time Change:
+  ↓ Decreased by 7.2ms (-13.7%)
+```
+
+### Manual Report Generation
+
+For individual test reports:
+
+```bash
+# Run test and save output
+k6 run scenario.js > results.txt
+
+# Generate custom report
+# (see PROFILING_REPORT_TEMPLATE.md for structure)
+```
 
 ## Advanced Usage
 
@@ -389,15 +710,28 @@ k6 run --out influxdb=http://localhost:8086/k6 scenario.js
 
 When adding new load test scenarios:
 
-1. Follow the existing file structure
+1. Follow the existing file structure in `scenarios/`
 2. Use descriptive names for metrics
 3. Set realistic thresholds
 4. Document the scenario in this README
 5. Update the Makefile with a new target
+6. Consider CI/CD integration (duration, resources)
+
+**For Stress/Soak Tests:**
+- See [Stress & Soak Testing Guide](STRESS_SOAK_GUIDE.md)
+- Use template from existing stress.js or soak.js
+- Document expected behavior and exit criteria
+- Include memory leak detection metrics
+- Plan for extended monitoring
 
 ## Resources
 
-- [K6 Documentation](https://k6.io/docs/)
-- [K6 Examples](https://k6.io/docs/examples/)
-- [Performance Testing Best Practices](https://k6.io/docs/testing-guides/test-types/)
-- [K6 Metrics](https://k6.io/docs/using-k6/metrics/)
+- [K6 Documentation](https://k6.io/docs/) - Official K6 docs
+- [K6 Examples](https://k6.io/docs/examples/) - Example test scripts
+- [Performance Testing Best Practices](https://k6.io/docs/testing-guides/test-types/) - Test types and patterns
+- [K6 Metrics](https://k6.io/docs/using-k6/metrics/) - Understanding metrics
+- [Stress & Soak Testing Guide](STRESS_SOAK_GUIDE.md) - Comprehensive stress/soak guide
+- [Quick Reference](STRESS_SOAK_QUICK_REFERENCE.md) - Commands and cheat sheet
+- [Execution Guide](EXECUTION_GUIDE.md) - Step-by-step instructions
+- [Performance Summary](PERFORMANCE_SUMMARY.md) - Performance baselines and targets
+- [Load Test Dashboard](../../monitoring/dashboards/LOAD_TEST_DASHBOARD.md) - Grafana dashboard guide

@@ -1,18 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Features](#features)
-  - [Core Features](#core-features)
-    - [Discovery & Browsing](#discovery--browsing)
-    - [Search](#search)
-    - [Community](#community)
-    - [User Accounts](#user-accounts)
-    - [Platform Support](#platform-support)
-  - [Premium Features](#premium-features)
-  - [Legend](#legend)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Features"
 summary: "Complete list of Clipper platform features and capabilities."

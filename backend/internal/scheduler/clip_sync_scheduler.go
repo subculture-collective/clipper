@@ -2,16 +2,22 @@ package scheduler
 
 import (
 	"context"
-	"log"
 	"sync"
 	"time"
 
 	"github.com/subculture-collective/clipper/internal/services"
+	"github.com/subculture-collective/clipper/pkg/metrics"
+	"github.com/subculture-collective/clipper/pkg/utils"
+)
+
+const (
+	clipSyncSchedulerName = "clip_sync"
+	clipSyncJobName       = "clip_sync"
 )
 
 // ClipSyncServiceInterface defines the interface required by the scheduler
 type ClipSyncServiceInterface interface {
-	SyncTrendingClips(ctx context.Context, hours, limit int) (*services.SyncStats, error)
+	SyncTrendingClips(ctx context.Context, hours int, opts *services.TrendingSyncOptions) (*services.SyncStats, error)
 }
 
 // ClipSyncScheduler manages periodic clip synchronization
@@ -33,7 +39,10 @@ func NewClipSyncScheduler(syncService ClipSyncServiceInterface, intervalMinutes 
 
 // Start begins the periodic sync process
 func (s *ClipSyncScheduler) Start(ctx context.Context) {
-	log.Printf("Starting clip sync scheduler (interval: %v)", s.interval)
+	utils.Info("Starting clip sync scheduler", map[string]interface{}{
+		"scheduler": clipSyncSchedulerName,
+		"interval":  s.interval.String(),
+	})
 
 	ticker := time.NewTicker(s.interval)
 	defer ticker.Stop()
@@ -46,10 +55,14 @@ func (s *ClipSyncScheduler) Start(ctx context.Context) {
 		case <-ticker.C:
 			s.runSync(ctx)
 		case <-s.stopChan:
-			log.Println("Clip sync scheduler stopped")
+			utils.Info("Clip sync scheduler stopped", map[string]interface{}{
+				"scheduler": clipSyncSchedulerName,
+			})
 			return
 		case <-ctx.Done():
-			log.Println("Clip sync scheduler stopped due to context cancellation")
+			utils.Info("Clip sync scheduler stopped due to context cancellation", map[string]interface{}{
+				"scheduler": clipSyncSchedulerName,
+			})
 			return
 		}
 	}
@@ -64,21 +77,53 @@ func (s *ClipSyncScheduler) Stop() {
 
 // runSync executes a sync operation
 func (s *ClipSyncScheduler) runSync(ctx context.Context) {
-	log.Println("Starting scheduled clip sync...")
+	utils.Info("Starting scheduled clip sync", map[string]interface{}{
+		"scheduler": clipSyncSchedulerName,
+		"job":       clipSyncJobName,
+	})
+	startTime := time.Now()
 
 	// Sync trending clips from the last 24 hours
-	// Fetch 10 clips per game from top 10 games = ~100 clips total
-	stats, err := s.syncService.SyncTrendingClips(ctx, 24, 10)
+	// Rotate pagination over a fixed window to keep volume low
+	stats, err := s.syncService.SyncTrendingClips(ctx, 24, &services.TrendingSyncOptions{MaxPages: services.DefaultTrendingPageWindow})
+	duration := time.Since(startTime)
+
+	// Record metrics
+	metrics.JobExecutionDuration.WithLabelValues(clipSyncJobName).Observe(duration.Seconds())
+
 	if err != nil {
-		log.Printf("Scheduled sync failed: %v", err)
+		utils.Error("Scheduled sync failed", err, map[string]interface{}{
+			"scheduler": clipSyncSchedulerName,
+			"job":       clipSyncJobName,
+		})
+		metrics.JobExecutionTotal.WithLabelValues(clipSyncJobName, "failed").Inc()
 		return
 	}
 
-	log.Printf("Scheduled sync completed: fetched=%d created=%d updated=%d skipped=%d errors=%d duration=%v",
-		stats.ClipsFetched, stats.ClipsCreated, stats.ClipsUpdated, stats.ClipsSkipped,
-		len(stats.Errors), stats.EndTime.Sub(stats.StartTime))
+	metrics.JobExecutionTotal.WithLabelValues(clipSyncJobName, "success").Inc()
+	metrics.JobLastSuccessTimestamp.WithLabelValues(clipSyncJobName).Set(float64(time.Now().Unix()))
+	metrics.JobItemsProcessed.WithLabelValues(clipSyncJobName, "success").Add(float64(stats.ClipsCreated + stats.ClipsUpdated))
+	metrics.JobItemsProcessed.WithLabelValues(clipSyncJobName, "skipped").Add(float64(stats.ClipsSkipped))
+	if len(stats.Errors) > 0 {
+		metrics.JobItemsProcessed.WithLabelValues(clipSyncJobName, "failed").Add(float64(len(stats.Errors)))
+	}
+
+	utils.Info("Scheduled sync completed", map[string]interface{}{
+		"scheduler": clipSyncSchedulerName,
+		"job":       clipSyncJobName,
+		"fetched":   stats.ClipsFetched,
+		"created":   stats.ClipsCreated,
+		"updated":   stats.ClipsUpdated,
+		"skipped":   stats.ClipsSkipped,
+		"errors":    len(stats.Errors),
+		"duration":  stats.EndTime.Sub(stats.StartTime).String(),
+	})
 
 	if len(stats.Errors) > 0 {
-		log.Printf("Sync errors: %v", stats.Errors)
+		utils.Warn("Sync had errors", map[string]interface{}{
+			"scheduler": clipSyncSchedulerName,
+			"job":       clipSyncJobName,
+			"errors":    stats.Errors,
+		})
 	}
 }

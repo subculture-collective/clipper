@@ -1,30 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Clip Submission Rate Limiting & Moderation](#clip-submission-rate-limiting--moderation)
-  - [Rate Limits](#rate-limits)
-    - [User-Based Limits](#user-based-limits)
-    - [Minimum Requirements](#minimum-requirements)
-  - [Abuse Detection](#abuse-detection)
-    - [Detection Rules](#detection-rules)
-    - [Cooldown System](#cooldown-system)
-  - [Moderation Events](#moderation-events)
-    - [Event Types](#event-types)
-    - [Event Severity Levels](#event-severity-levels)
-    - [Event Queue](#event-queue)
-  - [Admin API Endpoints](#admin-api-endpoints)
-    - [Event Management](#event-management)
-    - [Abuse Stats](#abuse-stats)
-  - [Integration with Submission Flow](#integration-with-submission-flow)
-    - [Pre-Submission Checks](#pre-submission-checks)
-    - [Event Emission](#event-emission)
-    - [Response to User](#response-to-user)
-  - [Monitoring and Logging](#monitoring-and-logging)
-  - [Best Practices for Moderators](#best-practices-for-moderators)
-  - [Future Enhancements](#future-enhancements)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Clip Submission Rate Limiting & Moderation"
 summary: "This document describes the rate limiting, abuse detection, and moderation system for clip submissio"
@@ -63,6 +36,7 @@ The `SubmissionAbuseDetector` service monitors submission patterns and automatic
 ### Detection Rules
 
 #### 1. Burst Detection
+
 **Threshold:** 2 submissions within 1 minute  
 **Cooldown:** 15 minutes  
 **Severity:** Throttle
@@ -70,6 +44,7 @@ The `SubmissionAbuseDetector` service monitors submission patterns and automatic
 Detects users who are submitting clips too rapidly in a short time window. This prevents automated spam and script-based abuse.
 
 #### 2. Velocity Detection
+
 **Threshold:** 3 submissions within 5 minutes  
 **Cooldown:** 30 minutes  
 **Severity:** Throttle
@@ -77,6 +52,7 @@ Detects users who are submitting clips too rapidly in a short time window. This 
 Monitors sustained rapid submission rates over a slightly longer window. Users who exceed this threshold are temporarily blocked.
 
 #### 3. IP Sharing Detection
+
 **Threshold:** 5 different users from same IP within 1 hour  
 **Cooldown:** N/A (warning only)  
 **Severity:** Warning
@@ -89,6 +65,7 @@ Flags submissions when multiple users are submitting from the same IP address. T
 Submissions are **allowed** but flagged for moderator review.
 
 #### 4. Duplicate Submission Tracking
+
 **Threshold:** 3 duplicate attempts within 1 hour  
 **Cooldown:** 1 hour  
 **Severity:** Throttle
@@ -111,6 +88,7 @@ The `ModerationEventService` creates a centralized queue for all submission-rela
 ### Event Types
 
 #### Submission Events
+
 - `submission_received` - Normal submission created (info)
 - `submission_approved` - Submission auto-approved (info)
 - `submission_rejected` - Submission rejected by moderator (info)
@@ -119,6 +97,7 @@ The `ModerationEventService` creates a centralized queue for all submission-rela
 - `submission_duplicate` - Duplicate submission attempt detected (warning)
 
 #### Abuse Events
+
 - `abuse_detected` - General abuse pattern detected (warning)
 - `rate_limit_exceeded` - User hit rate limit (warning)
 - `velocity_violation` - Rapid submission detected (critical)

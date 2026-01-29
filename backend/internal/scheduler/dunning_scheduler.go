@@ -2,10 +2,13 @@ package scheduler
 
 import (
 	"context"
-	"log"
 	"sync"
 	"time"
+
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
+
+const dunningSchedulerName = "dunning"
 
 // DunningServiceInterface defines the interface required by the dunning scheduler
 type DunningServiceInterface interface {
@@ -47,9 +50,11 @@ func NewDunningScheduler(
 
 // Start begins the periodic dunning processing
 func (s *DunningScheduler) Start(ctx context.Context) {
-	log.Printf("[DUNNING_SCHEDULER] Starting dunning scheduler")
-	log.Printf("[DUNNING_SCHEDULER] Grace period check interval: %v", s.gracePeriodCheckInterval)
-	log.Printf("[DUNNING_SCHEDULER] Warning check interval: %v", s.warningCheckInterval)
+	utils.Info("Starting dunning scheduler", map[string]interface{}{
+		"scheduler":                   dunningSchedulerName,
+		"grace_period_check_interval": s.gracePeriodCheckInterval.String(),
+		"warning_check_interval":      s.warningCheckInterval.String(),
+	})
 
 	// Start grace period expiry checker
 	s.wg.Add(1)
@@ -75,10 +80,14 @@ func (s *DunningScheduler) runGracePeriodChecker(ctx context.Context) {
 		case <-ticker.C:
 			s.processExpiredGracePeriods(ctx)
 		case <-s.stopChan:
-			log.Println("[DUNNING_SCHEDULER] Grace period checker stopped")
+			utils.Info("Grace period checker stopped", map[string]interface{}{
+				"scheduler": dunningSchedulerName,
+			})
 			return
 		case <-ctx.Done():
-			log.Println("[DUNNING_SCHEDULER] Grace period checker stopped due to context cancellation")
+			utils.Info("Grace period checker stopped due to context cancellation", map[string]interface{}{
+				"scheduler": dunningSchedulerName,
+			})
 			return
 		}
 	}
@@ -99,10 +108,14 @@ func (s *DunningScheduler) runWarningChecker(ctx context.Context) {
 		case <-ticker.C:
 			s.sendGracePeriodWarnings(ctx)
 		case <-s.stopChan:
-			log.Println("[DUNNING_SCHEDULER] Warning checker stopped")
+			utils.Info("Warning checker stopped", map[string]interface{}{
+				"scheduler": dunningSchedulerName,
+			})
 			return
 		case <-ctx.Done():
-			log.Println("[DUNNING_SCHEDULER] Warning checker stopped due to context cancellation")
+			utils.Info("Warning checker stopped due to context cancellation", map[string]interface{}{
+				"scheduler": dunningSchedulerName,
+			})
 			return
 		}
 	}
@@ -111,7 +124,9 @@ func (s *DunningScheduler) runWarningChecker(ctx context.Context) {
 // Stop gracefully stops the scheduler
 func (s *DunningScheduler) Stop() {
 	s.stopOnce.Do(func() {
-		log.Println("[DUNNING_SCHEDULER] Stopping dunning scheduler...")
+		utils.Info("Stopping dunning scheduler", map[string]interface{}{
+			"scheduler": dunningSchedulerName,
+		})
 		close(s.stopChan)
 
 		// Wait for goroutines to finish with timeout
@@ -123,31 +138,47 @@ func (s *DunningScheduler) Stop() {
 
 		select {
 		case <-done:
-			log.Println("[DUNNING_SCHEDULER] Dunning scheduler stopped successfully")
+			utils.Info("Dunning scheduler stopped successfully", map[string]interface{}{
+				"scheduler": dunningSchedulerName,
+			})
 		case <-time.After(30 * time.Second):
-			log.Println("[DUNNING_SCHEDULER] Dunning scheduler stop timed out")
+			utils.Warn("Dunning scheduler stop timed out", map[string]interface{}{
+				"scheduler": dunningSchedulerName,
+			})
 		}
 	})
 }
 
 // processExpiredGracePeriods processes subscriptions with expired grace periods
 func (s *DunningScheduler) processExpiredGracePeriods(ctx context.Context) {
-	log.Printf("[DUNNING_SCHEDULER] Processing expired grace periods...")
+	utils.Info("Processing expired grace periods", map[string]interface{}{
+		"scheduler": dunningSchedulerName,
+	})
 
 	if err := s.dunningService.ProcessExpiredGracePeriods(ctx); err != nil {
-		log.Printf("[DUNNING_SCHEDULER] Error processing expired grace periods: %v", err)
+		utils.Error("Error processing expired grace periods", err, map[string]interface{}{
+			"scheduler": dunningSchedulerName,
+		})
 	} else {
-		log.Printf("[DUNNING_SCHEDULER] Successfully processed expired grace periods")
+		utils.Info("Successfully processed expired grace periods", map[string]interface{}{
+			"scheduler": dunningSchedulerName,
+		})
 	}
 }
 
 // sendGracePeriodWarnings sends warnings to users approaching grace period expiry
 func (s *DunningScheduler) sendGracePeriodWarnings(ctx context.Context) {
-	log.Printf("[DUNNING_SCHEDULER] Sending grace period warnings...")
+	utils.Info("Sending grace period warnings", map[string]interface{}{
+		"scheduler": dunningSchedulerName,
+	})
 
 	if err := s.dunningService.SendGracePeriodWarnings(ctx); err != nil {
-		log.Printf("[DUNNING_SCHEDULER] Error sending grace period warnings: %v", err)
+		utils.Error("Error sending grace period warnings", err, map[string]interface{}{
+			"scheduler": dunningSchedulerName,
+		})
 	} else {
-		log.Printf("[DUNNING_SCHEDULER] Successfully sent grace period warnings")
+		utils.Info("Successfully sent grace period warnings", map[string]interface{}{
+			"scheduler": dunningSchedulerName,
+		})
 	}
 }

@@ -1,34 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [CI/CD Implementation Summary](#cicd-implementation-summary)
-  - [Overview](#overview)
-  - [What Was Implemented](#what-was-implemented)
-    - [1. Continuous Integration (CI)](#1-continuous-integration-ci)
-    - [2. Docker Integration](#2-docker-integration)
-    - [3. Security Scanning](#3-security-scanning)
-    - [4. Deployment Automation](#4-deployment-automation)
-    - [5. Performance Monitoring](#5-performance-monitoring)
-    - [6. Configuration Files](#6-configuration-files)
-    - [7. Documentation](#7-documentation)
-  - [Security Improvements](#security-improvements)
-  - [Testing and Verification](#testing-and-verification)
-  - [Configuration Required](#configuration-required)
-    - [Repository Secrets](#repository-secrets)
-    - [GitHub Environments](#github-environments)
-  - [Benefits](#benefits)
-    - [For Developers](#for-developers)
-    - [For Operations](#for-operations)
-    - [For the Project](#for-the-project)
-  - [Workflow Architecture](#workflow-architecture)
-  - [Next Steps](#next-steps)
-    - [Immediate](#immediate)
-    - [Future Enhancements](#future-enhancements)
-  - [Support](#support)
-  - [Conclusion](#conclusion)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 # CI/CD Implementation Summary
 
 This document summarizes the comprehensive CI/CD pipeline implementation for the Clipper project.

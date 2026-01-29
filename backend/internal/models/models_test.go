@@ -1,7 +1,11 @@
 package models
 
 import (
+	"encoding/json"
 	"testing"
+	"time"
+
+	"github.com/google/uuid"
 )
 
 func TestRejectionReasonTemplates(t *testing.T) {
@@ -102,4 +106,126 @@ func TestModerationAuditLogWithUserStructure(t *testing.T) {
 	_ = log.Moderator
 
 	t.Log("ModerationAuditLogWithUser structure is valid")
+}
+
+func TestUserModeratorFieldsJSONMarshaling(t *testing.T) {
+	now := time.Now()
+	channelID1 := uuid.New()
+	channelID2 := uuid.New()
+
+	tests := []struct {
+		name    string
+		user    User
+		checkFn func(*testing.T, []byte)
+		desc    string
+	}{
+		{
+			name: "site moderator JSON marshaling",
+			user: User{
+				ID:                  uuid.New(),
+				Username:            "sitemod",
+				DisplayName:         "Site Moderator",
+				ModeratorScope:      ModeratorScopeSite,
+				ModerationChannels:  []uuid.UUID{},
+				ModerationStartedAt: &now,
+			},
+			checkFn: func(t *testing.T, jsonData []byte) {
+				var result map[string]interface{}
+				if err := json.Unmarshal(jsonData, &result); err != nil {
+					t.Fatalf("Failed to unmarshal JSON: %v", err)
+				}
+				if result["moderator_scope"] != ModeratorScopeSite {
+					t.Errorf("Expected moderator_scope to be %q, got %v", ModeratorScopeSite, result["moderator_scope"])
+				}
+				// Empty array with omitempty will be omitted in JSON
+				// This is expected behavior for omitempty tag
+				if result["moderation_started_at"] == nil {
+					t.Error("Expected moderation_started_at to be present")
+				}
+			},
+			desc: "Site moderator should marshal with empty channel list",
+		},
+		{
+			name: "community moderator JSON marshaling",
+			user: User{
+				ID:                  uuid.New(),
+				Username:            "commmod",
+				DisplayName:         "Community Moderator",
+				ModeratorScope:      ModeratorScopeCommunity,
+				ModerationChannels:  []uuid.UUID{channelID1, channelID2},
+				ModerationStartedAt: &now,
+			},
+			checkFn: func(t *testing.T, jsonData []byte) {
+				var result map[string]interface{}
+				if err := json.Unmarshal(jsonData, &result); err != nil {
+					t.Fatalf("Failed to unmarshal JSON: %v", err)
+				}
+				if result["moderator_scope"] != ModeratorScopeCommunity {
+					t.Errorf("Expected moderator_scope to be %q, got %v", ModeratorScopeCommunity, result["moderator_scope"])
+				}
+				channels, ok := result["moderation_channels"].([]interface{})
+				if !ok {
+					t.Fatalf("Expected moderation_channels to be array, got %T", result["moderation_channels"])
+				}
+				if len(channels) != 2 {
+					t.Errorf("Expected 2 moderation channels, got %d", len(channels))
+				}
+			},
+			desc: "Community moderator should marshal with channel list",
+		},
+		{
+			name: "non-moderator JSON marshaling",
+			user: User{
+				ID:          uuid.New(),
+				Username:    "regular",
+				DisplayName: "Regular User",
+			},
+			checkFn: func(t *testing.T, jsonData []byte) {
+				var result map[string]interface{}
+				if err := json.Unmarshal(jsonData, &result); err != nil {
+					t.Fatalf("Failed to unmarshal JSON: %v", err)
+				}
+				// Fields with omitempty should not be present for zero values
+				if _, exists := result["moderator_scope"]; exists {
+					t.Error("Expected moderator_scope to be omitted for non-moderator")
+				}
+				if _, exists := result["moderation_channels"]; exists {
+					t.Error("Expected moderation_channels to be omitted for non-moderator")
+				}
+				if _, exists := result["moderation_started_at"]; exists {
+					t.Error("Expected moderation_started_at to be omitted for non-moderator")
+				}
+			},
+			desc: "Non-moderator should omit moderator fields",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			jsonData, err := json.Marshal(tt.user)
+			if err != nil {
+				t.Fatalf("Failed to marshal user to JSON: %v", err)
+			}
+
+			tt.checkFn(t, jsonData)
+
+			// Verify we can unmarshal back
+			var unmarshaled User
+			if err := json.Unmarshal(jsonData, &unmarshaled); err != nil {
+				t.Fatalf("Failed to unmarshal JSON back to User: %v", err)
+			}
+
+			// Verify key fields match
+			if unmarshaled.Username != tt.user.Username {
+				t.Errorf("Username mismatch after unmarshal: got %q, want %q", unmarshaled.Username, tt.user.Username)
+			}
+			if unmarshaled.ModeratorScope != tt.user.ModeratorScope {
+				t.Errorf("ModeratorScope mismatch after unmarshal: got %q, want %q", unmarshaled.ModeratorScope, tt.user.ModeratorScope)
+			}
+			if len(unmarshaled.ModerationChannels) != len(tt.user.ModerationChannels) {
+				t.Errorf("ModerationChannels length mismatch after unmarshal: got %d, want %d",
+					len(unmarshaled.ModerationChannels), len(tt.user.ModerationChannels))
+			}
+		})
+	}
 }

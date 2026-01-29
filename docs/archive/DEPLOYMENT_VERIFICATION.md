@@ -1,22 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Deployment Verification - December 7, 2025](#deployment-verification---december-7-2025)
-  - [Status: ✅ DEPLOYED AND VERIFIED](#status--deployed-and-verified)
-  - [What Was Fixed](#what-was-fixed)
-  - [Deployment Summary](#deployment-summary)
-    - [Frontend Build](#frontend-build)
-    - [Docker Container Status](#docker-container-status)
-    - [Verification Results](#verification-results)
-  - [How to Verify in Browser](#how-to-verify-in-browser)
-  - [Technical Details](#technical-details)
-    - [Changed Files](#changed-files)
-    - [Related Fixes Applied Earlier](#related-fixes-applied-earlier)
-  - [Rollback Instructions (if needed)](#rollback-instructions-if-needed)
-  - [Next Steps](#next-steps)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 # Deployment Verification - December 7, 2025
 
 ## Status: ✅ DEPLOYED AND VERIFIED
@@ -32,6 +13,7 @@ The React chunking fix has been successfully deployed to production.
 ## Deployment Summary
 
 ### Frontend Build
+
 - **Build Date:** December 7, 2025 @ 17:56 UTC
 - **Bundle Name:** `app-UlI5Uk2Z.js`
 - **Bundle Size:** 518 KB (164.93 KB gzipped)
@@ -39,6 +21,7 @@ The React chunking fix has been successfully deployed to production.
 - **Chunking Strategy:** Only heavy optional dependencies (recharts, markdown, lodash) split out
 
 ### Docker Container Status
+
 - **Image:** `clipper-frontend:latest` (rebuilt Dec 7 18:16 UTC)
 - **Container:** `clipper-frontend` (running on web network, port 80 internal)
 - **Health Status:** ✅ Healthy

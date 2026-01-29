@@ -1,37 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Deep Linking Implementation Summary](#deep-linking-implementation-summary)
-  - [Overview](#overview)
-  - [What Was Implemented](#what-was-implemented)
-    - [1. Configuration Files](#1-configuration-files)
-    - [2. Code Implementation](#2-code-implementation)
-    - [3. Documentation](#3-documentation)
-  - [Supported Deep Link Routes](#supported-deep-link-routes)
-  - [How It Works](#how-it-works)
-    - [User Journey: Opening a Clip Link](#user-journey-opening-a-clip-link)
-    - [User Journey: Sharing Content](#user-journey-sharing-content)
-  - [Integration Guide](#integration-guide)
-    - [Quick Start](#quick-start)
-    - [Testing Integration](#testing-integration)
-  - [Deployment Checklist](#deployment-checklist)
-    - [Before Deployment](#before-deployment)
-    - [After Deployment](#after-deployment)
-  - [Troubleshooting](#troubleshooting)
-    - [iOS Universal Links Not Working](#ios-universal-links-not-working)
-    - [Android App Links Not Working](#android-app-links-not-working)
-    - [Share Target Not Appearing](#share-target-not-appearing)
-  - [Performance Considerations](#performance-considerations)
-  - [Security Considerations](#security-considerations)
-  - [Testing Status](#testing-status)
-  - [Browser Support](#browser-support)
-  - [Future Enhancements](#future-enhancements)
-  - [Resources](#resources)
-  - [Support](#support)
-  - [Summary](#summary)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 # Deep Linking Implementation Summary
 
 ## Overview

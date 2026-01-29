@@ -17,10 +17,14 @@ import {
 export const useClipFeed = (filters?: ClipFeedFilters) => {
     return useInfiniteQuery({
         queryKey: ['clips', filters],
+        // Use page-based pagination to align with tests and mocks
         queryFn: ({ pageParam = 1 }) =>
-            clipApi.fetchClips({ pageParam, filters }),
+            clipApi.fetchClips({ pageParam, filters } as unknown as {
+                pageParam: number;
+                filters?: ClipFeedFilters;
+            }),
         getNextPageParam: (lastPage) => {
-            return lastPage.has_more ? lastPage.page + 1 : undefined;
+            return lastPage.has_more ? (lastPage.page ?? 1) + 1 : undefined;
         },
         initialPageParam: 1,
     });
@@ -65,59 +69,117 @@ export const useClipById = (clipId: string) => {
 export const useClipVote = () => {
     const queryClient = useQueryClient();
 
-    return useMutation({
+    type VoteContext = {
+        previousFeedQueries: ReturnType<typeof queryClient.getQueriesData>;
+        previousClip?: Clip;
+    };
+
+    const updateClipCaches = (
+        clipId: string,
+        updater: (clip: Clip) => Clip
+    ) => {
+        queryClient.setQueriesData({ queryKey: ['clips'] }, (old: unknown) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const oldData = old as any;
+            if (!oldData?.pages) return oldData;
+
+            return {
+                ...oldData,
+                pages: oldData.pages.map((page: ClipFeedResponse) => ({
+                    ...page,
+                    clips: page.clips.map((clip: Clip) =>
+                        clip.id === clipId ? updater(clip) : clip
+                    ),
+                })),
+            };
+        });
+
+        const singleClip = queryClient.getQueryData<Clip>(['clip', clipId]);
+        if (singleClip) {
+            queryClient.setQueryData<Clip>(['clip', clipId], updater(singleClip));
+        }
+    };
+
+    return useMutation<
+        Awaited<ReturnType<typeof clipApi.voteOnClip>>,
+        Error,
+        VotePayload,
+        VoteContext
+    >({
         mutationFn: async (payload: VotePayload) => {
             return await clipApi.voteOnClip(payload);
         },
         onMutate: async (payload) => {
-            // Optimistic update
+            // Optimistic update for feed and single clip caches
             await queryClient.cancelQueries({ queryKey: ['clips'] });
+            await queryClient.cancelQueries({ queryKey: ['clip', payload.clip_id] });
 
-            const previousData = queryClient.getQueriesData({
+            const previousFeedQueries = queryClient.getQueriesData({
                 queryKey: ['clips'],
             });
+            const previousClip = queryClient.getQueryData<Clip>([
+                'clip',
+                payload.clip_id,
+            ]);
 
-            queryClient.setQueriesData(
-                { queryKey: ['clips'] },
-                (old: unknown) => {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const oldData = old as any;
-                    if (!oldData?.pages) return oldData;
+            updateClipCaches(payload.clip_id, (clip) => {
+                const previousVote = clip.user_vote ?? 0;
+                const scoreDelta = payload.vote_type - previousVote;
 
-                    return {
-                        ...oldData,
-                        pages: oldData.pages.map((page: ClipFeedResponse) => ({
-                            ...page,
-                            clips: page.clips.map((clip: Clip) => {
-                                if (clip.id === payload.clip_id) {
-                                    const previousVote = clip.user_vote || 0;
-                                    const scoreDelta =
-                                        payload.vote_type - previousVote;
+                let nextUpvoteCount = clip.upvote_count;
+                let nextDownvoteCount = clip.downvote_count;
 
-                                    return {
-                                        ...clip,
-                                        user_vote: payload.vote_type,
-                                        vote_score:
-                                            clip.vote_score + scoreDelta,
-                                    };
-                                }
-                                return clip;
-                            }),
-                        })),
-                    };
+                if (nextUpvoteCount !== undefined) {
+                    if (payload.vote_type === 1 && previousVote !== 1) {
+                        nextUpvoteCount = nextUpvoteCount + 1;
+                    }
+                    if (payload.vote_type === -1 && previousVote === 1) {
+                        nextUpvoteCount = Math.max(0, nextUpvoteCount - 1);
+                    }
                 }
-            );
 
-            return { previousData };
+                if (nextDownvoteCount !== undefined) {
+                    if (payload.vote_type === -1 && previousVote !== -1) {
+                        nextDownvoteCount = nextDownvoteCount + 1;
+                    }
+                    if (payload.vote_type === 1 && previousVote === -1) {
+                        nextDownvoteCount = Math.max(0, nextDownvoteCount - 1);
+                    }
+                }
+
+                return {
+                    ...clip,
+                    user_vote: payload.vote_type,
+                    vote_score: clip.vote_score + scoreDelta,
+                    upvote_count: nextUpvoteCount,
+                    downvote_count: nextDownvoteCount,
+                };
+            });
+
+            return { previousFeedQueries, previousClip };
         },
-        onError: (_error, _payload, context) => {
+        onError: (_error, payload, context) => {
             // Rollback on error
-            if (context?.previousData) {
-                queryClient.setQueriesData(
-                    { queryKey: ['clips'] },
-                    context.previousData
+            context?.previousFeedQueries?.forEach(([queryKey, data]) => {
+                queryClient.setQueryData(queryKey, data);
+            });
+            if (context?.previousClip) {
+                queryClient.setQueryData(
+                    ['clip', payload.clip_id],
+                    context.previousClip
                 );
             }
+        },
+        onSuccess: (data, payload) => {
+            const normalizedUserVote = data.user_vote === 0 ? null : data.user_vote;
+
+            updateClipCaches(payload.clip_id, (clip) => ({
+                ...clip,
+                user_vote: normalizedUserVote as Clip['user_vote'],
+                vote_score: data.vote_score,
+                upvote_count: data.upvote_count,
+                downvote_count: data.downvote_count,
+            }));
         },
     });
 };

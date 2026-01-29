@@ -1,11 +1,11 @@
 package middleware
 
 import (
-	"log"
 	"net/http"
 	"runtime/debug"
 
 	"github.com/gin-gonic/gin"
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
 // JSONRecoveryMiddleware returns a middleware that recovers from panics and returns JSON errors
@@ -13,9 +13,17 @@ func JSONRecoveryMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
 			if err := recover(); err != nil {
-				// Log the panic with stack trace
+				// Log the panic with stack trace using structured logger
 				stack := debug.Stack()
-				log.Printf("PANIC recovered: %v\nStack trace:\n%s", err, stack)
+				logger := utils.GetLogger()
+
+				fields := map[string]interface{}{
+					"panic":      err,
+					"stack":      string(stack),
+					"request_id": c.GetString("RequestId"),
+				}
+
+				logger.Error("PANIC recovered", nil, fields)
 
 				// Always return JSON error response
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{

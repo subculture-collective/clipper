@@ -1,31 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Search Evaluation](#search-evaluation)
-  - [Overview](#overview)
-  - [Metrics](#metrics)
-    - [Offline Metrics](#offline-metrics)
-    - [Online Metrics](#online-metrics)
-  - [Evaluation Dataset](#evaluation-dataset)
-    - [Structure](#structure)
-    - [Relevance Scale](#relevance-scale)
-    - [Adding New Queries](#adding-new-queries)
-  - [Running Evaluation](#running-evaluation)
-    - [Using the CLI](#using-the-cli)
-    - [Command-Line Options](#command-line-options)
-    - [Example Output](#example-output)
-  - [Grafana Dashboard](#grafana-dashboard)
-    - [Importing the Dashboard](#importing-the-dashboard)
-    - [Required Prometheus Metrics](#required-prometheus-metrics)
-  - [Best Practices](#best-practices)
-    - [Running Regular Evaluations](#running-regular-evaluations)
-    - [Expanding the Dataset](#expanding-the-dataset)
-    - [Responding to Metric Drops](#responding-to-metric-drops)
-  - [Integration with CI/CD](#integration-with-cicd)
-  - [References](#references)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Search Evaluation"
 summary: "This document describes the search evaluation system for Clipper's semantic search, including evalua"
@@ -202,7 +174,7 @@ A Grafana dashboard for search quality metrics is available at `monitoring/dashb
 
 ### Importing the Dashboard
 
-1. Open Grafana (http://localhost:3000)
+1. Open Grafana (<http://localhost:3000>)
 2. Navigate to Dashboards → Import
 3. Upload `search-quality.json`
 4. Select Prometheus as the data source

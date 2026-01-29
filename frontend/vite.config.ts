@@ -6,6 +6,14 @@ import { visualizer } from 'rollup-plugin-visualizer';
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => ({
+    // Optimize dependencies to handle CommonJS modules like lucide-react
+    optimizeDeps: {
+        include: ['lucide-react', '@tanstack/react-query', 'react-router-dom'],
+    },
+    define: {
+        // Polyfill for gray-matter which uses Buffer
+        global: 'globalThis',
+    },
     plugins: [
         react(),
         // Upload source maps to Sentry on production builds
@@ -37,6 +45,17 @@ export default defineConfig(({ mode }) => ({
     resolve: {
         alias: {
             '@': path.resolve(__dirname, './src'),
+            buffer: 'buffer/',
+        },
+    },
+    server: {
+        port: 5173,
+        strictPort: true,
+        proxy: {
+            '/api': {
+                target: 'http://localhost:8080',
+                changeOrigin: true,
+            },
         },
     },
     build: {
@@ -46,10 +65,15 @@ export default defineConfig(({ mode }) => ({
         // so React and ReactDOM initialize in the same execution unit.
         rollupOptions: {
             output: {
-                // Disable manual vendor chunking
-                manualChunks: undefined,
-                // Inline dynamic imports at the entry to avoid multi-chunk init ordering issues
-                inlineDynamicImports: true,
+                // Create vendor chunks for better caching and preloading
+                manualChunks: {
+                    'react-vendor': ['react', 'react-dom'],
+                    'query-vendor': ['@tanstack/react-query'],
+                    'router-vendor': ['react-router-dom'],
+                    'icons-vendor': ['lucide-react'],
+                },
+                // Enable dynamic imports as separate chunks
+                inlineDynamicImports: false,
                 entryFileNames: 'assets/app-[hash].js',
                 chunkFileNames: 'assets/chunk-[hash].js',
                 assetFileNames: 'assets/[name]-[hash][extname]',

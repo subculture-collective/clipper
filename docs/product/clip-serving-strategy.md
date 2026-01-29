@@ -19,17 +19,17 @@ This document outlines the strategy for serving clips across different pages of 
 
 ### User-Submitted Clips
 
--   Clips where `submitted_by_user_id IS NOT NULL`
--   Content that has been curated and posted by community members
--   Appears in main feed pages by default
--   Represents community-curated, high-quality content
+- Clips where `submitted_by_user_id IS NOT NULL`
+- Content that has been curated and posted by community members
+- Appears in main feed pages by default
+- Represents community-curated, high-quality content
 
 ### Scraped Clips
 
--   Clips where `submitted_by_user_id IS NULL`
--   Content automatically discovered from Twitch
--   Available for users to submit/claim
--   Used for discovery and content sourcing
+- Clips where `submitted_by_user_id IS NULL`
+- Content automatically discovered from Twitch
+- Available for users to submit/claim
+- Used for discovery and content sourcing
 
 ## Page-by-Page Breakdown
 
@@ -46,9 +46,9 @@ The following pages show **only user-submitted clips**:
 
 **Implementation:**
 
--   Backend: `GET /api/v1/clips` with default `show_all_clips=false`
--   Filter: `UserSubmittedOnly: true` in `ClipFilters`
--   Query: `WHERE submitted_by_user_id IS NOT NULL`
+- Backend: `GET /api/v1/clips` with default `show_all_clips=false`
+- Filter: `UserSubmittedOnly: true` in `ClipFilters`
+- Query: `WHERE submitted_by_user_id IS NOT NULL`
 
 ### Discovery Page (All Content)
 
@@ -60,15 +60,15 @@ The Discovery page shows **all clips** (both user-submitted and scraped):
 
 **Purpose:**
 
--   Allow users to explore all available content
--   Find interesting scraped clips to submit
--   Discover trending content from Twitch
+- Allow users to explore all available content
+- Find interesting scraped clips to submit
+- Discover trending content from Twitch
 
 **Implementation:**
 
--   Backend: `GET /api/v1/clips?show_all_clips=true`
--   Filter: `UserSubmittedOnly: false` in `ClipFilters`
--   Query: No filter on `submitted_by_user_id`
+- Backend: `GET /api/v1/clips?show_all_clips=true`
+- Filter: `UserSubmittedOnly: false` in `ClipFilters`
+- Query: No filter on `submitted_by_user_id`
 
 ### Scraped Clips Page (Scraped Only)
 
@@ -80,9 +80,9 @@ The Scraped Clips page shows **only scraped clips**:
 
 **Implementation:**
 
--   Backend: `GET /api/v1/scraped-clips`
--   Filter: Dedicated endpoint for scraped content
--   Query: `WHERE submitted_by_user_id IS NULL`
+- Backend: `GET /api/v1/scraped-clips`
+- Filter: Dedicated endpoint for scraped content
+- Query: `WHERE submitted_by_user_id IS NULL`
 
 ## API Implementation
 
@@ -129,21 +129,21 @@ export interface ClipFeedFilters {
 
 ### Main Feed Pages
 
--   **What users see:** High-quality, community-curated content
--   **Why:** These clips have been vetted and submitted by community members
--   **Benefit:** Better signal-to-noise ratio, trusted content
+- **What users see:** High-quality, community-curated content
+- **Why:** These clips have been vetted and submitted by community members
+- **Benefit:** Better signal-to-noise ratio, trusted content
 
 ### Discovery Page
 
--   **What users see:** All available clips from all sources
--   **Why:** Maximum content discovery including trending Twitch clips
--   **Benefit:** Users can find and submit great content that hasn't been shared yet
+- **What users see:** All available clips from all sources
+- **Why:** Maximum content discovery including trending Twitch clips
+- **Benefit:** Users can find and submit great content that hasn't been shared yet
 
 ### Scraped Clips Page
 
--   **What users see:** Raw Twitch clips not yet submitted
--   **Why:** Dedicated space for discovering submittable content
--   **Benefit:** Clear call-to-action to "Post This Clip"
+- **What users see:** Raw Twitch clips not yet submitted
+- **Why:** Dedicated space for discovering submittable content
+- **Benefit:** Clear call-to-action to "Post This Clip"
 
 ## Migration Notes
 
@@ -155,14 +155,14 @@ This strategy was implemented to create a clearer distinction between:
 
 ### Previous Behavior
 
--   All pages showed mixed content (both user-submitted and scraped)
--   No distinction between community-curated and auto-discovered content
+- All pages showed mixed content (both user-submitted and scraped)
+- No distinction between community-curated and auto-discovered content
 
 ### New Behavior (Current)
 
--   Main feeds are user-submitted only (home, hot, new, top, rising)
--   Discovery page shows all content
--   Clear separation improves content quality perception
+- Main feeds are user-submitted only (home, hot, new, top, rising)
+- Discovery page shows all content
+- Clear separation improves content quality perception
 
 ## Testing
 
@@ -196,13 +196,11 @@ curl "http://localhost:8080/api/v1/scraped-clips?sort=new"
 ## Future Considerations
 
 1. **Metrics to Track:**
-
     - Ratio of user-submitted to scraped clips in discovery
     - Conversion rate: discovery views → clip submissions
     - User engagement on main feeds vs. discovery
 
 2. **Potential Enhancements:**
-
     - Allow users to opt-in to see scraped content in main feeds
     - Add "recommended for you" section with scraped clips
     - Personalized discovery based on user preferences
@@ -214,6 +212,6 @@ curl "http://localhost:8080/api/v1/scraped-clips?sort=new"
 
 ## Related Documentation
 
--   [Clip Management API](../backend/clip-api.md)
--   [Scraped Clips Feature](./scraped-clips.md)
--   [Discovery Lists Feature](./discovery-lists.md)
+- [Clip Management API](../backend/clip-api.md)
+- [Scraped Clips Feature](./scraped-clips.md)
+- [Discovery Lists Feature](./discovery-lists.md)

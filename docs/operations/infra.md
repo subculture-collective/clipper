@@ -1,18 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Operations: Infrastructure](#operations-infrastructure)
-  - [Architecture](#architecture)
-  - [Cloud Providers](#cloud-providers)
-  - [Load Balancing](#load-balancing)
-  - [Scaling](#scaling)
-  - [Database Backups](#database-backups)
-  - [Secrets Management](#secrets-management)
-  - [Monitoring & Alerting](#monitoring--alerting)
-  - [Disaster Recovery](#disaster-recovery)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Infrastructure"
 summary: "Infrastructure architecture, cloud providers, scaling, and disaster recovery."
@@ -37,6 +22,8 @@ Production runs on Kubernetes with:
 - PostgreSQL 17 (managed service or StatefulSet)
 - Redis 8 Cluster (3+ nodes)
 - OpenSearch 2.11 (3-node cluster)
+
+See [Kubernetes Infrastructure](../../infrastructure/k8s/README.md) for cluster setup.
 
 ## Cloud Providers
 
@@ -72,8 +59,10 @@ See [[../backend/database|Database]].
 ## Secrets Management
 
 - Kubernetes Secrets for credentials
-- External: Vault, AWS Secrets Manager, GCP Secret Manager
+- External Secrets Operator syncs from cloud providers (AWS Secrets Manager, GCP Secret Manager, Azure Key Vault, Vault)
 - Rotate JWT_SECRET, API keys quarterly
+
+See [[kubernetes-runbook|Kubernetes Runbook]] for cluster operations.
 
 ## Monitoring & Alerting
 
@@ -93,6 +82,6 @@ Plan:
 
 ---
 
-Related: [[deployment|Deployment]] · [[cicd|CI/CD]] · [[monitoring|Monitoring]] · [[migration|Migrations]]
+Related: [[deployment|Deployment]] · [[cicd|CI/CD]] · [[monitoring|Monitoring]] · [[migration|Migrations]] · [[kubernetes-runbook|Kubernetes Runbook]]
 
 [[../index|← Back to Index]]

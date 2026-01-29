@@ -1,254 +1,427 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Mobile Architecture](#mobile-architecture)
-  - [Overview](#overview)
-  - [Platform Support](#platform-support)
-  - [Project Structure](#project-structure)
-  - [Navigation](#navigation)
-  - [State Management](#state-management)
-  - [Styling](#styling)
-  - [Shared Code](#shared-code)
-  - [Platform-Specific Features](#platform-specific-features)
-    - [Video Playback](#video-playback)
-    - [Deep Linking](#deep-linking)
-    - [Push Notifications](#push-notifications)
-    - [Camera (for QR code scanning)](#camera-for-qr-code-scanning)
-  - [Authentication](#authentication)
-  - [Offline Support](#offline-support)
-  - [Performance](#performance)
-  - [Build & Deploy](#build--deploy)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
-title: "Mobile Architecture"
-summary: "React Native app architecture for iOS and Android."
-tags: ["mobile", "react-native", "architecture"]
+title: "Component Architecture Visualization"
+summary: "```"
+tags: ['mobile']
 area: "mobile"
 status: "stable"
 owner: "team-core"
 version: "1.0"
-last_reviewed: 2025-12-01
-aliases: ["mobile", "app architecture", "react native"]
+last_reviewed: 2025-12-11
 ---
 
-# Mobile Architecture
+# Component Architecture Visualization
 
-Architecture and design for the Clipper React Native mobile app.
-
-## Overview
-
-- **Framework**: React Native 0.76 + Expo 52
-- **Language**: TypeScript
-- **Navigation**: Expo Router (file-based routing)
-- **State Management**: TanStack Query + Zustand
-- **Styling**: TailwindCSS (via NativeWind)
-- **API Client**: Axios
-
-## Platform Support
-
-- iOS 13+
-- Android 8.0+ (API 26+)
-
-## Project Structure
+## Component Hierarchy
 
 ```
-mobile/
-├── app/              # Expo Router pages (file-based routing)
-│   ├── (tabs)/       # Tab navigator
-│   ├── clip/[id].tsx # Clip detail
-│   └── _layout.tsx   # Root layout
-├── components/       # Reusable components
-├── hooks/            # Custom hooks
-├── lib/              # API client, utilities
-├── stores/           # Zustand stores
-├── types/            # TypeScript types
-├── app.json          # Expo config
-└── eas.json          # EAS Build config
+app/submit/index.tsx (Main Orchestrator)
+│
+├── State Management
+│   ├── currentStep: 'url' | 'metadata' | 'tags' | 'review' | 'success' | 'error'
+│   ├── clipUrl: string
+│   ├── customTitle: string
+│   ├── streamerOverride: string
+│   ├── tags: string[]
+│   ├── isNsfw: boolean
+│   ├── clipMetadata: Partial<ClipMetadata>
+│   ├── isLoadingMetadata: boolean
+│   ├── isSubmitting: boolean
+│   └── submissionResult: object | null
+│
+├── Navigation Logic
+│   ├── handleUrlNext(url) → fetch metadata → go to Step 2
+│   ├── handleMetadataNext() → go to Step 3
+│   ├── handleTagsNext() → go to Step 4
+│   ├── handleSubmit() → API call → success/error view
+│   ├── handleBack() → previous step
+│   ├── handleSubmitAnother() → reset & go to Step 1
+│   ├── handleViewFeed() → navigate to feed
+│   ├── handleRetry() → go to Step 4
+│   └── handleCancel() → go back
+│
+└── Rendered Components (conditionally)
+    │
+    ├── [Steps 1-4] → <StepIndicator />
+    │                 Shows: currentStep, totalSteps, stepNames
+    │
+    ├── [Step 1: url] → <UrlInputStep />
+    │                    Props: initialUrl, onNext
+    │                    Features: URL validation, Next button
+    │
+    ├── [Step 2: metadata] → <MetadataOverrideStep />
+    │                         Props: clipUrl, detectedStreamer, detectedGame,
+    │                               isLoading, customTitle, streamerOverride,
+    │                               onCustomTitleChange, onStreamerOverrideChange,
+    │                               onNext, onBack
+    │                         Features: Display metadata, optional overrides
+    │
+    ├── [Step 3: tags] → <TagsNsfwStep />
+    │                    Props: tags, isNsfw, onTagsChange, onNsfwChange,
+    │                          onNext, onBack
+    │                    Features: Tag management, NSFW toggle
+    │
+    ├── [Step 4: review] → <ReviewSubmitStep />
+    │                      Props: clipUrl, customTitle, detectedStreamer,
+    │                            detectedGame, streamerOverride, tags, isNsfw,
+    │                            isSubmitting, onSubmit, onBack
+    │                      Features: Summary, Submit button
+    │
+    ├── [success] → <SuccessView />
+    │               Props: message, status, onViewFeed, onSubmitAnother
+    │               Features: Success message, action buttons
+    │
+    └── [error] → <ErrorView />
+                  Props: title, message, errorDetails, canRetry,
+                        onRetry, onCancel
+                  Features: Error details, retry/cancel options
 ```
 
-## Navigation
+## Data Flow
 
-File-based routing with Expo Router:
 ```
-app/
-├── index.tsx         → /
-├── (tabs)/
-│   ├── _layout.tsx   → Tab navigator
-│   ├── index.tsx     → / (Home tab)
-│   └── search.tsx    → /search (Search tab)
-├── clip/[id].tsx     → /clip/:id
-└── profile/[username].tsx → /profile/:username
-```
-
-Navigate programmatically:
-```tsx
-import { router } from 'expo-router';
-
-router.push(`/clip/${clipId}`);
-```
-
-## State Management
-
-Same pattern as web frontend:
-
-**Server State (TanStack Query)**:
-```tsx
-const { data: clip } = useQuery({
-  queryKey: ['clip', clipId],
-  queryFn: () => api.getClip(clipId)
-});
-```
-
-**Client State (Zustand)**:
-```tsx
-const useThemeStore = create<ThemeState>((set) => ({
-  theme: 'dark',
-  toggleTheme: () => set((state) => ({
-    theme: state.theme === 'dark' ? 'light' : 'dark'
-  }))
-}));
-```
-
-## Styling
-
-NativeWind (TailwindCSS for React Native):
-```tsx
-import { View, Text } from 'react-native';
-
-<View className="flex-1 items-center justify-center bg-gray-100 dark:bg-gray-900">
-  <Text className="text-xl font-bold">Hello</Text>
-</View>
+┌─────────────────────────────────────────────────────────────────┐
+│                          USER ACTIONS                            │
+└─────────────────────────────────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                       COMPONENT LAYER                            │
+│  UrlInputStep → MetadataOverrideStep → TagsNsfwStep →           │
+│  ReviewSubmitStep → SuccessView / ErrorView                     │
+└─────────────────────────────────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                        STATE LAYER                               │
+│  (React Hooks in Main Orchestrator)                             │
+│  - Form data (url, title, tags, etc.)                           │
+│  - UI state (loading, current step)                             │
+│  - Result state (success/error)                                 │
+└─────────────────────────────────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                       SERVICE LAYER                              │
+│  services/clips.ts                                               │
+│  - submitClip(request)                                           │
+│  - getUserSubmissions(page, limit)                              │
+│  - getSubmissionStats()                                         │
+└─────────────────────────────────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                         API LAYER                                │
+│  lib/api.ts (Enhanced API Client)                               │
+│  - Retry logic                                                   │
+│  - Error handling                                                │
+│  - Network awareness                                             │
+│  - Token management                                              │
+└─────────────────────────────────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                         BACKEND API                              │
+│  POST /clips/submit                                              │
+│  GET /submissions                                                │
+│  GET /submissions/stats                                          │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-## Shared Code
+## Component Interaction Flow
 
-~70% code shared with web frontend:
-- API client (`lib/api.ts`)
-- Hooks (`hooks/useClips.ts`)
-- Stores (`stores/themeStore.ts`)
-- Types (`types/clip.ts`)
-
-Platform-specific:
-- UI components (React Native vs. React DOM)
-- Navigation (Expo Router vs. React Router)
-- Device features (camera, push notifications)
-
-## Platform-Specific Features
-
-### Video Playback
-
-Uses `expo-av`:
-```tsx
-import { Video } from 'expo-av';
-
-<Video
-  source={{ uri: clip.video_url }}
-  useNativeControls
-  style={{ width: '100%', height: 300 }}
-/>
+```
+┌──────────────────┐
+│  Main Component  │
+│  (Orchestrator)  │
+└────────┬─────────┘
+         │
+         ├─► State Updates ──► Re-render
+         │
+         ├─► Step Navigation ──► Change currentStep
+         │
+         ├─► API Calls ──► Update submissionResult
+         │
+         └─► Child Component Events ──► Handler Functions
+                                          │
+    ┌────────────────────────────────────┴────────────────┐
+    │                                                      │
+    ▼                                                      ▼
+┌──────────┐                                        ┌──────────┐
+│  Step    │  onNext/onBack                         │ Success/ │
+│Components│◄────────────────────────────────────►  │  Error   │
+└──────────┘                                        │  Views   │
+    │                                               └──────────┘
+    │ User Input
+    │ (URL, Title, Tags, etc.)
+    ▼
+┌──────────┐
+│  Local   │
+│  State   │
+└──────────┘
 ```
 
-### Deep Linking
+## Styling Architecture
 
-Configure in `app.json`:
-```json
-{
-  "expo": {
-    "scheme": "clipper",
-    "android": {
-      "intentFilters": [{
-        "action": "VIEW",
-        "data": { "scheme": "https", "host": "clipper.app" }
-      }]
-    },
-    "ios": {
-      "associatedDomains": ["applinks:clipper.app"]
-    }
-  }
-}
+```
+NativeWind (Tailwind for React Native)
+│
+├── Utility Classes
+│   ├── Layout: flex, items-center, justify-center, p-4, gap-3
+│   ├── Typography: text-2xl, font-bold, text-gray-900
+│   ├── Colors: bg-primary-600, text-white, border-gray-300
+│   ├── Sizing: w-full, h-20, max-w-sm
+│   └── States: disabled:bg-gray-300
+│
+├── Component-Level Styling
+│   ├── Conditional classes (template literals)
+│   ├── Dynamic colors based on state
+│   └── Platform-specific adjustments
+│
+└── Consistency
+    ├── Primary color: #2563eb (blue-600)
+    ├── Success color: green-*
+    ├── Error color: red-*
+    ├── Gray scale: gray-50 to gray-900
+    └── Standard spacing: multiples of 4 (p-4, mb-6, gap-3)
 ```
 
-Handle links:
-```tsx
-// app/_layout.tsx
-export default function RootLayout() {
-  useEffect(() => {
-    Linking.addEventListener('url', (event) => {
-      const { url } = event;
-      // Parse and navigate: /clip/abc123
-    });
-  }, []);
-}
+## State Machine Diagram
+
+```
+                     [START]
+                        │
+                        ▼
+                  ┌─────────┐
+                  │   URL   │◄────┐
+                  └────┬────┘     │
+                       │ next     │
+                       ▼          │
+                  ┌─────────┐    │
+            ┌────►│METADATA │    │
+            │     └────┬────┘    │
+            │ back     │ next    │
+            │          ▼          │
+            │     ┌─────────┐    │
+            ├────►│  TAGS   │    │
+            │     └────┬────┘    │
+            │ back     │ next    │
+            │          ▼          │
+            │     ┌─────────┐    │
+            └────►│ REVIEW  │    │
+                  └────┬────┘    │
+                       │ submit   │
+                       ▼          │
+                  ┌─────────┐    │
+        ┌────────►│ SUCCESS │    │
+        │         └────┬────┘    │
+        │              │          │
+        │   ┌──────────┴──────┐  │
+        │   │                 │  │
+        │   ▼ view feed    submit another
+        │[EXIT]               │  │
+        │                     └──┘
+        │
+        │         ┌─────────┐
+        └────────►│  ERROR  │
+        retry     └────┬────┘
+                       │ cancel
+                       ▼
+                    [EXIT]
 ```
 
-### Push Notifications
+## Type Relationships
 
-Expo Notifications:
-```tsx
-import * as Notifications from 'expo-notifications';
+```
+┌────────────────────────────────────┐
+│      SubmitClipRequest             │
+│  (Request to Backend)              │
+│  - clip_url: string                │
+│  - custom_title?: string           │
+│  - broadcaster_name_override?: str │
+│  - tags?: string[]                 │
+│  - is_nsfw?: boolean               │
+└────────────┬───────────────────────┘
+             │
+             ▼ API Call
+┌────────────────────────────────────┐
+│      SubmitClipResponse            │
+│  (Response from Backend)           │
+│  - success: boolean                │
+│  - message: string                 │
+│  - submission: ClipSubmission      │
+└────────────┬───────────────────────┘
+             │
+             ▼ Used in
+┌────────────────────────────────────┐
+│       ClipSubmission               │
+│  (Submission Object)               │
+│  - id: string                      │
+│  - user_id: string                 │
+│  - twitch_clip_id: string          │
+│  - status: pending|approved|reject │
+│  - created_at: string              │
+│  - ... (other fields)              │
+└────────────────────────────────────┘
 
-// Request permission
-const { status } = await Notifications.requestPermissionsAsync();
-
-// Get push token
-const token = await Notifications.getExpoPushTokenAsync();
-
-// Send to backend
-await api.registerPushToken(token.data);
+┌────────────────────────────────────┐
+│       ClipMetadata                 │
+│  (Auto-detected Info)              │
+│  - broadcaster_name: string        │
+│  - game_name: string               │
+│  - title: string                   │
+│  - ... (other fields)              │
+└────────────────────────────────────┘
 ```
 
-### Camera (for QR code scanning)
+## Error Handling Flow
 
-```tsx
-import { Camera } from 'expo-camera';
-
-const [hasPermission, setHasPermission] = useState(null);
-
-useEffect(() => {
-  Camera.requestCameraPermissionsAsync().then(({ status }) => {
-    setHasPermission(status === 'granted');
-  });
-}, []);
+```
+                     [API Error]
+                          │
+                          ▼
+                 ┌─────────────────┐
+                 │  Error Instance │
+                 │  (ApiError)     │
+                 └────────┬────────┘
+                          │
+                ┌─────────┴──────────┐
+                │                    │
+           instanceof            instanceof
+            ApiError?               Error?
+                │                    │
+                ▼                    ▼
+         ┌──────────────┐     ┌──────────┐
+         │ Get Error    │     │ Generic  │
+         │ Type & Msg   │     │ Message  │
+         └──────┬───────┘     └────┬─────┘
+                │                  │
+                └──────────┬───────┘
+                           │
+                           ▼
+                 ┌──────────────────┐
+                 │  Classify Error  │
+                 │  - Retryable?    │
+                 │  - User message  │
+                 │  - Details       │
+                 └────────┬─────────┘
+                          │
+                          ▼
+                 ┌──────────────────┐
+                 │  ErrorView       │
+                 │  - Show message  │
+                 │  - Show details  │
+                 │  - Retry button  │
+                 └──────────────────┘
 ```
 
-## Authentication
+## Component Responsibilities
 
-Same JWT flow as web:
-- User logs in via Twitch OAuth (in-app browser)
-- Backend sets JWT in `httpOnly` cookie
-- Mobile uses session-based auth (cookies via Axios)
+```
+┌─────────────────────────────────────────────────────────────┐
+│ StepIndicator                                                │
+│ • Display progress (1/4, 2/4, etc.)                         │
+│ • Show current step name                                     │
+│ • Visual progress bar                                        │
+└─────────────────────────────────────────────────────────────┘
 
-See [[../backend/authentication|Authentication]].
+┌─────────────────────────────────────────────────────────────┐
+│ UrlInputStep                                                 │
+│ • Capture clip URL                                           │
+│ • Validate URL format                                        │
+│ • Show helpful instructions                                  │
+│ • Enable/disable Next button                                 │
+└─────────────────────────────────────────────────────────────┘
 
-## Offline Support
+┌─────────────────────────────────────────────────────────────┐
+│ MetadataOverrideStep                                         │
+│ • Display auto-detected info (read-only)                     │
+│ • Custom title input (optional)                              │
+│ • Streamer override input (optional)                         │
+│ • Show loading state                                         │
+│ • Back/Next navigation                                       │
+└─────────────────────────────────────────────────────────────┘
 
-Use TanStack Query cache:
-```tsx
-const { data: clips, isLoading } = useQuery({
-  queryKey: ['clips'],
-  queryFn: api.getClips,
-  staleTime: 5 * 60 * 1000, // 5 minutes
-  cacheTime: 30 * 60 * 1000 // 30 minutes
-});
+┌─────────────────────────────────────────────────────────────┐
+│ TagsNsfwStep                                                 │
+│ • Tag input and add button                                   │
+│ • Current tags display (with remove)                         │
+│ • Suggested tags (quick add)                                 │
+│ • NSFW toggle with explanation                               │
+│ • Enforce limits (max 5 tags, 20 chars each)                │
+│ • Back/Next navigation                                       │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│ ReviewSubmitStep                                             │
+│ • Display all submission details                             │
+│ • Highlight custom/override values                           │
+│ • Show NSFW warning if applicable                            │
+│ • Guidelines reminder                                        │
+│ • Submit button with loading state                           │
+│ • Back button                                                │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│ SuccessView                                                  │
+│ • Success icon and message                                   │
+│ • Status-specific info (pending/approved)                    │
+│ • Explanation of next steps                                  │
+│ • "View Feed" button                                         │
+│ • "Submit Another" button                                    │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│ ErrorView                                                    │
+│ • Error icon and title                                       │
+│ • User-friendly error message                                │
+│ • Technical error details                                    │
+│ • Common issues checklist                                    │
+│ • "Try Again" button (if retryable)                          │
+│ • "Cancel"/"Go Back" button                                  │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-Show cached data while offline.
+## Integration Points
 
-## Performance
+```
+┌──────────────────────────────────────────────────────────────┐
+│                    External Dependencies                      │
+└──────────────────────────────────────────────────────────────┘
 
-- **List Virtualization**: `FlashList` for clip feeds
-- **Image Optimization**: `expo-image` with caching
-- **Lazy Loading**: Expo Router code splitting
-- **Memoization**: `React.memo`, `useMemo`
+┌─────────────────┐
+│ Authentication  │ useAuth() hook
+│   Context       │ • isAuthenticated
+└────────┬────────┘ • Redirect to login if needed
+         │
+         ▼
+┌─────────────────┐
+│  Navigation     │ useRouter() from expo-router
+│  (expo-router)  │ • router.push('/auth/login')
+└────────┬────────┘ • router.push('/(tabs)')
+         │          • router.back()
+         ▼
+┌─────────────────┐
+│  API Client     │ Enhanced API client
+│  (lib/api.ts)   │ • Retry logic
+└────────┬────────┘ • Error handling
+         │          • Network awareness
+         ▼
+┌─────────────────┐
+│   Services      │ services/clips.ts
+│ (clips.ts)      │ • submitClip()
+└────────┬────────┘ • getUserSubmissions()
+         │          • getSubmissionStats()
+         ▼
+┌─────────────────┐
+│  Backend API    │ REST endpoints
+│                 │ • POST /clips/submit
+└─────────────────┘ • GET /submissions
+                    • GET /submissions/stats
+```
 
-## Build & Deploy
-
-See [[implementation|Mobile Implementation]].
-
----
-
-Related: [[implementation|Mobile Implementation]] · [[../backend/api|API]] · [[../frontend/architecture|Frontend Architecture]]
-
-[[../index|← Back to Index]]
+This architecture provides:
+✅ Clear separation of concerns
+✅ Unidirectional data flow
+✅ Easy to test components
+✅ Maintainable structure
+✅ Scalable design

@@ -3,11 +3,14 @@ export interface Comment {
   clip_id: string;
   user_id: string;
   username: string;
+  user_display_name?: string;
   user_avatar?: string;
   user_karma?: number;
   user_role?: 'admin' | 'moderator' | 'user';
-  parent_id: string | null;
+  user_verified?: boolean;
+  parent_comment_id: string | null;
   content: string;
+  rendered_content?: string;
   vote_score: number;
   created_at: string;
   updated_at: string;
@@ -16,6 +19,7 @@ export interface Comment {
   is_removed: boolean;
   removed_reason?: string;
   depth: number;
+  reply_count: number;
   child_count: number;
   user_vote?: 1 | -1 | null;
   replies?: Comment[];
@@ -34,7 +38,7 @@ export type CommentSortOption = 'best' | 'top' | 'new' | 'old' | 'controversial'
 export interface CreateCommentPayload {
   clip_id: string;
   content: string;
-  parent_id?: string | null;
+  parent_comment_id?: string | null;
 }
 
 export interface UpdateCommentPayload {

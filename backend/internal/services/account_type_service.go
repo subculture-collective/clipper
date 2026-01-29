@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
 var (
@@ -28,6 +28,7 @@ type AccountTypeService struct {
 	userRepo       *repository.UserRepository
 	conversionRepo *repository.AccountTypeConversionRepository
 	auditLogRepo   *repository.AuditLogRepository
+	mfaService     *MFAService
 }
 
 // NewAccountTypeService creates a new account type service
@@ -35,11 +36,13 @@ func NewAccountTypeService(
 	userRepo *repository.UserRepository,
 	conversionRepo *repository.AccountTypeConversionRepository,
 	auditLogRepo *repository.AuditLogRepository,
+	mfaService *MFAService,
 ) *AccountTypeService {
 	return &AccountTypeService{
 		userRepo:       userRepo,
 		conversionRepo: conversionRepo,
 		auditLogRepo:   auditLogRepo,
+		mfaService:     mfaService,
 	}
 }
 
@@ -120,7 +123,7 @@ func (s *AccountTypeService) ConvertToBroadcaster(ctx context.Context, userID uu
 	err = s.conversionRepo.Create(ctx, conversion)
 	if err != nil {
 		// Log error but don't fail the conversion - audit trail is important but not critical
-		log.Printf("WARNING: Failed to create conversion audit log for user %s: %v", userID, err)
+		utils.Warn("Failed to create conversion audit log", map[string]interface{}{"user_id": userID, "error": err})
 	}
 
 	return nil
@@ -168,7 +171,7 @@ func (s *AccountTypeService) ConvertToModerator(ctx context.Context, targetUserI
 	err = s.conversionRepo.Create(ctx, conversion)
 	if err != nil {
 		// Log error but don't fail the conversion - audit trail is important but not critical
-		log.Printf("WARNING: Failed to create conversion audit log for user %s: %v", targetUserID, err)
+		utils.Warn("Failed to create conversion audit log", map[string]interface{}{"user_id": targetUserID, "error": err})
 	}
 
 	// Create audit log entry
@@ -187,8 +190,20 @@ func (s *AccountTypeService) ConvertToModerator(ctx context.Context, targetUserI
 			CreatedAt: time.Now(),
 		}
 		if err := s.auditLogRepo.Create(ctx, auditLog); err != nil {
-			log.Printf("WARNING: Failed to create moderation audit log for user %s: %v", targetUserID, err)
+			utils.Warn("Failed to create moderation audit log", map[string]interface{}{"user_id": targetUserID, "error": err})
 		}
+	}
+
+	// Trigger MFA requirement for moderator role
+	if s.mfaService != nil {
+		if err := s.mfaService.SetMFARequired(ctx, targetUserID); err != nil {
+			// This is a critical security function - fail the operation if MFA cannot be enforced
+			return fmt.Errorf("failed to set MFA requirement for user %s after moderator promotion: %w", targetUserID, err)
+		}
+	} else {
+		// MFA service is required for security - this should not happen
+		utils.Error("MFA service not available when promoting user to moderator", nil, map[string]interface{}{"user_id": targetUserID})
+		return errors.New("MFA service not available when promoting user to moderator")
 	}
 
 	return nil
@@ -231,7 +246,7 @@ func (s *AccountTypeService) ConvertToAdmin(ctx context.Context, targetUserID, a
 	err = s.conversionRepo.Create(ctx, conversion)
 	if err != nil {
 		// Log error but don't fail the conversion - audit trail is important but not critical
-		log.Printf("WARNING: Failed to create conversion audit log for user %s: %v", targetUserID, err)
+		utils.Warn("Failed to create conversion audit log", map[string]interface{}{"user_id": targetUserID, "error": err})
 	}
 
 	// Create audit log entry
@@ -250,8 +265,22 @@ func (s *AccountTypeService) ConvertToAdmin(ctx context.Context, targetUserID, a
 			CreatedAt: time.Now(),
 		}
 		if err := s.auditLogRepo.Create(ctx, auditLog); err != nil {
-			log.Printf("WARNING: Failed to create moderation audit log for user %s: %v", targetUserID, err)
+			utils.Warn("Failed to create moderation audit log", map[string]interface{}{"user_id": targetUserID, "error": err})
 		}
+	}
+
+	// Trigger MFA requirement for admin role
+	if s.mfaService != nil {
+		if err := s.mfaService.SetMFARequired(ctx, targetUserID); err != nil {
+			// This is a critical security function - log and return error to prevent admin promotion without MFA
+			utils.Error("SECURITY: Failed to set MFA requirement for user after admin promotion", err, map[string]interface{}{"user_id": targetUserID})
+			utils.Warn("SECURITY: Manually verify MFA requirement for user", map[string]interface{}{"user_id": targetUserID})
+			return fmt.Errorf("failed to set MFA requirement for user %s after admin promotion: %w", targetUserID, err)
+		}
+	} else {
+		// MFA service is required for security - this should not happen
+		utils.Error("MFA service not available when promoting user to admin", nil, map[string]interface{}{"user_id": targetUserID})
+		return errors.New("MFA service not available when promoting user to admin")
 	}
 
 	return nil

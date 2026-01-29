@@ -38,7 +38,7 @@ export function CommentItem({
     isReplying = false,
     showReplies = false,
     currentUserId,
-    maxDepth = 5,
+    maxDepth = 10,
 }: CommentItemProps) {
     const [showReplyComposer, setShowReplyComposer] = useState(false);
     const [showActions, setShowActions] = useState(false);
@@ -46,7 +46,8 @@ export function CommentItem({
 
     const isOwnComment = currentUserId && currentUserId === comment.user_id;
     const canReply = depth < maxDepth;
-    const hasReplies = (comment.reply_count ?? 0) > 0;
+    const hasReplies = (comment.child_count ?? comment.reply_count ?? 0) > 0;
+    const replyCount = comment.child_count ?? comment.reply_count ?? 0;
 
     // Calculate indentation
     const marginLeft = depth * INDENT_PER_LEVEL;
@@ -158,11 +159,11 @@ export function CommentItem({
                 {hasReplies && onToggleReplies && (
                     <TouchableOpacity
                         onPress={() => onToggleReplies(comment.id)}
-                        className="py-1 px-2 rounded active:bg-gray-100"
+                        className="py-1 px-2 rounded active:bg-blue-100 bg-blue-50 border border-blue-200"
                     >
                         <Text className="text-sm font-semibold text-primary-600">
-                            {showReplies ? '▼' : '▶'} {comment.reply_count}{' '}
-                            {comment.reply_count === 1 ? 'reply' : 'replies'}
+                            {showReplies ? '↑' : '↓'} {replyCount}{' '}
+                            {replyCount === 1 ? 'reply' : 'replies'}
                         </Text>
                     </TouchableOpacity>
                 )}
@@ -204,6 +205,15 @@ export function CommentItem({
                             Delete
                         </Text>
                     </TouchableOpacity>
+                </View>
+            )}
+
+            {/* Deep thread continuation link */}
+            {depth >= maxDepth && hasReplies && (
+                <View className="mt-3">
+                    <Text className="text-sm text-gray-600 italic">
+                        {replyCount} more {replyCount === 1 ? 'reply' : 'replies'} (max depth reached)
+                    </Text>
                 </View>
             )}
 

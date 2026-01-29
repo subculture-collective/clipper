@@ -1,24 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Secrets Management Guide](#secrets-management-guide)
-  - [Overview](#overview)
-  - [Best Practices](#best-practices)
-    - [1. Never Commit Secrets to Git](#1-never-commit-secrets-to-git)
-    - [2. Use Environment Variables](#2-use-environment-variables)
-    - [3. Use a Secrets Manager (Recommended for Production)](#3-use-a-secrets-manager-recommended-for-production)
-    - [4. Secret Rotation](#4-secret-rotation)
-    - [5. Secure Password Generation](#5-secure-password-generation)
-    - [6. Access Control](#6-access-control)
-    - [7. Monitoring and Auditing](#7-monitoring-and-auditing)
-  - [Secret Validation Checklist](#secret-validation-checklist)
-  - [Emergency Procedures](#emergency-procedures)
-    - [If Secrets are Compromised](#if-secrets-are-compromised)
-    - [Contact Information](#contact-information)
-  - [References](#references)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ---
 title: "Secrets Management Guide"
 summary: "This document outlines best practices for managing secrets in production environments."
@@ -134,123 +113,64 @@ data:
 
 ### 4. Secret Rotation
 
-Regular rotation of secrets is critical for security:
+Regular rotation of secrets is critical for security. Clipper provides automated rotation scripts and comprehensive procedures.
 
-#### Twitch API Credentials Rotation
+**📚 See detailed rotation procedures:** [Credential Rotation Runbook](./credential-rotation-runbook.md)
 
-Rotate Twitch credentials every 90 days or immediately if compromised:
+#### Rotation Schedule
 
-1. **Generate new credentials:**
-   - Go to [Twitch Developer Console](https://dev.twitch.tv/console/apps)
-   - Create a new application or regenerate client secret
-   - Note the new Client ID and Secret
+| Credential | Frequency | Script |
+|-----------|-----------|--------|
+| Database Password | 90 days | `./scripts/rotate-db-password.sh` |
+| JWT Signing Keys | 90 days | `./scripts/rotate-jwt-keys.sh` |
+| API Keys (Stripe, Twitch, OpenAI) | 90-180 days | `./scripts/rotate-api-keys.sh` |
+| Vault AppRole | 30 days | Manual (see runbook) |
 
-2. **Update production environment:**
+#### Quick Rotation Examples
 
-   ```bash
-   # SSH to production server
-   ssh deploy@production-server
-   cd /opt/clipper
-   
-   # Edit environment file
-   nano .env
-   
-   # Update these values:
-   TWITCH_CLIENT_ID=<new-client-id>
-   TWITCH_CLIENT_SECRET=<new-client-secret>
-   
-   # Restart services
-   docker-compose restart backend
-   ```
+**Database Password:**
+```bash
+cd /opt/clipper
+./scripts/rotate-db-password.sh
+```
 
-3. **Verify functionality:**
+**JWT Keys:**
+```bash
+cd /opt/clipper
+./scripts/rotate-jwt-keys.sh
+```
 
-   ```bash
-   # Test authentication flow
-   curl -X GET https://clpr.tv/api/v1/auth/twitch
-   
-   # Check logs for errors
-   docker-compose logs -f backend | grep -i twitch
-   ```
+**API Keys:**
+```bash
+cd /opt/clipper
+# Stripe
+./scripts/rotate-api-keys.sh --service stripe
 
-4. **Document rotation:**
-   - Update your password manager
-   - Log the rotation date
-   - Schedule next rotation
+# Twitch
+./scripts/rotate-api-keys.sh --service twitch
 
-#### Database Password Rotation
+# OpenAI
+./scripts/rotate-api-keys.sh --service openai
+```
 
-1. **Create new database user with same privileges:**
+#### Automated Rotation Monitoring
 
-   ```sql
-   CREATE USER clipper_new WITH PASSWORD 'new-secure-password';
-   GRANT ALL PRIVILEGES ON DATABASE clipper_db TO clipper_new;
-   GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO clipper_new;
-   GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO clipper_new;
-   ```
+Install the systemd timer for weekly rotation reminders:
 
-2. **Update application configuration:**
+```bash
+sudo cp backend/scripts/systemd/clipper-rotation-reminder.* /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now clipper-rotation-reminder.timer
+```
 
-   ```bash
-   DB_USER=clipper_new
-   DB_PASSWORD=new-secure-password
-   ```
+#### Testing Secret Retrieval
 
-3. **Restart application and verify:**
+Validate all secrets are properly configured:
 
-   ```bash
-   docker-compose restart backend
-   ./scripts/health-check.sh
-   ```
-
-4. **Remove old user after verification:**
-
-   ```sql
-   DROP USER clipper;
-   ```
-
-#### JWT Key Rotation
-
-1. **Generate new RSA key pair:**
-
-   ```bash
-   openssl genrsa -out private_new.pem 2048
-   openssl rsa -in private_new.pem -pubout -out public_new.pem
-   ```
-
-2. **Implement dual-key verification:**
-   - Keep old public key for verifying existing tokens
-   - Use new private key for signing new tokens
-   - Tokens will naturally expire and rotate over time
-
-3. **Update after grace period:**
-   - After token expiration period (e.g., 24 hours), fully switch to new keys
-   - Remove old keys from configuration
-
-#### Redis Password Rotation
-
-1. **Add password to Redis:**
-
-   ```bash
-   # Update docker-compose.yml
-   command: redis-server --requirepass new-secure-password --appendonly yes
-   
-   # Or via redis.conf
-   requirepass new-secure-password
-   ```
-
-2. **Update application configuration:**
-
-   ```bash
-   REDIS_PASSWORD=new-secure-password
-   ```
-
-3. **Rolling restart:**
-
-   ```bash
-   docker-compose restart redis
-   docker-compose restart backend
-   ```
+```bash
+cd /opt/clipper
+./scripts/test-secrets-retrieval.sh
+```
 
 ### 5. Secure Password Generation
 
@@ -318,20 +238,34 @@ Before deploying to production:
 
 ### If Secrets are Compromised
 
+**See detailed emergency procedures:** [Break-Glass Emergency Procedures](./break-glass-procedures.md)
+
+**Immediate actions:**
+
 1. **Immediately rotate all affected secrets**
-2. **Revoke compromised credentials**
-3. **Review access logs for unauthorized usage**
-4. **Notify affected users if necessary**
+   ```bash
+   ./scripts/rotate-db-password.sh
+   ./scripts/rotate-jwt-keys.sh
+   ./scripts/rotate-api-keys.sh --service [stripe|twitch|openai]
+   ```
+
+2. **Revoke compromised credentials** in third-party services
+3. **Review access logs** for unauthorized usage:
+   ```bash
+   vault audit list
+   docker compose logs backend | grep -i "authentication\|unauthorized"
+   ```
+4. **Notify affected users** if necessary
 5. **Conduct post-incident review**
-6. **Update security procedures to prevent recurrence**
+6. **Update security procedures** to prevent recurrence
 
 ### Contact Information
 
 For security concerns or suspected compromises:
 
-- Security Team: <security@example.com>
-- On-Call Engineer: See [RUNBOOK.md](./RUNBOOK.md)
-- Emergency Hotline: [Your emergency contact]
+- **Security Team:** <security@clipper.gg>
+- **On-Call Engineer:** See PagerDuty or [break-glass-procedures.md](./break-glass-procedures.md)
+- **Emergency Documentation:** [Break-Glass Emergency Procedures](./break-glass-procedures.md)
 
 ## References
 

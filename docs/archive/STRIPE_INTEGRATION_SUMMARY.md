@@ -1,47 +1,3 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Stripe Subscriptions Integration - Implementation Summary](#stripe-subscriptions-integration---implementation-summary)
-  - [Overview](#overview)
-  - [Implementation Status: ✅ COMPLETE](#implementation-status--complete)
-  - [Deliverables](#deliverables)
-    - [✅ 1. Stripe Setup (Products, Prices)](#-1-stripe-setup-products-prices)
-    - [✅ 2. Hosted Checkout Session Creation](#-2-hosted-checkout-session-creation)
-    - [✅ 3. Billing Portal Access Link](#-3-billing-portal-access-link)
-    - [✅ 4. Environment Config and Secrets](#-4-environment-config-and-secrets)
-    - [✅ 5. Coupons and Promotion Codes](#-5-coupons-and-promotion-codes)
-    - [✅ 6. Proration](#-6-proration)
-  - [Technical Architecture](#technical-architecture)
-    - [Database Schema](#database-schema)
-    - [API Endpoints](#api-endpoints)
-    - [Webhook Events Handled](#webhook-events-handled)
-    - [Webhook Processing Features](#webhook-processing-features)
-  - [Code Quality](#code-quality)
-    - [Tests](#tests)
-    - [Build Status](#build-status)
-    - [Code Review](#code-review)
-    - [Security](#security)
-  - [Documentation](#documentation)
-    - [User-Facing Documentation](#user-facing-documentation)
-    - [Developer Resources](#developer-resources)
-  - [Testing](#testing)
-    - [Provided Testing Tools](#provided-testing-tools)
-    - [Test Scenarios Covered](#test-scenarios-covered)
-  - [Acceptance Criteria Verification](#acceptance-criteria-verification)
-    - [✅ Users can purchase and manage subscriptions](#-users-can-purchase-and-manage-subscriptions)
-    - [✅ Test mode end-to-end works in staging](#-test-mode-end-to-end-works-in-staging)
-  - [Production Readiness Checklist](#production-readiness-checklist)
-  - [Files Changed](#files-changed)
-    - [Backend](#backend)
-    - [New Files](#new-files)
-    - [Documentation](#documentation-1)
-    - [Database](#database)
-  - [Dependencies](#dependencies)
-  - [Support and Resources](#support-and-resources)
-  - [Conclusion](#conclusion)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 # Stripe Subscriptions Integration - Implementation Summary
 
 ## Overview
@@ -142,6 +98,7 @@ All deliverables from issue #258 have been successfully implemented and tested.
 ### Database Schema
 
 #### Core Subscription Tables
+
 - **Table**: `subscriptions`
   - User subscription records
   - Stripe customer and subscription IDs
@@ -154,6 +111,7 @@ All deliverables from issue #258 have been successfully implemented and tested.
   - Webhook event deduplication via `stripe_event_id`
 
 #### Stripe Infrastructure Tables (Migration 000040)
+
 - **Table**: `stripe_customers`
   - Tracks Stripe customer sync with user accounts
   - Stores customer metadata and email
@@ -172,6 +130,7 @@ All deliverables from issue #258 have been successfully implemented and tested.
   - Enables debugging and replay
 
 #### Webhook Retry Infrastructure
+
 - **Table**: `webhook_retry_queue`
   - Failed webhook events pending retry
   - Exponential backoff support
@@ -181,6 +140,7 @@ All deliverables from issue #258 have been successfully implemented and tested.
   - Manual review and recovery
 
 #### Dunning Tables
+
 - **Table**: `payment_failures`
   - Failed payment tracking
   - Retry scheduling

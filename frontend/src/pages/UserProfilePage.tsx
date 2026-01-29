@@ -195,9 +195,9 @@ export function UserProfilePage() {
                                         <Button
                                             onClick={handleFollowToggle}
                                             variant={
-                                                userData.is_following
-                                                    ? 'outline'
-                                                    : 'primary'
+                                                userData.is_following ?
+                                                    'outline'
+                                                :   'primary'
                                             }
                                             size='sm'
                                             disabled={
@@ -205,17 +205,16 @@ export function UserProfilePage() {
                                                 unfollowMutation.isPending
                                             }
                                         >
-                                            {userData.is_following ? (
+                                            {userData.is_following ?
                                                 <>
                                                     <UserMinus className='w-4 h-4 mr-2' />
                                                     Unfollow
                                                 </>
-                                            ) : (
-                                                <>
+                                            :   <>
                                                     <UserPlus className='w-4 h-4 mr-2' />
                                                     Follow
                                                 </>
-                                            )}
+                                            }
                                         </Button>
                                     )}
                                 </div>
@@ -223,6 +222,31 @@ export function UserProfilePage() {
                                     <p className='text-sm mb-4'>
                                         {userData.bio}
                                     </p>
+                                )}
+                                {userData.is_banned && (
+                                    <div
+                                        role='alert'
+                                        className='mb-4 rounded-lg border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800 p-3'
+                                    >
+                                        <div className='flex items-start gap-2'>
+                                            <span className='text-red-600 dark:text-red-400 font-semibold text-sm'>
+                                                ⚠️ This user is banned
+                                            </span>
+                                        </div>
+                                        {userData.ban_reason && (
+                                            <p className='text-red-700 dark:text-red-300 text-sm mt-1'>
+                                                Reason: {userData.ban_reason}
+                                            </p>
+                                        )}
+                                        {userData.banned_until && (
+                                            <p className='text-red-600 dark:text-red-400 text-xs mt-1'>
+                                                Until:{' '}
+                                                {new Date(
+                                                    userData.banned_until,
+                                                ).toLocaleString()}
+                                            </p>
+                                        )}
+                                    </div>
                                 )}
                                 <div className='flex gap-6 text-sm'>
                                     <div>
@@ -261,7 +285,7 @@ export function UserProfilePage() {
                                         <Calendar className='w-4 h-4 mr-1' />
                                         Joined{' '}
                                         {new Date(
-                                            userData.created_at
+                                            userData.created_at,
                                         ).toLocaleDateString()}
                                     </div>
                                 </div>
@@ -275,9 +299,9 @@ export function UserProfilePage() {
                             <button
                                 onClick={() => handleTabChange('clips')}
                                 className={`pb-3 border-b-2 transition-colors ${
-                                    activeTab === 'clips'
-                                        ? 'border-primary text-foreground font-medium'
-                                        : 'border-transparent text-muted-foreground hover:text-foreground'
+                                    activeTab === 'clips' ?
+                                        'border-primary text-foreground font-medium'
+                                    :   'border-transparent text-muted-foreground hover:text-foreground'
                                 }`}
                             >
                                 Clips
@@ -285,9 +309,9 @@ export function UserProfilePage() {
                             <button
                                 onClick={() => handleTabChange('activity')}
                                 className={`pb-3 border-b-2 transition-colors ${
-                                    activeTab === 'activity'
-                                        ? 'border-primary text-foreground font-medium'
-                                        : 'border-transparent text-muted-foreground hover:text-foreground'
+                                    activeTab === 'activity' ?
+                                        'border-primary text-foreground font-medium'
+                                    :   'border-transparent text-muted-foreground hover:text-foreground'
                                 }`}
                             >
                                 Activity
@@ -295,9 +319,9 @@ export function UserProfilePage() {
                             <button
                                 onClick={() => handleTabChange('followers')}
                                 className={`pb-3 border-b-2 transition-colors ${
-                                    activeTab === 'followers'
-                                        ? 'border-primary text-foreground font-medium'
-                                        : 'border-transparent text-muted-foreground hover:text-foreground'
+                                    activeTab === 'followers' ?
+                                        'border-primary text-foreground font-medium'
+                                    :   'border-transparent text-muted-foreground hover:text-foreground'
                                 }`}
                             >
                                 Followers ({userData.follower_count})
@@ -305,9 +329,9 @@ export function UserProfilePage() {
                             <button
                                 onClick={() => handleTabChange('following')}
                                 className={`pb-3 border-b-2 transition-colors ${
-                                    activeTab === 'following'
-                                        ? 'border-primary text-foreground font-medium'
-                                        : 'border-transparent text-muted-foreground hover:text-foreground'
+                                    activeTab === 'following' ?
+                                        'border-primary text-foreground font-medium'
+                                    :   'border-transparent text-muted-foreground hover:text-foreground'
                                 }`}
                             >
                                 Following ({userData.following_count})
@@ -318,7 +342,7 @@ export function UserProfilePage() {
                     {/* Tab Content */}
                     {activeTab === 'clips' && (
                         <div>
-                            {clipsData && clipsData.clips.length > 0 ? (
+                            {clipsData && clipsData.clips.length > 0 ?
                                 <>
                                     <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                                         {clipsData.clips.map(clip => (
@@ -335,7 +359,7 @@ export function UserProfilePage() {
                                                 onClick={() =>
                                                     handlePageChange(
                                                         'clips',
-                                                        pagination.clips - 1
+                                                        pagination.clips - 1,
                                                     )
                                                 }
                                                 disabled={
@@ -354,7 +378,7 @@ export function UserProfilePage() {
                                                 onClick={() =>
                                                     handlePageChange(
                                                         'clips',
-                                                        pagination.clips + 1
+                                                        pagination.clips + 1,
                                                     )
                                                 }
                                                 disabled={!clipsData.has_more}
@@ -367,17 +391,16 @@ export function UserProfilePage() {
                                         </div>
                                     )}
                                 </>
-                            ) : (
-                                <div className='text-center py-12 text-muted-foreground'>
+                            :   <div className='text-center py-12 text-muted-foreground'>
                                     No clips submitted yet.
                                 </div>
-                            )}
+                            }
                         </div>
                     )}
 
                     {activeTab === 'activity' && (
                         <div>
-                            {activityData && activityData.data.length > 0 ? (
+                            {activityData && activityData.data.length > 0 ?
                                 <>
                                     <div className='space-y-4'>
                                         {activityData.data.map(activity => (
@@ -429,7 +452,7 @@ export function UserProfilePage() {
                                                         )}
                                                         <p className='text-xs text-muted-foreground mt-1'>
                                                             {new Date(
-                                                                activity.created_at
+                                                                activity.created_at,
                                                             ).toLocaleString()}
                                                         </p>
                                                     </div>
@@ -444,7 +467,7 @@ export function UserProfilePage() {
                                                 onClick={() =>
                                                     handlePageChange(
                                                         'activity',
-                                                        pagination.activity - 1
+                                                        pagination.activity - 1,
                                                     )
                                                 }
                                                 disabled={
@@ -463,7 +486,7 @@ export function UserProfilePage() {
                                                 onClick={() =>
                                                     handlePageChange(
                                                         'activity',
-                                                        pagination.activity + 1
+                                                        pagination.activity + 1,
                                                     )
                                                 }
                                                 disabled={
@@ -478,17 +501,16 @@ export function UserProfilePage() {
                                         </div>
                                     )}
                                 </>
-                            ) : (
-                                <div className='text-center py-12 text-muted-foreground'>
+                            :   <div className='text-center py-12 text-muted-foreground'>
                                     No recent activity.
                                 </div>
-                            )}
+                            }
                         </div>
                     )}
 
                     {activeTab === 'followers' && (
                         <div>
-                            {followersData && followersData.data.length > 0 ? (
+                            {followersData && followersData.data.length > 0 ?
                                 <>
                                     <div className='space-y-4'>
                                         {followersData.data.map(follower => (
@@ -544,7 +566,8 @@ export function UserProfilePage() {
                                                 onClick={() =>
                                                     handlePageChange(
                                                         'followers',
-                                                        pagination.followers - 1
+                                                        pagination.followers -
+                                                            1,
                                                     )
                                                 }
                                                 disabled={
@@ -563,7 +586,8 @@ export function UserProfilePage() {
                                                 onClick={() =>
                                                     handlePageChange(
                                                         'followers',
-                                                        pagination.followers + 1
+                                                        pagination.followers +
+                                                            1,
                                                     )
                                                 }
                                                 disabled={
@@ -578,17 +602,16 @@ export function UserProfilePage() {
                                         </div>
                                     )}
                                 </>
-                            ) : (
-                                <div className='text-center py-12 text-muted-foreground'>
+                            :   <div className='text-center py-12 text-muted-foreground'>
                                     No followers yet.
                                 </div>
-                            )}
+                            }
                         </div>
                     )}
 
                     {activeTab === 'following' && (
                         <div>
-                            {followingData && followingData.data.length > 0 ? (
+                            {followingData && followingData.data.length > 0 ?
                                 <>
                                     <div className='space-y-4'>
                                         {followingData.data.map(
@@ -636,7 +659,7 @@ export function UserProfilePage() {
                                                         </div>
                                                     </div>
                                                 </div>
-                                            )
+                                            ),
                                         )}
                                     </div>
                                     {(pagination.following > 1 ||
@@ -646,7 +669,8 @@ export function UserProfilePage() {
                                                 onClick={() =>
                                                     handlePageChange(
                                                         'following',
-                                                        pagination.following - 1
+                                                        pagination.following -
+                                                            1,
                                                     )
                                                 }
                                                 disabled={
@@ -665,7 +689,8 @@ export function UserProfilePage() {
                                                 onClick={() =>
                                                     handlePageChange(
                                                         'following',
-                                                        pagination.following + 1
+                                                        pagination.following +
+                                                            1,
                                                     )
                                                 }
                                                 disabled={
@@ -680,11 +705,10 @@ export function UserProfilePage() {
                                         </div>
                                     )}
                                 </>
-                            ) : (
-                                <div className='text-center py-12 text-muted-foreground'>
+                            :   <div className='text-center py-12 text-muted-foreground'>
                                     Not following anyone yet.
                                 </div>
-                            )}
+                            }
                         </div>
                     )}
                 </div>

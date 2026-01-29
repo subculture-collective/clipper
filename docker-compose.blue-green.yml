@@ -5,7 +5,7 @@
 services:
     # BLUE environment (current production)
     backend-blue:
-        image: ghcr.io/subculture-collective/clipper/backend:latest
+        image: ghcr.io/subculture-collective/clipper/backend:${BACKEND_BLUE_TAG:-latest}
         container_name: clipper-backend-blue
         restart: unless-stopped
         depends_on:
@@ -29,11 +29,25 @@ services:
         environment:
             - PORT=8080
             - ENVIRONMENT=blue
+            - DB_HOST=postgres
+            - DB_PORT=5432
+            - DB_USER=${POSTGRES_USER:-clipper}
+            - DB_PASSWORD=${POSTGRES_PASSWORD}
+            - DB_NAME=${POSTGRES_DB:-clipper_db}
+            - REDIS_HOST=redis
+            - REDIS_PORT=6379
+            - REDIS_DB=0
+            - GIN_MODE=release
+            - BASE_URL=${BASE_URL:-https://clpr.tv}
+            - TWITCH_CLIENT_ID=${TWITCH_CLIENT_ID}
+            - TWITCH_CLIENT_SECRET=${TWITCH_CLIENT_SECRET}
+            - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-https://clpr.tv}
+            - LOG_LEVEL=info
         networks:
             - clipper-network
 
     frontend-blue:
-        image: ghcr.io/subculture-collective/clipper/frontend:latest
+        image: ghcr.io/subculture-collective/clipper/frontend:${FRONTEND_BLUE_TAG:-latest}
         container_name: clipper-frontend-blue
         restart: unless-stopped
         depends_on:
@@ -51,12 +65,14 @@ services:
             timeout: 10s
             retries: 3
             start_period: 5s
+        environment:
+            - BACKEND_URL=http://backend-blue:8080
         networks:
             - clipper-network
 
     # GREEN environment (new version during deploy)
     backend-green:
-        image: ghcr.io/subculture-collective/clipper/backend:latest
+        image: ghcr.io/subculture-collective/clipper/backend:${BACKEND_GREEN_TAG:-latest}
         container_name: clipper-backend-green
         restart: unless-stopped
         depends_on:
@@ -71,22 +87,36 @@ services:
                     'wget',
                     '--spider',
                     '-q',
-                    'http://localhost:8081/health',
+                    'http://localhost:8080/health',
                 ]
             interval: 30s
             timeout: 10s
             retries: 3
             start_period: 10s
         environment:
-            - PORT=8081
+            - PORT=8080
             - ENVIRONMENT=green
+            - DB_HOST=postgres
+            - DB_PORT=5432
+            - DB_USER=${POSTGRES_USER:-clipper}
+            - DB_PASSWORD=${POSTGRES_PASSWORD}
+            - DB_NAME=${POSTGRES_DB:-clipper_db}
+            - REDIS_HOST=redis
+            - REDIS_PORT=6379
+            - REDIS_DB=0
+            - GIN_MODE=release
+            - BASE_URL=${BASE_URL:-https://clpr.tv}
+            - TWITCH_CLIENT_ID=${TWITCH_CLIENT_ID}
+            - TWITCH_CLIENT_SECRET=${TWITCH_CLIENT_SECRET}
+            - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-https://clpr.tv}
+            - LOG_LEVEL=info
         networks:
             - clipper-network
         profiles:
             - green # Only starts when explicitly requested
 
     frontend-green:
-        image: ghcr.io/subculture-collective/clipper/frontend:latest
+        image: ghcr.io/subculture-collective/clipper/frontend:${FRONTEND_GREEN_TAG:-latest}
         container_name: clipper-frontend-green
         restart: unless-stopped
         depends_on:
@@ -98,14 +128,14 @@ services:
                     'wget',
                     '--spider',
                     '-q',
-                    'http://localhost:81/health.html',
+                    'http://localhost:80/health.html',
                 ]
             interval: 30s
             timeout: 10s
             retries: 3
             start_period: 5s
-        ports:
-            - '81:80'
+        environment:
+            - BACKEND_URL=http://backend-green:8080
         networks:
             - clipper-network
         profiles:
@@ -155,10 +185,50 @@ services:
         networks:
             - clipper-network
 
+    # Caddy reverse proxy for traffic switching
+    caddy:
+        image: caddy:2-alpine
+        container_name: clipper-caddy
+        restart: unless-stopped
+        depends_on:
+            - backend-blue
+            - frontend-blue
+        ports:
+            - '80:80'
+            - '443:443'
+            - '2019:2019' # Caddy admin API
+        volumes:
+            - ./Caddyfile:/etc/caddy/Caddyfile:ro
+            - caddy_data:/data
+            - caddy_config:/config
+            - caddy_logs:/var/log/caddy
+        environment:
+            - ACTIVE_ENV=${ACTIVE_ENV:-blue}
+        networks:
+            - clipper-network
+        healthcheck:
+            test:
+                [
+                    'CMD',
+                    'wget',
+                    '--spider',
+                    '-q',
+                    'http://localhost:2019/config/',
+                ]
+            interval: 30s
+            timeout: 10s
+            retries: 3
+
 volumes:
     postgres_data:
         driver: local
     redis_data:
+        driver: local
+    caddy_data:
+        driver: local
+    caddy_config:
+        driver: local
+    caddy_logs:
         driver: local
 
 networks:

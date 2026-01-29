@@ -33,10 +33,10 @@ func TestAdminReportsEndpoints(t *testing.T) {
 	// Setup database connection
 	dbConfig := &config.DatabaseConfig{
 		Host:     getEnvOrDefault("DB_HOST", "localhost"),
-		Port:     getEnvOrDefault("DB_PORT", "5436"),
+		Port:     getEnvOrDefault("DB_PORT", "5437"),
 		User:     getEnvOrDefault("DB_USER", "clipper"),
 		Password: getEnvOrDefault("DB_PASSWORD", "clipper_password"),
-		Name:     getEnvOrDefault("DB_NAME", "clipper_db"),
+		Name:     getEnvOrDefault("DB_NAME", "clipper_test"),
 		SSLMode:  "disable",
 	}
 
@@ -66,9 +66,10 @@ func TestAdminReportsEndpoints(t *testing.T) {
 
 	// Create test admin user
 	adminEmail := "admin@test.com"
+	adminTwitchID := "test_admin_" + uuid.New().String()
 	adminUser := &models.User{
 		ID:          uuid.New(),
-		TwitchID:    "test_admin_" + uuid.New().String(),
+		TwitchID:    &adminTwitchID,
 		Username:    "testadmin",
 		DisplayName: "Test Admin",
 		Email:       &adminEmail,
@@ -82,9 +83,10 @@ func TestAdminReportsEndpoints(t *testing.T) {
 
 	// Create test regular user (for reporter)
 	userEmail := "user@test.com"
+	userTwitchID := "test_user_" + uuid.New().String()
 	regularUser := &models.User{
 		ID:          uuid.New(),
-		TwitchID:    "test_user_" + uuid.New().String(),
+		TwitchID:    &userTwitchID,
 		Username:    "testuser",
 		DisplayName: "Test User",
 		Email:       &userEmail,
@@ -278,9 +280,4 @@ func TestAdminReportsEndpoints(t *testing.T) {
 			t.Errorf("Expected limit 10, got %v", meta["limit"])
 		}
 	})
-}
-
-// Helper function to create string pointer
-func strPtr(s string) *string {
-	return &s
 }
