@@ -181,6 +181,8 @@ In-depth documentation for major platform features:
 
 This documentation is structured as an [Obsidian](https://obsidian.md/) vault for easy navigation and knowledge management.
 
+**New to Obsidian?** See the [[obsidian-guide|Obsidian Setup Guide]] for complete setup instructions, navigation tips, and best practices.
+
 ### Navigation Tips
 
 - **Search**: Press `Ctrl/Cmd + O` to quickly find any page
@@ -189,6 +191,7 @@ This documentation is structured as an [Obsidian](https://obsidian.md/) vault fo
 - **Graph View**: Visualize the relationships between documentation pages
 - **Wikilinks**: Click `[[page-name]]` links to navigate between related pages
 - **Edit Mode**: Toggle between reading and editing with `Ctrl/Cmd + E`
+- **Tags**: Use the tag pane to browse by category (see [[.obsidian/tag-taxonomy|Tag Taxonomy]])
 
 ### Markdown Conventions
 
@@ -197,15 +200,18 @@ This documentation is structured as an [Obsidian](https://obsidian.md/) vault fo
 - **Code Blocks**: Triple backticks with language identifier
 - **Callouts**: Use `> [!note]`, `> [!warning]`, `> [!tip]` for emphasis
 - **Tables**: GitHub-flavored markdown tables for structured data
+- **Frontmatter**: All pages include YAML metadata (see [[.obsidian/templates/frontmatter-template|Frontmatter Template]])
 
 ### Contributing to Docs
 
 Found an error or want to improve the documentation?
 
 1. Check [[contributing|Contributing Guide]] for guidelines
-2. Submit a PR with your changes
-3. Tag with `documentation` label
-4. Documentation changes are validated via CI
+2. Follow the [[.obsidian/templates/frontmatter-template|frontmatter template]] for new pages
+3. Use approved tags from [[.obsidian/tag-taxonomy|Tag Taxonomy]]
+4. Submit a PR with your changes
+5. Tag with `documentation` label
+6. Documentation changes are validated via CI
 
 ## 📝 Documentation Validation
 
@@ -229,5 +235,7 @@ See `.github/workflows/docs.yml` for the complete validation pipeline.
 
 ---
 
-**Last Updated**: 2025-11-30  
+**Last Updated**: 2026-01-29  
 **Maintained by**: [Subculture Collective](https://github.com/subculture-collective)
+
+**Related Issues**: [#803](https://github.com/subculture-collective/clipper/issues/803), [#845](https://github.com/subculture-collective/clipper/issues/845), [#846](https://github.com/subculture-collective/clipper/issues/846)
