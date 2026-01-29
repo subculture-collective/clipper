@@ -1,3 +1,14 @@
+---
+title: "Alert Validation"
+summary: "This runbook provides step-by-step procedures for validating monitoring alert rules, ensuring they fire correctly, contain proper labels, and clear on recovery."
+tags: ["operations"]
+area: "operations"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Alert Validation Runbook
 
 ## Overview

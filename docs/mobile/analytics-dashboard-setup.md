@@ -1,3 +1,14 @@
+---
+title: "Analytics Dashboard Setup"
+summary: "**Time Required**: 4-6 hours"
+tags: ["mobile"]
+area: "mobile"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Mobile Analytics Dashboard - Quick Setup Guide
 
 **Time Required**: 4-6 hours  

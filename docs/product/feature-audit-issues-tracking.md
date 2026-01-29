@@ -1,3 +1,14 @@
+---
+title: "Feature Audit Issues Tracking"
+summary: "> **Created**: 2024-12-24"
+tags: ["product"]
+area: "product"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Feature Audit Issues Tracking
 
 > **Created**: 2024-12-24

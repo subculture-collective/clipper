@@ -1,3 +1,14 @@
+---
+title: "STRIPE WEBHOOK TESTING"
+summary: "This guide explains how to test Stripe webhook handlers using the Stripe CLI, automated integration tests, and verify webhook functionality in development and production environments."
+tags: ["docs","testing"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Stripe Webhook Testing Guide
 
 This guide explains how to test Stripe webhook handlers using the Stripe CLI, automated integration tests, and verify webhook functionality in development and production environments.

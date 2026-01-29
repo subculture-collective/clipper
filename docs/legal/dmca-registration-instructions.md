@@ -1,3 +1,14 @@
+---
+title: "DMCA Registration Instructions"
+summary: "**Status:** PENDING REGISTRATION"
+tags: ["legal"]
+area: "legal"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # DMCA Agent Registration Instructions
 
 **Status:** PENDING REGISTRATION  

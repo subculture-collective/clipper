@@ -1,3 +1,14 @@
+---
+title: "001 Mobile Framework Selection"
+summary: "**Status:** Accepted"
+tags: ["rfcs"]
+area: "rfcs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # RFC 001: Mobile Framework Selection
 
 **Status:** Accepted

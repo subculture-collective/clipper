@@ -1,3 +1,14 @@
+---
+title: "TOXICITY CLASSIFICATION"
+summary: "The Toxicity Classification System is an ML-based moderation feature that automatically detects and flags toxic comments in the Clipper platform. This system integrates with Google's Perspective API ("
+tags: ["docs"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Toxicity Classification System
 
 ## Overview

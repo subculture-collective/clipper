@@ -1,3 +1,14 @@
+---
+title: "On Call Rotation"
+summary: "This document describes the on-call rotation procedures, responsibilities, and escalation policies for the Clipper platform."
+tags: ["operations"]
+area: "operations"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # On-Call Rotation Guide
 
 This document describes the on-call rotation procedures, responsibilities, and escalation policies for the Clipper platform.

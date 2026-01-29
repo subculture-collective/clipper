@@ -1,3 +1,14 @@
+---
+title: "Centralized Logging"
+summary: "This document describes the centralized logging infrastructure for Clipper."
+tags: ["operations"]
+area: "operations"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Centralized Logging
 
 This document describes the centralized logging infrastructure for Clipper.

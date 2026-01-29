@@ -1,3 +1,14 @@
+---
+title: "Testing Gap Issues"
+summary: "This document contains ready-to-file GitHub issue content for closing testing gaps identified in"
+tags: ["docs","testing"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Testing Coverage Gap Issues (from Feature Test Coverage Audit a9be649)
 
 This document contains ready-to-file GitHub issue content for closing testing gaps identified in

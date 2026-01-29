@@ -1,3 +1,14 @@
+---
+title: "Watch Parties Settings Integration"
+summary: "This document provides guidance for integrating the Watch Party Settings & History feature into the application UI."
+tags: ["features"]
+area: "features"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Watch Party Settings & History - Integration Guide
 
 ## Overview

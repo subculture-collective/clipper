@@ -1,3 +1,14 @@
+---
+title: "Privacy Policy"
+summary: "**Last Updated:** December 11, 2025"
+tags: ["legal"]
+area: "legal"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Privacy Policy
 
 **Last Updated:** December 11, 2025

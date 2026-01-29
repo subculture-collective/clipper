@@ -1,3 +1,14 @@
+---
+title: "Comments"
+summary: "The Clipper comment system provides Reddit-style nested comment threading with voting, markdown support, and moderation controls. This document provides a comprehensive overview of the feature, includ"
+tags: ["features"]
+area: "features"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Comment System Feature Documentation
 
 ## Overview

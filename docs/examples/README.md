@@ -1,3 +1,14 @@
+---
+title: "README"
+summary: "This directory contains practical examples for using the Clip Submission API."
+tags: ["examples"]
+area: "examples"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Clip Submission API Examples
 
 This directory contains practical examples for using the Clip Submission API.

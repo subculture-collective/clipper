@@ -1,3 +1,14 @@
+---
+title: "E2E TEST FIXTURES GUIDE"
+summary: "The fixture system provides everything needed to write comprehensive E2E tests:"
+tags: ["docs","testing","guide"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 /**
  * E2E Test Fixtures Guide
  * ========================

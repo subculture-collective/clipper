@@ -1,3 +1,14 @@
+---
+title: "TOXICITY RULES"
+summary: "This document explains how to manage and update the rule-based toxicity detection system."
+tags: ["docs"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Toxicity Detection Rules Management
 
 This document explains how to manage and update the rule-based toxicity detection system.

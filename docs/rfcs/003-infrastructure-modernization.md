@@ -1,3 +1,14 @@
+---
+title: "003 Infrastructure Modernization"
+summary: "**Status:** Accepted"
+tags: ["rfcs"]
+area: "rfcs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # RFC 003: Infrastructure Modernization
 
 **Status:** Accepted

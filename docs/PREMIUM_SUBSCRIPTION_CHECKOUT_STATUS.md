@@ -1,3 +1,14 @@
+---
+title: "PREMIUM SUBSCRIPTION CHECKOUT STATUS"
+summary: "The premium subscription checkout flow is **FULLY IMPLEMENTED** in the codebase. All necessary components, pages, API endpoints, and E2E tests exist. However, **4 out of 13 tests are currently skipped"
+tags: ["docs"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Premium Subscription Checkout Implementation Status
 
 ## Summary

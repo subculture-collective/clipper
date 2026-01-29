@@ -1,3 +1,14 @@
+---
+title: "README"
+summary: "This directory contains comprehensive compliance documentation for Clipper's Twitch API integration, ensuring adherence to the [Twitch Developer Services Agreement](https://legal.twitch.com/legal/deve"
+tags: ["compliance"]
+area: "compliance"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Twitch Compliance Documentation
 
 This directory contains comprehensive compliance documentation for Clipper's Twitch API integration, ensuring adherence to the [Twitch Developer Services Agreement](https://legal.twitch.com/legal/developer-agreement/) and related policies.

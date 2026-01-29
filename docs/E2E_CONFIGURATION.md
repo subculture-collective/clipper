@@ -1,3 +1,14 @@
+---
+title: "E2E CONFIGURATION"
+summary: "The Playwright E2E tests support optional test modes that enable additional test coverage."
+tags: ["docs"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # E2E Test Configuration Guide
 
 ## Overview

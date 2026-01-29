@@ -1,3 +1,14 @@
+---
+title: "001 Semantic Search Vector Db"
+summary: "**Status**: Accepted"
+tags: ["adr"]
+area: "adr"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # ADR-001: Semantic Search Vector Database Selection
 
 **Status**: Accepted

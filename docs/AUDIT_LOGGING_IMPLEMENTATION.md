@@ -1,3 +1,14 @@
+---
+title: "AUDIT LOGGING IMPLEMENTATION"
+summary: "This document confirms the complete implementation of audit logging for Twitch ban/unban actions as specified in issue #1120.2."
+tags: ["docs","implementation"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Twitch Ban/Unban Audit Logging Implementation
 
 ## Overview

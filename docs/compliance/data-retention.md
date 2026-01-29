@@ -1,3 +1,14 @@
+---
+title: "Data Retention"
+summary: "**Last Updated:** 2025-12-29"
+tags: ["compliance"]
+area: "compliance"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Twitch Data Storage & Retention Compliance
 
 **Last Updated:** 2025-12-29  

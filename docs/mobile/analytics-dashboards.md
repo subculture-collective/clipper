@@ -1,3 +1,14 @@
+---
+title: "Analytics Dashboards"
+summary: "This document provides comprehensive setup instructions for PostHog dashboards to visualize mobile app metrics for the Clipper mobile application."
+tags: ["mobile"]
+area: "mobile"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Mobile Analytics Dashboards
 
 This document provides comprehensive setup instructions for PostHog dashboards to visualize mobile app metrics for the Clipper mobile application.

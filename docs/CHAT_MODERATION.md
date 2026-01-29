@@ -1,3 +1,14 @@
+---
+title: "CHAT MODERATION"
+summary: "This document describes the chat moderation system implementation for the Clipper platform."
+tags: ["docs"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Chat Moderation System
 
 This document describes the chat moderation system implementation for the Clipper platform.

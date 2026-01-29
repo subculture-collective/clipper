@@ -1,3 +1,14 @@
+---
+title: "PGBOUNCER SUMMARY"
+summary: "This implementation adds PgBouncer-based connection pooling to the Clipper Kubernetes infrastructure as required by Roadmap 5.0 Phase 5.2. PgBouncer is deployed in transaction mode with optimized pool"
+tags: ["docs","summary"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # PgBouncer Connection Pooling Implementation Summary
 
 ## Overview

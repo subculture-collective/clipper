@@ -1,3 +1,14 @@
+---
+title: "Posthog Dashboard Queries"
+summary: "Quick reference for PostHog query configurations used in mobile analytics dashboards."
+tags: ["mobile"]
+area: "mobile"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # PostHog Dashboard Queries Reference
 
 Quick reference for PostHog query configurations used in mobile analytics dashboards.

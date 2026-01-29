@@ -1,3 +1,14 @@
+---
+title: "TOXICITY IMPLEMENTATION SUMMARY"
+summary: "Implemented a comprehensive rule-based toxicity detection system as specified in issue #TBD. The system provides fallback toxicity detection when the Perspective API is unavailable, with support for m"
+tags: ["docs","implementation","summary"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Rule-Based Toxicity Detection - Implementation Summary
 
 ## Overview

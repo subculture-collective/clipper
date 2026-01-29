@@ -1,3 +1,14 @@
+---
+title: "CDN Integration"
+summary: "This guide explains how to configure and use the CDN (Content Delivery Network) integration for optimized video delivery."
+tags: ["backend"]
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # CDN Integration Guide
 
 This guide explains how to configure and use the CDN (Content Delivery Network) integration for optimized video delivery.

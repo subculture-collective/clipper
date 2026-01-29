@@ -1,3 +1,14 @@
+---
+title: "Webhook Subscription Management"
+summary: "The webhook subscription management feature allows users to create and manage webhook subscriptions for receiving real-time notifications when events occur in the system."
+tags: ["backend"]
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Webhook Subscription Management
 
 ## Overview
