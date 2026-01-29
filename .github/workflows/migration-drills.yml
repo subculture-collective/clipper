@@ -96,17 +96,28 @@ jobs:
           # Create test-reports directory
           mkdir -p test-reports/migration-drills
           
-          # Run migration drill tests
+          # Run migration drill tests - capture exit code
+          set +e  # Don't exit on error
           go test -v -tags=integration \
             -timeout=30m \
             -run="TestShadowDatabaseMigrationDrills|TestMigrationDriftDetection|TestResidualObjectsDetection" \
             ./tests/migrations/... \
             | tee test-reports/migration-drills/test-output.log
+          test_exit_code=${PIPESTATUS[0]}
+          set -e  # Re-enable exit on error
+          
+          # Exit with test's exit code to fail the step if tests failed
+          exit $test_exit_code
 
       - name: Check for schema drift
         if: always()
         run: |
           cd backend
+          if [ ! -f test-reports/migration-drills/test-output.log ]; then
+            echo "⚠️  Test output log not found, skipping drift check"
+            exit 0
+          fi
+          
           if grep -q "Schema should match after complete migration cycle" test-reports/migration-drills/test-output.log; then
             if grep -q "FAIL" test-reports/migration-drills/test-output.log; then
               echo "❌ Schema drift detected after rollback cycle!"
@@ -122,6 +133,11 @@ jobs:
         if: always()
         run: |
           cd backend
+          if [ ! -f test-reports/migration-drills/test-output.log ]; then
+            echo "⚠️  Test output log not found, skipping residual objects check"
+            exit 0
+          fi
+          
           if grep -q "No residual objects should remain" test-reports/migration-drills/test-output.log; then
             if grep -q "Residual objects detected" test-reports/migration-drills/test-output.log; then
               echo "❌ Residual objects detected after rollback!"

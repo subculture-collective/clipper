@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -19,7 +18,6 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/subculture-collective/clipper/tests/integration/testutil"
 )
 
 const (
@@ -189,6 +187,10 @@ func captureTables(ctx context.Context, pool *pgxpool.Pool) ([]TableInfo, error)
 		}
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
 	var tables []TableInfo
 	for _, table := range tablesMap {
 		tables = append(tables, *table)
@@ -222,6 +224,10 @@ func captureIndexes(ctx context.Context, pool *pgxpool.Pool) ([]IndexInfo, error
 		indexes = append(indexes, idx)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return indexes, nil
 }
 
@@ -239,6 +245,19 @@ func captureConstraints(ctx context.Context, pool *pgxpool.Pool) ([]ConstraintIn
 				AND tc.table_schema = kcu.table_schema
 			WHERE tc.table_schema = 'public'
 			GROUP BY tc.constraint_name, tc.table_name
+		),
+		fk_ref_cols AS (
+			SELECT 
+				tc.constraint_name,
+				ccu.table_name as ref_table,
+				string_agg(ccu.column_name, ', ' ORDER BY ccu.column_name) as ref_columns
+			FROM information_schema.table_constraints tc
+			LEFT JOIN information_schema.constraint_column_usage ccu
+				ON tc.constraint_name = ccu.constraint_name
+				AND tc.table_schema = ccu.table_schema
+			WHERE tc.table_schema = 'public'
+			AND tc.constraint_type = 'FOREIGN KEY'
+			GROUP BY tc.constraint_name, ccu.table_name
 		)
 		SELECT 
 			tc.constraint_name,
@@ -247,7 +266,7 @@ func captureConstraints(ctx context.Context, pool *pgxpool.Pool) ([]ConstraintIn
 			COALESCE(
 				CASE 
 					WHEN tc.constraint_type = 'FOREIGN KEY' THEN 
-						'FOREIGN KEY (' || cc.columns || ') REFERENCES ' || ccu.table_name || '(' || ccu.column_name || ')'
+						'FOREIGN KEY (' || cc.columns || ') REFERENCES ' || fk.ref_table || '(' || fk.ref_columns || ')'
 					WHEN tc.constraint_type = 'CHECK' THEN 
 						cco.check_clause
 					WHEN tc.constraint_type = 'UNIQUE' THEN 
@@ -262,9 +281,8 @@ func captureConstraints(ctx context.Context, pool *pgxpool.Pool) ([]ConstraintIn
 		LEFT JOIN constraint_cols cc
 			ON tc.constraint_name = cc.constraint_name 
 			AND tc.table_name = cc.table_name
-		LEFT JOIN information_schema.constraint_column_usage ccu
-			ON tc.constraint_name = ccu.constraint_name
-			AND tc.table_schema = ccu.table_schema
+		LEFT JOIN fk_ref_cols fk
+			ON tc.constraint_name = fk.constraint_name
 		LEFT JOIN information_schema.check_constraints cco
 			ON tc.constraint_name = cco.constraint_name
 		WHERE tc.table_schema = 'public'
@@ -288,6 +306,10 @@ func captureConstraints(ctx context.Context, pool *pgxpool.Pool) ([]ConstraintIn
 			return nil, err
 		}
 		constraints = append(constraints, c)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return constraints, nil
@@ -316,6 +338,10 @@ func captureTriggers(ctx context.Context, pool *pgxpool.Pool) ([]TriggerInfo, er
 			return nil, err
 		}
 		triggers = append(triggers, t)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return triggers, nil
@@ -347,6 +373,10 @@ func captureFunctions(ctx context.Context, pool *pgxpool.Pool) ([]FunctionInfo, 
 		functions = append(functions, f)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return functions, nil
 }
 
@@ -375,6 +405,10 @@ func captureSequences(ctx context.Context, pool *pgxpool.Pool) ([]SequenceInfo, 
 		sequences = append(sequences, s)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return sequences, nil
 }
 
@@ -392,10 +426,35 @@ func compareSchemaSnapshots(before, after *SchemaSnapshot) []string {
 		afterTables[t.Name] = t
 	}
 
-	// Check for new tables
-	for name := range afterTables {
-		if _, exists := beforeTables[name]; !exists {
+	// Check for new, removed, and modified tables
+	for name, afterTable := range afterTables {
+		beforeTable, exists := beforeTables[name]
+		if !exists {
 			diffs = append(diffs, fmt.Sprintf("New table: %s", name))
+			continue
+		}
+		// Compare columns for matching tables
+		beforeCols := make(map[string]ColumnInfo)
+		for _, col := range beforeTable.Columns {
+			beforeCols[col.Name] = col
+		}
+		afterCols := make(map[string]ColumnInfo)
+		for _, col := range afterTable.Columns {
+			afterCols[col.Name] = col
+		}
+		
+		for colName, afterCol := range afterCols {
+			beforeCol, colExists := beforeCols[colName]
+			if !colExists {
+				diffs = append(diffs, fmt.Sprintf("New column: %s.%s", name, colName))
+			} else if beforeCol.DataType != afterCol.DataType || beforeCol.IsNullable != afterCol.IsNullable {
+				diffs = append(diffs, fmt.Sprintf("Modified column: %s.%s", name, colName))
+			}
+		}
+		for colName := range beforeCols {
+			if _, colExists := afterCols[colName]; !colExists {
+				diffs = append(diffs, fmt.Sprintf("Removed column: %s.%s", name, colName))
+			}
 		}
 	}
 
@@ -407,43 +466,49 @@ func compareSchemaSnapshots(before, after *SchemaSnapshot) []string {
 	}
 
 	// Compare indexes
-	beforeIndexes := make(map[string]bool)
+	beforeIndexes := make(map[string]IndexInfo)
 	for _, idx := range before.Indexes {
-		beforeIndexes[idx.Name] = true
+		beforeIndexes[idx.Name] = idx
 	}
-	afterIndexes := make(map[string]bool)
+	afterIndexes := make(map[string]IndexInfo)
 	for _, idx := range after.Indexes {
-		afterIndexes[idx.Name] = true
+		afterIndexes[idx.Name] = idx
 	}
 
-	for name := range afterIndexes {
-		if !beforeIndexes[name] {
+	for name, afterIdx := range afterIndexes {
+		beforeIdx, exists := beforeIndexes[name]
+		if !exists {
 			diffs = append(diffs, fmt.Sprintf("New index: %s", name))
+		} else if beforeIdx.Definition != afterIdx.Definition {
+			diffs = append(diffs, fmt.Sprintf("Modified index: %s", name))
 		}
 	}
 	for name := range beforeIndexes {
-		if !afterIndexes[name] {
+		if _, exists := afterIndexes[name]; !exists {
 			diffs = append(diffs, fmt.Sprintf("Removed index: %s", name))
 		}
 	}
 
 	// Compare constraints
-	beforeConstraints := make(map[string]bool)
+	beforeConstraints := make(map[string]ConstraintInfo)
 	for _, c := range before.Constraints {
-		beforeConstraints[c.Name] = true
+		beforeConstraints[c.Name] = c
 	}
-	afterConstraints := make(map[string]bool)
+	afterConstraints := make(map[string]ConstraintInfo)
 	for _, c := range after.Constraints {
-		afterConstraints[c.Name] = true
+		afterConstraints[c.Name] = c
 	}
 
-	for name := range afterConstraints {
-		if !beforeConstraints[name] {
+	for name, afterConstraint := range afterConstraints {
+		beforeConstraint, exists := beforeConstraints[name]
+		if !exists {
 			diffs = append(diffs, fmt.Sprintf("New constraint: %s", name))
+		} else if beforeConstraint.Definition != afterConstraint.Definition {
+			diffs = append(diffs, fmt.Sprintf("Modified constraint: %s", name))
 		}
 	}
 	for name := range beforeConstraints {
-		if !afterConstraints[name] {
+		if _, exists := afterConstraints[name]; !exists {
 			diffs = append(diffs, fmt.Sprintf("Removed constraint: %s", name))
 		}
 	}
@@ -495,50 +560,18 @@ func compareSchemaSnapshots(before, after *SchemaSnapshot) []string {
 
 // runMigrationWithTiming runs a migration and tracks performance
 func runMigrationWithTiming(direction string, steps int) (*MigrationPerformance, error) {
-	dbHost := testutil.GetEnv("TEST_DATABASE_HOST", "localhost")
-	dbPort := testutil.GetEnv("TEST_DATABASE_PORT", "5437")
-	dbUser := testutil.GetEnv("TEST_DATABASE_USER", "clipper")
-	dbPassword := testutil.GetEnv("TEST_DATABASE_PASSWORD", "clipper_password")
-	dbName := testutil.GetEnv("TEST_DATABASE_NAME", "clipper_test")
-
-	dbURL := fmt.Sprintf(
-		"postgresql://%s:%s@%s:%s/%s?sslmode=disable",
-		dbUser, dbPassword, dbHost, dbPort, dbName,
-	)
-
-	migrationsPath := testutil.GetEnv("TEST_MIGRATIONS_PATH", "../../migrations")
-
-	args := []string{
-		"-path", migrationsPath,
-		"-database", dbURL,
-		direction,
-	}
-
-	if steps > 0 {
-		args = append(args, fmt.Sprintf("%d", steps))
-	}
-
 	perf := &MigrationPerformance{
 		Direction: direction,
 		Steps:     steps,
 		StartTime: time.Now(),
 	}
 
-	cmd := exec.Command("migrate", args...)
-	output, err := cmd.CombinedOutput()
-	
+	err := runMigration(direction, steps)
+
 	perf.EndTime = time.Now()
 	perf.Duration = perf.EndTime.Sub(perf.StartTime)
 
-	if err != nil {
-		sanitizedURL := fmt.Sprintf(
-			"postgresql://%s:***@%s:%s/%s?sslmode=disable",
-			dbUser, dbHost, dbPort, dbName,
-		)
-		return perf, fmt.Errorf("migration failed (db: %s): %v, output: %s", sanitizedURL, err, string(output))
-	}
-
-	return perf, nil
+	return perf, err
 }
 
 // savePerformanceBaseline saves performance data to a file
@@ -580,8 +613,14 @@ func TestShadowDatabaseMigrationDrills(t *testing.T) {
 		err = os.MkdirAll(reportDir, 0755)
 		require.NoError(t, err)
 
-		initialData, _ := json.MarshalIndent(initialSnapshot, "", "  ")
-		_ = os.WriteFile(filepath.Join(reportDir, "initial-snapshot.json"), initialData, 0644)
+		initialData, err := json.MarshalIndent(initialSnapshot, "", "  ")
+		if err != nil {
+			t.Logf("Failed to marshal initial schema snapshot to JSON: %v", err)
+		} else {
+			if err := os.WriteFile(filepath.Join(reportDir, "initial-snapshot.json"), initialData, 0644); err != nil {
+				t.Logf("Failed to write initial schema snapshot file: %v", err)
+			}
+		}
 
 		// Step 2: Get current migration version
 		var currentVersion int
@@ -612,8 +651,14 @@ func TestShadowDatabaseMigrationDrills(t *testing.T) {
 		afterRollbackSnapshot, err := captureSchemaSnapshot(ctx, mh.pool)
 		require.NoError(t, err, "Failed to capture post-rollback snapshot")
 
-		afterRollbackData, _ := json.MarshalIndent(afterRollbackSnapshot, "", "  ")
-		_ = os.WriteFile(filepath.Join(reportDir, "after-rollback-snapshot.json"), afterRollbackData, 0644)
+		afterRollbackData, err := json.MarshalIndent(afterRollbackSnapshot, "", "  ")
+		if err != nil {
+			t.Logf("Failed to marshal post-rollback snapshot to JSON: %v", err)
+		} else {
+			if err := os.WriteFile(filepath.Join(reportDir, "after-rollback-snapshot.json"), afterRollbackData, 0644); err != nil {
+				t.Logf("Failed to write post-rollback snapshot file: %v", err)
+			}
+		}
 
 		// Step 6: Re-apply migration with performance tracking
 		t.Log("Re-applying migration...")
@@ -631,8 +676,14 @@ func TestShadowDatabaseMigrationDrills(t *testing.T) {
 		finalSnapshot, err := captureSchemaSnapshot(ctx, mh.pool)
 		require.NoError(t, err, "Failed to capture final snapshot")
 
-		finalData, _ := json.MarshalIndent(finalSnapshot, "", "  ")
-		_ = os.WriteFile(filepath.Join(reportDir, "final-snapshot.json"), finalData, 0644)
+		finalData, err := json.MarshalIndent(finalSnapshot, "", "  ")
+		if err != nil {
+			t.Logf("Failed to marshal final schema snapshot to JSON: %v", err)
+		} else {
+			if err := os.WriteFile(filepath.Join(reportDir, "final-snapshot.json"), finalData, 0644); err != nil {
+				t.Logf("Failed to write final schema snapshot to file: %v", err)
+			}
+		}
 
 		// Step 8: Compare initial and final snapshots - they should match
 		t.Log("Comparing initial and final snapshots...")
