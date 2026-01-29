@@ -44,7 +44,7 @@ const CLIP_DUPLICATE_PATTERNS = [
     /already.*approved/,
     /already.*pending/,
     /duplicate.*clip/,
-    /cannot be submitted again/
+    /cannot be submitted again/,
 ];
 
 /**
@@ -65,7 +65,10 @@ function isDuplicateError(message: string): boolean {
  * Helper to extract clip information from error response
  * Looks for clip_id, clip_slug at top level or nested in clip object
  */
-function extractClipInfo(responseData: unknown): { clipId?: string; clipSlug?: string } {
+function extractClipInfo(responseData: unknown): {
+    clipId?: string;
+    clipSlug?: string;
+} {
     if (!responseData || typeof responseData !== 'object') {
         return {};
     }
@@ -122,7 +125,7 @@ export function SubmitClipPage() {
         clipSlug?: string;
     } | null>(null);
     const [submittedClip, setSubmittedClip] = useState<ClipSubmission | null>(
-        null
+        null,
     );
     const [recentSubmissions, setRecentSubmissions] = useState<
         ClipSubmission[]
@@ -155,7 +158,7 @@ export function SubmitClipPage() {
                 .replace(/\s+/g, '-')
                 .replace(/-+/g, '-')
                 .replace(/^-|-$/g, ''),
-        []
+        [],
     );
 
     // Pre-fill from navigation state or URL query (e.g., when claiming a scraped clip)
@@ -163,7 +166,10 @@ export function SubmitClipPage() {
     useEffect(() => {
         let timeoutId: number | undefined;
 
-        const state = location.state as { clipUrl?: string; fromDiscover?: boolean } | null;
+        const state = location.state as {
+            clipUrl?: string;
+            fromDiscover?: boolean;
+        } | null;
         const searchParams = new URLSearchParams(location.search);
         const urlFromQuery =
             searchParams.get('url') || searchParams.get('clip_url');
@@ -195,7 +201,10 @@ export function SubmitClipPage() {
                 setSelectedTags(savedDraft.selectedTags);
                 setShowDraftRestored(true);
                 // Auto-hide the restored message after 5 seconds
-                timeoutId = setTimeout(() => setShowDraftRestored(false), 5000) as unknown as number;
+                timeoutId = setTimeout(
+                    () => setShowDraftRestored(false),
+                    5000,
+                ) as unknown as number;
             }
         }
 
@@ -234,7 +243,7 @@ export function SubmitClipPage() {
             .then(config => {
                 setKarmaRequired(config.karma.submission_karma_required);
                 setKarmaRequirementEnabled(
-                    config.karma.require_karma_for_submission
+                    config.karma.require_karma_for_submission,
                 );
             })
             .catch(err => {
@@ -310,7 +319,8 @@ export function SubmitClipPage() {
                 // Check if clip already exists (duplicate detection)
                 if (resp?.exists && !resp?.can_be_claimed) {
                     setDuplicateError({
-                        message: 'This clip has already been submitted to the database.',
+                        message:
+                            'This clip has already been submitted to the database.',
                         clipId: resp.clip?.id,
                         clipSlug: resp.clip?.twitch_clip_id,
                     });
@@ -364,7 +374,12 @@ export function SubmitClipPage() {
         return () => {
             isActive = false;
         };
-    }, [formData.clip_url, formData.custom_title, selectedTags.length, slugify]);
+    }, [
+        formData.clip_url,
+        formData.custom_title,
+        selectedTags.length,
+        slugify,
+    ]);
 
     // Auto-save draft every 30 seconds when form has content
     useEffect(() => {
@@ -406,7 +421,9 @@ export function SubmitClipPage() {
             try {
                 const url = new URL(formData.clip_url);
                 if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-                    setUrlError('Invalid URL format - please enter a valid URL');
+                    setUrlError(
+                        'Invalid URL format - please enter a valid URL',
+                    );
                     return;
                 }
             } catch {
@@ -419,7 +436,7 @@ export function SubmitClipPage() {
         if (!canSubmit) {
             if (karmaRequirementEnabled) {
                 setError(
-                    `You need at least ${karmaRequired} karma points to submit clips`
+                    `You need at least ${karmaRequired} karma points to submit clips`,
                 );
             } else {
                 setError('You must be logged in to submit clips');
@@ -506,11 +523,14 @@ export function SubmitClipPage() {
                     try {
                         localStorage.setItem(
                             'submission_rate_limit',
-                            JSON.stringify(rateLimitData)
+                            JSON.stringify(rateLimitData),
                         );
                     } catch (storageError) {
                         // Ignore localStorage errors - rate limit will still work for current session
-                        console.warn('Failed to persist rate limit to localStorage:', storageError);
+                        console.warn(
+                            'Failed to persist rate limit to localStorage:',
+                            storageError,
+                        );
                     }
                     // Track rate limit hit
                     trackEvent(SubmissionEvents.SUBMISSION_RATE_LIMIT_HIT, {
@@ -565,9 +585,13 @@ export function SubmitClipPage() {
         // Read stored rate limit metadata before clearing
         let metadata: Record<string, unknown> = {};
         try {
-            const storedRateLimit = localStorage.getItem('submission_rate_limit');
+            const storedRateLimit = localStorage.getItem(
+                'submission_rate_limit',
+            );
             if (storedRateLimit) {
-                const parsed = JSON.parse(storedRateLimit) as RateLimitErrorResponse;
+                const parsed = JSON.parse(
+                    storedRateLimit,
+                ) as RateLimitErrorResponse;
                 metadata = {
                     limit: parsed.limit,
                     window: parsed.window,
@@ -575,7 +599,10 @@ export function SubmitClipPage() {
             }
         } catch (error) {
             // Ignore parsing errors
-            console.warn('Failed to read rate limit metadata for analytics:', error);
+            console.warn(
+                'Failed to read rate limit metadata for analytics:',
+                error,
+            );
         }
 
         // Clear from localStorage
@@ -583,7 +610,10 @@ export function SubmitClipPage() {
             localStorage.removeItem('submission_rate_limit');
         } catch (error) {
             // Ignore localStorage errors
-            console.warn('Failed to remove rate limit from localStorage:', error);
+            console.warn(
+                'Failed to remove rate limit from localStorage:',
+                error,
+            );
         }
 
         // Track rate limit expiration with metadata
@@ -596,7 +626,10 @@ export function SubmitClipPage() {
             localStorage.removeItem('submission_rate_limit');
         } catch (error) {
             // Ignore localStorage errors
-            console.warn('Failed to remove rate limit from localStorage:', error);
+            console.warn(
+                'Failed to remove rate limit from localStorage:',
+                error,
+            );
         }
     };
 
@@ -712,7 +745,8 @@ export function SubmitClipPage() {
                                 />
                             </svg>
                             <span>
-                                Draft saved {new Date(draft.lastSaved).toLocaleTimeString()}
+                                Draft saved{' '}
+                                {new Date(draft.lastSaved).toLocaleTimeString()}
                             </span>
                         </div>
                         <Button
@@ -766,14 +800,23 @@ export function SubmitClipPage() {
                                         // Validate URL on blur for better UX
                                         if (e.target.value) {
                                             try {
-                                                const url = new URL(e.target.value);
-                                                if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-                                                    setUrlError('Invalid URL format - please enter a valid URL');
+                                                const url = new URL(
+                                                    e.target.value,
+                                                );
+                                                if (
+                                                    url.protocol !== 'http:' &&
+                                                    url.protocol !== 'https:'
+                                                ) {
+                                                    setUrlError(
+                                                        'Invalid URL format - please enter a valid URL',
+                                                    );
                                                 } else {
                                                     setUrlError(null);
                                                 }
                                             } catch {
-                                                setUrlError('Invalid URL format - please enter a valid URL');
+                                                setUrlError(
+                                                    'Invalid URL format - please enter a valid URL',
+                                                );
                                             }
                                         }
                                     }}
@@ -930,7 +973,7 @@ export function SubmitClipPage() {
                                             </p>
                                             <p className='text-xs text-muted-foreground'>
                                                 {new Date(
-                                                    submission.created_at
+                                                    submission.created_at,
                                                 ).toLocaleDateString()}
                                             </p>
                                         </div>

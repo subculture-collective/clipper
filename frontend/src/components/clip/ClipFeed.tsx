@@ -72,12 +72,14 @@ export function ClipFeed({
     // Get filters from URL or use defaults (normalize 'hot' to 'trending')
     // In discover mode, ignore URL sort/timeframe to keep the feed controlled by tabs
     const rawSort =
-        discoverMode ? defaultSort :
-        (searchParams.get('sort') as SortOption) || defaultSort;
+        discoverMode ? defaultSort : (
+            (searchParams.get('sort') as SortOption) || defaultSort
+        );
     const sort = normalizeSortOption(rawSort);
     const timeframe =
-        discoverMode ? defaultTimeframe :
-        (searchParams.get('timeframe') as TimeFrame) || defaultTimeframe;
+        discoverMode ? defaultTimeframe : (
+            (searchParams.get('timeframe') as TimeFrame) || defaultTimeframe
+        );
 
     // Combine URL filters with additional filters and current language
     const filters: ClipFeedFilters = {
