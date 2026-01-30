@@ -395,6 +395,9 @@ export function AdminAPIDocsPage() {
                                     aria-label='Search API endpoints'
                                     className='flex-1 px-4 py-2 bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary'
                                 />
+                                <label htmlFor='category-filter' className='sr-only'>
+                                    Filter by category
+                                </label>
                                 <select
                                     id='category-filter'
                                     value={selectedTag}

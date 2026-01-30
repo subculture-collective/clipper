@@ -160,28 +160,15 @@ package main
 import (
     "net/http"
     "io"
-    "bytes"
-    "encoding/json"
 )
 
 func main() {
-    // Create request body
-    data := map[string]interface{}{
-        // Your request data
-    }
-    jsonBody, err := json.Marshal(data)
-    if err != nil {
-        // Handle error
-        return
-    }
-    
-    req, err := http.NewRequest("GET", "/api/v1/clips", bytes.NewBuffer(jsonBody))
+    req, err := http.NewRequest("GET", "/api/v1/clips", nil)
     if err != nil {
         // Handle error
         return
     }
     req.Header.Set("Authorization", "Bearer YOUR_TOKEN")
-    req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
     resp, err := client.Do(req)
