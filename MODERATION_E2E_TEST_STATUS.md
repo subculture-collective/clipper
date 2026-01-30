@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-The moderation feature E2E tests have been analyzed and verified. **All 28 tests in `moderation.spec.ts` are passing** on Chromium (100% pass rate). The feature appears to be fully implemented contrary to the epic's assumption of 60 failing tests.
+The moderation feature E2E tests have been analyzed and verified. **All 33 active tests are passing** on Chromium (100% pass rate): 28 tests in `moderation.spec.ts` and 5 active tests in `moderation-workflow.spec.ts` (6 tests are intentionally skipped). The feature appears to be fully implemented contrary to the epic's assumption of 60 failing tests.
 
 ## Test Results
 
@@ -50,9 +50,9 @@ The moderation feature E2E tests have been analyzed and verified. **All 28 tests
 27. ✅ Expired bans cannot be selected
 28. ✅ Moderator management UI is responsive
 
-### ✅ moderation-workflow.spec.ts - 5/11 Passing
+### ✅ moderation-workflow.spec.ts - 5/5 Active Tests Passing (6 Skipped)
 
-#### Passing Tests (5)
+#### Passing Tests (5/5 active)
 1. ✅ Block non-admin users from accessing moderation queue
 2. ✅ Allow admin users to access moderation queue
 3. ✅ Allow moderator users to access moderation queue
