@@ -70,12 +70,12 @@ npm run docs:assets
 **Command:** `npm run docs:lint`
 
 Validates markdown formatting including:
-- Line length (120 chars, with exceptions for code blocks, tables, and headings)
 - Heading styles and hierarchy
 - List formatting
 - Code block formatting
 
 **Obsidian-Friendly Settings:**
+- Line length checking is disabled (MD013 off) to allow flexible formatting for docs and Obsidian exports
 - Allows HTML (for complex tables and Obsidian features)
 - Allows frontmatter (YAML at top of files)
 - Flexible heading spacing
@@ -305,12 +305,17 @@ The workflow runs on:
 
 ### Failure Handling
 
-If any check fails:
-- The workflow fails and blocks PR merge
-- A comment is posted to the PR with troubleshooting tips
-- Check logs provide detailed information about failures
+The quality checks are handled differently depending on whether they are **blocking** or **non-blocking**:
 
-**All checks must pass before a PR can be merged.**
+- **Blocking checks** (linting, anchors, orphans, assets):
+  - If any of these checks fail, the workflow fails and blocks PR merge.
+  - A comment is posted to the PR with troubleshooting tips.
+  - Check logs provide detailed information about failures.
+- **Non-blocking checks** (spelling, external link validation):
+  - These checks may fail without blocking PR merge.
+  - Failures are still reported in the workflow logs and PR comments so they can be addressed.
+
+While only the blocking checks are enforced by CI for merging, contributors are expected to fix issues reported by all checks whenever possible.
 
 ## Configuration Files
 
@@ -319,7 +324,7 @@ If any check fails:
 Markdownlint configuration with Obsidian-compatible settings.
 
 **Key Settings:**
-- `MD013`: Line length (120 chars, excludes code/tables/headings)
+- `MD013`: Line length rule disabled (no enforced line length limit)
 - `MD033`: Allow HTML
 - `MD041`: Allow frontmatter before first heading
 - `MD022`: Allow flexible heading spacing
@@ -345,15 +350,6 @@ Link checker exclusion patterns.
 - Rate-limited external sites (clips.twitch.tv)
 
 ## Troubleshooting
-
-### Linting Errors
-
-**Problem:** Line too long  
-**Fix:** Break into multiple lines or disable for that line:
-```markdown
-<!-- markdownlint-disable-next-line MD013 -->
-This is a very long line that exceeds the 120 character limit but is needed for some reason.
-```
 
 ### Spelling Errors
 

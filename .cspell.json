@@ -211,7 +211,6 @@
     "Redis",
     "nginx",
     "NGINX",
-    "OAuth2",
-    "OpenAPI"
+    "OAuth2"
   ]
 }

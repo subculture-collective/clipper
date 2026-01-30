@@ -53,6 +53,8 @@ jobs:
 
       - name: Install lychee link checker
         run: |
+          # Pinned to v0.15.1 for reproducible CI builds
+          # Update version as needed from https://github.com/lycheeverse/lychee/releases
           curl -sSL https://github.com/lycheeverse/lychee/releases/download/v0.15.1/lychee-v0.15.1-x86_64-unknown-linux-gnu.tar.gz | tar -xz
           sudo mv lychee /usr/local/bin/
           lychee --version
