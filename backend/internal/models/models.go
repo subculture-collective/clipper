@@ -174,12 +174,13 @@ type Clip struct {
 }
 
 // WatchProgressInfo represents watch progress for a clip (used in API responses)
+// Note: WatchedAt is optional and may be empty for performance reasons in list views
 type WatchProgressInfo struct {
 	ProgressSeconds int     `json:"progress_seconds"`
 	DurationSeconds int     `json:"duration_seconds"`
 	ProgressPercent float64 `json:"progress_percent"`
 	Completed       bool    `json:"completed"`
-	WatchedAt       string  `json:"watched_at"`
+	WatchedAt       string  `json:"watched_at,omitempty"` // Optional: May be omitted for performance
 }
 
 // Vote represents a user's vote on a clip

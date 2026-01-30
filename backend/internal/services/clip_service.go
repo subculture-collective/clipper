@@ -61,6 +61,28 @@ type ClipWithUserData struct {
 	SubmittedBy   *models.ClipSubmitterInfo `json:"submitted_by,omitempty"`
 }
 
+// buildWatchProgressInfo creates a WatchProgressInfo from resume position data
+func (s *ClipService) buildWatchProgressInfo(progressSeconds int, completed bool, duration *float64) *models.WatchProgressInfo {
+	if progressSeconds <= 0 {
+		return nil
+	}
+
+	var progressPercent float64
+	durationSeconds := 0
+	if duration != nil && *duration > 0 {
+		durationSeconds = int(*duration)
+		progressPercent = (float64(progressSeconds) / float64(durationSeconds)) * 100
+	}
+
+	return &models.WatchProgressInfo{
+		ProgressSeconds: progressSeconds,
+		DurationSeconds: durationSeconds,
+		ProgressPercent: progressPercent,
+		Completed:       completed,
+		// WatchedAt omitted for performance reasons
+	}
+}
+
 // GetClip retrieves a single clip with user data
 func (s *ClipService) GetClip(ctx context.Context, clipID uuid.UUID, userID *uuid.UUID) (*ClipWithUserData, error) {
 	clip, err := s.clipRepo.GetByID(ctx, clipID)
@@ -106,21 +128,8 @@ func (s *ClipService) GetClip(ctx context.Context, clipID uuid.UUID, userID *uui
 
 		// Get watch progress
 		progressSeconds, completed, err := s.watchHistoryRepo.GetResumePosition(ctx, *userID, clipID)
-		if err == nil && progressSeconds > 0 {
-			// Calculate progress percent and populate watch progress
-			var progressPercent float64
-			durationSeconds := 0
-			if clip.Duration != nil && *clip.Duration > 0 {
-				durationSeconds = int(*clip.Duration)
-				progressPercent = (float64(progressSeconds) / float64(durationSeconds)) * 100
-			}
-			clipWithData.Clip.WatchProgress = &models.WatchProgressInfo{
-				ProgressSeconds: progressSeconds,
-				DurationSeconds: durationSeconds,
-				ProgressPercent: progressPercent,
-				Completed:       completed,
-				WatchedAt:       "", // Not fetched from GetResumePosition for performance
-			}
+		if err == nil {
+			clipWithData.Clip.WatchProgress = s.buildWatchProgressInfo(progressSeconds, completed, clip.Duration)
 		}
 	}
 
@@ -184,21 +193,8 @@ func (s *ClipService) GetClipByTwitchID(ctx context.Context, twitchClipID string
 
 		// Get watch progress
 		progressSeconds, completed, err := s.watchHistoryRepo.GetResumePosition(ctx, *userID, clip.ID)
-		if err == nil && progressSeconds > 0 {
-			// Calculate progress percent and populate watch progress
-			var progressPercent float64
-			durationSeconds := 0
-			if clip.Duration != nil && *clip.Duration > 0 {
-				durationSeconds = int(*clip.Duration)
-				progressPercent = (float64(progressSeconds) / float64(durationSeconds)) * 100
-			}
-			clipWithData.Clip.WatchProgress = &models.WatchProgressInfo{
-				ProgressSeconds: progressSeconds,
-				DurationSeconds: durationSeconds,
-				ProgressPercent: progressPercent,
-				Completed:       completed,
-				WatchedAt:       "", // Not fetched from GetResumePosition for performance
-			}
+		if err == nil {
+			clipWithData.Clip.WatchProgress = s.buildWatchProgressInfo(progressSeconds, completed, clip.Duration)
 		}
 	}
 
@@ -343,19 +339,11 @@ func (s *ClipService) ListClips(ctx context.Context, filters repository.ClipFilt
 
 			// Add watch progress if available
 			if watchProgress, ok := watchProgressMap[clip.ID]; ok && watchProgress.HasProgress {
-				var progressPercent float64
-				durationSeconds := 0
-				if clip.Duration != nil && *clip.Duration > 0 {
-					durationSeconds = int(*clip.Duration)
-					progressPercent = (float64(watchProgress.ProgressSeconds) / float64(durationSeconds)) * 100
-				}
-				clipsWithData[i].Clip.WatchProgress = &models.WatchProgressInfo{
-					ProgressSeconds: watchProgress.ProgressSeconds,
-					DurationSeconds: durationSeconds,
-					ProgressPercent: progressPercent,
-					Completed:       watchProgress.Completed,
-					WatchedAt:       "", // Not fetched for performance
-				}
+				clipsWithData[i].Clip.WatchProgress = s.buildWatchProgressInfo(
+					watchProgress.ProgressSeconds,
+					watchProgress.Completed,
+					clip.Duration,
+				)
 			}
 		}
 	}
@@ -452,19 +440,11 @@ func (s *ClipService) ListScrapedClips(ctx context.Context, filters repository.C
 
 			// Add watch progress if available
 			if watchProgress, ok := watchProgressMap[clip.ID]; ok && watchProgress.HasProgress {
-				var progressPercent float64
-				durationSeconds := 0
-				if clip.Duration != nil && *clip.Duration > 0 {
-					durationSeconds = int(*clip.Duration)
-					progressPercent = (float64(watchProgress.ProgressSeconds) / float64(durationSeconds)) * 100
-				}
-				clipsWithData[i].Clip.WatchProgress = &models.WatchProgressInfo{
-					ProgressSeconds: watchProgress.ProgressSeconds,
-					DurationSeconds: durationSeconds,
-					ProgressPercent: progressPercent,
-					Completed:       watchProgress.Completed,
-					WatchedAt:       "", // Not fetched for performance
-				}
+				clipsWithData[i].Clip.WatchProgress = s.buildWatchProgressInfo(
+					watchProgress.ProgressSeconds,
+					watchProgress.Completed,
+					clip.Duration,
+				)
 			}
 		}
 	}
