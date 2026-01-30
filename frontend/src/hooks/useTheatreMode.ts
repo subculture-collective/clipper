@@ -14,8 +14,14 @@ export function useTheatreMode() {
     // Check localStorage for user's theatre mode preference
     // Default to false for first-time users
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(THEATRE_MODE_PREF_KEY);
-      return stored === 'true';
+      try {
+        const stored = localStorage.getItem(THEATRE_MODE_PREF_KEY);
+        return stored === 'true';
+      } catch (error) {
+        // localStorage may fail in private browsing mode or when disabled
+        console.error('Failed to read theatre mode preference from localStorage:', error);
+        return false;
+      }
     }
     return false;
   });
@@ -27,7 +33,12 @@ export function useTheatreMode() {
   // Persist theatre mode preference to localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem(THEATRE_MODE_PREF_KEY, String(isTheatreMode));
+      try {
+        localStorage.setItem(THEATRE_MODE_PREF_KEY, String(isTheatreMode));
+      } catch (error) {
+        // localStorage may fail when quota is exceeded or in private browsing
+        console.error('Failed to save theatre mode preference to localStorage:', error);
+      }
     }
   }, [isTheatreMode]);
 

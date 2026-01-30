@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useTheatreMode } from './useTheatreMode';
 
@@ -163,6 +163,91 @@ describe('useTheatreMode', () => {
       expect(typeof result.current.toggleFullscreen).toBe('function');
       expect(typeof result.current.togglePictureInPicture).toBe('function');
       expect(typeof result.current.exitTheatreMode).toBe('function');
+    });
+  });
+
+  describe('localStorage Error Handling', () => {
+    it('should handle localStorage.getItem errors gracefully', () => {
+      // Mock localStorage.getItem to throw an error
+      const originalGetItem = Storage.prototype.getItem;
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      Storage.prototype.getItem = vi.fn(() => {
+        throw new Error('localStorage is disabled');
+      });
+
+      // Hook should still work and default to false
+      const { result } = renderHook(() => useTheatreMode());
+      
+      expect(result.current.isTheatreMode).toBe(false);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Failed to read theatre mode preference from localStorage:',
+        expect.any(Error)
+      );
+
+      // Restore
+      Storage.prototype.getItem = originalGetItem;
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should handle localStorage.setItem errors gracefully', () => {
+      // Mock localStorage.setItem to throw an error
+      const originalSetItem = Storage.prototype.setItem;
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      Storage.prototype.setItem = vi.fn(() => {
+        throw new Error('Quota exceeded');
+      });
+
+      const { result } = renderHook(() => useTheatreMode());
+      
+      // Toggle should work even if persistence fails
+      act(() => {
+        result.current.toggleTheatreMode();
+      });
+      
+      expect(result.current.isTheatreMode).toBe(true);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Failed to save theatre mode preference to localStorage:',
+        expect.any(Error)
+      );
+
+      // Restore
+      Storage.prototype.setItem = originalSetItem;
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should continue working after localStorage failures', () => {
+      // Simulate localStorage failure, then restore it
+      const originalSetItem = Storage.prototype.setItem;
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      let callCount = 0;
+      Storage.prototype.setItem = vi.fn(() => {
+        callCount++;
+        if (callCount === 1) {
+          throw new Error('First call fails');
+        }
+        // Second call succeeds
+        originalSetItem.apply(localStorage, arguments as any);
+      });
+
+      const { result } = renderHook(() => useTheatreMode());
+      
+      // First toggle - localStorage fails but state updates
+      act(() => {
+        result.current.toggleTheatreMode();
+      });
+      expect(result.current.isTheatreMode).toBe(true);
+      // Error should be logged once (on first setItem attempt)
+      expect(consoleErrorSpy).toHaveBeenCalled();
+
+      // Second toggle - localStorage succeeds
+      act(() => {
+        result.current.toggleTheatreMode();
+      });
+      expect(result.current.isTheatreMode).toBe(false);
+      
+      // Restore
+      Storage.prototype.setItem = originalSetItem;
+      consoleErrorSpy.mockRestore();
     });
   });
 });
