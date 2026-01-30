@@ -15,6 +15,7 @@ import {
     useIsAuthenticated,
     useToast,
     useShare,
+    useWatchHistory,
 } from '../hooks';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -32,6 +33,19 @@ export function ClipDetailPage() {
     const isVoting = voteMutation.isPending;
     const isBanned = user?.is_banned;
     const banReason = user?.ban_reason;
+
+    // Watch history integration - only enabled for authenticated users with HLS clips
+    const {
+        progress: resumePosition,
+        hasProgress,
+        isLoading: isLoadingProgress,
+        recordProgress,
+        recordProgressOnPause,
+    } = useWatchHistory({
+        clipId: id || '',
+        duration: clip?.duration || 0,
+        enabled: isAuthenticated && !!clip?.video_url,
+    });
 
     const clipUrl = clip ? `${window.location.origin}/clip/${clip.id}` : '';
     const shareTitle = clip ? clip.title : 'Check out this clip';
@@ -315,11 +329,19 @@ export function ClipDetailPage() {
                     </div>
 
                     <div className='mb-4 xs:mb-6'>
-                        {/* Render TheatreMode for HLS clips, otherwise use VideoPlayer */}
+                        {/* Render TheatreMode for HLS clips, otherwise use VideoPlayer 
+                            Note: Watch history tracking only works with HLS clips (TheatreMode).
+                            Twitch iframe embeds (VideoPlayer) don't expose playback events per TOS. */}
                         {clip.video_url ? (
                             <TheatreMode
                                 title={clip.title}
                                 hlsUrl={clip.video_url}
+                                resumePosition={resumePosition}
+                                hasProgress={hasProgress}
+                                isLoadingProgress={isLoadingProgress}
+                                onProgressUpdate={recordProgress}
+                                onPause={recordProgressOnPause}
+                                onEnded={recordProgressOnPause}
                             />
                         ) : (
                             <VideoPlayer
