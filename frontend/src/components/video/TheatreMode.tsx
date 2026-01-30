@@ -11,6 +11,13 @@ export interface TheatreModeProps {
   title: string;
   hlsUrl?: string; // Optional HLS URL for clips that support it
   className?: string;
+  // Watch history props
+  resumePosition?: number;
+  hasProgress?: boolean;
+  isLoadingProgress?: boolean;
+  onProgressUpdate?: (currentTime: number) => void;
+  onPause?: (currentTime: number) => void;
+  onEnded?: (currentTime: number) => void;
 }
 
 const AVAILABLE_QUALITIES: VideoQuality[] = ['480p', '720p', '1080p', '2K', '4K', 'auto'];
@@ -20,7 +27,17 @@ const AVAILABLE_QUALITIES: VideoQuality[] = ['480p', '720p', '1080p', '2K', '4K'
  * Provides immersive viewing experience with quality selection and keyboard shortcuts
  * Falls back gracefully when HLS is not available
  */
-export function TheatreMode({ title, hlsUrl, className }: TheatreModeProps) {
+export function TheatreMode({ 
+  title, 
+  hlsUrl, 
+  className,
+  resumePosition = 0,
+  hasProgress = false,
+  isLoadingProgress = false,
+  onProgressUpdate,
+  onPause,
+  onEnded,
+}: TheatreModeProps) {
   const {
     isTheatreMode,
     isFullscreen,
@@ -36,6 +53,8 @@ export function TheatreMode({ title, hlsUrl, className }: TheatreModeProps) {
   const [bandwidth, setBandwidth] = useState<number>();
   const [bufferHealth, setBufferHealth] = useState(100);
   const [showControls, setShowControls] = useState(true);
+  const [showResumePrompt, setShowResumePrompt] = useState(false);
+  const [hasAppliedResume, setHasAppliedResume] = useState(false);
 
   // Determine if HLS is available
   const hasHlsSupport = useMemo(() => !!hlsUrl, [hlsUrl]);
@@ -77,6 +96,67 @@ export function TheatreMode({ title, hlsUrl, className }: TheatreModeProps) {
     onTheatreMode: toggleTheatreMode,
     onPictureInPicture: togglePictureInPicture,
   }, hasHlsSupport);
+
+  // Show resume prompt when progress is available and not loading
+  useEffect(() => {
+    if (hasProgress && !isLoadingProgress && !hasAppliedResume && resumePosition > 5) {
+      queueMicrotask(() => setShowResumePrompt(true));
+    }
+  }, [hasProgress, isLoadingProgress, hasAppliedResume, resumePosition]);
+
+  // Handle resume position
+  const handleResume = useCallback(() => {
+    const video = videoRef.current;
+    if (video && resumePosition > 0) {
+      video.currentTime = resumePosition;
+      setShowResumePrompt(false);
+      setHasAppliedResume(true);
+    }
+  }, [videoRef, resumePosition]);
+
+  const handleDismissResume = useCallback(() => {
+    setShowResumePrompt(false);
+    setHasAppliedResume(true);
+  }, []);
+
+  // Progress tracking with timeupdate event
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !onProgressUpdate) return;
+
+    const handleTimeUpdate = () => {
+      onProgressUpdate(video.currentTime);
+    };
+
+    video.addEventListener('timeupdate', handleTimeUpdate);
+    return () => video.removeEventListener('timeupdate', handleTimeUpdate);
+  }, [videoRef, onProgressUpdate]);
+
+  // Pause tracking
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !onPause) return;
+
+    const handlePauseEvent = () => {
+      onPause(video.currentTime);
+    };
+
+    video.addEventListener('pause', handlePauseEvent);
+    return () => video.removeEventListener('pause', handlePauseEvent);
+  }, [videoRef, onPause]);
+
+  // End tracking
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !onEnded) return;
+
+    const handleEndedEvent = () => {
+      onEnded(video.currentTime);
+    };
+
+    video.addEventListener('ended', handleEndedEvent);
+    return () => video.removeEventListener('ended', handleEndedEvent);
+  }, [videoRef, onEnded]);
 
   // Show/hide controls on mouse movement
   useEffect(() => {
@@ -186,6 +266,34 @@ export function TheatreMode({ title, hlsUrl, className }: TheatreModeProps) {
           {title}
         </h2>
       </div>
+
+      {/* Resume Prompt */}
+      {showResumePrompt && (
+        <div className="absolute inset-0 flex items-center justify-center z-40 pointer-events-none">
+          <div className="bg-black/90 backdrop-blur-sm rounded-lg p-6 max-w-md mx-4 pointer-events-auto">
+            <h3 className="text-white text-lg font-semibold mb-2">
+              Resume Playback?
+            </h3>
+            <p className="text-white/80 text-sm mb-4">
+              You were at {Math.floor(resumePosition / 60)}:{String(Math.floor(resumePosition % 60)).padStart(2, '0')}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleDismissResume}
+                className="flex-1 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded transition-colors"
+              >
+                Start Over
+              </button>
+              <button
+                onClick={handleResume}
+                className="flex-1 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded transition-colors"
+              >
+                Resume
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Bottom Controls */}
       <div
