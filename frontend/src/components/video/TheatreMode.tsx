@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { useTheatreMode, useQualityPreference, useKeyboardControls } from '@/hooks';
 import type { VideoQuality } from '@/lib/adaptive-bitrate';
@@ -56,6 +56,32 @@ export function TheatreMode({
   const [showResumePrompt, setShowResumePrompt] = useState(false);
   const [hasAppliedResume, setHasAppliedResume] = useState(false);
 
+  // Use refs to store latest callbacks to avoid re-attaching event listeners
+  const onProgressUpdateRef = useRef(onProgressUpdate);
+  const onPauseRef = useRef(onPause);
+  const onEndedRef = useRef(onEnded);
+
+  // Update refs when callbacks change
+  useEffect(() => {
+    onProgressUpdateRef.current = onProgressUpdate;
+  }, [onProgressUpdate]);
+
+  useEffect(() => {
+    onPauseRef.current = onPause;
+  }, [onPause]);
+
+  useEffect(() => {
+    onEndedRef.current = onEnded;
+  }, [onEnded]);
+
+  // Reset hasAppliedResume when clip changes
+  useEffect(() => {
+    queueMicrotask(() => {
+      setHasAppliedResume(false);
+      setShowResumePrompt(false);
+    });
+  }, [hlsUrl]);
+
   // Determine if HLS is available
   const hasHlsSupport = useMemo(() => !!hlsUrl, [hlsUrl]);
 
@@ -108,7 +134,17 @@ export function TheatreMode({
   const handleResume = useCallback(() => {
     const video = videoRef.current;
     if (video && resumePosition > 0) {
-      video.currentTime = resumePosition;
+      // Wait for video metadata to load before seeking
+      if (video.readyState >= 1) {
+        video.currentTime = resumePosition;
+      } else {
+        // If metadata not loaded yet, wait for it
+        const handleLoadedMetadata = () => {
+          video.currentTime = resumePosition;
+          video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+        };
+        video.addEventListener('loadedmetadata', handleLoadedMetadata);
+      }
       setShowResumePrompt(false);
       setHasAppliedResume(true);
     }
@@ -122,41 +158,53 @@ export function TheatreMode({
   // Progress tracking with timeupdate event
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !onProgressUpdate) return;
+    if (!video) return;
 
     const handleTimeUpdate = () => {
-      onProgressUpdate(video.currentTime);
+      onProgressUpdateRef.current?.(video.currentTime);
     };
 
     video.addEventListener('timeupdate', handleTimeUpdate);
-    return () => video.removeEventListener('timeupdate', handleTimeUpdate);
-  }, [videoRef, onProgressUpdate]);
+    return () => {
+      // Use the same video element captured at effect setup time
+      video.removeEventListener('timeupdate', handleTimeUpdate);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hlsUrl]); // Re-run when video source changes. videoRef is intentionally not a dependency.
 
   // Pause tracking
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !onPause) return;
+    if (!video) return;
 
     const handlePauseEvent = () => {
-      onPause(video.currentTime);
+      onPauseRef.current?.(video.currentTime);
     };
 
     video.addEventListener('pause', handlePauseEvent);
-    return () => video.removeEventListener('pause', handlePauseEvent);
-  }, [videoRef, onPause]);
+    return () => {
+      // Use the same video element captured at effect setup time
+      video.removeEventListener('pause', handlePauseEvent);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hlsUrl]); // Re-run when video source changes. videoRef is intentionally not a dependency.
 
   // End tracking
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !onEnded) return;
+    if (!video) return;
 
     const handleEndedEvent = () => {
-      onEnded(video.currentTime);
+      onEndedRef.current?.(video.currentTime);
     };
 
     video.addEventListener('ended', handleEndedEvent);
-    return () => video.removeEventListener('ended', handleEndedEvent);
-  }, [videoRef, onEnded]);
+    return () => {
+      // Use the same video element captured at effect setup time
+      video.removeEventListener('ended', handleEndedEvent);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hlsUrl]); // Re-run when video source changes. videoRef is intentionally not a dependency.
 
   // Show/hide controls on mouse movement
   useEffect(() => {
