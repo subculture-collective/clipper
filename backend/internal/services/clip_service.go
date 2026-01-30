@@ -22,6 +22,7 @@ type ClipService struct {
 	voteRepo            *repository.VoteRepository
 	favoriteRepo        *repository.FavoriteRepository
 	userRepo            *repository.UserRepository
+	watchHistoryRepo    *repository.WatchHistoryRepository
 	redisClient         *redispkg.Client
 	auditLogRepo        *repository.AuditLogRepository
 	notificationService *NotificationService
@@ -33,6 +34,7 @@ func NewClipService(
 	voteRepo *repository.VoteRepository,
 	favoriteRepo *repository.FavoriteRepository,
 	userRepo *repository.UserRepository,
+	watchHistoryRepo *repository.WatchHistoryRepository,
 	redisClient *redispkg.Client,
 	auditLogRepo *repository.AuditLogRepository,
 	notificationService *NotificationService,
@@ -42,6 +44,7 @@ func NewClipService(
 		voteRepo:            voteRepo,
 		favoriteRepo:        favoriteRepo,
 		userRepo:            userRepo,
+		watchHistoryRepo:    watchHistoryRepo,
 		redisClient:         redisClient,
 		auditLogRepo:        auditLogRepo,
 		notificationService: notificationService,
@@ -99,6 +102,25 @@ func (s *ClipService) GetClip(ctx context.Context, clipID uuid.UUID, userID *uui
 		isFavorited, err := s.favoriteRepo.IsFavorited(ctx, *userID, clipID)
 		if err == nil {
 			clipWithData.IsFavorited = isFavorited
+		}
+
+		// Get watch progress
+		progressSeconds, completed, err := s.watchHistoryRepo.GetResumePosition(ctx, *userID, clipID)
+		if err == nil && progressSeconds > 0 {
+			// Calculate progress percent and populate watch progress
+			var progressPercent float64
+			durationSeconds := 0
+			if clip.Duration != nil && *clip.Duration > 0 {
+				durationSeconds = int(*clip.Duration)
+				progressPercent = (float64(progressSeconds) / float64(durationSeconds)) * 100
+			}
+			clipWithData.Clip.WatchProgress = &models.WatchProgressInfo{
+				ProgressSeconds: progressSeconds,
+				DurationSeconds: durationSeconds,
+				ProgressPercent: progressPercent,
+				Completed:       completed,
+				WatchedAt:       "", // Not fetched from GetResumePosition for performance
+			}
 		}
 	}
 
@@ -158,6 +180,25 @@ func (s *ClipService) GetClipByTwitchID(ctx context.Context, twitchClipID string
 		isFavorited, err := s.favoriteRepo.IsFavorited(ctx, *userID, clip.ID)
 		if err == nil {
 			clipWithData.IsFavorited = isFavorited
+		}
+
+		// Get watch progress
+		progressSeconds, completed, err := s.watchHistoryRepo.GetResumePosition(ctx, *userID, clip.ID)
+		if err == nil && progressSeconds > 0 {
+			// Calculate progress percent and populate watch progress
+			var progressPercent float64
+			durationSeconds := 0
+			if clip.Duration != nil && *clip.Duration > 0 {
+				durationSeconds = int(*clip.Duration)
+				progressPercent = (float64(progressSeconds) / float64(durationSeconds)) * 100
+			}
+			clipWithData.Clip.WatchProgress = &models.WatchProgressInfo{
+				ProgressSeconds: progressSeconds,
+				DurationSeconds: durationSeconds,
+				ProgressPercent: progressPercent,
+				Completed:       completed,
+				WatchedAt:       "", // Not fetched from GetResumePosition for performance
+			}
 		}
 	}
 
@@ -257,6 +298,16 @@ func (s *ClipService) ListClips(ctx context.Context, filters repository.ClipFilt
 		}
 	}
 
+	// Batch fetch watch progress for all clips if user is authenticated
+	var watchProgressMap map[uuid.UUID]*models.ResumePositionResponse
+	if userID != nil && len(clips) > 0 {
+		clipIDs := make([]uuid.UUID, len(clips))
+		for i, clip := range clips {
+			clipIDs[i] = clip.ID
+		}
+		watchProgressMap, _ = s.watchHistoryRepo.GetResumePositions(ctx, *userID, clipIDs)
+	}
+
 	// Enrich with user data
 	clipsWithData := make([]ClipWithUserData, len(clips))
 	for i, clip := range clips {
@@ -288,6 +339,23 @@ func (s *ClipService) ListClips(ctx context.Context, filters repository.ClipFilt
 			isFavorited, err := s.favoriteRepo.IsFavorited(ctx, *userID, clip.ID)
 			if err == nil {
 				clipsWithData[i].IsFavorited = isFavorited
+			}
+
+			// Add watch progress if available
+			if watchProgress, ok := watchProgressMap[clip.ID]; ok && watchProgress.HasProgress {
+				var progressPercent float64
+				durationSeconds := 0
+				if clip.Duration != nil && *clip.Duration > 0 {
+					durationSeconds = int(*clip.Duration)
+					progressPercent = (float64(watchProgress.ProgressSeconds) / float64(durationSeconds)) * 100
+				}
+				clipsWithData[i].Clip.WatchProgress = &models.WatchProgressInfo{
+					ProgressSeconds: watchProgress.ProgressSeconds,
+					DurationSeconds: durationSeconds,
+					ProgressPercent: progressPercent,
+					Completed:       watchProgress.Completed,
+					WatchedAt:       "", // Not fetched for performance
+				}
 			}
 		}
 	}
@@ -346,6 +414,16 @@ func (s *ClipService) ListScrapedClips(ctx context.Context, filters repository.C
 		}
 	}
 
+	// Batch fetch watch progress for all clips if user is authenticated
+	var watchProgressMap map[uuid.UUID]*models.ResumePositionResponse
+	if userID != nil && len(clips) > 0 {
+		clipIDs := make([]uuid.UUID, len(clips))
+		for i, clip := range clips {
+			clipIDs[i] = clip.ID
+		}
+		watchProgressMap, _ = s.watchHistoryRepo.GetResumePositions(ctx, *userID, clipIDs)
+	}
+
 	// Enrich with user data (scraped clips won't have submitters)
 	clipsWithData := make([]ClipWithUserData, len(clips))
 	for i, clip := range clips {
@@ -370,6 +448,23 @@ func (s *ClipService) ListScrapedClips(ctx context.Context, filters repository.C
 			isFavorited, err := s.favoriteRepo.IsFavorited(ctx, *userID, clip.ID)
 			if err == nil {
 				clipsWithData[i].IsFavorited = isFavorited
+			}
+
+			// Add watch progress if available
+			if watchProgress, ok := watchProgressMap[clip.ID]; ok && watchProgress.HasProgress {
+				var progressPercent float64
+				durationSeconds := 0
+				if clip.Duration != nil && *clip.Duration > 0 {
+					durationSeconds = int(*clip.Duration)
+					progressPercent = (float64(watchProgress.ProgressSeconds) / float64(durationSeconds)) * 100
+				}
+				clipsWithData[i].Clip.WatchProgress = &models.WatchProgressInfo{
+					ProgressSeconds: watchProgress.ProgressSeconds,
+					DurationSeconds: durationSeconds,
+					ProgressPercent: progressPercent,
+					Completed:       watchProgress.Completed,
+					WatchedAt:       "", // Not fetched for performance
+				}
 			}
 		}
 	}
