@@ -16,6 +16,8 @@ Code examples and sample scripts for integrating with Clipper APIs.
 
 ## Available Examples
 
+- [[README|Examples Overview]] - Introduction to code examples
+
 ```dataview
 TABLE title, summary, status, last_reviewed
 FROM "docs/examples"

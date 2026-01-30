@@ -16,6 +16,7 @@ Legal, regulatory, and compliance documentation for Clipper including GDPR, data
 
 ## Quick Links
 
+- [[README|Compliance Overview]] - Introduction to compliance requirements
 - [[data-retention|Data Retention Policy]] - User data storage and deletion policies
 - [[gdpr-compliance|GDPR Compliance]] - European data protection compliance
 - [[guardrails|Content Guardrails]] - Content moderation and safety policies

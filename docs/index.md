@@ -71,6 +71,7 @@ In-depth documentation for major platform features:
 - **[[backend/rbac|RBAC]]** - Role-based access control and permissions
 - **[[backend/security|Security]]** - Security best practices and threat mitigation
 - **[[testing/TESTING|Testing Strategy]]** - Comprehensive testing strategy for Roadmap 5.0 (unit, integration, E2E, load, scheduler, observability)
+- **[[testing-gap-issues|Testing Gap Issues]]** - Known testing coverage gaps and tracking
 
 #### Frontend (React + TypeScript)
 
