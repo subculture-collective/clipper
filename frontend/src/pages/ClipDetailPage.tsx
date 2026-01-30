@@ -29,7 +29,6 @@ export function ClipDetailPage() {
     const toast = useToast();
     const { share } = useShare();
     const [showShareMenu, setShowShareMenu] = useState(false);
-    const [showTheatreMode, setShowTheatreMode] = useState(false);
     const isVoting = voteMutation.isPending;
     const isBanned = user?.is_banned;
     const banReason = user?.ban_reason;
@@ -316,21 +315,8 @@ export function ClipDetailPage() {
                     </div>
 
                     <div className='mb-4 xs:mb-6'>
-                        {/* Theatre mode toggle button for HLS clips */}
-                        {clip.video_url && !showTheatreMode && (
-                            <div className='mb-2 flex justify-end'>
-                                <button
-                                    onClick={() => setShowTheatreMode(true)}
-                                    className='px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-md transition-colors text-sm font-medium'
-                                    aria-label='Enter theatre mode'
-                                >
-                                    🎭 Theatre Mode
-                                </button>
-                            </div>
-                        )}
-                        
-                        {/* Render TheatreMode for HLS clips when enabled, otherwise use VideoPlayer */}
-                        {clip.video_url && showTheatreMode ? (
+                        {/* Render TheatreMode for HLS clips, otherwise use VideoPlayer */}
+                        {clip.video_url ? (
                             <TheatreMode
                                 title={clip.title}
                                 hlsUrl={clip.video_url}
