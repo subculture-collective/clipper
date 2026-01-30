@@ -148,7 +148,7 @@ export function TheatreMode({
       setShowResumePrompt(false);
       setHasAppliedResume(true);
     }
-  }, [videoRef, resumePosition]);
+  }, [resumePosition]);
 
   const handleDismissResume = useCallback(() => {
     setShowResumePrompt(false);
@@ -166,11 +166,9 @@ export function TheatreMode({
 
     video.addEventListener('timeupdate', handleTimeUpdate);
     return () => {
-      // Use the same video element captured at effect setup time
       video.removeEventListener('timeupdate', handleTimeUpdate);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hlsUrl]); // Re-run when video source changes. videoRef is intentionally not a dependency.
+  }, [videoRef]);
 
   // Pause tracking
   useEffect(() => {
@@ -183,11 +181,9 @@ export function TheatreMode({
 
     video.addEventListener('pause', handlePauseEvent);
     return () => {
-      // Use the same video element captured at effect setup time
       video.removeEventListener('pause', handlePauseEvent);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hlsUrl]); // Re-run when video source changes. videoRef is intentionally not a dependency.
+  }, [videoRef]);
 
   // End tracking
   useEffect(() => {
@@ -200,11 +196,9 @@ export function TheatreMode({
 
     video.addEventListener('ended', handleEndedEvent);
     return () => {
-      // Use the same video element captured at effect setup time
       video.removeEventListener('ended', handleEndedEvent);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hlsUrl]); // Re-run when video source changes. videoRef is intentionally not a dependency.
+  }, [videoRef]);
 
   // Show/hide controls on mouse movement
   useEffect(() => {
@@ -317,9 +311,19 @@ export function TheatreMode({
 
       {/* Resume Prompt */}
       {showResumePrompt && (
-        <div className="absolute inset-0 flex items-center justify-center z-40 pointer-events-none">
+        <div 
+          className="absolute inset-0 flex items-center justify-center z-40 pointer-events-none"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="resume-playback-title"
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              handleDismissResume();
+            }
+          }}
+        >
           <div className="bg-black/90 backdrop-blur-sm rounded-lg p-6 max-w-md mx-4 pointer-events-auto">
-            <h3 className="text-white text-lg font-semibold mb-2">
+            <h3 id="resume-playback-title" className="text-white text-lg font-semibold mb-2">
               Resume Playback?
             </h3>
             <p className="text-white/80 text-sm mb-4">
