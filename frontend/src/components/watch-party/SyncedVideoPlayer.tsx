@@ -1,31 +1,36 @@
-import { useQuery } from '@tanstack/react-query';
-import { fetchClipById } from '@/lib/clip-api';
+import { useClipById } from '@/hooks/useClips';
 import { VideoPlayer } from '@/components/video';
 
 export interface SyncedVideoPlayerProps {
   clipId: string | undefined;
-  currentPosition: number;
-  isPlaying: boolean;
+  /**
+   * Reserved for future synchronized playback support.
+   * Currently unused because the Twitch embed cannot be controlled programmatically.
+   */
+  currentPosition?: number;
+  /**
+   * Reserved for future synchronized playback support.
+   * Currently unused because the Twitch embed cannot be controlled programmatically.
+   */
+  isPlaying?: boolean;
   className?: string;
 }
 
 /**
- * Video player component for watch parties with synchronized playback
- * Fetches clip data and displays video player that responds to sync events
- * 
- * Note: Currently uses Twitch iframe embed which doesn't support programmatic sync.
- * Future enhancement: Implement HLS player with custom controls for full sync support.
+ * Video player component for watch parties.
+ * Fetches clip data and displays a Twitch-embedded video player.
+ *
+ * Note: The Twitch iframe embed handles its own playback and does not currently
+ * support programmatic synchronization. The `currentPosition` and `isPlaying`
+ * props are accepted for forward compatibility but are not yet used.
+ * Future enhancement: Implement an HLS player with custom controls for full sync support.
  */
 export function SyncedVideoPlayer({
   clipId,
   className = '',
 }: SyncedVideoPlayerProps) {
-  // Fetch clip data when clipId is available
-  const { data: clip, isLoading, error } = useQuery({
-    queryKey: ['clip', clipId],
-    queryFn: () => fetchClipById(clipId!),
-    enabled: !!clipId,
-  });
+  // Fetch clip data when clipId is available using the standard hook
+  const { data: clip, isLoading, error } = useClipById(clipId || '');
 
   // No clip selected state
   if (!clipId) {

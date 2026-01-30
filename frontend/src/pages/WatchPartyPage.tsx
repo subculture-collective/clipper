@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container, ScrollToTop, SEO } from '../components';
 import { MiniFooter } from '../components/layout';
-import { ChatPanel, ReactionOverlay, SyncedVideoPlayer } from '../components/watch-party';
+import { ChatPanel, FloatingReactions, SyncedVideoPlayer } from '../components/watch-party';
 import { useWatchPartyWebSocket } from '../hooks/useWatchPartyWebSocket';
 import { getWatchParty, getWatchPartyParticipants, leaveWatchParty, endWatchParty, kickParticipant } from '../lib/watch-party-api';
 import { useAuth } from '../hooks/useAuth';
@@ -291,7 +291,7 @@ export function WatchPartyPage() {
                 />
 
                 {/* Reaction overlay */}
-                <ReactionOverlay reactions={reactions} />
+                <FloatingReactions reactions={reactions} />
               </div>
 
               {/* Reaction buttons */}
