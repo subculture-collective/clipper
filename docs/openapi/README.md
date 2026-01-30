@@ -138,11 +138,8 @@ OpenAPI Generator supports 50+ languages and frameworks. See the [full list of g
 Validate the OpenAPI specification using:
 
 ```bash
-# Using Redocly CLI
+# Using Redocly CLI (recommended)
 npx @redocly/cli lint docs/openapi/openapi.yaml
-
-# Using Swagger CLI
-npx swagger-cli validate docs/openapi/openapi.yaml
 
 # Using Python
 python3 -c "import yaml; yaml.safe_load(open('docs/openapi/openapi.yaml'))"

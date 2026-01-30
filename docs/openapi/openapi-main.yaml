@@ -360,9 +360,10 @@ components:
           type: boolean
           description: NSFW flag
         user_vote:
-          type: integer
-          nullable: true
-          enum: [1, -1, null]
+          anyOf:
+            - type: integer
+              enum: [1, -1]
+            - type: "null"
           description: Current user's vote (1=upvote, -1=downvote, null=no vote)
         is_favorited:
           type: boolean
@@ -419,9 +420,8 @@ components:
           type: string
           format: uuid
         parent_comment_id:
-          type: string
+          type: [string, "null"]
           format: uuid
-          nullable: true
         content:
           type: string
         vote_score:

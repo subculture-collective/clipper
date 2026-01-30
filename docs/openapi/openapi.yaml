@@ -2760,690 +2760,7 @@ paths:
   # Additional endpoint details can be auto-generated or documented incrementally.
 
 # ========================================
-# Component Schemas
-# ========================================
-components:
-  securitySchemes:
-    BearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: JWT token obtained from authentication endpoints
 
-  parameters:
-    Page:
-      name: page
-      in: query
-      schema:
-        type: integer
-        minimum: 1
-        default: 1
-      description: Page number for pagination
-    
-    Limit:
-      name: limit
-      in: query
-      schema:
-        type: integer
-        minimum: 1
-        maximum: 100
-        default: 20
-      description: Number of items per page
-    
-    IdPath:
-      name: id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-      description: Resource ID
-    
-    ClipId:
-      name: id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-      description: Clip ID
-    
-    TagSlug:
-      name: slug
-      in: path
-      required: true
-      schema:
-        type: string
-      description: Tag slug
-
-  responses:
-    BadRequest:
-      description: Bad Request - Invalid input parameters
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    
-    Unauthorized:
-      description: Unauthorized - Authentication required
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    
-    Forbidden:
-      description: Forbidden - Insufficient permissions
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    
-    NotFound:
-      description: Not Found - Resource does not exist
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    
-    TooManyRequests:
-      description: Too Many Requests - Rate limit exceeded
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    
-    ServiceUnavailable:
-      description: Service Unavailable - Service is temporarily unavailable
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-
-  schemas:
-    Error:
-      type: object
-      required:
-        - error
-      properties:
-        error:
-          type: string
-          description: Error message
-        code:
-          type: string
-          description: Error code
-        details:
-          type: object
-          description: Additional error details
-
-    Pagination:
-      type: object
-      properties:
-        page:
-          type: integer
-          example: 1
-        limit:
-          type: integer
-          example: 20
-        total:
-          type: integer
-          example: 100
-        total_pages:
-          type: integer
-          example: 5
-        has_next:
-          type: boolean
-        has_prev:
-          type: boolean
-
-    AuthResponse:
-      type: object
-      required:
-        - access_token
-        - refresh_token
-        - expires_in
-        - user
-      properties:
-        access_token:
-          type: string
-          description: JWT access token
-        refresh_token:
-          type: string
-          description: Refresh token for obtaining new access tokens
-        expires_in:
-          type: integer
-          description: Access token expiration time in seconds
-        token_type:
-          type: string
-          example: Bearer
-        user:
-          $ref: '#/components/schemas/User'
-
-    User:
-      type: object
-      required:
-        - id
-        - username
-        - display_name
-        - karma_points
-        - role
-        - account_type
-        - created_at
-      properties:
-        id:
-          type: string
-          format: uuid
-        twitch_id:
-          type: string
-          nullable: true
-        username:
-          type: string
-        display_name:
-          type: string
-        email:
-          type: string
-          format: email
-          nullable: true
-        avatar_url:
-          type: string
-          format: uri
-          nullable: true
-        bio:
-          type: string
-          nullable: true
-        social_links:
-          type: object
-          nullable: true
-        karma_points:
-          type: integer
-        trust_score:
-          type: integer
-        role:
-          type: string
-          enum: [user, moderator, admin]
-        account_type:
-          type: string
-          enum: [viewer, creator, broadcaster]
-        account_status:
-          type: string
-          enum: [active, unclaimed, pending]
-        is_banned:
-          type: boolean
-        follower_count:
-          type: integer
-        following_count:
-          type: integer
-        is_verified:
-          type: boolean
-        verified_at:
-          type: string
-          format: date-time
-          nullable: true
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        last_login_at:
-          type: string
-          format: date-time
-          nullable: true
-
-    Clip:
-      type: object
-      required:
-        - id
-        - twitch_clip_id
-        - twitch_clip_url
-        - title
-        - creator_name
-        - broadcaster_name
-        - view_count
-        - vote_score
-        - created_at
-      properties:
-        id:
-          type: string
-          format: uuid
-        twitch_clip_id:
-          type: string
-        twitch_clip_url:
-          type: string
-          format: uri
-        embed_url:
-          type: string
-          format: uri
-        title:
-          type: string
-        creator_name:
-          type: string
-        creator_id:
-          type: string
-          nullable: true
-        broadcaster_name:
-          type: string
-        broadcaster_id:
-          type: string
-          nullable: true
-        game_id:
-          type: string
-          nullable: true
-        game_name:
-          type: string
-          nullable: true
-        language:
-          type: string
-          nullable: true
-        thumbnail_url:
-          type: string
-          format: uri
-          nullable: true
-        duration:
-          type: number
-          format: float
-          nullable: true
-        view_count:
-          type: integer
-        vote_score:
-          type: integer
-        comment_count:
-          type: integer
-        favorite_count:
-          type: integer
-        is_featured:
-          type: boolean
-        is_nsfw:
-          type: boolean
-        is_removed:
-          type: boolean
-        is_hidden:
-          type: boolean
-        trending_score:
-          type: number
-          format: float
-        hot_score:
-          type: number
-          format: float
-        created_at:
-          type: string
-          format: date-time
-        imported_at:
-          type: string
-          format: date-time
-
-    ClipDetailed:
-      allOf:
-        - $ref: '#/components/schemas/Clip'
-        - type: object
-          properties:
-            tags:
-              type: array
-              items:
-                $ref: '#/components/schemas/Tag'
-            user_vote:
-              type: integer
-              enum: [1, -1]
-              nullable: true
-              description: Current user's vote (1=upvote, -1=downvote, null=no vote)
-            is_favorited:
-              type: boolean
-              description: Whether current user has favorited this clip
-
-    Comment:
-      type: object
-      required:
-        - id
-        - clip_id
-        - user_id
-        - content
-        - vote_score
-        - created_at
-      properties:
-        id:
-          type: string
-          format: uuid
-        clip_id:
-          type: string
-          format: uuid
-        user_id:
-          type: string
-          format: uuid
-        parent_comment_id:
-          type: string
-          format: uuid
-          nullable: true
-        content:
-          type: string
-        vote_score:
-          type: integer
-        reply_count:
-          type: integer
-        is_edited:
-          type: boolean
-        is_removed:
-          type: boolean
-        removed_reason:
-          type: string
-          nullable: true
-        user:
-          $ref: '#/components/schemas/User'
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-
-    Tag:
-      type: object
-      required:
-        - id
-        - name
-        - slug
-        - usage_count
-      properties:
-        id:
-          type: string
-          format: uuid
-        name:
-          type: string
-        slug:
-          type: string
-        description:
-          type: string
-          nullable: true
-        usage_count:
-          type: integer
-        created_at:
-          type: string
-          format: date-time
-
-    Submission:
-      type: object
-      required:
-        - id
-        - user_id
-        - clip_url
-        - status
-        - submitted_at
-      properties:
-        id:
-          type: string
-          format: uuid
-        user_id:
-          type: string
-          format: uuid
-        clip_id:
-          type: string
-          format: uuid
-          nullable: true
-        clip_url:
-          type: string
-          format: uri
-        title:
-          type: string
-          nullable: true
-        status:
-          type: string
-          enum: [pending, approved, rejected]
-        rejection_reason:
-          type: string
-          nullable: true
-        submitted_at:
-          type: string
-          format: date-time
-        reviewed_at:
-          type: string
-          format: date-time
-          nullable: true
-        reviewer_id:
-          type: string
-          format: uuid
-          nullable: true
-
-    Report:
-      type: object
-      required:
-        - id
-        - reporter_id
-        - content_type
-        - content_id
-        - reason
-        - status
-        - created_at
-      properties:
-        id:
-          type: string
-          format: uuid
-        reporter_id:
-          type: string
-          format: uuid
-        content_type:
-          type: string
-          enum: [clip, comment, user]
-        content_id:
-          type: string
-          format: uuid
-        reason:
-          type: string
-          enum: [spam, harassment, inappropriate, copyright, other]
-        description:
-          type: string
-          nullable: true
-        status:
-          type: string
-          enum: [pending, reviewing, resolved, dismissed]
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-
-    Appeal:
-      type: object
-      required:
-        - id
-        - user_id
-        - reason
-        - status
-        - created_at
-      properties:
-        id:
-          type: string
-          format: uuid
-        user_id:
-          type: string
-          format: uuid
-        reason:
-          type: string
-        status:
-          type: string
-          enum: [pending, approved, rejected]
-        response:
-          type: string
-          nullable: true
-        created_at:
-          type: string
-          format: date-time
-        resolved_at:
-          type: string
-          format: date-time
-          nullable: true
-
-    Ban:
-      type: object
-      required:
-        - id
-        - user_id
-        - reason
-        - created_at
-      properties:
-        id:
-          type: string
-          format: uuid
-        user_id:
-          type: string
-          format: uuid
-        banned_by_id:
-          type: string
-          format: uuid
-        reason:
-          type: string
-        duration_hours:
-          type: integer
-          nullable: true
-        expires_at:
-          type: string
-          format: date-time
-          nullable: true
-        is_permanent:
-          type: boolean
-        created_at:
-          type: string
-          format: date-time
-
-    Moderator:
-      type: object
-      required:
-        - id
-        - user_id
-        - permissions
-        - created_at
-      properties:
-        id:
-          type: string
-          format: uuid
-        user_id:
-          type: string
-          format: uuid
-        user:
-          $ref: '#/components/schemas/User'
-        permissions:
-          type: array
-          items:
-            type: string
-        scope:
-          type: string
-        channels:
-          type: array
-          items:
-            type: string
-            format: uuid
-        created_at:
-          type: string
-          format: date-time
-
-    AuditLog:
-      type: object
-      required:
-        - id
-        - user_id
-        - action
-        - resource_type
-        - timestamp
-      properties:
-        id:
-          type: string
-          format: uuid
-        user_id:
-          type: string
-          format: uuid
-        action:
-          type: string
-        resource_type:
-          type: string
-        resource_id:
-          type: string
-          format: uuid
-          nullable: true
-        details:
-          type: object
-        ip_address:
-          type: string
-          nullable: true
-        user_agent:
-          type: string
-          nullable: true
-        timestamp:
-          type: string
-          format: date-time
-
-    BanReasonTemplate:
-      type: object
-      required:
-        - id
-        - name
-        - reason
-        - created_at
-      properties:
-        id:
-          type: string
-          format: uuid
-        name:
-          type: string
-        reason:
-          type: string
-        duration_hours:
-          type: integer
-          nullable: true
-        usage_count:
-          type: integer
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-
-    TrustedDevice:
-      type: object
-      required:
-        - id
-        - device_name
-        - device_fingerprint
-        - created_at
-      properties:
-        id:
-          type: string
-          format: uuid
-        device_name:
-          type: string
-        device_fingerprint:
-          type: string
-        last_used_at:
-          type: string
-          format: date-time
-        created_at:
-          type: string
-          format: date-time
-
-    ClipAnalytics:
-      type: object
-      properties:
-        clip_id:
-          type: string
-          format: uuid
-        views:
-          type: integer
-        unique_viewers:
-          type: integer
-        average_watch_time:
-          type: number
-        completion_rate:
-          type: number
-        shares:
-          type: integer
-        favorites:
-          type: integer
-        comments:
-          type: integer
-        engagement_rate:
-          type: number
-
-  # ========================================
-  # Users - Profile & Social
-  # ========================================
   /api/v1/users/by-username/{username}:
     get:
       tags: [Users]
@@ -4225,6 +3542,661 @@ components:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+
+# Component Schemas
+# ========================================
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from authentication endpoints
+
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      description: Page number for pagination
+    
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      description: Number of items per page
+    
+    IdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Resource ID
+    
+    ClipId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Clip ID
+    
+    TagSlug:
+      name: slug
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Tag slug
+
+  responses:
+    BadRequest:
+      description: Bad Request - Invalid input parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    Unauthorized:
+      description: Unauthorized - Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    Forbidden:
+      description: Forbidden - Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    NotFound:
+      description: Not Found - Resource does not exist
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    TooManyRequests:
+      description: Too Many Requests - Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    ServiceUnavailable:
+      description: Service Unavailable - Service is temporarily unavailable
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        details:
+          type: object
+          description: Additional error details
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 100
+        total_pages:
+          type: integer
+          example: 5
+        has_next:
+          type: boolean
+        has_prev:
+          type: boolean
+
+    AuthResponse:
+      type: object
+      required:
+        - access_token
+        - refresh_token
+        - expires_in
+        - user
+      properties:
+        access_token:
+          type: string
+          description: JWT access token
+        refresh_token:
+          type: string
+          description: Refresh token for obtaining new access tokens
+        expires_in:
+          type: integer
+          description: Access token expiration time in seconds
+        token_type:
+          type: string
+          example: Bearer
+        user:
+          $ref: '#/components/schemas/User'
+
+    User:
+      type: object
+      required:
+        - id
+        - username
+        - display_name
+        - karma_points
+        - role
+        - account_type
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        twitch_id:
+          type: [string, "null"]
+        username:
+          type: string
+        display_name:
+          type: string
+        email:
+          type: [string, "null"]
+          format: email
+        avatar_url:
+          type: [string, "null"]
+          format: uri
+        bio:
+          type: [string, "null"]
+        social_links:
+          type: [object, "null"]
+        karma_points:
+          type: integer
+        trust_score:
+          type: integer
+        role:
+          type: string
+          enum: [user, moderator, admin]
+        account_type:
+          type: string
+          enum: [viewer, creator, broadcaster]
+        account_status:
+          type: string
+          enum: [active, unclaimed, pending]
+        is_banned:
+          type: boolean
+        follower_count:
+          type: integer
+        following_count:
+          type: integer
+        is_verified:
+          type: boolean
+        verified_at:
+          type: [string, "null"]
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        last_login_at:
+          type: [string, "null"]
+          format: date-time
+
+    Clip:
+      type: object
+      required:
+        - id
+        - twitch_clip_id
+        - twitch_clip_url
+        - title
+        - creator_name
+        - broadcaster_name
+        - view_count
+        - vote_score
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        twitch_clip_id:
+          type: string
+        twitch_clip_url:
+          type: string
+          format: uri
+        embed_url:
+          type: string
+          format: uri
+        title:
+          type: string
+        creator_name:
+          type: string
+        creator_id:
+          type: [string, "null"]
+        broadcaster_name:
+          type: string
+        broadcaster_id:
+          type: [string, "null"]
+        game_id:
+          type: [string, "null"]
+        game_name:
+          type: [string, "null"]
+        language:
+          type: [string, "null"]
+        thumbnail_url:
+          type: [string, "null"]
+          format: uri
+        duration:
+          type: [number, "null"]
+          format: float
+        view_count:
+          type: integer
+        vote_score:
+          type: integer
+        comment_count:
+          type: integer
+        favorite_count:
+          type: integer
+        is_featured:
+          type: boolean
+        is_nsfw:
+          type: boolean
+        is_removed:
+          type: boolean
+        is_hidden:
+          type: boolean
+        trending_score:
+          type: number
+          format: float
+        hot_score:
+          type: number
+          format: float
+        created_at:
+          type: string
+          format: date-time
+        imported_at:
+          type: string
+          format: date-time
+
+    ClipDetailed:
+      allOf:
+        - $ref: '#/components/schemas/Clip'
+        - type: object
+          properties:
+            tags:
+              type: array
+              items:
+                $ref: '#/components/schemas/Tag'
+            user_vote:
+              anyOf:
+                - type: integer
+                  enum: [1, -1]
+                - type: "null"
+              description: Current user's vote (1=upvote, -1=downvote, null=no vote)
+            is_favorited:
+              type: boolean
+              description: Whether current user has favorited this clip
+
+    Comment:
+      type: object
+      required:
+        - id
+        - clip_id
+        - user_id
+        - content
+        - vote_score
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        clip_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        parent_comment_id:
+          type: [string, "null"]
+          format: uuid
+        content:
+          type: string
+        vote_score:
+          type: integer
+        reply_count:
+          type: integer
+        is_edited:
+          type: boolean
+        is_removed:
+          type: boolean
+        removed_reason:
+          type: [string, "null"]
+        user:
+          $ref: '#/components/schemas/User'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Tag:
+      type: object
+      required:
+        - id
+        - name
+        - slug
+        - usage_count
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: [string, "null"]
+        usage_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    Submission:
+      type: object
+      required:
+        - id
+        - user_id
+        - clip_url
+        - status
+        - submitted_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        clip_id:
+          type: [string, "null"]
+          format: uuid
+        clip_url:
+          type: string
+          format: uri
+        title:
+          type: [string, "null"]
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        rejection_reason:
+          type: [string, "null"]
+        submitted_at:
+          type: string
+          format: date-time
+        reviewed_at:
+          type: [string, "null"]
+          format: date-time
+        reviewer_id:
+          type: [string, "null"]
+          format: uuid
+
+    Report:
+      type: object
+      required:
+        - id
+        - reporter_id
+        - content_type
+        - content_id
+        - reason
+        - status
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        reporter_id:
+          type: string
+          format: uuid
+        content_type:
+          type: string
+          enum: [clip, comment, user]
+        content_id:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          enum: [spam, harassment, inappropriate, copyright, other]
+        description:
+          type: [string, "null"]
+        status:
+          type: string
+          enum: [pending, reviewing, resolved, dismissed]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Appeal:
+      type: object
+      required:
+        - id
+        - user_id
+        - reason
+        - status
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        reason:
+          type: string
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        response:
+          type: [string, "null"]
+        created_at:
+          type: string
+          format: date-time
+        resolved_at:
+          type: [string, "null"]
+          format: date-time
+
+    Ban:
+      type: object
+      required:
+        - id
+        - user_id
+        - reason
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        banned_by_id:
+          type: string
+          format: uuid
+        reason:
+          type: string
+        duration_hours:
+          type: [integer, "null"]
+        expires_at:
+          type: [string, "null"]
+          format: date-time
+        is_permanent:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    Moderator:
+      type: object
+      required:
+        - id
+        - user_id
+        - permissions
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        user:
+          $ref: '#/components/schemas/User'
+        permissions:
+          type: array
+          items:
+            type: string
+        scope:
+          type: string
+        channels:
+          type: array
+          items:
+            type: string
+            format: uuid
+        created_at:
+          type: string
+          format: date-time
+
+    AuditLog:
+      type: object
+      required:
+        - id
+        - user_id
+        - action
+        - resource_type
+        - timestamp
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        action:
+          type: string
+        resource_type:
+          type: string
+        resource_id:
+          type: [string, "null"]
+          format: uuid
+        details:
+          type: object
+        ip_address:
+          type: [string, "null"]
+        user_agent:
+          type: [string, "null"]
+        timestamp:
+          type: string
+          format: date-time
+
+    BanReasonTemplate:
+      type: object
+      required:
+        - id
+        - name
+        - reason
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        reason:
+          type: string
+        duration_hours:
+          type: [integer, "null"]
+        usage_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    TrustedDevice:
+      type: object
+      required:
+        - id
+        - device_name
+        - device_fingerprint
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        device_name:
+          type: string
+        device_fingerprint:
+          type: string
+        last_used_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+
+    ClipAnalytics:
+      type: object
+      properties:
+        clip_id:
+          type: string
+          format: uuid
+        views:
+          type: integer
+        unique_viewers:
+          type: integer
+        average_watch_time:
+          type: number
+        completion_rate:
+          type: number
+        shares:
+          type: integer
+        favorites:
+          type: integer
+        comments:
+          type: integer
+        engagement_rate:
+          type: number
+
+  # ========================================
+  # Users - Profile & Social
+  # ========================================
   # ========================================
   # COMPREHENSIVE API STRUCTURE SUMMARY
   # ========================================
