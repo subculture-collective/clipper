@@ -1,0 +1,9713 @@
+---
+title: "API Reference"
+summary: "Complete API reference for Clipper platform"
+tags: ["api", "reference", "openapi"]
+area: "openapi"
+status: "stable"
+version: "1.0.0"
+generated: 2026-01-30T03:01:39.309Z
+---
+
+# Clipper API
+
+Complete API documentation for the Clipper platform - a social platform for Twitch clip curation and sharing.
+
+## Authentication
+Most endpoints require authentication via JWT Bearer token:
+```
+Authorization: Bearer <your_jwt_token>
+```
+
+## Rate Limiting
+API endpoints are rate-limited to prevent abuse. Rate limits vary by endpoint and are documented in each operation.
+Common limits:
+- Public endpoints: 60-100 requests/minute
+- Authenticated actions: 10-30 requests/minute
+- Submission operations: 5-10 requests/hour
+
+## Pagination
+List endpoints support pagination via `page` and `limit` query parameters.
+Default limit is 20, maximum is 100.
+
+## Errors
+The API uses standard HTTP status codes:
+- 200: Success
+- 201: Created
+- 400: Bad Request
+- 401: Unauthorized
+- 403: Forbidden
+- 404: Not Found
+- 429: Too Many Requests
+- 500: Internal Server Error
+
+
+**Version:** 1.0.0
+
+## Base URLs
+
+- **Local development server:** `http://localhost:8080`
+- **Staging environment:** `https://staging.clpr.tv`
+- **Production API server:** `https://api.clpr.tv`
+
+## Table of Contents
+
+- [Health](#health)
+- [Authentication](#authentication)
+- [MFA](#mfa)
+- [Clips](#clips)
+- [Comments](#comments)
+- [Tags](#tags)
+- [Search](#search)
+- [Submissions](#submissions)
+- [Reports](#reports)
+- [Moderation](#moderation)
+- [Users](#users)
+- [Creators](#creators)
+- [Broadcasters](#broadcasters)
+- [Categories](#categories)
+- [Streams](#streams)
+- [Games](#games)
+- [Discovery](#discovery)
+- [Leaderboards](#leaderboards)
+- [Feeds](#feeds)
+- [Recommendations](#recommendations)
+- [Notifications](#notifications)
+- [Verification](#verification)
+- [Subscriptions](#subscriptions)
+- [Webhooks](#webhooks)
+- [Contact](#contact)
+- [Chat](#chat)
+- [Ads](#ads)
+- [Documentation](#documentation)
+- [Communities](#communities)
+- [Playlists](#playlists)
+- [Forum](#forum)
+- [Queue](#queue)
+- [Watch History](#watch-history)
+- [Watch Parties](#watch-parties)
+- [Service Status](#service-status)
+- [Admin](#admin)
+
+## Health
+
+Health check and monitoring endpoints
+
+### Get sitemap XML
+
+`GET /sitemap.xml`
+
+Returns sitemap for search engine crawlers
+
+**Tags:** Health
+
+#### Responses
+
+**200** - Sitemap XML
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/sitemap.xml"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/sitemap.xml', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/sitemap.xml'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/sitemap.xml", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get robots.txt
+
+`GET /robots.txt`
+
+Returns robots.txt for search engine crawlers
+
+**Tags:** Health
+
+#### Responses
+
+**200** - robots.txt content
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/robots.txt"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/robots.txt', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/robots.txt'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/robots.txt", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Readiness check
+
+`GET /health/ready`
+
+Returns 200 if all services are ready (database, redis, etc.)
+
+**Tags:** Health
+
+#### Responses
+
+**200** - Service is ready
+
+**503** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/health/ready"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/health/ready', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/health/ready'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/health/ready", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Liveness check
+
+`GET /health/live`
+
+Returns 200 if service is alive
+
+**Tags:** Health
+
+#### Responses
+
+**200** - Service is alive
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/health/live"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/health/live', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/health/live'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/health/live", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Health statistics
+
+`GET /health/stats`
+
+Returns database connection stats and other health metrics
+
+**Tags:** Health
+
+#### Responses
+
+**200** - Health statistics
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/health/stats"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/health/stats', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/health/stats'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/health/stats", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Cache statistics
+
+`GET /health/cache`
+
+Returns Redis cache statistics
+
+**Tags:** Health
+
+#### Responses
+
+**200** - Cache statistics
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/health/cache"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/health/cache', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/health/cache'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/health/cache", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Cache health check
+
+`GET /health/cache/check`
+
+Verifies Redis cache connectivity
+
+**Tags:** Health
+
+#### Responses
+
+**200** - Cache is healthy
+
+**503** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/health/cache/check"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/health/cache/check', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/health/cache/check'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/health/cache/check", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Webhook retry statistics
+
+`GET /health/webhooks`
+
+Returns webhook delivery retry statistics
+
+**Tags:** Health
+
+#### Responses
+
+**200** - Webhook statistics
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/health/webhooks"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/health/webhooks', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/health/webhooks'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/health/webhooks", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Prometheus metrics
+
+`GET /debug/metrics`
+
+Returns Prometheus metrics (debug mode only)
+
+**Tags:** Health
+
+#### Responses
+
+**200** - Prometheus metrics
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/debug/metrics"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/debug/metrics', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/debug/metrics'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/debug/metrics", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### API health check
+
+`GET /api/v1/health`
+
+Basic health check for v1 API
+
+**Tags:** Health
+
+#### Responses
+
+**200** - API is healthy
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/health"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/health', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/health'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/health", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Ping endpoint
+
+`GET /api/v1/ping`
+
+Simple ping to check API responsiveness
+
+**Tags:** Health
+
+#### Responses
+
+**200** - Pong response
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/ping"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/ping', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/ping'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/ping", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get public configuration
+
+`GET /api/v1/config`
+
+Returns public configuration values (features, limits, etc.)
+
+**Tags:** Health
+
+#### Responses
+
+**200** - Public configuration
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/config"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/config', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/config'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/config", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Submit application logs
+
+`POST /api/v1/logs`
+
+Submit client-side application logs (rate limited - 60/minute)
+
+**Tags:** Health
+
+#### Request Body
+
+Content-Type: `application/json`
+
+#### Responses
+
+**201** - Log submitted successfully
+
+**400** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/logs" \
+  -H "Content-Type: application/json" \
+  -d '{"example": "data"}'
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/logs', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your request data
+  })
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.post(
+    '/api/v1/logs',
+    json={}  # Your request data
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("POST", "/api/v1/logs", nil)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get log statistics
+
+`GET /api/v1/logs/stats`
+
+Returns aggregated log statistics (rate limited - 30/minute)
+
+**Tags:** Health
+
+#### Responses
+
+**200** - Log statistics
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/logs/stats"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/logs/stats', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/logs/stats'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/logs/stats", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+## Authentication
+
+User authentication and OAuth
+
+### Initiate Twitch OAuth
+
+`GET /api/v1/auth/twitch`
+
+Redirects to Twitch OAuth authorization (rate limited - 30/minute)
+
+**Tags:** Authentication
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+| redirect_uri | query | string |  |  |
+
+#### Responses
+
+**302** - Redirect to Twitch OAuth
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/auth/twitch"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/auth/twitch', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/auth/twitch'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/auth/twitch", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Twitch OAuth callback
+
+`GET /api/v1/auth/twitch/callback`
+
+Handles OAuth callback from Twitch (rate limited - 50/minute)
+
+**Tags:** Authentication
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+| code | query | string | ✓ |  |
+| state | query | string | ✓ |  |
+
+#### Responses
+
+**200** - Authentication successful
+
+**400** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/auth/twitch/callback"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/auth/twitch/callback', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/auth/twitch/callback'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/auth/twitch/callback", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### PKCE OAuth callback
+
+`POST /api/v1/auth/twitch/callback`
+
+Handles PKCE OAuth callback (rate limited - 50/minute)
+
+**Tags:** Authentication
+
+#### Request Body
+
+Content-Type: `application/json`
+
+#### Responses
+
+**200** - Authentication successful
+
+**400** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/auth/twitch/callback" \
+  -H "Content-Type: application/json" \
+  -d '{"example": "data"}'
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/auth/twitch/callback', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your request data
+  })
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.post(
+    '/api/v1/auth/twitch/callback',
+    json={}  # Your request data
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("POST", "/api/v1/auth/twitch/callback", nil)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Test login (development only)
+
+`POST /api/v1/auth/test-login`
+
+Creates test user session for development (rate limited - 30/minute)
+
+**Tags:** Authentication
+
+#### Request Body
+
+Content-Type: `application/json`
+
+#### Responses
+
+**200** - Test login successful
+
+**400** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/auth/test-login" \
+  -H "Content-Type: application/json" \
+  -d '{"example": "data"}'
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/auth/test-login', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your request data
+  })
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.post(
+    '/api/v1/auth/test-login',
+    json={}  # Your request data
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("POST", "/api/v1/auth/test-login", nil)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Refresh access token
+
+`POST /api/v1/auth/refresh`
+
+Refresh JWT access token using refresh token (rate limited - 50/minute)
+
+**Tags:** Authentication
+
+#### Request Body
+
+Content-Type: `application/json`
+
+#### Responses
+
+**200** - Token refreshed successfully
+
+**400** - Success
+
+**401** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/auth/refresh" \
+  -H "Content-Type: application/json" \
+  -d '{"example": "data"}'
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/auth/refresh', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your request data
+  })
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.post(
+    '/api/v1/auth/refresh',
+    json={}  # Your request data
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("POST", "/api/v1/auth/refresh", nil)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Logout
+
+`POST /api/v1/auth/logout`
+
+Invalidates current session and refresh tokens
+
+**Tags:** Authentication
+
+#### Responses
+
+**200** - Logout successful
+
+**401** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/auth/logout" \
+  -H "Content-Type: application/json"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/auth/logout', {
+  method: 'POST',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.post(
+    '/api/v1/auth/logout'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("POST", "/api/v1/auth/logout", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get current user
+
+`GET /api/v1/auth/me`
+
+Returns currently authenticated user
+
+**Tags:** Authentication
+
+#### Responses
+
+**200** - Current user
+
+**401** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/auth/me"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/auth/me', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/auth/me'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/auth/me", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Reauthorize Twitch
+
+`POST /api/v1/auth/twitch/reauthorize`
+
+Re-initiates Twitch OAuth flow for additional scopes (rate limited - 3/hour)
+
+**Tags:** Authentication
+
+#### Responses
+
+**200** - Reauthorization initiated
+
+**401** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/auth/twitch/reauthorize" \
+  -H "Content-Type: application/json"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/auth/twitch/reauthorize', {
+  method: 'POST',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.post(
+    '/api/v1/auth/twitch/reauthorize'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("POST", "/api/v1/auth/twitch/reauthorize", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+## MFA
+
+Multi-factor authentication
+
+### Start MFA enrollment
+
+`POST /api/v1/auth/mfa/enroll`
+
+Initiates MFA enrollment process (rate limited - 3/hour)
+
+**Tags:** MFA
+
+#### Responses
+
+**200** - MFA enrollment started
+
+**401** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/auth/mfa/enroll" \
+  -H "Content-Type: application/json"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/auth/mfa/enroll', {
+  method: 'POST',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.post(
+    '/api/v1/auth/mfa/enroll'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("POST", "/api/v1/auth/mfa/enroll", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Verify MFA enrollment
+
+`POST /api/v1/auth/mfa/verify-enrollment`
+
+Completes MFA enrollment by verifying TOTP code (rate limited - 10/minute)
+
+**Tags:** MFA
+
+#### Request Body
+
+Content-Type: `application/json`
+
+#### Responses
+
+**200** - MFA enrollment verified
+
+**400** - Success
+
+**401** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/auth/mfa/verify-enrollment" \
+  -H "Content-Type: application/json" \
+  -d '{"example": "data"}'
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/auth/mfa/verify-enrollment', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your request data
+  })
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.post(
+    '/api/v1/auth/mfa/verify-enrollment',
+    json={}  # Your request data
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("POST", "/api/v1/auth/mfa/verify-enrollment", nil)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get MFA status
+
+`GET /api/v1/auth/mfa/status`
+
+Returns MFA enrollment status for current user
+
+**Tags:** MFA
+
+#### Responses
+
+**200** - MFA status
+
+**401** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/auth/mfa/status"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/auth/mfa/status', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/auth/mfa/status'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/auth/mfa/status", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Regenerate backup codes
+
+`POST /api/v1/auth/mfa/regenerate-backup-codes`
+
+Generates new backup codes (rate limited - 5/hour)
+
+**Tags:** MFA
+
+#### Responses
+
+**200** - New backup codes generated
+
+**401** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/auth/mfa/regenerate-backup-codes" \
+  -H "Content-Type: application/json"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/auth/mfa/regenerate-backup-codes', {
+  method: 'POST',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.post(
+    '/api/v1/auth/mfa/regenerate-backup-codes'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("POST", "/api/v1/auth/mfa/regenerate-backup-codes", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Disable MFA
+
+`POST /api/v1/auth/mfa/disable`
+
+Disables MFA for current user (rate limited - 3/hour)
+
+**Tags:** MFA
+
+#### Request Body
+
+Content-Type: `application/json`
+
+#### Responses
+
+**200** - MFA disabled
+
+**400** - Success
+
+**401** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/auth/mfa/disable" \
+  -H "Content-Type: application/json" \
+  -d '{"example": "data"}'
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/auth/mfa/disable', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your request data
+  })
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.post(
+    '/api/v1/auth/mfa/disable',
+    json={}  # Your request data
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("POST", "/api/v1/auth/mfa/disable", nil)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get trusted devices
+
+`GET /api/v1/auth/mfa/trusted-devices`
+
+Returns list of trusted devices for MFA
+
+**Tags:** MFA
+
+#### Responses
+
+**200** - List of trusted devices
+
+**401** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/auth/mfa/trusted-devices"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/auth/mfa/trusted-devices', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/auth/mfa/trusted-devices'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/auth/mfa/trusted-devices", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Revoke trusted device
+
+`DELETE /api/v1/auth/mfa/trusted-devices/{id}`
+
+Removes a device from trusted devices list
+
+**Tags:** MFA
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Responses
+
+**204** - Trusted device revoked
+
+**401** - Success
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X DELETE "http://localhost:8080/api/v1/auth/mfa/trusted-devices/{id}"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/auth/mfa/trusted-devices/{id}', {
+  method: 'DELETE',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.delete(
+    '/api/v1/auth/mfa/trusted-devices/{id}'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("DELETE", "/api/v1/auth/mfa/trusted-devices/{id}", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Verify MFA login
+
+`POST /api/v1/auth/mfa/verify-login`
+
+Verifies MFA code during login (rate limited - 10/minute)
+
+**Tags:** MFA
+
+#### Request Body
+
+Content-Type: `application/json`
+
+#### Responses
+
+**200** - MFA verification successful
+
+**400** - Success
+
+**401** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/auth/mfa/verify-login" \
+  -H "Content-Type: application/json" \
+  -d '{"example": "data"}'
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/auth/mfa/verify-login', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your request data
+  })
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.post(
+    '/api/v1/auth/mfa/verify-login',
+    json={}  # Your request data
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("POST", "/api/v1/auth/mfa/verify-login", nil)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+## Clips
+
+Clip management and discovery
+
+### List clips
+
+`GET /api/v1/clips`
+
+Returns paginated list of clips with filtering and sorting options
+
+**Tags:** Clips
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+|  |  | string |  |  |
+| sort | query | string |  |  |
+| game | query | string |  | Filter by game name |
+| broadcaster | query | string |  | Filter by broadcaster name |
+| tag | query | string |  | Filter by tag slug |
+| language | query | string |  | Filter by language code |
+| time_range | query | string |  | Time range for 'top' sort |
+
+#### Responses
+
+**200** - List of clips
+
+**400** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/clips"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/clips', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/clips'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/clips", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get clip by ID
+
+`GET /api/v1/clips/{id}`
+
+Returns detailed information about a specific clip
+
+**Tags:** Clips
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - Clip details
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/clips/{id}"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/clips/{id}', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/clips/{id}'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/clips/{id}", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Update clip (Admin)
+
+`PUT /api/v1/clips/{id}`
+
+Updates clip metadata (admin/moderator only)
+
+**Tags:** Clips
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Request Body
+
+Content-Type: `application/json`
+
+#### Responses
+
+**200** - Clip updated
+
+**400** - Success
+
+**401** - Success
+
+**403** - Success
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X PUT "http://localhost:8080/api/v1/clips/{id}" \
+  -H "Content-Type: application/json" \
+  -d '{"example": "data"}'
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/clips/{id}', {
+  method: 'PUT',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your request data
+  })
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.put(
+    '/api/v1/clips/{id}',
+    json={}  # Your request data
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("PUT", "/api/v1/clips/{id}", nil)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Delete clip (Admin)
+
+`DELETE /api/v1/clips/{id}`
+
+Permanently deletes a clip (admin only)
+
+**Tags:** Clips
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Responses
+
+**204** - Clip deleted
+
+**401** - Success
+
+**403** - Success
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X DELETE "http://localhost:8080/api/v1/clips/{id}"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/clips/{id}', {
+  method: 'DELETE',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.delete(
+    '/api/v1/clips/{id}'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("DELETE", "/api/v1/clips/{id}", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get related clips
+
+`GET /api/v1/clips/{id}/related`
+
+Returns clips related to the specified clip
+
+**Tags:** Clips
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - Related clips
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/clips/{id}/related"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/clips/{id}/related', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/clips/{id}/related'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/clips/{id}/related", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Batch get clip media URLs
+
+`POST /api/v1/clips/batch-media`
+
+Returns media URLs for multiple clips (rate limited - 60/minute)
+
+**Tags:** Clips
+
+#### Request Body
+
+Content-Type: `application/json`
+
+#### Responses
+
+**200** - Clip media URLs
+
+**400** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/clips/batch-media" \
+  -H "Content-Type: application/json" \
+  -d '{"example": "data"}'
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/clips/batch-media', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your request data
+  })
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.post(
+    '/api/v1/clips/batch-media',
+    json={}  # Your request data
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("POST", "/api/v1/clips/batch-media", nil)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get clip analytics
+
+`GET /api/v1/clips/{id}/analytics`
+
+Returns analytics data for a specific clip
+
+**Tags:** Clips
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - Clip analytics
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/clips/{id}/analytics"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/clips/{id}/analytics', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/clips/{id}/analytics'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/clips/{id}/analytics", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Track clip view
+
+`POST /api/v1/clips/{id}/track-view`
+
+Records a view event for analytics
+
+**Tags:** Clips
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Request Body
+
+Content-Type: `application/json`
+
+#### Responses
+
+**201** - View tracked
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/clips/{id}/track-view" \
+  -H "Content-Type: application/json" \
+  -d '{"example": "data"}'
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/clips/{id}/track-view', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your request data
+  })
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.post(
+    '/api/v1/clips/{id}/track-view',
+    json={}  # Your request data
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("POST", "/api/v1/clips/{id}/track-view", nil)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get clip engagement score
+
+`GET /api/v1/clips/{id}/engagement`
+
+Returns engagement metrics and score for a clip
+
+**Tags:** Clips
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - Engagement score
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/clips/{id}/engagement"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/clips/{id}/engagement', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/clips/{id}/engagement'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/clips/{id}/engagement", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Vote on clip
+
+`POST /api/v1/clips/{id}/vote`
+
+Upvote or downvote a clip (rate limited - 20/minute)
+
+**Tags:** Clips
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Request Body
+
+Content-Type: `application/json`
+
+#### Responses
+
+**200** - Vote recorded
+
+**400** - Success
+
+**401** - Success
+
+**404** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/clips/{id}/vote" \
+  -H "Content-Type: application/json" \
+  -d '{"example": "data"}'
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/clips/{id}/vote', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your request data
+  })
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.post(
+    '/api/v1/clips/{id}/vote',
+    json={}  # Your request data
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("POST", "/api/v1/clips/{id}/vote", nil)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Add clip to favorites
+
+`POST /api/v1/clips/{id}/favorite`
+
+Adds a clip to user's favorites
+
+**Tags:** Clips
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Responses
+
+**201** - Clip favorited
+
+**401** - Success
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/clips/{id}/favorite" \
+  -H "Content-Type: application/json"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/clips/{id}/favorite', {
+  method: 'POST',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.post(
+    '/api/v1/clips/{id}/favorite'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("POST", "/api/v1/clips/{id}/favorite", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Remove clip from favorites
+
+`DELETE /api/v1/clips/{id}/favorite`
+
+Removes a clip from user's favorites
+
+**Tags:** Clips
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Responses
+
+**204** - Favorite removed
+
+**401** - Success
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X DELETE "http://localhost:8080/api/v1/clips/{id}/favorite"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/clips/{id}/favorite', {
+  method: 'DELETE',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.delete(
+    '/api/v1/clips/{id}/favorite'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("DELETE", "/api/v1/clips/{id}/favorite", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Update clip metadata
+
+`PUT /api/v1/clips/{id}/metadata`
+
+Updates clip metadata (creator/submitter only, rate limited - 10/minute)
+
+**Tags:** Clips
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Request Body
+
+Content-Type: `application/json`
+
+#### Responses
+
+**200** - Metadata updated
+
+**400** - Success
+
+**401** - Success
+
+**403** - Success
+
+**404** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X PUT "http://localhost:8080/api/v1/clips/{id}/metadata" \
+  -H "Content-Type: application/json" \
+  -d '{"example": "data"}'
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/clips/{id}/metadata', {
+  method: 'PUT',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your request data
+  })
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.put(
+    '/api/v1/clips/{id}/metadata',
+    json={}  # Your request data
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("PUT", "/api/v1/clips/{id}/metadata", nil)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Update clip visibility
+
+`PUT /api/v1/clips/{id}/visibility`
+
+Updates clip visibility (creator/submitter only, rate limited - 10/minute)
+
+**Tags:** Clips
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Request Body
+
+Content-Type: `application/json`
+
+#### Responses
+
+**200** - Visibility updated
+
+**400** - Success
+
+**401** - Success
+
+**403** - Success
+
+**404** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X PUT "http://localhost:8080/api/v1/clips/{id}/visibility" \
+  -H "Content-Type: application/json" \
+  -d '{"example": "data"}'
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/clips/{id}/visibility', {
+  method: 'PUT',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your request data
+  })
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.put(
+    '/api/v1/clips/{id}/visibility',
+    json={}  # Your request data
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("PUT", "/api/v1/clips/{id}/visibility", nil)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Request clip sync
+
+`POST /api/v1/clips/request`
+
+Request a specific clip to be synced from Twitch (rate limited - 10/hour)
+
+**Tags:** Clips
+
+#### Request Body
+
+Content-Type: `application/json`
+
+#### Responses
+
+**202** - Clip sync requested
+
+**400** - Success
+
+**401** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/clips/request" \
+  -H "Content-Type: application/json" \
+  -d '{"example": "data"}'
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/clips/request', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your request data
+  })
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.post(
+    '/api/v1/clips/request',
+    json={}  # Your request data
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("POST", "/api/v1/clips/request", nil)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### List scraped clips
+
+`GET /api/v1/scraped-clips`
+
+Returns clips that haven't been claimed by users yet
+
+**Tags:** Clips
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - List of scraped clips
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/scraped-clips"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/scraped-clips', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/scraped-clips'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/scraped-clips", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### List user favorites
+
+`GET /api/v1/favorites`
+
+Returns current user's favorite clips
+
+**Tags:** Clips
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - List of favorite clips
+
+**401** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/favorites"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/favorites', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/favorites'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/favorites", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+## Tags
+
+Tag management and discovery
+
+### Get clip tags
+
+`GET /api/v1/clips/{id}/tags`
+
+Returns all tags associated with a clip
+
+**Tags:** Tags
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - Clip tags
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/clips/{id}/tags"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/clips/{id}/tags', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/clips/{id}/tags'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/clips/{id}/tags", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Add tags to clip
+
+`POST /api/v1/clips/{id}/tags`
+
+Adds tags to a clip (rate limited - 10/minute)
+
+**Tags:** Tags
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Request Body
+
+Content-Type: `application/json`
+
+#### Responses
+
+**201** - Tags added
+
+**400** - Success
+
+**401** - Success
+
+**404** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/clips/{id}/tags" \
+  -H "Content-Type: application/json" \
+  -d '{"example": "data"}'
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/clips/{id}/tags', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your request data
+  })
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.post(
+    '/api/v1/clips/{id}/tags',
+    json={}  # Your request data
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("POST", "/api/v1/clips/{id}/tags", nil)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Remove tag from clip
+
+`DELETE /api/v1/clips/{id}/tags/{slug}`
+
+Removes a tag from a clip
+
+**Tags:** Tags
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+|  |  | string |  |  |
+
+#### Responses
+
+**204** - Tag removed
+
+**401** - Success
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X DELETE "http://localhost:8080/api/v1/clips/{id}/tags/{slug}"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/clips/{id}/tags/{slug}', {
+  method: 'DELETE',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.delete(
+    '/api/v1/clips/{id}/tags/{slug}'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("DELETE", "/api/v1/clips/{id}/tags/{slug}", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### List tags
+
+`GET /api/v1/tags`
+
+Returns list of all tags
+
+**Tags:** Tags
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - List of tags
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/tags"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/tags', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/tags'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/tags", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Search tags
+
+`GET /api/v1/tags/search`
+
+Search tags by name (rate limited - 60/minute)
+
+**Tags:** Tags
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+| q | query | string | ✓ | Search query |
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - Search results
+
+**400** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/tags/search"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/tags/search', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/tags/search'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/tags/search", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get tag by slug
+
+`GET /api/v1/tags/{slug}`
+
+Returns detailed information about a tag
+
+**Tags:** Tags
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - Tag details
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/tags/{slug}"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/tags/{slug}', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/tags/{slug}'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/tags/{slug}", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get clips by tag
+
+`GET /api/v1/tags/{slug}/clips`
+
+Returns clips with the specified tag
+
+**Tags:** Tags
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+|  |  | string |  |  |
+|  |  | string |  |  |
+| sort | query | string |  |  |
+
+#### Responses
+
+**200** - List of clips
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/tags/{slug}/clips"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/tags/{slug}/clips', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/tags/{slug}/clips'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/tags/{slug}/clips", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+## Watch History
+
+Watch history and progress
+
+### Get resume position
+
+`GET /api/v1/clips/{id}/progress`
+
+Returns saved watch progress for clip (optional auth)
+
+**Tags:** Watch History
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - Resume position
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/clips/{id}/progress"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/clips/{id}/progress', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/clips/{id}/progress'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/clips/{id}/progress", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+## Comments
+
+Comment and reply operations
+
+### List clip comments
+
+`GET /api/v1/clips/{id}/comments`
+
+Returns paginated list of comments for a clip
+
+**Tags:** Comments
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+|  |  | string |  |  |
+|  |  | string |  |  |
+| sort | query | string |  |  |
+
+#### Responses
+
+**200** - List of comments
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/clips/{id}/comments"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/clips/{id}/comments', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/clips/{id}/comments'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/clips/{id}/comments", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Create comment
+
+`POST /api/v1/clips/{id}/comments`
+
+Creates a new comment on a clip (rate limited - 10/minute)
+
+**Tags:** Comments
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Request Body
+
+Content-Type: `application/json`
+
+#### Responses
+
+**201** - Comment created
+
+**400** - Success
+
+**401** - Success
+
+**404** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/clips/{id}/comments" \
+  -H "Content-Type: application/json" \
+  -d '{"example": "data"}'
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/clips/{id}/comments', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your request data
+  })
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.post(
+    '/api/v1/clips/{id}/comments',
+    json={}  # Your request data
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("POST", "/api/v1/clips/{id}/comments", nil)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get comment replies
+
+`GET /api/v1/comments/{id}/replies`
+
+Returns replies to a specific comment
+
+**Tags:** Comments
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+|  |  | string |  |  |
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - List of replies
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/comments/{id}/replies"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/comments/{id}/replies', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/comments/{id}/replies'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/comments/{id}/replies", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Update comment
+
+`PUT /api/v1/comments/{id}`
+
+Updates a comment (author only)
+
+**Tags:** Comments
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Request Body
+
+Content-Type: `application/json`
+
+#### Responses
+
+**200** - Comment updated
+
+**400** - Success
+
+**401** - Success
+
+**403** - Success
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X PUT "http://localhost:8080/api/v1/comments/{id}" \
+  -H "Content-Type: application/json" \
+  -d '{"example": "data"}'
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/comments/{id}', {
+  method: 'PUT',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your request data
+  })
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.put(
+    '/api/v1/comments/{id}',
+    json={}  # Your request data
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("PUT", "/api/v1/comments/{id}", nil)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Delete comment
+
+`DELETE /api/v1/comments/{id}`
+
+Deletes a comment (author/admin only)
+
+**Tags:** Comments
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Responses
+
+**204** - Comment deleted
+
+**401** - Success
+
+**403** - Success
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X DELETE "http://localhost:8080/api/v1/comments/{id}"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/comments/{id}', {
+  method: 'DELETE',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.delete(
+    '/api/v1/comments/{id}'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("DELETE", "/api/v1/comments/{id}", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Vote on comment
+
+`POST /api/v1/comments/{id}/vote`
+
+Upvote or downvote a comment (rate limited - 20/minute)
+
+**Tags:** Comments
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Request Body
+
+Content-Type: `application/json`
+
+#### Responses
+
+**200** - Vote recorded
+
+**400** - Success
+
+**401** - Success
+
+**404** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/comments/{id}/vote" \
+  -H "Content-Type: application/json" \
+  -d '{"example": "data"}'
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/comments/{id}/vote', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your request data
+  })
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.post(
+    '/api/v1/comments/{id}/vote',
+    json={}  # Your request data
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("POST", "/api/v1/comments/{id}/vote", nil)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+## Search
+
+Search functionality
+
+### Search clips
+
+`GET /api/v1/search`
+
+Full-text search for clips (rate limited - 60/minute)
+
+**Tags:** Search
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+| q | query | string | ✓ | Search query |
+|  |  | string |  |  |
+|  |  | string |  |  |
+| type | query | string |  |  |
+
+#### Responses
+
+**200** - Search results
+
+**400** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/search"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/search', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/search'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/search", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get search suggestions
+
+`GET /api/v1/search/suggestions`
+
+Returns autocomplete suggestions (rate limited - 60/minute)
+
+**Tags:** Search
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+| q | query | string | ✓ |  |
+
+#### Responses
+
+**200** - Suggestions
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/search/suggestions"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/search/suggestions', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/search/suggestions'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/search/suggestions", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Search with scores
+
+`GET /api/v1/search/scores`
+
+Hybrid search with similarity scores (rate limited - 60/minute)
+
+**Tags:** Search
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+| q | query | string | ✓ |  |
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - Search results with scores
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/search/scores"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/search/scores', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/search/scores'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/search/scores", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get trending searches
+
+`GET /api/v1/search/trending`
+
+Returns popular search queries (rate limited - 30/minute)
+
+**Tags:** Search
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - Trending searches
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/search/trending"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/search/trending', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/search/trending'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/search/trending", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get search history
+
+`GET /api/v1/search/history`
+
+Returns user's search history
+
+**Tags:** Search
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - Search history
+
+**401** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/search/history"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/search/history', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/search/history'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/search/history", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get failed searches (Admin)
+
+`GET /api/v1/search/failed`
+
+Returns searches that returned no results (admin only)
+
+**Tags:** Search
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - Failed searches
+
+**401** - Success
+
+**403** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/search/failed"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/search/failed', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/search/failed'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/search/failed", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get search analytics (Admin)
+
+`GET /api/v1/search/analytics`
+
+Returns search analytics summary (admin only)
+
+**Tags:** Search
+
+#### Responses
+
+**200** - Search analytics
+
+**401** - Success
+
+**403** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/search/analytics"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/search/analytics', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/search/analytics'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/search/analytics", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+## Submissions
+
+User clip submissions
+
+### Get user submissions
+
+`GET /api/v1/submissions`
+
+Returns current user's clip submissions
+
+**Tags:** Submissions
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+|  |  | string |  |  |
+| status | query | string |  |  |
+
+#### Responses
+
+**200** - List of submissions
+
+**401** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/submissions"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/submissions', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/submissions'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/submissions", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Submit clip
+
+`POST /api/v1/submissions`
+
+Submit a Twitch clip for moderation (rate limited - 10/hour)
+
+**Tags:** Submissions
+
+#### Request Body
+
+Content-Type: `application/json`
+
+#### Responses
+
+**201** - Clip submitted
+
+**400** - Success
+
+**401** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/submissions" \
+  -H "Content-Type: application/json" \
+  -d '{"example": "data"}'
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/submissions', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your request data
+  })
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.post(
+    '/api/v1/submissions',
+    json={}  # Your request data
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("POST", "/api/v1/submissions", nil)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get submission statistics
+
+`GET /api/v1/submissions/stats`
+
+Returns submission statistics for current user
+
+**Tags:** Submissions
+
+#### Responses
+
+**200** - Submission statistics
+
+**401** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/submissions/stats"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/submissions/stats', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/submissions/stats'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/submissions/stats", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get clip metadata
+
+`GET /api/v1/submissions/metadata`
+
+Fetches metadata for a Twitch clip URL (rate limited - 100/hour)
+
+**Tags:** Submissions
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+| clip_url | query | string | ✓ |  |
+
+#### Responses
+
+**200** - Clip metadata
+
+**400** - Success
+
+**401** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/submissions/metadata"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/submissions/metadata', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/submissions/metadata'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/submissions/metadata", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Check clip status
+
+`GET /api/v1/submissions/check/{clip_id}`
+
+Checks if a clip can be claimed/submitted (rate limited - 100/hour)
+
+**Tags:** Submissions
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+| clip_id | path | string | ✓ |  |
+
+#### Responses
+
+**200** - Clip status
+
+**401** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/submissions/check/{clip_id}"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/submissions/check/{clip_id}', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/submissions/check/{clip_id}'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/submissions/check/{clip_id}", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+## Reports
+
+Content reporting
+
+### Submit report
+
+`POST /api/v1/reports`
+
+Submit a content report (rate limited - 10/hour)
+
+**Tags:** Reports
+
+#### Request Body
+
+Content-Type: `application/json`
+
+#### Responses
+
+**201** - Report submitted
+
+**400** - Success
+
+**401** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/reports" \
+  -H "Content-Type: application/json" \
+  -d '{"example": "data"}'
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/reports', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your request data
+  })
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.post(
+    '/api/v1/reports',
+    json={}  # Your request data
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("POST", "/api/v1/reports", nil)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+## Moderation
+
+Moderation and appeals
+
+### Get user appeals
+
+`GET /api/v1/moderation/appeals`
+
+Returns current user's appeals
+
+**Tags:** Moderation
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - List of appeals
+
+**401** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/moderation/appeals"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/moderation/appeals', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/moderation/appeals'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/moderation/appeals", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Create appeal
+
+`POST /api/v1/moderation/appeals`
+
+Submit an appeal for moderation action (rate limited - 5/hour)
+
+**Tags:** Moderation
+
+#### Request Body
+
+Content-Type: `application/json`
+
+#### Responses
+
+**201** - Appeal created
+
+**401** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/moderation/appeals" \
+  -H "Content-Type: application/json" \
+  -d '{"example": "data"}'
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/moderation/appeals', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your request data
+  })
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.post(
+    '/api/v1/moderation/appeals',
+    json={}  # Your request data
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("POST", "/api/v1/moderation/appeals", nil)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Sync bans from Twitch
+
+`POST /api/v1/moderation/sync-bans`
+
+Synchronizes ban status from Twitch (rate limited - 5/hour)
+
+**Tags:** Moderation
+
+#### Responses
+
+**200** - Bans synchronized
+
+**401** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/moderation/sync-bans" \
+  -H "Content-Type: application/json"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/moderation/sync-bans', {
+  method: 'POST',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.post(
+    '/api/v1/moderation/sync-bans'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("POST", "/api/v1/moderation/sync-bans", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get bans
+
+`GET /api/v1/moderation/bans`
+
+Returns list of bans (rate limited - 60/minute)
+
+**Tags:** Moderation
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - List of bans
+
+**401** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/moderation/bans"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/moderation/bans', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/moderation/bans'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/moderation/bans", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Create ban
+
+`POST /api/v1/moderation/bans`
+
+Creates a new ban (rate limited - 10/hour)
+
+**Tags:** Moderation
+
+#### Request Body
+
+Content-Type: `application/json`
+
+#### Responses
+
+**201** - Ban created
+
+**401** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/moderation/bans" \
+  -H "Content-Type: application/json" \
+  -d '{"example": "data"}'
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/moderation/bans', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your request data
+  })
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.post(
+    '/api/v1/moderation/bans',
+    json={}  # Your request data
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("POST", "/api/v1/moderation/bans", nil)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get ban details
+
+`GET /api/v1/moderation/ban/{id}`
+
+Returns details about a specific ban (rate limited - 60/minute)
+
+**Tags:** Moderation
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - Ban details
+
+**401** - Success
+
+**404** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/moderation/ban/{id}"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/moderation/ban/{id}', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/moderation/ban/{id}'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/moderation/ban/{id}", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Revoke ban
+
+`DELETE /api/v1/moderation/ban/{id}`
+
+Revokes a ban (rate limited - 10/hour)
+
+**Tags:** Moderation
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Responses
+
+**204** - Ban revoked
+
+**401** - Success
+
+**404** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X DELETE "http://localhost:8080/api/v1/moderation/ban/{id}"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/moderation/ban/{id}', {
+  method: 'DELETE',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.delete(
+    '/api/v1/moderation/ban/{id}'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("DELETE", "/api/v1/moderation/ban/{id}", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Ban user on Twitch
+
+`POST /api/v1/moderation/twitch/ban`
+
+Bans a user on Twitch (requires Twitch moderator scopes, rate limited - 10/hour)
+
+**Tags:** Moderation
+
+#### Request Body
+
+Content-Type: `application/json`
+
+#### Responses
+
+**201** - User banned on Twitch
+
+**401** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/moderation/twitch/ban" \
+  -H "Content-Type: application/json" \
+  -d '{"example": "data"}'
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/moderation/twitch/ban', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your request data
+  })
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.post(
+    '/api/v1/moderation/twitch/ban',
+    json={}  # Your request data
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("POST", "/api/v1/moderation/twitch/ban", nil)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Unban user on Twitch
+
+`DELETE /api/v1/moderation/twitch/ban`
+
+Unbans a user on Twitch (requires Twitch moderator scopes, rate limited - 10/hour)
+
+**Tags:** Moderation
+
+#### Request Body
+
+Content-Type: `application/json`
+
+#### Responses
+
+**204** - User unbanned on Twitch
+
+**401** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X DELETE "http://localhost:8080/api/v1/moderation/twitch/ban" \
+  -d '{"example": "data"}'
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/moderation/twitch/ban', {
+  method: 'DELETE',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your request data
+  })
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.delete(
+    '/api/v1/moderation/twitch/ban',
+    json={}  # Your request data
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("DELETE", "/api/v1/moderation/twitch/ban", nil)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### List moderators
+
+`GET /api/v1/moderation/moderators`
+
+Returns list of moderators (rate limited - 60/minute)
+
+**Tags:** Moderation
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - List of moderators
+
+**401** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/moderation/moderators"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/moderation/moderators', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/moderation/moderators'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/moderation/moderators", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Add moderator
+
+`POST /api/v1/moderation/moderators`
+
+Adds a new moderator (rate limited - 10/hour)
+
+**Tags:** Moderation
+
+#### Request Body
+
+Content-Type: `application/json`
+
+#### Responses
+
+**201** - Moderator added
+
+**401** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/moderation/moderators" \
+  -H "Content-Type: application/json" \
+  -d '{"example": "data"}'
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/moderation/moderators', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your request data
+  })
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.post(
+    '/api/v1/moderation/moderators',
+    json={}  # Your request data
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("POST", "/api/v1/moderation/moderators", nil)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Update moderator permissions
+
+`PATCH /api/v1/moderation/moderators/{id}`
+
+Updates moderator permissions (rate limited - 10/hour)
+
+**Tags:** Moderation
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Request Body
+
+Content-Type: `application/json`
+
+#### Responses
+
+**200** - Permissions updated
+
+**401** - Success
+
+**404** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X PATCH "http://localhost:8080/api/v1/moderation/moderators/{id}" \
+  -H "Content-Type: application/json" \
+  -d '{"example": "data"}'
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/moderation/moderators/{id}', {
+  method: 'PATCH',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your request data
+  })
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.patch(
+    '/api/v1/moderation/moderators/{id}',
+    json={}  # Your request data
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("PATCH", "/api/v1/moderation/moderators/{id}", nil)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Remove moderator
+
+`DELETE /api/v1/moderation/moderators/{id}`
+
+Removes a moderator (rate limited - 10/hour)
+
+**Tags:** Moderation
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Responses
+
+**204** - Moderator removed
+
+**401** - Success
+
+**404** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X DELETE "http://localhost:8080/api/v1/moderation/moderators/{id}"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/moderation/moderators/{id}', {
+  method: 'DELETE',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.delete(
+    '/api/v1/moderation/moderators/{id}'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("DELETE", "/api/v1/moderation/moderators/{id}", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### List moderation audit logs
+
+`GET /api/v1/moderation/audit-logs`
+
+Returns moderation audit logs (moderator/admin only, rate limited - 60/minute)
+
+**Tags:** Moderation
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - Audit logs
+
+**401** - Success
+
+**403** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/moderation/audit-logs"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/moderation/audit-logs', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/moderation/audit-logs'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/moderation/audit-logs", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Export moderation audit logs
+
+`GET /api/v1/moderation/audit-logs/export`
+
+Exports audit logs to CSV (moderator/admin only, rate limited - 10/hour)
+
+**Tags:** Moderation
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+| start_date | query | string |  |  |
+| end_date | query | string |  |  |
+
+#### Responses
+
+**200** - CSV file
+
+**401** - Success
+
+**403** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/moderation/audit-logs/export"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/moderation/audit-logs/export', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/moderation/audit-logs/export'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/moderation/audit-logs/export", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get audit log
+
+`GET /api/v1/moderation/audit-logs/{id}`
+
+Returns specific audit log entry (moderator/admin only, rate limited - 60/minute)
+
+**Tags:** Moderation
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - Audit log entry
+
+**401** - Success
+
+**403** - Success
+
+**404** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/moderation/audit-logs/{id}"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/moderation/audit-logs/{id}', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/moderation/audit-logs/{id}'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/moderation/audit-logs/{id}", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### List ban reason templates
+
+`GET /api/v1/moderation/ban-templates`
+
+Returns ban reason templates (rate limited - 60/minute)
+
+**Tags:** Moderation
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - List of templates
+
+**401** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/moderation/ban-templates"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/moderation/ban-templates', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/moderation/ban-templates'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/moderation/ban-templates", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Create ban template
+
+`POST /api/v1/moderation/ban-templates`
+
+Creates a new ban reason template (rate limited - 20/hour)
+
+**Tags:** Moderation
+
+#### Request Body
+
+Content-Type: `application/json`
+
+#### Responses
+
+**201** - Template created
+
+**401** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/moderation/ban-templates" \
+  -H "Content-Type: application/json" \
+  -d '{"example": "data"}'
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/moderation/ban-templates', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your request data
+  })
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.post(
+    '/api/v1/moderation/ban-templates',
+    json={}  # Your request data
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("POST", "/api/v1/moderation/ban-templates", nil)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get template usage statistics
+
+`GET /api/v1/moderation/ban-templates/stats`
+
+Returns usage statistics for ban templates (rate limited - 60/minute)
+
+**Tags:** Moderation
+
+#### Responses
+
+**200** - Template statistics
+
+**401** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/moderation/ban-templates/stats"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/moderation/ban-templates/stats', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/moderation/ban-templates/stats'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/moderation/ban-templates/stats", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get ban template
+
+`GET /api/v1/moderation/ban-templates/{id}`
+
+Returns specific ban template (rate limited - 60/minute)
+
+**Tags:** Moderation
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - Template details
+
+**401** - Success
+
+**404** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/moderation/ban-templates/{id}"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/moderation/ban-templates/{id}', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/moderation/ban-templates/{id}'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/moderation/ban-templates/{id}", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Update ban template
+
+`PATCH /api/v1/moderation/ban-templates/{id}`
+
+Updates a ban template (rate limited - 20/hour)
+
+**Tags:** Moderation
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Request Body
+
+Content-Type: `application/json`
+
+#### Responses
+
+**200** - Template updated
+
+**401** - Success
+
+**404** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X PATCH "http://localhost:8080/api/v1/moderation/ban-templates/{id}" \
+  -H "Content-Type: application/json" \
+  -d '{"example": "data"}'
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/moderation/ban-templates/{id}', {
+  method: 'PATCH',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your request data
+  })
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.patch(
+    '/api/v1/moderation/ban-templates/{id}',
+    json={}  # Your request data
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("PATCH", "/api/v1/moderation/ban-templates/{id}", nil)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Delete ban template
+
+`DELETE /api/v1/moderation/ban-templates/{id}`
+
+Deletes a ban template (rate limited - 20/hour)
+
+**Tags:** Moderation
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Responses
+
+**204** - Template deleted
+
+**401** - Success
+
+**404** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X DELETE "http://localhost:8080/api/v1/moderation/ban-templates/{id}"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/moderation/ban-templates/{id}', {
+  method: 'DELETE',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.delete(
+    '/api/v1/moderation/ban-templates/{id}'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("DELETE", "/api/v1/moderation/ban-templates/{id}", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+## Users
+
+User profiles and social features
+
+### Get user by username
+
+`GET /api/v1/users/by-username/{username}`
+
+Returns user profile by username
+
+**Tags:** Users
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+| username | path | string | ✓ |  |
+
+#### Responses
+
+**200** - User profile
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/users/by-username/{username}"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/users/by-username/{username}', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/users/by-username/{username}'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/users/by-username/{username}", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### User autocomplete
+
+`GET /api/v1/users/autocomplete`
+
+Search users for mentions/suggestions (rate limited - 100/hour)
+
+**Tags:** Users
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+| q | query | string | ✓ |  |
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - User suggestions
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/users/autocomplete"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/users/autocomplete', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/users/autocomplete'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/users/autocomplete", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get user profile
+
+`GET /api/v1/users/{id}`
+
+Returns detailed user profile (optional auth for follow status)
+
+**Tags:** Users
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - User profile
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/users/{id}"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/users/{id}', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/users/{id}'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/users/{id}", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Claim account
+
+`POST /api/v1/users/claim-account`
+
+Claims an unclaimed broadcaster/creator account
+
+**Tags:** Users
+
+#### Request Body
+
+Content-Type: `application/json`
+
+#### Responses
+
+**200** - Account claimed
+
+**400** - Success
+
+**401** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/users/claim-account" \
+  -H "Content-Type: application/json" \
+  -d '{"example": "data"}'
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/users/claim-account', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your request data
+  })
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.post(
+    '/api/v1/users/claim-account',
+    json={}  # Your request data
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("POST", "/api/v1/users/claim-account", nil)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get user reputation
+
+`GET /api/v1/users/{id}/reputation`
+
+Returns reputation score and breakdown
+
+**Tags:** Users
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - Reputation data
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/users/{id}/reputation"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/users/{id}/reputation', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/users/{id}/reputation'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/users/{id}/reputation", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get user karma
+
+`GET /api/v1/users/{id}/karma`
+
+Returns karma points and history
+
+**Tags:** Users
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - Karma data
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/users/{id}/karma"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/users/{id}/karma', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/users/{id}/karma'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/users/{id}/karma", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get user badges
+
+`GET /api/v1/users/{id}/badges`
+
+Returns earned badges for user
+
+**Tags:** Users
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - User badges
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/users/{id}/badges"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/users/{id}/badges', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/users/{id}/badges'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/users/{id}/badges", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get user comments
+
+`GET /api/v1/users/{id}/comments`
+
+Returns user's comment history
+
+**Tags:** Users
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+|  |  | string |  |  |
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - List of comments
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/users/{id}/comments"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/users/{id}/comments', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/users/{id}/comments'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/users/{id}/comments", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get user clips
+
+`GET /api/v1/users/{id}/clips`
+
+Returns clips submitted by user (optional auth for hidden clips)
+
+**Tags:** Users
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+|  |  | string |  |  |
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - List of clips
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/users/{id}/clips"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/users/{id}/clips', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/users/{id}/clips'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/users/{id}/clips", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get user activity
+
+`GET /api/v1/users/{id}/activity`
+
+Returns recent user activity (optional auth)
+
+**Tags:** Users
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+|  |  | string |  |  |
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - Activity feed
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/users/{id}/activity"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/users/{id}/activity', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/users/{id}/activity'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/users/{id}/activity", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get user upvoted clips
+
+`GET /api/v1/users/{id}/upvoted`
+
+Returns clips user has upvoted
+
+**Tags:** Users
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+|  |  | string |  |  |
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - Upvoted clips
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/users/{id}/upvoted"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/users/{id}/upvoted', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/users/{id}/upvoted'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/users/{id}/upvoted", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get user downvoted clips
+
+`GET /api/v1/users/{id}/downvoted`
+
+Returns clips user has downvoted
+
+**Tags:** Users
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+|  |  | string |  |  |
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - Downvoted clips
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/users/{id}/downvoted"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/users/{id}/downvoted', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/users/{id}/downvoted'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/users/{id}/downvoted", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get user followers
+
+`GET /api/v1/users/{id}/followers`
+
+Returns list of user's followers (optional auth)
+
+**Tags:** Users
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+|  |  | string |  |  |
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - Followers list
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/users/{id}/followers"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/users/{id}/followers', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/users/{id}/followers'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/users/{id}/followers", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get following
+
+`GET /api/v1/users/{id}/following`
+
+Returns users being followed (optional auth)
+
+**Tags:** Users
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+|  |  | string |  |  |
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - Following list
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/users/{id}/following"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/users/{id}/following', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/users/{id}/following'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/users/{id}/following", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get followed broadcasters
+
+`GET /api/v1/users/{id}/following/broadcasters`
+
+Returns broadcasters being followed (optional auth)
+
+**Tags:** Users
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+|  |  | string |  |  |
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - Followed broadcasters
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/users/{id}/following/broadcasters"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/users/{id}/following/broadcasters', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/users/{id}/following/broadcasters'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/users/{id}/following/broadcasters", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Follow user
+
+`POST /api/v1/users/{id}/follow`
+
+Follows a user
+
+**Tags:** Users
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Responses
+
+**201** - User followed
+
+**401** - Success
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/users/{id}/follow" \
+  -H "Content-Type: application/json"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/users/{id}/follow', {
+  method: 'POST',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.post(
+    '/api/v1/users/{id}/follow'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("POST", "/api/v1/users/{id}/follow", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Unfollow user
+
+`DELETE /api/v1/users/{id}/follow`
+
+Unfollows a user
+
+**Tags:** Users
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Responses
+
+**204** - User unfollowed
+
+**401** - Success
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X DELETE "http://localhost:8080/api/v1/users/{id}/follow"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/users/{id}/follow', {
+  method: 'DELETE',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.delete(
+    '/api/v1/users/{id}/follow'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("DELETE", "/api/v1/users/{id}/follow", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Block user
+
+`POST /api/v1/users/{id}/block`
+
+Blocks a user (rate limited - 20/minute)
+
+**Tags:** Users
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Responses
+
+**201** - User blocked
+
+**401** - Success
+
+**404** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/users/{id}/block" \
+  -H "Content-Type: application/json"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/users/{id}/block', {
+  method: 'POST',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.post(
+    '/api/v1/users/{id}/block'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("POST", "/api/v1/users/{id}/block", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Unblock user
+
+`DELETE /api/v1/users/{id}/block`
+
+Unblocks a user
+
+**Tags:** Users
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Responses
+
+**204** - User unblocked
+
+**401** - Success
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X DELETE "http://localhost:8080/api/v1/users/{id}/block"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/users/{id}/block', {
+  method: 'DELETE',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.delete(
+    '/api/v1/users/{id}/block'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("DELETE", "/api/v1/users/{id}/block", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get blocked users
+
+`GET /api/v1/users/me/blocked`
+
+Returns list of blocked users
+
+**Tags:** Users
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - Blocked users
+
+**401** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/users/me/blocked"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/users/me/blocked', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/users/me/blocked'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/users/me/blocked", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get personal statistics
+
+`GET /api/v1/users/me/stats`
+
+Returns statistics for current user
+
+**Tags:** Users
+
+#### Responses
+
+**200** - User statistics
+
+**401** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/users/me/stats"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/users/me/stats', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/users/me/stats'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/users/me/stats", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get user engagement score
+
+`GET /api/v1/users/{id}/engagement`
+
+Returns engagement metrics for user
+
+**Tags:** Users
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - Engagement score
+
+**401** - Success
+
+**404** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/users/{id}/engagement"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/users/{id}/engagement', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/users/{id}/engagement'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/users/{id}/engagement", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Update profile
+
+`PUT /api/v1/users/me/profile`
+
+Updates current user's profile
+
+**Tags:** Users
+
+#### Request Body
+
+Content-Type: `application/json`
+
+#### Responses
+
+**200** - Profile updated
+
+**400** - Success
+
+**401** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X PUT "http://localhost:8080/api/v1/users/me/profile" \
+  -H "Content-Type: application/json" \
+  -d '{"example": "data"}'
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/users/me/profile', {
+  method: 'PUT',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your request data
+  })
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.put(
+    '/api/v1/users/me/profile',
+    json={}  # Your request data
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("PUT", "/api/v1/users/me/profile", nil)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Update social links
+
+`PUT /api/v1/users/me/social-links`
+
+Updates social media links
+
+**Tags:** Users
+
+#### Request Body
+
+Content-Type: `application/json`
+
+#### Responses
+
+**200** - Social links updated
+
+**400** - Success
+
+**401** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X PUT "http://localhost:8080/api/v1/users/me/social-links" \
+  -H "Content-Type: application/json" \
+  -d '{"example": "data"}'
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/users/me/social-links', {
+  method: 'PUT',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your request data
+  })
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.put(
+    '/api/v1/users/me/social-links',
+    json={}  # Your request data
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("PUT", "/api/v1/users/me/social-links", nil)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get user settings
+
+`GET /api/v1/users/me/settings`
+
+Returns current user's settings
+
+**Tags:** Users
+
+#### Responses
+
+**200** - User settings
+
+**401** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/users/me/settings"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/users/me/settings', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/users/me/settings'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/users/me/settings", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Update settings
+
+`PUT /api/v1/users/me/settings`
+
+Updates user settings
+
+**Tags:** Users
+
+#### Request Body
+
+Content-Type: `application/json`
+
+#### Responses
+
+**200** - Settings updated
+
+**400** - Success
+
+**401** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X PUT "http://localhost:8080/api/v1/users/me/settings" \
+  -H "Content-Type: application/json" \
+  -d '{"example": "data"}'
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/users/me/settings', {
+  method: 'PUT',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your request data
+  })
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.put(
+    '/api/v1/users/me/settings',
+    json={}  # Your request data
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("PUT", "/api/v1/users/me/settings", nil)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Export user data
+
+`GET /api/v1/users/me/export`
+
+Exports user data (GDPR compliance, rate limited - 1/hour)
+
+**Tags:** Users
+
+#### Responses
+
+**200** - Data export initiated
+
+**401** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/users/me/export"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/users/me/export', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/users/me/export'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/users/me/export", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get cookie consent
+
+`GET /api/v1/users/me/consent`
+
+Returns current user's cookie consent preferences
+
+**Tags:** Users
+
+#### Responses
+
+**200** - Consent preferences
+
+**401** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/users/me/consent"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/users/me/consent', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/users/me/consent'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/users/me/consent", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Save cookie consent
+
+`POST /api/v1/users/me/consent`
+
+Saves cookie consent preferences (rate limited - 30/minute)
+
+**Tags:** Users
+
+#### Request Body
+
+Content-Type: `application/json`
+
+#### Responses
+
+**200** - Consent saved
+
+**400** - Success
+
+**401** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/users/me/consent" \
+  -H "Content-Type: application/json" \
+  -d '{"example": "data"}'
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/users/me/consent', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your request data
+  })
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.post(
+    '/api/v1/users/me/consent',
+    json={}  # Your request data
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("POST", "/api/v1/users/me/consent", nil)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Request account deletion
+
+`POST /api/v1/users/me/delete`
+
+Requests account deletion (rate limited - 1/hour)
+
+**Tags:** Users
+
+#### Request Body
+
+Content-Type: `application/json`
+
+#### Responses
+
+**202** - Deletion request submitted
+
+**400** - Success
+
+**401** - Success
+
+**429** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/users/me/delete" \
+  -H "Content-Type: application/json" \
+  -d '{"example": "data"}'
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/users/me/delete', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your request data
+  })
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.post(
+    '/api/v1/users/me/delete',
+    json={}  # Your request data
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("POST", "/api/v1/users/me/delete", nil)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Cancel account deletion
+
+`POST /api/v1/users/me/delete/cancel`
+
+Cancels pending account deletion
+
+**Tags:** Users
+
+#### Responses
+
+**200** - Deletion cancelled
+
+**401** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/users/me/delete/cancel" \
+  -H "Content-Type: application/json"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/users/me/delete/cancel', {
+  method: 'POST',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.post(
+    '/api/v1/users/me/delete/cancel'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("POST", "/api/v1/users/me/delete/cancel", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get deletion status
+
+`GET /api/v1/users/me/delete/status`
+
+Returns account deletion status
+
+**Tags:** Users
+
+#### Responses
+
+**200** - Deletion status
+
+**401** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/users/me/delete/status"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/users/me/delete/status', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/users/me/delete/status'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/users/me/delete/status", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
+### Get email logs
+
+`GET /api/v1/users/me/email-logs`
+
+Returns email logs for current user
+
+**Tags:** Users
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|------|-------|------|----------|-------------|
+|  |  | string |  |  |
+|  |  | string |  |  |
+
+#### Responses
+
+**200** - Email logs
+
+**401** - Success
+
+#### Code Examples
+
+##### cURL
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/users/me/email-logs"
+```
+
+##### JavaScript
+
+```javascript
+// Using fetch API
+const response = await fetch('/api/v1/users/me/email-logs', {
+  method: 'GET',
+});
+const data = await response.json();
+```
+
+##### Python
+
+```python
+import requests
+
+response = requests.get(
+    '/api/v1/users/me/email-logs'
+)
+data = response.json()
+```
+
+##### Go
+
+```go
+package main
+
+import (
+    "net/http"
+    "io/ioutil"
+)
+
+func main() {
+    req, _ := http.NewRequest("GET", "/api/v1/users/me/email-logs", nil)
+    
+    client := &http.Client{}
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+    body, _ := ioutil.ReadAll(resp.Body)
+}
+```
+
+---
+
