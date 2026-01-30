@@ -106,7 +106,7 @@ export function AdminAPIDocsPage() {
             const endPattern = /^## /;
 
             let inSection = false;
-            let sectionLines: string[] = [];
+            const sectionLines: string[] = [];
 
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
