@@ -6,12 +6,23 @@ area: "testing"
 status: "stable"
 owner: "team-core"
 version: "1.0"
-last_reviewed: 2026-01-29
+last_reviewed: 2026-01-30
 ---
 
 # CDN Failover Testing Quick Start
 
 This guide provides quick commands to run the CDN failover tests.
+
+## Status
+
+✅ **Configuration Complete** - CDN failover tests are now fully configured and ready to run.
+
+- Backend CDN service with failover support: ✅ Implemented
+- Frontend E2E tests: ✅ Ready (3 test suites)
+- Test environment configuration: ✅ Complete
+- Documentation: ✅ Updated
+
+The CDN failover tests validate that assets (images, videos, thumbnails) gracefully fall back to origin servers when CDN endpoints fail or timeout.
 
 ## Prerequisites
 
@@ -101,7 +112,8 @@ cd frontend
 # Run all CDN failover E2E tests
 npm run test:e2e -- cdn-failover.spec.ts
 
-# Run with failover mode enabled (requires backend configured for failover)
+# Run with failover mode enabled
+# This enables CDN failover simulation in the test environment
 E2E_CDN_FAILOVER_MODE=true npm run test:e2e -- cdn-failover.spec.ts
 
 # Run in headed mode (see browser)
@@ -113,6 +125,8 @@ npm run test:e2e:ui -- cdn-failover.spec.ts
 # Run specific test
 npm run test:e2e -- cdn-failover.spec.ts -g "should load thumbnails from origin"
 ```
+
+**Note**: The CDN failover E2E tests are now enabled by default and will run with the standard E2E test suite. The `E2E_CDN_FAILOVER_MODE` environment variable is automatically configured when needed via the Playwright configuration.
 
 **What's tested:**
 - Thumbnail loading from origin
