@@ -214,21 +214,16 @@ describe('useTheatreMode', () => {
     });
 
     it('should continue working after localStorage failures', () => {
-      // Simulate localStorage failure, then restore it
+      // Simulate localStorage failure on first call, then succeed on second
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      let callCount = 0;
-      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function(key: string, value: string) {
-        callCount++;
-        if (callCount === 1) {
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+        .mockImplementationOnce(() => {
           throw new Error('First call fails');
-        }
-        // Second call succeeds - restore original behavior temporarily
-        setItemSpy.mockRestore();
-        const result = localStorage.setItem(key, value);
-        // Re-mock for cleanup
-        vi.spyOn(Storage.prototype, 'setItem');
-        return result;
-      });
+        })
+        .mockImplementationOnce((key: string, value: string) => {
+          // Second call succeeds - use real implementation
+          return setItemSpy.wrappedMethod.call(localStorage, key, value);
+        });
 
       const { result } = renderHook(() => useTheatreMode());
       
