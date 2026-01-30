@@ -329,7 +329,9 @@ export function ClipDetailPage() {
                     </div>
 
                     <div className='mb-4 xs:mb-6'>
-                        {/* Render TheatreMode for HLS clips, otherwise use VideoPlayer */}
+                        {/* Render TheatreMode for HLS clips, otherwise use VideoPlayer 
+                            Note: Watch history tracking only works with HLS clips (TheatreMode).
+                            Twitch iframe embeds (VideoPlayer) don't expose playback events per TOS. */}
                         {clip.video_url ? (
                             <TheatreMode
                                 title={clip.title}
