@@ -148,12 +148,27 @@ export function TheatreMode({
       setShowResumePrompt(false);
       setHasAppliedResume(true);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resumePosition]);
 
   const handleDismissResume = useCallback(() => {
     setShowResumePrompt(false);
     setHasAppliedResume(true);
   }, []);
+
+  // Handle Escape key for resume prompt
+  useEffect(() => {
+    if (!showResumePrompt) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleDismissResume();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [showResumePrompt, handleDismissResume]);
 
   // Progress tracking with timeupdate event
   useEffect(() => {
@@ -316,11 +331,6 @@ export function TheatreMode({
           role="dialog"
           aria-modal="true"
           aria-labelledby="resume-playback-title"
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') {
-              handleDismissResume();
-            }
-          }}
         >
           <div className="bg-black/90 backdrop-blur-sm rounded-lg p-6 max-w-md mx-4 pointer-events-auto">
             <h3 id="resume-playback-title" className="text-white text-lg font-semibold mb-2">
