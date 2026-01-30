@@ -14,11 +14,23 @@ aliases: ["future", "planned features"]
 
 Product roadmap and upcoming features for Clipper.
 
+> **Current Roadmap**: See [[roadmap-5.0|Roadmap 5.0]] for the detailed current roadmap with all phases and issues.
+
 ## Current Status
 
 **Version**: v0.x (Pre-release)  
 **Status**: Active Development  
 **Target**: MVP Release Q2 2025
+
+## Active Roadmap
+
+- **[[roadmap-5.0|Roadmap 5.0]]** - Current detailed roadmap (Q4 2025 - Q2 2026)
+  - Phase 0: Foundation
+  - Phase 1: Testing Infrastructure
+  - Phase 2: Mobile Feature Parity
+  - Phase 3: Analytics & ML Enhancement
+  - Phase 4: Documentation Excellence (In Progress)
+  - Phase 5: Infrastructure Hardening
 
 ## Milestones
 

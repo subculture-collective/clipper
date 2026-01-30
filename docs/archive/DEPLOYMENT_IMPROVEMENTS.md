@@ -1,3 +1,14 @@
+---
+title: Deployment Improvements Summary
+summary: Addresses frontend bundling issues by optimizing Vite configuration for improved code splitting and faster load times.
+tags: ["archive", "deployment", "implementation"]
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 
 # Deployment Improvements Summary
 

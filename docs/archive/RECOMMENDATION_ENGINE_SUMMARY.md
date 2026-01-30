@@ -1,3 +1,14 @@
+---
+title: Recommendation Engine Implementation
+summary: This document describes the implementation of the discovery algorithm and recommendation engine for the Clipper platform, as outlined in issue #668.
+tags: ["archive", "implementation"]
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Recommendation Engine Implementation
 
 ## Overview

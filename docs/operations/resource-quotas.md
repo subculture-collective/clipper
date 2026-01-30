@@ -1,3 +1,14 @@
+---
+title: "Resource Quotas"
+summary: "**Status**: Implemented (Roadmap 5.0 Phase 5.2)"
+tags: ["operations"]
+area: "operations"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Resource Quotas & Limits
 
 **Status**: Implemented (Roadmap 5.0 Phase 5.2)  

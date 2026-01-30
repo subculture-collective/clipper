@@ -1,3 +1,14 @@
+---
+title: "E2E TEST INFRASTRUCTURE EPIC COMPLETE"
+summary: "**Issue**: [Epic] E2E Test Infrastructure"
+tags: ["docs","testing"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # E2E Test Infrastructure Epic - Completion Summary
 
 ## Epic Overview

@@ -1,3 +1,14 @@
+---
+title: Search Index Versioning and Management
+summary: This document describes the index versioning system for semantic search in Clipper, enabling zero-downtime index rebuilds, rollbacks, and version...
+tags: ["archive", "implementation"]
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Search Index Versioning and Management
 
 This document describes the index versioning system for semantic search in Clipper, enabling zero-downtime index rebuilds, rollbacks, and version management.

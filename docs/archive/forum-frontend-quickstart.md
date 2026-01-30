@@ -1,3 +1,14 @@
+---
+title: Forum Frontend - Quick Start Guide
+summary: Quick start guide for setting up and running the forum frontend development environment.
+tags: ["guide", "archive", "implementation"]
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Forum Frontend - Quick Start Guide
 
 ## 🚀 Getting Started

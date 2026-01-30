@@ -1,3 +1,14 @@
+---
+title: "002 Advanced Query Language"
+summary: "**Status:** Accepted"
+tags: ["rfcs"]
+area: "rfcs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # RFC 002: Advanced Query Language
 
 **Status:** Accepted  

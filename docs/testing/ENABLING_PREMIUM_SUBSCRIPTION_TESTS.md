@@ -1,3 +1,14 @@
+---
+title: "ENABLING PREMIUM SUBSCRIPTION TESTS"
+summary: "The premium subscription checkout E2E tests are fully implemented but **4 out of 13 tests are currently skipped** because they require Stripe test mode configuration. This document explains how to ena"
+tags: ["testing"]
+area: "testing"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Enabling Premium Subscription E2E Tests
 
 ## Overview

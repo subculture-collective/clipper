@@ -1,3 +1,14 @@
+---
+title: "Testing Guide"
+summary: "This document provides comprehensive information about testing Clipper's clip submission flow and related features."
+tags: ["testing","guide"]
+area: "testing"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Testing Documentation
 
 This document provides comprehensive information about testing Clipper's clip submission flow and related features.

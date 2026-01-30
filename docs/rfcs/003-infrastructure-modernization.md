@@ -1,3 +1,14 @@
+---
+title: "003 Infrastructure Modernization"
+summary: "**Status:** Accepted"
+tags: ["rfcs"]
+area: "rfcs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # RFC 003: Infrastructure Modernization
 
 **Status:** Accepted
@@ -1484,9 +1495,9 @@ All documentation complete and linked in this RFC:
 
 ### Related Documentation
 
-- [Roadmap 5.0](../product/roadmap-5.0.md) - Complete roadmap document
-- [Feature Inventory](../product/feature-inventory.md) - Platform feature audit
-- [Roadmap 5.0 Issue Creation Summary](../product/roadmap-5.0-issue-creation-summary.md)
+- [[../product/roadmap-5.0|Roadmap 5.0]] - Current detailed roadmap
+- [[../product/feature-inventory|Feature Inventory]] - Platform feature audit
+- [[../archive/roadmap-5.0-issue-creation-summary|Roadmap 5.0 Issue Creation Summary]] (archived)
 
 ### External References
 

@@ -1,3 +1,14 @@
+---
+title: Webhook Dead-Letter Queue Implementation Summary
+summary: Successfully implemented a comprehensive webhook delivery system with dead-letter queue (DLQ) functionality, meeting all requirements for robust...
+tags: ["archive", "implementation", "summary"]
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Webhook Dead-Letter Queue Implementation Summary
 
 ## Overview

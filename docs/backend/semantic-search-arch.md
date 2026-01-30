@@ -26,7 +26,7 @@ Semantic search combines traditional keyword-based search (BM25) with vector emb
 
 ## Architecture Decision
 
-See [ADR-001: Semantic Search Vector Database Selection](./adr/001-semantic-search-vector-db.md) for the full decision rationale.
+See [[../decisions/adr-1-semantic-search-vector-db|ADR-001: Semantic Search Vector Database Selection]] for the full decision rationale.
 
 **Selected Approach**: pgvector in PostgreSQL with hybrid BM25 + vector re-ranking
 
@@ -671,7 +671,7 @@ For zero-downtime index rebuilds, rollbacks, and version management, see:
 
 ## References
 
-- [ADR-001: Vector Database Selection](./adr/001-semantic-search-vector-db.md)
+- [[../decisions/adr-1-semantic-search-vector-db|ADR-001: Vector Database Selection]]
 - [OpenSearch Documentation](https://opensearch.org/docs/latest/)
 - [pgvector Documentation](https://github.com/pgvector/pgvector)
 - [OpenAI Embeddings Guide](https://platform.openai.com/docs/guides/embeddings)

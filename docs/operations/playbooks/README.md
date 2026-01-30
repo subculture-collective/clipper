@@ -1,3 +1,14 @@
+---
+title: "README"
+summary: "This directory contains incident response playbooks and operational procedures for managing Clipper in production."
+tags: ["operations"]
+area: "operations"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Operations Playbooks Index
 
 This directory contains incident response playbooks and operational procedures for managing Clipper in production.

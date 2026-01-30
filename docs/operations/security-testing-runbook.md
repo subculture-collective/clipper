@@ -1,3 +1,14 @@
+---
+title: "Security Testing Runbook"
+summary: "This runbook provides quick reference procedures for IDOR and authorization security testing."
+tags: ["operations","testing","runbook"]
+area: "operations"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Security Testing Runbook
 
 ## Quick Reference for IDOR and Authorization Testing

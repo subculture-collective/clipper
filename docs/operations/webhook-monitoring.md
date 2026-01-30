@@ -1,3 +1,14 @@
+---
+title: "Webhook Monitoring"
+summary: "This guide covers the webhook monitoring infrastructure, metrics, alerts, and troubleshooting procedures for the Clipper webhook delivery system."
+tags: ["operations"]
+area: "operations"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Webhook Monitoring and Alerting Guide
 
 ## Overview

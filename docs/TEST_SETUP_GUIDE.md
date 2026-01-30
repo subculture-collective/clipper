@@ -1,3 +1,14 @@
+---
+title: "TEST SETUP GUIDE"
+summary: "This guide explains how to run backend tests with all necessary configurations to avoid skipped tests."
+tags: ["docs","testing","guide"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Backend Test Setup Guide
 
 This guide explains how to run backend tests with all necessary configurations to avoid skipped tests.

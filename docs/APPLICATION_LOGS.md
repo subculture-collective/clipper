@@ -1,3 +1,14 @@
+---
+title: "APPLICATION LOGS"
+summary: "The backend log collection endpoint (`POST /api/v1/logs`) provides centralized log aggregation for frontend and mobile clients. This enables monitoring, debugging, and analytics across the entire plat"
+tags: ["docs"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Application Log Collection Endpoint
 
 ## Overview

@@ -1,3 +1,14 @@
+---
+title: "ABUSE DETECTION"
+summary: "The Abuse Pattern Detection system implements real-time anomaly detection for spam, vote manipulation, and coordinated abuse as specified in Roadmap 5.0 Phase 3.3."
+tags: ["docs"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Abuse Pattern Detection System
 
 ## Overview

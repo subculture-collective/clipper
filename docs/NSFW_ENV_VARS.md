@@ -1,3 +1,14 @@
+---
+title: "NSFW ENV VARS"
+summary: "This file documents the environment variables required for NSFW (Not Safe For Work) image detection."
+tags: ["docs"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # NSFW Detection Environment Variables
 
 This file documents the environment variables required for NSFW (Not Safe For Work) image detection.

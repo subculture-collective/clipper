@@ -1,3 +1,14 @@
+---
+title: Integration & E2E Tests Implementation Summary
+summary: This document summarizes the comprehensive integration and E2E testing infrastructure implemented for Clipper's production readiness.
+tags: ["testing", "archive", "implementation"]
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Integration & E2E Tests Implementation Summary
 
 ## Overview

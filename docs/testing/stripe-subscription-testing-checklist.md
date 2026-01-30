@@ -1,3 +1,14 @@
+---
+title: "Stripe Subscription Testing Checklist"
+summary: "Quick reference checklist for manual testing of Stripe subscription flows before production deployment."
+tags: ["testing"]
+area: "testing"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Stripe Subscription Manual Testing Checklist
 
 Quick reference checklist for manual testing of Stripe subscription flows before production deployment.

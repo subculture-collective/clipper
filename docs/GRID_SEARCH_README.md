@@ -1,3 +1,14 @@
+---
+title: "GRID SEARCH README"
+summary: "This directory contains tools for optimizing hybrid search (BM25 + Vector) weights through grid search and evaluation."
+tags: ["docs"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Hybrid Search Weight Optimization
 
 This directory contains tools for optimizing hybrid search (BM25 + Vector) weights through grid search and evaluation.

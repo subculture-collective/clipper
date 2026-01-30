@@ -1,3 +1,14 @@
+---
+title: "HYBRID SEARCH OPTIMIZATION SUMMARY"
+summary: "This document summarizes the implementation of hybrid search weight optimization for Roadmap 5.0 Phase 3.1."
+tags: ["docs","summary"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Hybrid Search Weight Optimization - Summary
 
 ## Implementation Complete ✅

@@ -1,3 +1,14 @@
+---
+title: "RECOMMENDATION EVALUATION"
+summary: "This document describes the evaluation framework for the recommendation algorithm, including metrics definitions, baseline measurements, and guidelines for continuous improvement."
+tags: ["docs"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Recommendation Algorithm Evaluation Framework
 
 ## Overview

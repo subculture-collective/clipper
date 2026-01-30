@@ -1,7 +1,7 @@
 ---
 title: "Mobile Submit Clip Flow - Final Implementation Report"
 summary: "**Issue**: Mobile: Submit Clip flow with validation and upload"
-tags: ['mobile']
+tags: ["mobile"]
 area: "mobile"
 status: "stable"
 owner: "team-core"

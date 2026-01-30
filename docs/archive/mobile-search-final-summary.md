@@ -1,7 +1,7 @@
 ---
 title: "Search Screen Implementation - Final Summary"
 summary: "Successfully implemented a comprehensive mobile search screen with filters and recent searches funct"
-tags: ['mobile']
+tags: ["mobile"]
 area: "mobile"
 status: "stable"
 owner: "team-core"

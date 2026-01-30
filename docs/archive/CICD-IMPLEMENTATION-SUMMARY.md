@@ -1,3 +1,14 @@
+---
+title: CI/CD Implementation Summary
+summary: This document summarizes the comprehensive CI/CD pipeline implementation for the Clipper project.
+tags: ["archive", "implementation", "summary"]
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # CI/CD Implementation Summary
 
 This document summarizes the comprehensive CI/CD pipeline implementation for the Clipper project.

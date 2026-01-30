@@ -1,3 +1,14 @@
+---
+title: "TESTING"
+summary: "Unified Testing Strategy for Roadmap 5.0 Phase 0 - Defines Clipper's comprehensive testing strategy to achieve 90%+ coverage across all platforms."
+tags: ["testing"]
+area: "testing"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Testing Strategy & Guide
 
 > **Roadmap 5.0 Phase 0 - Unified Testing Strategy**  

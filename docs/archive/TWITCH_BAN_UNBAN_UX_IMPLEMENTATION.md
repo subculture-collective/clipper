@@ -1,3 +1,14 @@
+---
+title: "TWITCH BAN UNBAN UX IMPLEMENTATION"
+summary: "**Issue:** #1064 - Frontend: Ban/unban UX for Twitch"
+tags: ["docs","implementation"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Twitch Ban/Unban UX Implementation Summary
 
 **Issue:** #1064 - Frontend: Ban/unban UX for Twitch  

@@ -1,3 +1,14 @@
+---
+title: "E2E CONSENT BANNER FIX"
+summary: "71 E2E tests were failing due to the consent banner blocking form interactions and creating dialog selector ambiguities. The root cause was:"
+tags: ["docs"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # E2E Test Consent Banner Fix
 
 ## Problem

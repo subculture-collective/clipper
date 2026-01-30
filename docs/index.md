@@ -122,16 +122,21 @@ In-depth documentation for major platform features:
 - **[[decisions/adr-1-semantic-search-vector-db|ADR 001: Semantic Search & Vector DB]]** - Hybrid search architecture
 - **[[decisions/adr-002-mobile-framework-selection|ADR 002: Mobile Framework]]** - React Native + Expo decision
 - **[[decisions/adr-003-advanced-query-language|ADR 003: Query Language]]** - Advanced search syntax
+- **[[decisions/index|All Architecture Decisions]]** - Complete ADR index
+- **[[rfcs/index|Request for Comments (RFCs)]]** - Feature proposals and RFCs
 
-### Product
+### Product & Compliance
 
 - **[[product/features|Features]]** - Complete feature list
-- **[[product/roadmap|Roadmap]]** - Upcoming features and milestones
+- **[[product/roadmap|Roadmap]]** - High-level roadmap overview
+- **[[product/roadmap-5.0|Roadmap 5.0]]** - Detailed current roadmap
 - **[[product/reputation-system|Reputation System]]** - Karma and trust scores
 - **[[product/trust-system|Trust System]]** - User trust and moderation
 - **[[product/tagging-system|Tagging System]]** - Clip categorization
 - **[[product/analytics|Analytics]]** - User engagement tracking
 - **[[product/query-grammar|Query Grammar]]** - Advanced search syntax
+- **[[compliance/index|Compliance]]** - Legal, regulatory, and compliance documentation
+- **[[legal/index|Legal]]** - Terms of service and privacy policy
 
 ## 📖 Additional Resources
 
@@ -139,6 +144,9 @@ In-depth documentation for major platform features:
 - **[[glossary|Glossary]]** - Terms and definitions
 - **[[changelog|Changelog]]** - Version history and release notes
 - **[[contributing|Contributing]]** - How to contribute to the project
+- **[[adr/index|Legacy ADRs]]** - Older architecture decision records
+- **[[examples/index|Code Examples]]** - Sample code and integration examples
+- **[[openapi/index|OpenAPI Specifications]]** - Machine-readable API specs
 
 ## 🏗️ Project Status
 
@@ -173,6 +181,8 @@ In-depth documentation for major platform features:
 
 This documentation is structured as an [Obsidian](https://obsidian.md/) vault for easy navigation and knowledge management.
 
+**New to Obsidian?** See the [[obsidian-guide|Obsidian Setup Guide]] for complete setup instructions, navigation tips, and best practices.
+
 ### Navigation Tips
 
 - **Search**: Press `Ctrl/Cmd + O` to quickly find any page
@@ -181,6 +191,7 @@ This documentation is structured as an [Obsidian](https://obsidian.md/) vault fo
 - **Graph View**: Visualize the relationships between documentation pages
 - **Wikilinks**: Click `[[page-name]]` links to navigate between related pages
 - **Edit Mode**: Toggle between reading and editing with `Ctrl/Cmd + E`
+- **Tags**: Use the tag pane to browse by category (see [[.obsidian/tag-taxonomy|Tag Taxonomy]])
 
 ### Markdown Conventions
 
@@ -189,28 +200,41 @@ This documentation is structured as an [Obsidian](https://obsidian.md/) vault fo
 - **Code Blocks**: Triple backticks with language identifier
 - **Callouts**: Use `> [!note]`, `> [!warning]`, `> [!tip]` for emphasis
 - **Tables**: GitHub-flavored markdown tables for structured data
+- **Frontmatter**: All pages include YAML metadata (see [[.obsidian/templates/frontmatter-template|Frontmatter Template]])
 
 ### Contributing to Docs
 
 Found an error or want to improve the documentation?
 
 1. Check [[contributing|Contributing Guide]] for guidelines
-2. Submit a PR with your changes
-3. Tag with `documentation` label
-4. Documentation changes are validated via CI
+2. Follow the [[.obsidian/templates/frontmatter-template|frontmatter template]] for new pages
+3. Use approved tags from [[.obsidian/tag-taxonomy|Tag Taxonomy]]
+4. Run quality checks locally: `npm run docs:check`
+5. Submit a PR with your changes
+6. Tag with `documentation` label
+7. Documentation changes are validated via CI (see [[contributing/docs-quality-checks|Quality Checks]])
 
 ## 📝 Documentation Validation
 
 All documentation is automatically validated on every commit:
 
 - **Markdown Linting**: Ensures consistent formatting
-- **Spell Checking**: Catches typos and errors
-- **Link Validation**: Verifies all links work
+- **Spell Checking**: Catches typos and errors (respects Obsidian patterns)
+- **Link Validation**: Verifies all links work (excludes localhost)
 - **Anchor Checking**: Confirms internal link targets exist
-- **Orphan Detection**: Finds unreachable documentation
+- **Orphan Detection**: Finds unreachable documentation (BFS from index.md)
 - **Asset Hygiene**: Checks for unused or oversized images
 
-See `.github/workflows/docs.yml` for the complete validation pipeline.
+**All checks exclude `/vault/**` directory.**
+
+📚 **See [[contributing/docs-quality-checks|Documentation Quality Checks]]** for:
+- How to run checks locally
+- Detailed explanation of each check
+- Troubleshooting common issues
+- Configuration file documentation
+- Best practices
+
+Related: [CI Workflow](.github/workflows/docs.yml) | Issues [#803](https://github.com/subculture-collective/clipper/issues/803), [#845](https://github.com/subculture-collective/clipper/issues/845), [#846](https://github.com/subculture-collective/clipper/issues/846), [#805](https://github.com/subculture-collective/clipper/issues/805)
 
 ## 🆘 Getting Help
 
@@ -221,5 +245,7 @@ See `.github/workflows/docs.yml` for the complete validation pipeline.
 
 ---
 
-**Last Updated**: 2025-11-30  
+**Last Updated**: 2026-01-29  
 **Maintained by**: [Subculture Collective](https://github.com/subculture-collective)
+
+**Related Issues**: [#803](https://github.com/subculture-collective/clipper/issues/803), [#845](https://github.com/subculture-collective/clipper/issues/845), [#846](https://github.com/subculture-collective/clipper/issues/846)

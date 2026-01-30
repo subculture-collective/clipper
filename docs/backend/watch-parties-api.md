@@ -1,3 +1,14 @@
+---
+title: "Watch Parties Api"
+summary: "Watch Parties enable synchronized video watching with friends. Users can create parties, invite others via invite codes, and watch clips together with synchronized playback controls."
+tags: ["backend","api"]
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Watch Parties API Documentation
 
 ## Overview

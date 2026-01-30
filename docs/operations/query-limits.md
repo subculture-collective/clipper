@@ -1,3 +1,14 @@
+---
+title: "Query Limits"
+summary: "To prevent resource exhaustion attacks and ensure system stability, Clipper implements comprehensive query cost analysis and complexity limits for both database queries and search operations."
+tags: ["operations"]
+area: "operations"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Query Cost Analysis and Complexity Limits
 
 ## Overview

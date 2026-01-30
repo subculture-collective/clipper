@@ -1,3 +1,14 @@
+---
+title: "Stripe Ci Secrets"
+summary: "This document describes how to configure Stripe test keys for E2E testing in CI/CD pipelines."
+tags: ["testing"]
+area: "testing"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Stripe Test Keys Configuration for CI/CD
 
 This document describes how to configure Stripe test keys for E2E testing in CI/CD pipelines.

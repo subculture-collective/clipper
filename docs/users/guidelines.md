@@ -1,6 +1,6 @@
 ---
 title: "Community Guidelines"
-summary: "Welcome to Clipper! These guidelines help ensure our community remains friendly, inclusive, and focu"
+summary: "Welcome to Clipper! These guidelines help ensure our community remains friendly, inclusive, and focused"
 tags: ['users', 'guide']
 area: "users"
 status: "stable"

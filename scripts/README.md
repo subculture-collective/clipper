@@ -1220,3 +1220,35 @@ Automated via GitHub Actions workflow `.github/workflows/restore-drill.yml` - ru
 
 See [Backup & Recovery Runbook](../docs/operations/backup-recovery-runbook.md) for complete documentation.
 
+
+## Documentation Quality Checks
+
+### Overview
+
+Scripts for validating documentation quality. These run in CI and can be run locally.
+
+**Scripts:**
+- `check-anchors.js` - Validates internal anchor links point to existing headings
+- `check-orphans.js` - Finds unreachable pages using BFS from /docs/index.md
+- `check-unused-assets.js` - Detects unreferenced assets in /docs/_assets/
+
+**Usage:**
+```bash
+npm run docs:anchors    # Check anchor links
+npm run docs:orphans    # Find orphaned pages
+npm run docs:assets     # Check for unused assets
+npm run docs:check      # Run all quality checks
+```
+
+**Key Features:**
+- All scripts exclude `/vault/**` directory
+- Support Obsidian wikilinks: `[[page]]`, `[[page|alias]]`
+- BFS traversal for orphan detection
+- GitHub-style anchor conversion
+- Warning-only mode (exit 0) for legacy compatibility
+
+**Documentation:**
+See [Documentation Quality Checks Guide](../docs/contributing/docs-quality-checks.md) for complete documentation.
+
+**CI Integration:**
+These checks run on every PR via `.github/workflows/docs.yml`.

@@ -1,3 +1,14 @@
+---
+title: "SEARCH EVALUATION"
+summary: "This framework provides tools for evaluating and improving search quality in Clipper using standard Information Retrieval (IR) metrics."
+tags: ["docs"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Search Relevance Evaluation Framework
 
 This framework provides tools for evaluating and improving search quality in Clipper using standard Information Retrieval (IR) metrics.

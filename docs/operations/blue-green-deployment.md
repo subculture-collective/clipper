@@ -1,3 +1,14 @@
+---
+title: "Blue Green Deployment"
+summary: "Complete guide to implementing and using blue/green deployments for zero-downtime releases in Clipper."
+tags: ["operations"]
+area: "operations"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Blue/Green Deployment Guide
 
 Complete guide to implementing and using blue/green deployments for zero-downtime releases in Clipper.

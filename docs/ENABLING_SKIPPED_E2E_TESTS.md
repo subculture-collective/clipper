@@ -1,3 +1,14 @@
+---
+title: "ENABLING SKIPPED E2E TESTS"
+summary: "This guide shows exactly how to convert each category of skipped tests to use the new fixture system."
+tags: ["docs","testing"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Quick Guide: Enabling Skipped E2E Tests
 
 This guide shows exactly how to convert each category of skipped tests to use the new fixture system.

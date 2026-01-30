@@ -1,3 +1,14 @@
+---
+title: "Live Streams"
+summary: "Complete guide to Clipper's live stream integration features, allowing users to watch Twitch streams directly on the platform with integrated chat, notifications, and clip creation."
+tags: ["features"]
+area: "features"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Live Stream Watching & Integration
 
 Complete guide to Clipper's live stream integration features, allowing users to watch Twitch streams directly on the platform with integrated chat, notifications, and clip creation.

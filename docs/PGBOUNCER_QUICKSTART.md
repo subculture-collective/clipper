@@ -1,3 +1,14 @@
+---
+title: "PGBOUNCER QUICKSTART"
+summary: "This guide provides step-by-step instructions to deploy PgBouncer connection pooler to the Clipper Kubernetes cluster."
+tags: ["docs","quick-reference"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # PgBouncer Deployment Quick Start Guide
 
 This guide provides step-by-step instructions to deploy PgBouncer connection pooler to the Clipper Kubernetes cluster.

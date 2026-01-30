@@ -1,3 +1,14 @@
+---
+title: "E2E IPV6 FIX"
+summary: "E2E tests were failing with `ECONNREFUSED ::1:8080` errors. The root cause was:"
+tags: ["docs"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # E2E Test IPv6 Connection Fix
 
 ## Problem

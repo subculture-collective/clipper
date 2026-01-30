@@ -1,3 +1,14 @@
+---
+title: "NSFW DETECTION"
+summary: "The NSFW Image Detection system provides automated detection and moderation of NSFW (Not Safe For Work) content in images and thumbnails. It integrates with external AI services for accurate detection"
+tags: ["docs"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # NSFW Image Detection API
 
 ## Overview

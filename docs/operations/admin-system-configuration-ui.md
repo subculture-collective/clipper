@@ -1,3 +1,14 @@
+---
+title: "Admin System Configuration Ui"
+summary: "Build system configuration UI allowing admins to toggle feature flags, edit rate limits, manage notification settings, and control premium tiers without code deployment."
+tags: ["operations"]
+area: "operations"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 ## Summary
 
 Build system configuration UI allowing admins to toggle feature flags, edit rate limits, manage notification settings, and control premium tiers without code deployment.

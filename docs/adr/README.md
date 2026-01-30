@@ -1,3 +1,14 @@
+---
+title: "README"
+summary: "This directory contains Architecture Decision Records (ADRs) documenting significant architectural decisions made for the Clipper project."
+tags: ["adr"]
+area: "adr"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Architecture Decision Records (ADR)
 
 This directory contains Architecture Decision Records (ADRs) documenting significant architectural decisions made for the Clipper project.

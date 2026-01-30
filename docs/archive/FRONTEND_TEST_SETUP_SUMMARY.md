@@ -1,3 +1,14 @@
+---
+title: "FRONTEND TEST SETUP SUMMARY"
+summary: "Your frontend test infrastructure is now fully organized with separate test runners for unit and E2E tests, following the same pattern as your backend test setup."
+tags: ["docs","testing","summary"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Frontend Test Infrastructure Summary
 
 ## ✅ What's Been Set Up

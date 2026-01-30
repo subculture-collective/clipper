@@ -1,3 +1,14 @@
+---
+title: "SENDGRID WEBHOOK SECURITY"
+summary: "The SendGrid webhook handler implements ECDSA signature verification to prevent webhook spoofing attacks. This ensures that all webhook events received by the application are genuinely from SendGrid."
+tags: ["docs"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # SendGrid Webhook Signature Verification
 
 ## Overview

@@ -1,3 +1,14 @@
+---
+title: "DEPLOYMENT AUTOMATION"
+summary: "This document describes the completed deployment automation features."
+tags: ["docs"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Deployment Automation Documentation
 
 This document describes the completed deployment automation features.

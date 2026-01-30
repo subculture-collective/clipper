@@ -1,3 +1,14 @@
+---
+title: "Alert Testing Staging"
+summary: "This document describes procedures for testing alert rules in the staging environment to ensure they fire correctly before deploying to production."
+tags: ["operations","testing"]
+area: "operations"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Alert Testing in Staging
 
 This document describes procedures for testing alert rules in the staging environment to ensure they fire correctly before deploying to production.

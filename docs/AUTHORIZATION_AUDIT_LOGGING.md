@@ -1,3 +1,14 @@
+---
+title: "AUTHORIZATION AUDIT LOGGING"
+summary: "The authorization middleware implements comprehensive audit logging for all authorization decisions to support security monitoring, compliance, and incident investigation."
+tags: ["docs"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Authorization Audit Logging
 
 ## Overview

@@ -1,3 +1,14 @@
+---
+title: "API Playlist Sharing"
+summary: "This document describes the API endpoints for playlist sharing and collaborative features."
+tags: ["backend","api"]
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Playlist Sharing & Collaboration API
 
 This document describes the API endpoints for playlist sharing and collaborative features.

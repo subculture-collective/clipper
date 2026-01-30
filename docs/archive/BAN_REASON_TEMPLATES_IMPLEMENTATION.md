@@ -1,3 +1,14 @@
+---
+title: "BAN REASON TEMPLATES IMPLEMENTATION"
+summary: "**Issue:** #1120.3 - Ban Reason Templates & Shortcuts"
+tags: ["docs","implementation"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Ban Reason Templates Feature
 
 **Issue:** #1120.3 - Ban Reason Templates & Shortcuts  

@@ -1,3 +1,14 @@
+---
+title: "Feature Test Coverage"
+summary: "> **Created**: 2025-12-29"
+tags: ["product","testing"]
+area: "product"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Feature Test Coverage Audit
 
 > **Created**: 2025-12-29

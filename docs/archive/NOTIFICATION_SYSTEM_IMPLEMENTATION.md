@@ -1,3 +1,14 @@
+---
+title: Notification System Implementation Summary
+summary: This document summarizes the implementation of the notification system for user interactions in the Clipper application. The notification system...
+tags: ["archive", "implementation", "summary"]
+area: docs
+status: archived
+owner: team-core
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 
 # Notification System Implementation Summary
 

@@ -1,3 +1,14 @@
+---
+title: "E2E SETUP COMPLETE"
+summary: "You can now enable specific E2E test configurations to run additional tests that were previously skipped."
+tags: ["docs"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # E2E Test Configuration Complete ✅
 
 You can now enable specific E2E test configurations to run additional tests that were previously skipped.

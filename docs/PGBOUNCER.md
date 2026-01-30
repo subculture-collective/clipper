@@ -1,3 +1,14 @@
+---
+title: "PGBOUNCER"
+summary: "PgBouncer is deployed as a connection pooler between the Clipper backend and PostgreSQL database. It provides efficient connection pooling in transaction mode, reducing connection overhead and improvi"
+tags: ["docs"]
+area: "docs"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # PgBouncer Connection Pool Configuration
 
 ## Overview

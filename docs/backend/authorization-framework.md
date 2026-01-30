@@ -1,3 +1,14 @@
+---
+title: "Authorization Framework"
+summary: "This document describes the comprehensive authorization framework implemented to prevent IDOR (Insecure Direct Object Reference) vulnerabilities across all API endpoints that access user resources."
+tags: ["backend"]
+area: "backend"
+status: "stable"
+owner: "team-core"
+version: "1.0"
+last_reviewed: 2026-01-29
+---
+
 # Authorization Framework Documentation
 
 ## Overview
