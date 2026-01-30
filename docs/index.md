@@ -37,6 +37,7 @@ Guides for using the Clipper platform:
 
 In-depth documentation for major platform features:
 
+- **[[features/index|Features Hub]]** - Complete feature documentation index
 - **[[features/comments|Comment System]]** - Reddit-style nested threading, E2E testing, and performance optimization
 - **[[features/live-streams|Live Streams]]** - Watch Twitch streams with integrated chat, follow notifications, and clip creation
 - **[[features/feature-feed-filtering|Feed Filtering]]** - Personalized content filtering
@@ -55,6 +56,7 @@ In-depth documentation for major platform features:
 
 #### Backend (Go + PostgreSQL)
 
+- **[[backend/index|Backend Hub]]** - Complete backend documentation index
 - **[[backend/architecture|Architecture]]** - System design, components, and data flow
 - **[[backend/api|API Reference]]** - REST API endpoints, authentication, and examples
 - **[[backend/clip-submission-api-hub|Clip Submission API Hub]]** - Navigate all submission API resources
@@ -70,10 +72,13 @@ In-depth documentation for major platform features:
 - **[[backend/caching-strategy|Caching Strategy]]** - Redis caching patterns
 - **[[backend/rbac|RBAC]]** - Role-based access control and permissions
 - **[[backend/security|Security]]** - Security best practices and threat mitigation
+- **[[testing/index|Testing Hub]]** - Complete testing documentation index
 - **[[testing/TESTING|Testing Strategy]]** - Comprehensive testing strategy for Roadmap 5.0 (unit, integration, E2E, load, scheduler, observability)
+- **[[testing-gap-issues|Testing Gap Issues]]** - Known testing coverage gaps and tracking
 
 #### Frontend (React + TypeScript)
 
+- **[[frontend/index|Frontend Hub]]** - Complete frontend documentation index
 - **[[frontend/architecture|Architecture]]** - Component structure, state management, and patterns
 - **[[frontend/dev-guide|Development Guide]]** - Component creation, styling, and best practices
 - **[[frontend/component-library|Component Library]]** - Reusable UI components
@@ -81,6 +86,7 @@ In-depth documentation for major platform features:
 
 #### Mobile (React Native + Expo)
 
+- **[[mobile/index|Mobile Hub]]** - Complete mobile app documentation index
 - **[[mobile/architecture|Architecture]]** - App structure, navigation, and platform considerations
 - **[[mobile/implementation|Implementation Guide]]** - Features, OAuth, search, comments, and submit flow
 - **[[mobile/deep-linking|Deep Linking]]** - Universal links and app navigation
@@ -95,6 +101,7 @@ In-depth documentation for major platform features:
 
 ### Premium & Monetization
 
+- **[[premium/index|Premium Hub]]** - Complete premium and monetization documentation index
 - **[[premium/overview|Premium Overview]]** - Complete guide to subscription features
 - **[[premium/tiers|Pricing Tiers]]** - Free vs Pro benefits, pricing strategy
 - **[[premium/entitlements|Entitlements]]** - Feature gates and access control implementation
@@ -105,6 +112,7 @@ In-depth documentation for major platform features:
 
 ### Deployment & Operations
 
+- **[[operations/index|Operations Hub]]** - Complete operations documentation index
 - **[[deployment/docker|Docker Deployment]]** - Container-based deployment and multi-stage builds
 - **[[deployment/ci_cd|CI/CD Pipeline]]** - GitHub Actions workflows and automation
 - **[[deployment/infra|Infrastructure]]** - Kubernetes, cloud providers, and scaling
@@ -127,6 +135,7 @@ In-depth documentation for major platform features:
 
 ### Product & Compliance
 
+- **[[product/index|Product Hub]]** - Complete product documentation index
 - **[[product/features|Features]]** - Complete feature list
 - **[[product/roadmap|Roadmap]]** - High-level roadmap overview
 - **[[product/roadmap-5.0|Roadmap 5.0]]** - Detailed current roadmap

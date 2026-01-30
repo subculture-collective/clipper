@@ -31,11 +31,15 @@ Production operations, monitoring, security, and maintenance procedures.
 - [[migration|Database Migrations]] - Migration procedures
 - [[secrets-management|Secrets Management]] - Secure credential handling
 - [[security-scanning|Security Scanning]] - Automated security checks
+- [[security-testing-runbook|Security Testing Runbook]] - Security testing procedures
 - [[waf-protection|WAF Protection]] - Application-level WAF and rate limiting
 - [[ddos-protection|DDoS Protection]] - DDoS mitigation and traffic analytics
 - [[observability|Observability]] - Distributed tracing
+- [[CDN_FAILOVER_RUNBOOK|CDN Failover Runbook]] - CDN failover procedures
+- [[DEPLOYMENT_AUTOMATION|Deployment Automation]] - Automated deployment processes
+- [[TWITCH_BAN_UNBAN_TESTING_ROLLOUT_DOCS|Twitch Moderation Rollout]] - Twitch moderation feature rollout
 
-## Deployment
+## Deployment & Blue-Green
 
 For deployment procedures, see the **[[../deployment/index|Deployment Hub]]**:
 
@@ -43,6 +47,11 @@ For deployment procedures, see the **[[../deployment/index|Deployment Hub]]**:
 - [[../deployment/ci_cd|CI/CD Pipeline]] - GitHub Actions workflows
 - [[../deployment/infra|Infrastructure]] - Cloud infrastructure and scaling
 - [[../deployment/runbook|Operations Runbook]] - Day-to-day operational procedures
+- [[deployment|Deployment Guide]] - Deployment overview
+- [[blue-green-deployment|Blue-Green Deployment]] - Zero-downtime deployments
+- [[blue-green-rollback|Blue-Green Rollback]] - Rolling back deployments
+- [[blue-green-quick-reference|Blue-Green Quick Reference]] - Quick reference guide
+- [[twitch-moderation-rollout-plan|Twitch Moderation Rollout Plan]] - Feature rollout planning
 
 ## Security & Compliance
 
@@ -55,8 +64,13 @@ For deployment procedures, see the **[[../deployment/index|Deployment Hub]]**:
 
 ## On-Call Playbooks
 
+- [[playbooks/README|Playbooks Overview]] - Operational playbooks index
 - [[playbooks/search-incidents|Search Incidents]] - Semantic search troubleshooting
 - [[playbooks/slo-breach-response|SLO Breach Response]] - Responding to SLO violations
+- [[runbooks/alert-validation|Alert Validation]] - Validating alert configurations
+- [[runbooks/background-jobs|Background Jobs]] - Background job troubleshooting
+- [[runbooks/hpa-scaling|HPA Scaling]] - Horizontal pod autoscaling
+- [[runbook|Operations Runbook]] - General operational procedures
 
 ## Advanced Topics
 
@@ -68,7 +82,19 @@ For deployment procedures, see the **[[../deployment/index|Deployment Hub]]**:
 - [[centralized-logging|Centralized Logging]] - Log aggregation and analysis
 - [[ci-cd-secrets|CI/CD Secrets]] - Managing deployment secrets
 - [[ci-cd-vault-integration|CI/CD Vault Integration]] - Vault integration for CI/CD
+- [[cicd|CI/CD Overview]] - CI/CD pipeline overview
+- [[quick-start-cicd|CI/CD Quick Start]] - Getting started with CI/CD
 - [[webhook-monitoring|Webhook Monitoring]] - Monitoring outbound webhooks
+- [[webhook-dlq-replay-runbook|Webhook DLQ Replay]] - Replaying failed webhooks
+- [[alert-testing-staging|Alert Testing in Staging]] - Testing alerting rules
+- [[on-call-rotation|On-Call Rotation]] - On-call schedule and procedures
+- [[on-call-quick-reference|On-Call Quick Reference]] - Quick reference for on-call
+- [[deployment-live-development|Live Development Deployment]] - Development deployment
+- [[documentation-hosting|Documentation Hosting]] - Hosting documentation site
+- [[admin-system-configuration-ui|Admin System Configuration]] - Admin configuration UI
+- [[mfa-admin-guide|MFA Admin Guide]] - Multi-factor authentication setup
+- [[query-limits|Query Limits]] - API query limits and throttling
+- [[global-redundancy-runbook|Global Redundancy]] - Multi-region redundancy
 
 ## Documentation Index
 
