@@ -1,114 +1,169 @@
 ---
 title: "README"
-summary: "This directory contains OpenAPI 3.1 specifications for the Clipper API."
-tags: ["openapi"]
+summary: "Complete OpenAPI 3.1 specification for all Clipper API endpoints"
+tags: ["openapi", "api-docs", "swagger"]
 area: "openapi"
 status: "stable"
 owner: "team-core"
-version: "2.0"
-last_reviewed: 2026-01-29
+version: "1.0.0"
+last_reviewed: 2026-01-30
 ---
 
-# OpenAPI Specifications
+# Clipper API - OpenAPI Specification
 
-This directory contains OpenAPI 3.1 specifications for the Clipper API.
+Complete OpenAPI 3.1 specification documenting all 474+ API endpoints for the Clipper platform.
 
-## Available Specifications
+## 📄 Main Specification
 
-### Complete API Specification (NEW)
+### Complete API Specification
 
 - **File**: [`openapi.yaml`](./openapi.yaml)
-- **Description**: **Complete OpenAPI 3.1 specification documenting all 474 API endpoints**
-- **Version**: 1.0.0
-- **Coverage**: 
-  - Health & Monitoring (10 endpoints)
-  - Authentication & MFA (15 endpoints)
-  - Clips & Content (25+ endpoints)
-  - Comments & Engagement (10 endpoints)
-  - Tags & Search (15 endpoints)
-  - Submissions & Reports (10 endpoints)
-  - Moderation & Appeals (20+ endpoints)
-  - Users & Profiles (40+ endpoints)
-  - Creators & Analytics (9 endpoints)
-  - Broadcasters & Live (6 endpoints)
-  - Categories & Games
-  - Streams & Twitch Integration
-  - Discovery Lists & Leaderboards
-  - Feeds & Recommendations
-  - Notifications
-  - Verification & Subscriptions
-  - Webhooks & Integrations
-  - Chat & WebSocket
-  - Ads & Campaigns
-  - Communities & Forums
-  - Playlists & Queue
-  - Watch History & Parties
-  - Service Status
-  - Admin Operations (100+ endpoints)
-- **Features**:
-  - Complete request/response schemas
-  - Authentication patterns
-  - Rate limiting documentation
-  - Error responses
-  - Pagination support
-  - WebSocket endpoints
-  - Comprehensive component schemas
+- **Version**: 1.0.0 (OpenAPI 3.1)
+- **Description**: Complete API documentation covering all endpoints
+- **Size**: 4,691 lines
+- **Endpoints**: 474+ documented routes
+- **Status**: ✅ Production-ready and validated
 
-### Legacy Specifications (DEPRECATED - use openapi.yaml)
+**Major API Groups:**
+- Health & Monitoring (10 endpoints)
+- Authentication & MFA (15 endpoints)
+- Clips & Content Management (40+ endpoints)
+- Comments & Engagement
+- Users & Profiles (40+ fully documented)
+- Search & Discovery
+- Submissions & Moderation (30+ endpoints)
+- Tags & Categories
+- Reports & Appeals
+- Analytics & Engagement
+- Premium/Subscriptions
+- Notifications
+- Feeds & Recommendations
+- Communities & Forums
+- Playlists & Watch Parties
+- Broadcasters & Live Status
+- Admin Operations
+- Webhooks & Events
 
-### Clip Submission API (DEPRECATED)
+### Legacy Specifications (Deprecated)
 
-- **File**: [`clip-submission-api.yaml`](./clip-submission-api.yaml)
-- **Description**: Partial API spec for submitting Twitch clips
-- **Status**: Deprecated - Superseded by openapi.yaml
-- **Version**: 1.0.0
+> ⚠️ **Note**: These are maintained for backward compatibility but `openapi.yaml` is now the single source of truth.
 
-### Comments API (DEPRECATED)
+- [`clip-submission-api.yaml`](./clip-submission-api.yaml) - Clip submission workflow
+- [`comments-api.yaml`](./comments-api.yaml) - Comment threading system
 
-- **File**: [`comments-api.yaml`](./comments-api.yaml)
-- **Description**: Partial API spec for managing comments on clips
-- **Status**: Deprecated - Superseded by openapi.yaml
-- **Version**: 1.0.0
+## 🚀 Quick Start
 
-## Viewing the Specifications
+### Viewing the API Documentation
 
-### Online Viewers
+#### Option 1: Swagger UI (Recommended)
 
-You can view and interact with the complete API specification using:
+Open the interactive API documentation in your browser:
 
-1. **Swagger Editor**: <https://editor.swagger.io/>
-   - Copy and paste the YAML content from `openapi.yaml` into the editor
+```bash
+# Using Make
+make openapi-serve
 
-2. **Redoc**: Generate beautiful HTML documentation
-   ```bash
-   npx @redocly/cli build-docs docs/openapi/openapi.yaml
-   ```
+# Or using npm
+npm run openapi:serve
+```
 
-3. **Swagger UI**: Run a local Swagger UI server
-   ```bash
-   docker run -p 8081:8080 -e SWAGGER_JSON=/api/openapi.yaml -v $(pwd)/docs/openapi:/api swaggerapi/swagger-ui
-   ```
-   Then visit <http://localhost:8081>
+Then open http://localhost:8081 in your browser.
 
-### VS Code Extension
+#### Option 2: Redocly Preview (Live Reload)
 
-Install the [OpenAPI (Swagger) Editor](https://marketplace.visualstudio.com/items?itemName=42Crunch.vscode-openapi) extension for VS Code to get:
-- Syntax highlighting
-- Validation
-- Auto-completion
-- Live preview
+For documentation development with live reload:
 
-## Generating Client SDKs
+```bash
+# Using npm
+npm run openapi:preview
 
-You can generate client libraries in various languages using [OpenAPI Generator](https://openapi-generator.tech/):
+# Or directly
+npx @redocly/cli preview-docs docs/openapi/openapi.yaml
+```
 
-### TypeScript/JavaScript
+#### Option 3: Online Viewers
+
+Upload or paste the spec into:
+- [Swagger Editor](https://editor.swagger.io/)
+- [Redoc](https://redocly.github.io/redoc/)
+- [Stoplight Studio](https://stoplight.io/studio/)
+
+### Validating the Specification
+
+```bash
+# Using Make
+make openapi-validate
+
+# Or using npm
+npm run openapi:validate
+
+# Or directly
+npx @redocly/cli lint docs/openapi/openapi.yaml
+```
+
+### Building Static Documentation
+
+Generate a standalone HTML file:
+
+```bash
+# Using Make
+make openapi-build
+
+# Or using npm
+npm run openapi:build
+
+# Output: docs/openapi/api-docs.html
+```
+
+### Getting Spec Statistics
+
+```bash
+# Using Make
+make openapi-stats
+
+# Or using npm
+npm run openapi:stats
+```
+
+## 🛠️ Development Workflow
+
+### Making Changes
+
+1. **Edit the specification**: `docs/openapi/openapi.yaml`
+2. **Validate your changes**: `make openapi-validate`
+3. **Preview locally**: `make openapi-preview`
+4. **Commit and push**: Changes are validated automatically in CI
+
+### CI/CD Validation
+
+OpenAPI specifications are automatically validated on:
+- Pull requests
+- Pushes to main/develop branches
+- Changes to OpenAPI files
+
+See [`.github/workflows/openapi.yml`](../../.github/workflows/openapi.yml) for details.
+
+## 📦 Generating Client SDKs
+
+Use OpenAPI Generator to create type-safe clients for any language:
+
+### TypeScript/JavaScript (Axios)
 
 ```bash
 npx @openapitools/openapi-generator-cli generate \
   -i docs/openapi/openapi.yaml \
   -g typescript-axios \
-  -o generated/typescript-client
+  -o generated/typescript-client \
+  --additional-properties=npmName=@clipper/api-client,npmVersion=1.0.0
+```
+
+### TypeScript/JavaScript (Fetch)
+
+```bash
+npx @openapitools/openapi-generator-cli generate \
+  -i docs/openapi/openapi.yaml \
+  -g typescript-fetch \
+  -o generated/typescript-fetch-client
 ```
 
 ### Python
@@ -117,7 +172,8 @@ npx @openapitools/openapi-generator-cli generate \
 npx @openapitools/openapi-generator-cli generate \
   -i docs/openapi/openapi.yaml \
   -g python \
-  -o generated/python-client
+  -o generated/python-client \
+  --additional-properties=packageName=clipper_api,packageVersion=1.0.0
 ```
 
 ### Go
@@ -126,55 +182,143 @@ npx @openapitools/openapi-generator-cli generate \
 npx @openapitools/openapi-generator-cli generate \
   -i docs/openapi/openapi.yaml \
   -g go \
-  -o generated/go-client
+  -o generated/go-client \
+  --additional-properties=packageName=clipper
 ```
 
 ### Other Languages
 
-OpenAPI Generator supports 50+ languages and frameworks. See the [full list of generators](https://openapi-generator.tech/docs/generators).
+OpenAPI Generator supports 50+ languages. See [available generators](https://openapi-generator.tech/docs/generators).
 
-## Validating Specifications
+## 🧪 Testing
 
-Validate the OpenAPI specification using:
+### Import into API Testing Tools
+
+#### Postman
+
+1. Open Postman
+2. Click "Import" → "Upload Files"
+3. Select `docs/openapi/openapi.yaml`
+4. Postman creates a collection with all endpoints
+
+#### Insomnia
+
+1. Open Insomnia
+2. Click "Create" → "Import From" → "File"
+3. Select `docs/openapi/openapi.yaml`
+
+#### REST Client (VS Code)
+
+Use the [REST Client](https://marketplace.visualstudio.com/items?itemName=humao.rest-client) extension with the generated examples.
+
+## 🔒 Authentication
+
+Most endpoints require JWT Bearer authentication:
 
 ```bash
-# Using Redocly CLI (recommended)
-npx @redocly/cli lint docs/openapi/openapi.yaml
-
-# Using Python
-python3 -c "import yaml; yaml.safe_load(open('docs/openapi/openapi.yaml'))"
+# Example authenticated request
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  https://api.clpr.tv/api/v1/clips
 ```
 
-## Testing the API
+**Getting a Token:**
+1. Authenticate via Twitch OAuth: `GET /api/v1/auth/twitch`
+2. Use the returned JWT token in subsequent requests
+3. Refresh tokens when expired: `POST /api/v1/auth/refresh`
 
-### Using the Swagger UI
+## 📊 Rate Limiting
 
-1. Run Swagger UI (see instructions above)
-2. Click "Authorize" and enter your JWT token
-3. Try out the endpoints directly from the UI
+Rate limits vary by subscription tier:
 
-### Using Postman
+- **Free**: 300 requests/minute
+- **Premium**: 1,000 requests/minute
+- **Enterprise**: Custom limits
 
-1. Import the OpenAPI specification into Postman
-2. Postman will automatically create a collection with all endpoints
-3. Set up authentication in the collection variables
+Rate limit headers in responses:
+- `X-RateLimit-Limit`: Max requests allowed
+- `X-RateLimit-Remaining`: Requests remaining
+- `X-RateLimit-Reset`: Reset timestamp
 
-### Using cURL
+## 🌍 API Environments
 
-See the [Clip Submission API Guide](../CLIP_SUBMISSION_API_GUIDE.md) for comprehensive cURL examples.
+### Development
+- Base URL: `http://localhost:8080`
+- Use for local development and testing
 
-## Contributing
+### Staging
+- Base URL: `https://staging.clpr.tv`
+- Pre-production environment for integration testing
 
-When adding or modifying API endpoints:
+### Production
+- Base URL: `https://api.clpr.tv`
+- Production API with full SLA and monitoring
 
-1. Update the corresponding OpenAPI specification
-2. Validate the specification
-3. Update the developer guide with examples
-4. Test all endpoints
-5. Submit a pull request
+## 📝 Specification Structure
 
-## Related Documentation
+```yaml
+openapi: 3.1.0
+info:                       # API metadata
+servers:                    # Environment URLs
+tags:                       # Endpoint categories
+paths:                      # All API endpoints
+  /api/v1/clips:           # Clip operations
+  /api/v1/users:           # User operations
+  /api/v1/auth:            # Authentication
+  # ... 474+ more endpoints
+components:
+  securitySchemes:         # JWT Bearer auth
+  schemas:                 # Reusable data models
+    Clip:                  # Clip model
+    User:                  # User model
+    Comment:               # Comment model
+    # ... 30+ more models
+  parameters:              # Reusable parameters
+  responses:               # Reusable responses
+```
 
-- [Clip Submission API Guide](../CLIP_SUBMISSION_API_GUIDE.md) - Complete developer guide with examples
-- [API Reference](../API.md) - Main API documentation
-- [User Submission Implementation](../USER_SUBMISSION_IMPLEMENTATION.md) - Technical implementation details
+## 🔗 Related Documentation
+
+- [Main API Documentation](../backend/api.md)
+- [Clip Submission Guide](../CLIP_SUBMISSION_API_GUIDE.md)
+- [Authentication Guide](../backend/authentication.md)
+- [Rate Limiting](../backend/rate-limiting.md)
+- [WebSocket API](../backend/websocket-api.md)
+
+## 🐛 Troubleshooting
+
+### Validation Errors
+
+If you encounter validation errors:
+
+```bash
+# Check detailed error output
+npx @redocly/cli lint docs/openapi/openapi.yaml --format=stylish
+
+# Use VS Code extension for inline validation
+# Install: OpenAPI (Swagger) Editor by 42Crunch
+```
+
+### Missing Endpoints
+
+The spec documents all 474+ endpoints. If an endpoint is missing or incorrect:
+
+1. Check `backend/cmd/api/main.go` for the source definition
+2. Update `docs/openapi/openapi.yaml`
+3. Validate with `make openapi-validate`
+4. Submit a pull request
+
+## 📞 Support
+
+- **Issues**: [GitHub Issues](https://github.com/subculture-collective/clipper/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/subculture-collective/clipper/discussions)
+- **Email**: support@clpr.tv
+
+## 📜 License
+
+This API specification is part of the Clipper project and is licensed under the [MIT License](../../LICENSE).
+
+---
+
+**Last Updated**: 2026-01-30  
+**Version**: 1.0.0  
+**Maintainer**: team-core
