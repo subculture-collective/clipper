@@ -7,6 +7,11 @@ import (
 	"github.com/subculture-collective/clipper/internal/repository"
 )
 
+// Test helper: creates a pointer to float64 (including zero values, unlike the production helper)
+func testFloat64Ptr(v float64) *float64 {
+	return &v
+}
+
 func TestBuildCacheKey(t *testing.T) {
 	svc := &ClipService{}
 
@@ -447,5 +452,292 @@ func TestLimitConstraints(t *testing.T) {
 				t.Errorf("Expected limit %d, got %d", tt.expectedLimit, limit)
 			}
 		})
+	}
+}
+
+// TestBuildWatchProgressInfo tests the helper method for creating WatchProgressInfo
+func TestBuildWatchProgressInfo(t *testing.T) {
+	svc := &ClipService{}
+
+	tests := []struct {
+		name            string
+		progressSeconds int
+		completed       bool
+		duration        *float64
+		expectNil       bool
+		expectedPercent float64
+		expectedDurSec  int
+	}{
+		{
+			name:            "Normal progress",
+			progressSeconds: 45,
+			completed:       false,
+			duration:        testFloat64Ptr(120.0),
+			expectNil:       false,
+			expectedPercent: 37.5,
+			expectedDurSec:  120,
+		},
+		{
+			name:            "Zero progress returns nil",
+			progressSeconds: 0,
+			completed:       false,
+			duration:        testFloat64Ptr(120.0),
+			expectNil:       true,
+		},
+		{
+			name:            "Negative progress returns nil",
+			progressSeconds: -10,
+			completed:       false,
+			duration:        testFloat64Ptr(120.0),
+			expectNil:       true,
+		},
+		{
+			name:            "Nil duration",
+			progressSeconds: 45,
+			completed:       false,
+			duration:        nil,
+			expectNil:       false,
+			expectedPercent: 0,
+			expectedDurSec:  0,
+		},
+		{
+			name:            "Zero duration",
+			progressSeconds: 45,
+			completed:       false,
+			duration:        testFloat64Ptr(0.0),
+			expectNil:       false,
+			expectedPercent: 0,
+			expectedDurSec:  0,
+		},
+		{
+			name:            "Completed clip at 90%",
+			progressSeconds: 108,
+			completed:       true,
+			duration:        testFloat64Ptr(120.0),
+			expectNil:       false,
+			expectedPercent: 90.0,
+			expectedDurSec:  120,
+		},
+		{
+			name:            "Progress exceeds duration",
+			progressSeconds: 150,
+			completed:       true,
+			duration:        testFloat64Ptr(120.0),
+			expectNil:       false,
+			expectedPercent: 125.0,
+			expectedDurSec:  120,
+		},
+		{
+			name:            "Small progress value",
+			progressSeconds: 1,
+			completed:       false,
+			duration:        testFloat64Ptr(120.0),
+			expectNil:       false,
+			expectedPercent: 0.8333333333333334,
+			expectedDurSec:  120,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := svc.buildWatchProgressInfo(tt.progressSeconds, tt.completed, tt.duration)
+
+			if tt.expectNil {
+				if result != nil {
+					t.Errorf("Expected nil result, got %+v", result)
+				}
+				return
+			}
+
+			if result == nil {
+				t.Fatal("Expected non-nil result, got nil")
+			}
+
+			if result.ProgressSeconds != tt.progressSeconds {
+				t.Errorf("Expected ProgressSeconds=%d, got %d", tt.progressSeconds, result.ProgressSeconds)
+			}
+
+			if result.Completed != tt.completed {
+				t.Errorf("Expected Completed=%v, got %v", tt.completed, result.Completed)
+			}
+
+			if result.DurationSeconds != tt.expectedDurSec {
+				t.Errorf("Expected DurationSeconds=%d, got %d", tt.expectedDurSec, result.DurationSeconds)
+			}
+
+			if result.ProgressPercent != tt.expectedPercent {
+				t.Errorf("Expected ProgressPercent=%.2f, got %.2f", tt.expectedPercent, result.ProgressPercent)
+			}
+
+			// Verify WatchedAt is not set (omitted for performance)
+			if result.WatchedAt != "" {
+				t.Errorf("Expected WatchedAt to be empty, got %s", result.WatchedAt)
+			}
+		})
+	}
+}
+
+// TestWatchProgressPercentCalculation tests progress percentage calculation edge cases
+func TestWatchProgressPercentCalculation(t *testing.T) {
+	svc := &ClipService{}
+
+	tests := []struct {
+		name            string
+		progressSeconds int
+		durationSeconds float64
+		expectedPercent float64
+	}{
+		{
+			name:            "Exactly 50%",
+			progressSeconds: 60,
+			durationSeconds: 120,
+			expectedPercent: 50.0,
+		},
+		{
+			name:            "Completion threshold at 90%",
+			progressSeconds: 108,
+			durationSeconds: 120,
+			expectedPercent: 90.0,
+		},
+		{
+			name:            "Just below completion threshold",
+			progressSeconds: 107,
+			durationSeconds: 120,
+			expectedPercent: 89.16666666666667,
+		},
+		{
+			name:            "Full completion at 100%",
+			progressSeconds: 120,
+			durationSeconds: 120,
+			expectedPercent: 100.0,
+		},
+		{
+			name:            "Very small percentage",
+			progressSeconds: 1,
+			durationSeconds: 1000,
+			expectedPercent: 0.1,
+		},
+		{
+			name:            "Fractional seconds precision",
+			progressSeconds: 33,
+			durationSeconds: 100,
+			expectedPercent: 33.0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			duration := tt.durationSeconds
+			result := svc.buildWatchProgressInfo(tt.progressSeconds, false, &duration)
+
+			if result == nil {
+				t.Fatal("Expected non-nil result")
+			}
+
+			if result.ProgressPercent != tt.expectedPercent {
+				t.Errorf("Expected ProgressPercent=%.2f, got %.2f", tt.expectedPercent, result.ProgressPercent)
+			}
+		})
+	}
+}
+
+// TestWatchProgressCompletionLogic tests the completion flag behavior
+func TestWatchProgressCompletionLogic(t *testing.T) {
+	svc := &ClipService{}
+
+	tests := []struct {
+		name              string
+		progressSeconds   int
+		durationSeconds   float64
+		completed         bool
+		description       string
+		expectedCompleted bool
+	}{
+		{
+			name:              "Not completed at 50%",
+			progressSeconds:   60,
+			durationSeconds:   120,
+			completed:         false,
+			description:       "Should not be marked complete at 50%",
+			expectedCompleted: false,
+		},
+		{
+			name:              "Completed at 90%",
+			progressSeconds:   108,
+			durationSeconds:   120,
+			completed:         true,
+			description:       "Should be marked complete at exactly 90%",
+			expectedCompleted: true,
+		},
+		{
+			name:              "Completed at 100%",
+			progressSeconds:   120,
+			durationSeconds:   120,
+			completed:         true,
+			description:       "Should be marked complete at 100%",
+			expectedCompleted: true,
+		},
+		{
+			name:              "Completed flag overrides percentage",
+			progressSeconds:   10,
+			durationSeconds:   120,
+			completed:         true,
+			description:       "Backend sets completed flag, helper preserves it",
+			expectedCompleted: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			duration := tt.durationSeconds
+			result := svc.buildWatchProgressInfo(tt.progressSeconds, tt.completed, &duration)
+
+			if result == nil {
+				t.Fatal("Expected non-nil result")
+			}
+
+			if result.Completed != tt.expectedCompleted {
+				t.Errorf("%s: Expected Completed=%v, got %v",
+					tt.description, tt.expectedCompleted, result.Completed)
+			}
+		})
+	}
+}
+
+// TestWatchProgressFieldConsistency validates all fields are set correctly
+func TestWatchProgressFieldConsistency(t *testing.T) {
+	svc := &ClipService{}
+
+	progressSeconds := 75
+	duration := 150.0
+	completed := false
+
+	result := svc.buildWatchProgressInfo(progressSeconds, completed, &duration)
+
+	if result == nil {
+		t.Fatal("Expected non-nil result")
+	}
+
+	// Verify all fields are set
+	if result.ProgressSeconds != progressSeconds {
+		t.Errorf("ProgressSeconds mismatch: expected %d, got %d", progressSeconds, result.ProgressSeconds)
+	}
+
+	if result.DurationSeconds != 150 {
+		t.Errorf("DurationSeconds mismatch: expected 150, got %d", result.DurationSeconds)
+	}
+
+	expectedPercent := 50.0
+	if result.ProgressPercent != expectedPercent {
+		t.Errorf("ProgressPercent mismatch: expected %.2f, got %.2f", expectedPercent, result.ProgressPercent)
+	}
+
+	if result.Completed != completed {
+		t.Errorf("Completed mismatch: expected %v, got %v", completed, result.Completed)
+	}
+
+	// Verify WatchedAt is empty (performance optimization)
+	if result.WatchedAt != "" {
+		t.Errorf("WatchedAt should be empty for performance, got %s", result.WatchedAt)
 	}
 }
