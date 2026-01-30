@@ -58,26 +58,34 @@ function generateJavaScriptSample(path, method, operation) {
     const hasAuth = operation.security && operation.security.length > 0;
     
     let sample = `// Using fetch API\n`;
-    sample += `const response = await fetch('${path}', {\n`;
-    sample += `  method: '${method.toUpperCase()}',\n`;
+    sample += `try {\n`;
+    sample += `  const response = await fetch('${path}', {\n`;
+    sample += `    method: '${method.toUpperCase()}',\n`;
     
     if (hasAuth || operation.requestBody) {
-        sample += `  headers: {\n`;
+        sample += `    headers: {\n`;
         if (hasAuth) {
-            sample += `    'Authorization': 'Bearer YOUR_TOKEN',\n`;
+            sample += `      'Authorization': 'Bearer YOUR_TOKEN',\n`;
         }
         if (operation.requestBody) {
-            sample += `    'Content-Type': 'application/json'\n`;
+            sample += `      'Content-Type': 'application/json'\n`;
         }
-        sample += `  }`;
+        sample += `    }`;
         if (operation.requestBody) {
-            sample += `,\n  body: JSON.stringify({\n    // Your request data\n  })`;
+            sample += `,\n    body: JSON.stringify({\n      // Your request data\n    })`;
         }
         sample += `\n`;
     }
     
-    sample += `});\n`;
-    sample += `const data = await response.json();`;
+    sample += `  });\n`;
+    sample += `  \n  if (!response.ok) {\n`;
+    sample += `    throw new Error('HTTP error ' + response.status);\n`;
+    sample += `  }\n`;
+    sample += `  \n  const data = await response.json();\n`;
+    sample += `  // Process data\n`;
+    sample += `} catch (error) {\n`;
+    sample += `  console.error('Error:', error);\n`;
+    sample += `}`;
     
     return sample;
 }
@@ -94,19 +102,24 @@ function generatePythonSample(path, method, operation) {
         sample += `headers = {'Authorization': 'Bearer YOUR_TOKEN'}\n`;
     }
     
-    sample += `response = requests.${method.toLowerCase()}(\n`;
-    sample += `    '${path}'`;
+    sample += `try:\n`;
+    sample += `    response = requests.${method.toLowerCase()}(\n`;
+    sample += `        '${path}'`;
     
     if (hasAuth) {
-        sample += `,\n    headers=headers`;
+        sample += `,\n        headers=headers`;
     }
     
     if (operation.requestBody) {
-        sample += `,\n    json={}  # Your request data`;
+        sample += `,\n        json={}  # Your request data`;
     }
     
-    sample += `\n)\n`;
-    sample += `data = response.json()`;
+    sample += `\n    )\n`;
+    sample += `    response.raise_for_status()  # Raise error for bad status\n`;
+    sample += `    data = response.json()\n`;
+    sample += `    # Process data\n`;
+    sample += `except requests.exceptions.RequestException as e:\n`;
+    sample += `    print(f"Error: {e}")`;
     
     return sample;
 }
@@ -117,9 +130,13 @@ function generatePythonSample(path, method, operation) {
 function generateGoSample(path, method, operation) {
     const hasAuth = operation.security && operation.security.length > 0;
     
-    let sample = `package main\n\nimport (\n    "net/http"\n    "io/ioutil"\n)\n\n`;
+    let sample = `package main\n\nimport (\n    "net/http"\n    "io"\n)\n\n`;
     sample += `func main() {\n`;
-    sample += `    req, _ := http.NewRequest("${method.toUpperCase()}", "${path}", nil)\n`;
+    sample += `    req, err := http.NewRequest("${method.toUpperCase()}", "${path}", nil)\n`;
+    sample += `    if err != nil {\n`;
+    sample += `        // Handle error\n`;
+    sample += `        return\n`;
+    sample += `    }\n`;
     
     if (hasAuth) {
         sample += `    req.Header.Set("Authorization", "Bearer YOUR_TOKEN")\n`;
@@ -130,9 +147,19 @@ function generateGoSample(path, method, operation) {
     }
     
     sample += `    \n    client := &http.Client{}\n`;
-    sample += `    resp, _ := client.Do(req)\n`;
+    sample += `    resp, err := client.Do(req)\n`;
+    sample += `    if err != nil {\n`;
+    sample += `        // Handle error\n`;
+    sample += `        return\n`;
+    sample += `    }\n`;
     sample += `    defer resp.Body.Close()\n`;
-    sample += `    body, _ := ioutil.ReadAll(resp.Body)\n`;
+    sample += `    body, err := io.ReadAll(resp.Body)\n`;
+    sample += `    if err != nil {\n`;
+    sample += `        // Handle error\n`;
+    sample += `        return\n`;
+    sample += `    }\n`;
+    sample += `    // Process body\n`;
+    sample += `    _ = body\n`;
     sample += `}`;
     
     return sample;

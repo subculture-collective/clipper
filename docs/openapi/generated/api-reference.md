@@ -5,7 +5,7 @@ tags: ["api", "reference", "openapi"]
 area: "openapi"
 status: "stable"
 version: "1.0.0"
-generated: 2026-01-30T03:01:39.309Z
+generated: 2026-01-30T03:08:31.382Z
 ---
 
 # Clipper API
@@ -116,10 +116,20 @@ curl -X GET "http://localhost:8080/sitemap.xml"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/sitemap.xml', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/sitemap.xml', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -127,10 +137,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/sitemap.xml'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/sitemap.xml'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -140,16 +155,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/sitemap.xml", nil)
+    req, err := http.NewRequest("GET", "/sitemap.xml", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -179,10 +208,20 @@ curl -X GET "http://localhost:8080/robots.txt"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/robots.txt', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/robots.txt', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -190,10 +229,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/robots.txt'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/robots.txt'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -203,16 +247,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/robots.txt", nil)
+    req, err := http.NewRequest("GET", "/robots.txt", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -244,10 +302,20 @@ curl -X GET "http://localhost:8080/health/ready"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/health/ready', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/health/ready', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -255,10 +323,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/health/ready'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/health/ready'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -268,16 +341,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/health/ready", nil)
+    req, err := http.NewRequest("GET", "/health/ready", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -307,10 +394,20 @@ curl -X GET "http://localhost:8080/health/live"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/health/live', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/health/live', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -318,10 +415,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/health/live'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/health/live'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -331,16 +433,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/health/live", nil)
+    req, err := http.NewRequest("GET", "/health/live", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -370,10 +486,20 @@ curl -X GET "http://localhost:8080/health/stats"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/health/stats', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/health/stats', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -381,10 +507,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/health/stats'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/health/stats'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -394,16 +525,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/health/stats", nil)
+    req, err := http.NewRequest("GET", "/health/stats", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -433,10 +578,20 @@ curl -X GET "http://localhost:8080/health/cache"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/health/cache', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/health/cache', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -444,10 +599,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/health/cache'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/health/cache'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -457,16 +617,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/health/cache", nil)
+    req, err := http.NewRequest("GET", "/health/cache", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -498,10 +672,20 @@ curl -X GET "http://localhost:8080/health/cache/check"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/health/cache/check', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/health/cache/check', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -509,10 +693,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/health/cache/check'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/health/cache/check'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -522,16 +711,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/health/cache/check", nil)
+    req, err := http.NewRequest("GET", "/health/cache/check", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -561,10 +764,20 @@ curl -X GET "http://localhost:8080/health/webhooks"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/health/webhooks', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/health/webhooks', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -572,10 +785,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/health/webhooks'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/health/webhooks'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -585,16 +803,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/health/webhooks", nil)
+    req, err := http.NewRequest("GET", "/health/webhooks", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -624,10 +856,20 @@ curl -X GET "http://localhost:8080/debug/metrics"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/debug/metrics', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/debug/metrics', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -635,10 +877,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/debug/metrics'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/debug/metrics'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -648,16 +895,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/debug/metrics", nil)
+    req, err := http.NewRequest("GET", "/debug/metrics", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -687,10 +948,20 @@ curl -X GET "http://localhost:8080/api/v1/health"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/health', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/health', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -698,10 +969,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/health'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/health'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -711,16 +987,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/health", nil)
+    req, err := http.NewRequest("GET", "/api/v1/health", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -750,10 +1040,20 @@ curl -X GET "http://localhost:8080/api/v1/ping"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/ping', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/ping', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -761,10 +1061,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/ping'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/ping'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -774,16 +1079,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/ping", nil)
+    req, err := http.NewRequest("GET", "/api/v1/ping", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -813,10 +1132,20 @@ curl -X GET "http://localhost:8080/api/v1/config"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/config', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/config', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -824,10 +1153,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/config'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/config'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -837,16 +1171,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/config", nil)
+    req, err := http.NewRequest("GET", "/api/v1/config", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -886,16 +1234,26 @@ curl -X POST "http://localhost:8080/api/v1/logs" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/logs', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    // Your request data
-  })
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/logs', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // Your request data
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -903,11 +1261,16 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.post(
-    '/api/v1/logs',
-    json={}  # Your request data
-)
-data = response.json()
+try:
+    response = requests.post(
+        '/api/v1/logs',
+        json={}  # Your request data
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -917,17 +1280,31 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("POST", "/api/v1/logs", nil)
+    req, err := http.NewRequest("POST", "/api/v1/logs", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -959,10 +1336,20 @@ curl -X GET "http://localhost:8080/api/v1/logs/stats"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/logs/stats', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/logs/stats', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -970,10 +1357,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/logs/stats'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/logs/stats'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -983,16 +1375,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/logs/stats", nil)
+    req, err := http.NewRequest("GET", "/api/v1/logs/stats", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -1034,10 +1440,20 @@ curl -X GET "http://localhost:8080/api/v1/auth/twitch"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/auth/twitch', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/auth/twitch', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -1045,10 +1461,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/auth/twitch'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/auth/twitch'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -1058,16 +1479,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/auth/twitch", nil)
+    req, err := http.NewRequest("GET", "/api/v1/auth/twitch", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -1108,10 +1543,20 @@ curl -X GET "http://localhost:8080/api/v1/auth/twitch/callback"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/auth/twitch/callback', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/auth/twitch/callback', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -1119,10 +1564,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/auth/twitch/callback'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/auth/twitch/callback'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -1132,16 +1582,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/auth/twitch/callback", nil)
+    req, err := http.NewRequest("GET", "/api/v1/auth/twitch/callback", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -1181,16 +1645,26 @@ curl -X POST "http://localhost:8080/api/v1/auth/twitch/callback" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/auth/twitch/callback', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    // Your request data
-  })
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/auth/twitch/callback', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // Your request data
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -1198,11 +1672,16 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.post(
-    '/api/v1/auth/twitch/callback',
-    json={}  # Your request data
-)
-data = response.json()
+try:
+    response = requests.post(
+        '/api/v1/auth/twitch/callback',
+        json={}  # Your request data
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -1212,17 +1691,31 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("POST", "/api/v1/auth/twitch/callback", nil)
+    req, err := http.NewRequest("POST", "/api/v1/auth/twitch/callback", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -1262,16 +1755,26 @@ curl -X POST "http://localhost:8080/api/v1/auth/test-login" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/auth/test-login', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    // Your request data
-  })
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/auth/test-login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // Your request data
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -1279,11 +1782,16 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.post(
-    '/api/v1/auth/test-login',
-    json={}  # Your request data
-)
-data = response.json()
+try:
+    response = requests.post(
+        '/api/v1/auth/test-login',
+        json={}  # Your request data
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -1293,17 +1801,31 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("POST", "/api/v1/auth/test-login", nil)
+    req, err := http.NewRequest("POST", "/api/v1/auth/test-login", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -1345,16 +1867,26 @@ curl -X POST "http://localhost:8080/api/v1/auth/refresh" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/auth/refresh', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    // Your request data
-  })
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/auth/refresh', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // Your request data
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -1362,11 +1894,16 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.post(
-    '/api/v1/auth/refresh',
-    json={}  # Your request data
-)
-data = response.json()
+try:
+    response = requests.post(
+        '/api/v1/auth/refresh',
+        json={}  # Your request data
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -1376,17 +1913,31 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("POST", "/api/v1/auth/refresh", nil)
+    req, err := http.NewRequest("POST", "/api/v1/auth/refresh", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -1419,10 +1970,20 @@ curl -X POST "http://localhost:8080/api/v1/auth/logout" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/auth/logout', {
-  method: 'POST',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/auth/logout', {
+    method: 'POST',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -1430,10 +1991,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.post(
-    '/api/v1/auth/logout'
-)
-data = response.json()
+try:
+    response = requests.post(
+        '/api/v1/auth/logout'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -1443,16 +2009,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("POST", "/api/v1/auth/logout", nil)
+    req, err := http.NewRequest("POST", "/api/v1/auth/logout", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -1484,10 +2064,20 @@ curl -X GET "http://localhost:8080/api/v1/auth/me"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/auth/me', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/auth/me', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -1495,10 +2085,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/auth/me'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/auth/me'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -1508,16 +2103,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/auth/me", nil)
+    req, err := http.NewRequest("GET", "/api/v1/auth/me", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -1552,10 +2161,20 @@ curl -X POST "http://localhost:8080/api/v1/auth/twitch/reauthorize" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/auth/twitch/reauthorize', {
-  method: 'POST',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/auth/twitch/reauthorize', {
+    method: 'POST',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -1563,10 +2182,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.post(
-    '/api/v1/auth/twitch/reauthorize'
-)
-data = response.json()
+try:
+    response = requests.post(
+        '/api/v1/auth/twitch/reauthorize'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -1576,16 +2200,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("POST", "/api/v1/auth/twitch/reauthorize", nil)
+    req, err := http.NewRequest("POST", "/api/v1/auth/twitch/reauthorize", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -1624,10 +2262,20 @@ curl -X POST "http://localhost:8080/api/v1/auth/mfa/enroll" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/auth/mfa/enroll', {
-  method: 'POST',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/auth/mfa/enroll', {
+    method: 'POST',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -1635,10 +2283,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.post(
-    '/api/v1/auth/mfa/enroll'
-)
-data = response.json()
+try:
+    response = requests.post(
+        '/api/v1/auth/mfa/enroll'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -1648,16 +2301,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("POST", "/api/v1/auth/mfa/enroll", nil)
+    req, err := http.NewRequest("POST", "/api/v1/auth/mfa/enroll", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -1699,16 +2366,26 @@ curl -X POST "http://localhost:8080/api/v1/auth/mfa/verify-enrollment" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/auth/mfa/verify-enrollment', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    // Your request data
-  })
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/auth/mfa/verify-enrollment', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // Your request data
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -1716,11 +2393,16 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.post(
-    '/api/v1/auth/mfa/verify-enrollment',
-    json={}  # Your request data
-)
-data = response.json()
+try:
+    response = requests.post(
+        '/api/v1/auth/mfa/verify-enrollment',
+        json={}  # Your request data
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -1730,17 +2412,31 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("POST", "/api/v1/auth/mfa/verify-enrollment", nil)
+    req, err := http.NewRequest("POST", "/api/v1/auth/mfa/verify-enrollment", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -1772,10 +2468,20 @@ curl -X GET "http://localhost:8080/api/v1/auth/mfa/status"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/auth/mfa/status', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/auth/mfa/status', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -1783,10 +2489,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/auth/mfa/status'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/auth/mfa/status'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -1796,16 +2507,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/auth/mfa/status", nil)
+    req, err := http.NewRequest("GET", "/api/v1/auth/mfa/status", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -1840,10 +2565,20 @@ curl -X POST "http://localhost:8080/api/v1/auth/mfa/regenerate-backup-codes" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/auth/mfa/regenerate-backup-codes', {
-  method: 'POST',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/auth/mfa/regenerate-backup-codes', {
+    method: 'POST',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -1851,10 +2586,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.post(
-    '/api/v1/auth/mfa/regenerate-backup-codes'
-)
-data = response.json()
+try:
+    response = requests.post(
+        '/api/v1/auth/mfa/regenerate-backup-codes'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -1864,16 +2604,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("POST", "/api/v1/auth/mfa/regenerate-backup-codes", nil)
+    req, err := http.NewRequest("POST", "/api/v1/auth/mfa/regenerate-backup-codes", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -1915,16 +2669,26 @@ curl -X POST "http://localhost:8080/api/v1/auth/mfa/disable" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/auth/mfa/disable', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    // Your request data
-  })
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/auth/mfa/disable', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // Your request data
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -1932,11 +2696,16 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.post(
-    '/api/v1/auth/mfa/disable',
-    json={}  # Your request data
-)
-data = response.json()
+try:
+    response = requests.post(
+        '/api/v1/auth/mfa/disable',
+        json={}  # Your request data
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -1946,17 +2715,31 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("POST", "/api/v1/auth/mfa/disable", nil)
+    req, err := http.NewRequest("POST", "/api/v1/auth/mfa/disable", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -1988,10 +2771,20 @@ curl -X GET "http://localhost:8080/api/v1/auth/mfa/trusted-devices"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/auth/mfa/trusted-devices', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/auth/mfa/trusted-devices', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -1999,10 +2792,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/auth/mfa/trusted-devices'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/auth/mfa/trusted-devices'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -2012,16 +2810,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/auth/mfa/trusted-devices", nil)
+    req, err := http.NewRequest("GET", "/api/v1/auth/mfa/trusted-devices", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -2061,10 +2873,20 @@ curl -X DELETE "http://localhost:8080/api/v1/auth/mfa/trusted-devices/{id}"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/auth/mfa/trusted-devices/{id}', {
-  method: 'DELETE',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/auth/mfa/trusted-devices/{id}', {
+    method: 'DELETE',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -2072,10 +2894,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.delete(
-    '/api/v1/auth/mfa/trusted-devices/{id}'
-)
-data = response.json()
+try:
+    response = requests.delete(
+        '/api/v1/auth/mfa/trusted-devices/{id}'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -2085,16 +2912,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("DELETE", "/api/v1/auth/mfa/trusted-devices/{id}", nil)
+    req, err := http.NewRequest("DELETE", "/api/v1/auth/mfa/trusted-devices/{id}", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -2136,16 +2977,26 @@ curl -X POST "http://localhost:8080/api/v1/auth/mfa/verify-login" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/auth/mfa/verify-login', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    // Your request data
-  })
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/auth/mfa/verify-login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // Your request data
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -2153,11 +3004,16 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.post(
-    '/api/v1/auth/mfa/verify-login',
-    json={}  # Your request data
-)
-data = response.json()
+try:
+    response = requests.post(
+        '/api/v1/auth/mfa/verify-login',
+        json={}  # Your request data
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -2167,17 +3023,31 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("POST", "/api/v1/auth/mfa/verify-login", nil)
+    req, err := http.NewRequest("POST", "/api/v1/auth/mfa/verify-login", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -2226,10 +3096,20 @@ curl -X GET "http://localhost:8080/api/v1/clips"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/clips', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/clips', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -2237,10 +3117,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/clips'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/clips'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -2250,16 +3135,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/clips", nil)
+    req, err := http.NewRequest("GET", "/api/v1/clips", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -2297,10 +3196,20 @@ curl -X GET "http://localhost:8080/api/v1/clips/{id}"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/clips/{id}', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/clips/{id}', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -2308,10 +3217,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/clips/{id}'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/clips/{id}'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -2321,16 +3235,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/clips/{id}", nil)
+    req, err := http.NewRequest("GET", "/api/v1/clips/{id}", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -2380,16 +3308,26 @@ curl -X PUT "http://localhost:8080/api/v1/clips/{id}" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/clips/{id}', {
-  method: 'PUT',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    // Your request data
-  })
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/clips/{id}', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // Your request data
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -2397,11 +3335,16 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.put(
-    '/api/v1/clips/{id}',
-    json={}  # Your request data
-)
-data = response.json()
+try:
+    response = requests.put(
+        '/api/v1/clips/{id}',
+        json={}  # Your request data
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -2411,17 +3354,31 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("PUT", "/api/v1/clips/{id}", nil)
+    req, err := http.NewRequest("PUT", "/api/v1/clips/{id}", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -2463,10 +3420,20 @@ curl -X DELETE "http://localhost:8080/api/v1/clips/{id}"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/clips/{id}', {
-  method: 'DELETE',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/clips/{id}', {
+    method: 'DELETE',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -2474,10 +3441,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.delete(
-    '/api/v1/clips/{id}'
-)
-data = response.json()
+try:
+    response = requests.delete(
+        '/api/v1/clips/{id}'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -2487,16 +3459,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("DELETE", "/api/v1/clips/{id}", nil)
+    req, err := http.NewRequest("DELETE", "/api/v1/clips/{id}", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -2535,10 +3521,20 @@ curl -X GET "http://localhost:8080/api/v1/clips/{id}/related"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/clips/{id}/related', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/clips/{id}/related', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -2546,10 +3542,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/clips/{id}/related'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/clips/{id}/related'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -2559,16 +3560,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/clips/{id}/related", nil)
+    req, err := http.NewRequest("GET", "/api/v1/clips/{id}/related", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -2608,16 +3623,26 @@ curl -X POST "http://localhost:8080/api/v1/clips/batch-media" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/clips/batch-media', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    // Your request data
-  })
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/clips/batch-media', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // Your request data
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -2625,11 +3650,16 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.post(
-    '/api/v1/clips/batch-media',
-    json={}  # Your request data
-)
-data = response.json()
+try:
+    response = requests.post(
+        '/api/v1/clips/batch-media',
+        json={}  # Your request data
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -2639,17 +3669,31 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("POST", "/api/v1/clips/batch-media", nil)
+    req, err := http.NewRequest("POST", "/api/v1/clips/batch-media", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -2687,10 +3731,20 @@ curl -X GET "http://localhost:8080/api/v1/clips/{id}/analytics"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/clips/{id}/analytics', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/clips/{id}/analytics', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -2698,10 +3752,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/clips/{id}/analytics'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/clips/{id}/analytics'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -2711,16 +3770,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/clips/{id}/analytics", nil)
+    req, err := http.NewRequest("GET", "/api/v1/clips/{id}/analytics", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -2764,16 +3837,26 @@ curl -X POST "http://localhost:8080/api/v1/clips/{id}/track-view" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/clips/{id}/track-view', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    // Your request data
-  })
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/clips/{id}/track-view', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // Your request data
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -2781,11 +3864,16 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.post(
-    '/api/v1/clips/{id}/track-view',
-    json={}  # Your request data
-)
-data = response.json()
+try:
+    response = requests.post(
+        '/api/v1/clips/{id}/track-view',
+        json={}  # Your request data
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -2795,17 +3883,31 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("POST", "/api/v1/clips/{id}/track-view", nil)
+    req, err := http.NewRequest("POST", "/api/v1/clips/{id}/track-view", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -2843,10 +3945,20 @@ curl -X GET "http://localhost:8080/api/v1/clips/{id}/engagement"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/clips/{id}/engagement', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/clips/{id}/engagement', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -2854,10 +3966,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/clips/{id}/engagement'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/clips/{id}/engagement'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -2867,16 +3984,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/clips/{id}/engagement", nil)
+    req, err := http.NewRequest("GET", "/api/v1/clips/{id}/engagement", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -2926,16 +4057,26 @@ curl -X POST "http://localhost:8080/api/v1/clips/{id}/vote" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/clips/{id}/vote', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    // Your request data
-  })
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/clips/{id}/vote', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // Your request data
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -2943,11 +4084,16 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.post(
-    '/api/v1/clips/{id}/vote',
-    json={}  # Your request data
-)
-data = response.json()
+try:
+    response = requests.post(
+        '/api/v1/clips/{id}/vote',
+        json={}  # Your request data
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -2957,17 +4103,31 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("POST", "/api/v1/clips/{id}/vote", nil)
+    req, err := http.NewRequest("POST", "/api/v1/clips/{id}/vote", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -3008,10 +4168,20 @@ curl -X POST "http://localhost:8080/api/v1/clips/{id}/favorite" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/clips/{id}/favorite', {
-  method: 'POST',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/clips/{id}/favorite', {
+    method: 'POST',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -3019,10 +4189,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.post(
-    '/api/v1/clips/{id}/favorite'
-)
-data = response.json()
+try:
+    response = requests.post(
+        '/api/v1/clips/{id}/favorite'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -3032,16 +4207,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("POST", "/api/v1/clips/{id}/favorite", nil)
+    req, err := http.NewRequest("POST", "/api/v1/clips/{id}/favorite", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -3081,10 +4270,20 @@ curl -X DELETE "http://localhost:8080/api/v1/clips/{id}/favorite"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/clips/{id}/favorite', {
-  method: 'DELETE',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/clips/{id}/favorite', {
+    method: 'DELETE',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -3092,10 +4291,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.delete(
-    '/api/v1/clips/{id}/favorite'
-)
-data = response.json()
+try:
+    response = requests.delete(
+        '/api/v1/clips/{id}/favorite'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -3105,16 +4309,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("DELETE", "/api/v1/clips/{id}/favorite", nil)
+    req, err := http.NewRequest("DELETE", "/api/v1/clips/{id}/favorite", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -3166,16 +4384,26 @@ curl -X PUT "http://localhost:8080/api/v1/clips/{id}/metadata" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/clips/{id}/metadata', {
-  method: 'PUT',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    // Your request data
-  })
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/clips/{id}/metadata', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // Your request data
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -3183,11 +4411,16 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.put(
-    '/api/v1/clips/{id}/metadata',
-    json={}  # Your request data
-)
-data = response.json()
+try:
+    response = requests.put(
+        '/api/v1/clips/{id}/metadata',
+        json={}  # Your request data
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -3197,17 +4430,31 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("PUT", "/api/v1/clips/{id}/metadata", nil)
+    req, err := http.NewRequest("PUT", "/api/v1/clips/{id}/metadata", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -3259,16 +4506,26 @@ curl -X PUT "http://localhost:8080/api/v1/clips/{id}/visibility" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/clips/{id}/visibility', {
-  method: 'PUT',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    // Your request data
-  })
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/clips/{id}/visibility', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // Your request data
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -3276,11 +4533,16 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.put(
-    '/api/v1/clips/{id}/visibility',
-    json={}  # Your request data
-)
-data = response.json()
+try:
+    response = requests.put(
+        '/api/v1/clips/{id}/visibility',
+        json={}  # Your request data
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -3290,17 +4552,31 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("PUT", "/api/v1/clips/{id}/visibility", nil)
+    req, err := http.NewRequest("PUT", "/api/v1/clips/{id}/visibility", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -3342,16 +4618,26 @@ curl -X POST "http://localhost:8080/api/v1/clips/request" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/clips/request', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    // Your request data
-  })
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/clips/request', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // Your request data
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -3359,11 +4645,16 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.post(
-    '/api/v1/clips/request',
-    json={}  # Your request data
-)
-data = response.json()
+try:
+    response = requests.post(
+        '/api/v1/clips/request',
+        json={}  # Your request data
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -3373,17 +4664,31 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("POST", "/api/v1/clips/request", nil)
+    req, err := http.NewRequest("POST", "/api/v1/clips/request", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -3420,10 +4725,20 @@ curl -X GET "http://localhost:8080/api/v1/scraped-clips"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/scraped-clips', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/scraped-clips', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -3431,10 +4746,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/scraped-clips'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/scraped-clips'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -3444,16 +4764,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/scraped-clips", nil)
+    req, err := http.NewRequest("GET", "/api/v1/scraped-clips", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -3492,10 +4826,20 @@ curl -X GET "http://localhost:8080/api/v1/favorites"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/favorites', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/favorites', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -3503,10 +4847,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/favorites'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/favorites'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -3516,16 +4865,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/favorites", nil)
+    req, err := http.NewRequest("GET", "/api/v1/favorites", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -3567,10 +4930,20 @@ curl -X GET "http://localhost:8080/api/v1/clips/{id}/tags"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/clips/{id}/tags', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/clips/{id}/tags', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -3578,10 +4951,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/clips/{id}/tags'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/clips/{id}/tags'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -3591,16 +4969,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/clips/{id}/tags", nil)
+    req, err := http.NewRequest("GET", "/api/v1/clips/{id}/tags", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -3650,16 +5042,26 @@ curl -X POST "http://localhost:8080/api/v1/clips/{id}/tags" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/clips/{id}/tags', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    // Your request data
-  })
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/clips/{id}/tags', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // Your request data
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -3667,11 +5069,16 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.post(
-    '/api/v1/clips/{id}/tags',
-    json={}  # Your request data
-)
-data = response.json()
+try:
+    response = requests.post(
+        '/api/v1/clips/{id}/tags',
+        json={}  # Your request data
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -3681,17 +5088,31 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("POST", "/api/v1/clips/{id}/tags", nil)
+    req, err := http.NewRequest("POST", "/api/v1/clips/{id}/tags", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -3732,10 +5153,20 @@ curl -X DELETE "http://localhost:8080/api/v1/clips/{id}/tags/{slug}"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/clips/{id}/tags/{slug}', {
-  method: 'DELETE',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/clips/{id}/tags/{slug}', {
+    method: 'DELETE',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -3743,10 +5174,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.delete(
-    '/api/v1/clips/{id}/tags/{slug}'
-)
-data = response.json()
+try:
+    response = requests.delete(
+        '/api/v1/clips/{id}/tags/{slug}'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -3756,16 +5192,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("DELETE", "/api/v1/clips/{id}/tags/{slug}", nil)
+    req, err := http.NewRequest("DELETE", "/api/v1/clips/{id}/tags/{slug}", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -3802,10 +5252,20 @@ curl -X GET "http://localhost:8080/api/v1/tags"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/tags', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/tags', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -3813,10 +5273,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/tags'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/tags'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -3826,16 +5291,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/tags", nil)
+    req, err := http.NewRequest("GET", "/api/v1/tags", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -3876,10 +5355,20 @@ curl -X GET "http://localhost:8080/api/v1/tags/search"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/tags/search', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/tags/search', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -3887,10 +5376,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/tags/search'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/tags/search'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -3900,16 +5394,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/tags/search", nil)
+    req, err := http.NewRequest("GET", "/api/v1/tags/search", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -3947,10 +5455,20 @@ curl -X GET "http://localhost:8080/api/v1/tags/{slug}"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/tags/{slug}', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/tags/{slug}', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -3958,10 +5476,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/tags/{slug}'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/tags/{slug}'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -3971,16 +5494,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/tags/{slug}", nil)
+    req, err := http.NewRequest("GET", "/api/v1/tags/{slug}", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -4021,10 +5558,20 @@ curl -X GET "http://localhost:8080/api/v1/tags/{slug}/clips"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/tags/{slug}/clips', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/tags/{slug}/clips', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -4032,10 +5579,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/tags/{slug}/clips'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/tags/{slug}/clips'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -4045,16 +5597,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/tags/{slug}/clips", nil)
+    req, err := http.NewRequest("GET", "/api/v1/tags/{slug}/clips", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -4096,10 +5662,20 @@ curl -X GET "http://localhost:8080/api/v1/clips/{id}/progress"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/clips/{id}/progress', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/clips/{id}/progress', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -4107,10 +5683,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/clips/{id}/progress'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/clips/{id}/progress'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -4120,16 +5701,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/clips/{id}/progress", nil)
+    req, err := http.NewRequest("GET", "/api/v1/clips/{id}/progress", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -4174,10 +5769,20 @@ curl -X GET "http://localhost:8080/api/v1/clips/{id}/comments"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/clips/{id}/comments', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/clips/{id}/comments', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -4185,10 +5790,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/clips/{id}/comments'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/clips/{id}/comments'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -4198,16 +5808,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/clips/{id}/comments", nil)
+    req, err := http.NewRequest("GET", "/api/v1/clips/{id}/comments", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -4257,16 +5881,26 @@ curl -X POST "http://localhost:8080/api/v1/clips/{id}/comments" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/clips/{id}/comments', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    // Your request data
-  })
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/clips/{id}/comments', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // Your request data
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -4274,11 +5908,16 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.post(
-    '/api/v1/clips/{id}/comments',
-    json={}  # Your request data
-)
-data = response.json()
+try:
+    response = requests.post(
+        '/api/v1/clips/{id}/comments',
+        json={}  # Your request data
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -4288,17 +5927,31 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("POST", "/api/v1/clips/{id}/comments", nil)
+    req, err := http.NewRequest("POST", "/api/v1/clips/{id}/comments", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -4338,10 +5991,20 @@ curl -X GET "http://localhost:8080/api/v1/comments/{id}/replies"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/comments/{id}/replies', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/comments/{id}/replies', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -4349,10 +6012,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/comments/{id}/replies'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/comments/{id}/replies'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -4362,16 +6030,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/comments/{id}/replies", nil)
+    req, err := http.NewRequest("GET", "/api/v1/comments/{id}/replies", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -4421,16 +6103,26 @@ curl -X PUT "http://localhost:8080/api/v1/comments/{id}" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/comments/{id}', {
-  method: 'PUT',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    // Your request data
-  })
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/comments/{id}', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // Your request data
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -4438,11 +6130,16 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.put(
-    '/api/v1/comments/{id}',
-    json={}  # Your request data
-)
-data = response.json()
+try:
+    response = requests.put(
+        '/api/v1/comments/{id}',
+        json={}  # Your request data
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -4452,17 +6149,31 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("PUT", "/api/v1/comments/{id}", nil)
+    req, err := http.NewRequest("PUT", "/api/v1/comments/{id}", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -4504,10 +6215,20 @@ curl -X DELETE "http://localhost:8080/api/v1/comments/{id}"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/comments/{id}', {
-  method: 'DELETE',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/comments/{id}', {
+    method: 'DELETE',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -4515,10 +6236,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.delete(
-    '/api/v1/comments/{id}'
-)
-data = response.json()
+try:
+    response = requests.delete(
+        '/api/v1/comments/{id}'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -4528,16 +6254,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("DELETE", "/api/v1/comments/{id}", nil)
+    req, err := http.NewRequest("DELETE", "/api/v1/comments/{id}", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -4587,16 +6327,26 @@ curl -X POST "http://localhost:8080/api/v1/comments/{id}/vote" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/comments/{id}/vote', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    // Your request data
-  })
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/comments/{id}/vote', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // Your request data
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -4604,11 +6354,16 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.post(
-    '/api/v1/comments/{id}/vote',
-    json={}  # Your request data
-)
-data = response.json()
+try:
+    response = requests.post(
+        '/api/v1/comments/{id}/vote',
+        json={}  # Your request data
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -4618,17 +6373,31 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("POST", "/api/v1/comments/{id}/vote", nil)
+    req, err := http.NewRequest("POST", "/api/v1/comments/{id}/vote", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -4675,10 +6444,20 @@ curl -X GET "http://localhost:8080/api/v1/search"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/search', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/search', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -4686,10 +6465,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/search'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/search'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -4699,16 +6483,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/search", nil)
+    req, err := http.NewRequest("GET", "/api/v1/search", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -4746,10 +6544,20 @@ curl -X GET "http://localhost:8080/api/v1/search/suggestions"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/search/suggestions', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/search/suggestions', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -4757,10 +6565,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/search/suggestions'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/search/suggestions'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -4770,16 +6583,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/search/suggestions", nil)
+    req, err := http.NewRequest("GET", "/api/v1/search/suggestions", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -4818,10 +6645,20 @@ curl -X GET "http://localhost:8080/api/v1/search/scores"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/search/scores', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/search/scores', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -4829,10 +6666,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/search/scores'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/search/scores'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -4842,16 +6684,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/search/scores", nil)
+    req, err := http.NewRequest("GET", "/api/v1/search/scores", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -4889,10 +6745,20 @@ curl -X GET "http://localhost:8080/api/v1/search/trending"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/search/trending', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/search/trending', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -4900,10 +6766,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/search/trending'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/search/trending'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -4913,16 +6784,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/search/trending", nil)
+    req, err := http.NewRequest("GET", "/api/v1/search/trending", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -4960,10 +6845,20 @@ curl -X GET "http://localhost:8080/api/v1/search/history"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/search/history', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/search/history', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -4971,10 +6866,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/search/history'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/search/history'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -4984,16 +6884,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/search/history", nil)
+    req, err := http.NewRequest("GET", "/api/v1/search/history", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -5034,10 +6948,20 @@ curl -X GET "http://localhost:8080/api/v1/search/failed"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/search/failed', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/search/failed', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -5045,10 +6969,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/search/failed'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/search/failed'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -5058,16 +6987,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/search/failed", nil)
+    req, err := http.NewRequest("GET", "/api/v1/search/failed", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -5101,10 +7044,20 @@ curl -X GET "http://localhost:8080/api/v1/search/analytics"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/search/analytics', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/search/analytics', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -5112,10 +7065,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/search/analytics'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/search/analytics'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -5125,16 +7083,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/search/analytics", nil)
+    req, err := http.NewRequest("GET", "/api/v1/search/analytics", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -5178,10 +7150,20 @@ curl -X GET "http://localhost:8080/api/v1/submissions"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/submissions', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/submissions', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -5189,10 +7171,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/submissions'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/submissions'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -5202,16 +7189,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/submissions", nil)
+    req, err := http.NewRequest("GET", "/api/v1/submissions", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -5253,16 +7254,26 @@ curl -X POST "http://localhost:8080/api/v1/submissions" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/submissions', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    // Your request data
-  })
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/submissions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // Your request data
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -5270,11 +7281,16 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.post(
-    '/api/v1/submissions',
-    json={}  # Your request data
-)
-data = response.json()
+try:
+    response = requests.post(
+        '/api/v1/submissions',
+        json={}  # Your request data
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -5284,17 +7300,31 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("POST", "/api/v1/submissions", nil)
+    req, err := http.NewRequest("POST", "/api/v1/submissions", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -5326,10 +7356,20 @@ curl -X GET "http://localhost:8080/api/v1/submissions/stats"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/submissions/stats', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/submissions/stats', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -5337,10 +7377,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/submissions/stats'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/submissions/stats'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -5350,16 +7395,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/submissions/stats", nil)
+    req, err := http.NewRequest("GET", "/api/v1/submissions/stats", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -5401,10 +7460,20 @@ curl -X GET "http://localhost:8080/api/v1/submissions/metadata"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/submissions/metadata', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/submissions/metadata', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -5412,10 +7481,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/submissions/metadata'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/submissions/metadata'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -5425,16 +7499,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/submissions/metadata", nil)
+    req, err := http.NewRequest("GET", "/api/v1/submissions/metadata", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -5474,10 +7562,20 @@ curl -X GET "http://localhost:8080/api/v1/submissions/check/{clip_id}"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/submissions/check/{clip_id}', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/submissions/check/{clip_id}', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -5485,10 +7583,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/submissions/check/{clip_id}'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/submissions/check/{clip_id}'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -5498,16 +7601,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/submissions/check/{clip_id}", nil)
+    req, err := http.NewRequest("GET", "/api/v1/submissions/check/{clip_id}", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -5553,16 +7670,26 @@ curl -X POST "http://localhost:8080/api/v1/reports" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/reports', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    // Your request data
-  })
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/reports', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // Your request data
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -5570,11 +7697,16 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.post(
-    '/api/v1/reports',
-    json={}  # Your request data
-)
-data = response.json()
+try:
+    response = requests.post(
+        '/api/v1/reports',
+        json={}  # Your request data
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -5584,17 +7716,31 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("POST", "/api/v1/reports", nil)
+    req, err := http.NewRequest("POST", "/api/v1/reports", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -5637,10 +7783,20 @@ curl -X GET "http://localhost:8080/api/v1/moderation/appeals"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/moderation/appeals', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/moderation/appeals', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -5648,10 +7804,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/moderation/appeals'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/moderation/appeals'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -5661,16 +7822,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/moderation/appeals", nil)
+    req, err := http.NewRequest("GET", "/api/v1/moderation/appeals", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -5710,16 +7885,26 @@ curl -X POST "http://localhost:8080/api/v1/moderation/appeals" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/moderation/appeals', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    // Your request data
-  })
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/moderation/appeals', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // Your request data
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -5727,11 +7912,16 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.post(
-    '/api/v1/moderation/appeals',
-    json={}  # Your request data
-)
-data = response.json()
+try:
+    response = requests.post(
+        '/api/v1/moderation/appeals',
+        json={}  # Your request data
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -5741,17 +7931,31 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("POST", "/api/v1/moderation/appeals", nil)
+    req, err := http.NewRequest("POST", "/api/v1/moderation/appeals", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -5786,10 +7990,20 @@ curl -X POST "http://localhost:8080/api/v1/moderation/sync-bans" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/moderation/sync-bans', {
-  method: 'POST',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/moderation/sync-bans', {
+    method: 'POST',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -5797,10 +8011,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.post(
-    '/api/v1/moderation/sync-bans'
-)
-data = response.json()
+try:
+    response = requests.post(
+        '/api/v1/moderation/sync-bans'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -5810,16 +8029,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("POST", "/api/v1/moderation/sync-bans", nil)
+    req, err := http.NewRequest("POST", "/api/v1/moderation/sync-bans", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -5860,10 +8093,20 @@ curl -X GET "http://localhost:8080/api/v1/moderation/bans"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/moderation/bans', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/moderation/bans', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -5871,10 +8114,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/moderation/bans'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/moderation/bans'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -5884,16 +8132,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/moderation/bans", nil)
+    req, err := http.NewRequest("GET", "/api/v1/moderation/bans", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -5933,16 +8195,26 @@ curl -X POST "http://localhost:8080/api/v1/moderation/bans" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/moderation/bans', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    // Your request data
-  })
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/moderation/bans', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // Your request data
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -5950,11 +8222,16 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.post(
-    '/api/v1/moderation/bans',
-    json={}  # Your request data
-)
-data = response.json()
+try:
+    response = requests.post(
+        '/api/v1/moderation/bans',
+        json={}  # Your request data
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -5964,17 +8241,31 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("POST", "/api/v1/moderation/bans", nil)
+    req, err := http.NewRequest("POST", "/api/v1/moderation/bans", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -6016,10 +8307,20 @@ curl -X GET "http://localhost:8080/api/v1/moderation/ban/{id}"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/moderation/ban/{id}', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/moderation/ban/{id}', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -6027,10 +8328,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/moderation/ban/{id}'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/moderation/ban/{id}'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -6040,16 +8346,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/moderation/ban/{id}", nil)
+    req, err := http.NewRequest("GET", "/api/v1/moderation/ban/{id}", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -6091,10 +8411,20 @@ curl -X DELETE "http://localhost:8080/api/v1/moderation/ban/{id}"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/moderation/ban/{id}', {
-  method: 'DELETE',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/moderation/ban/{id}', {
+    method: 'DELETE',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -6102,10 +8432,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.delete(
-    '/api/v1/moderation/ban/{id}'
-)
-data = response.json()
+try:
+    response = requests.delete(
+        '/api/v1/moderation/ban/{id}'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -6115,16 +8450,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("DELETE", "/api/v1/moderation/ban/{id}", nil)
+    req, err := http.NewRequest("DELETE", "/api/v1/moderation/ban/{id}", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -6164,16 +8513,26 @@ curl -X POST "http://localhost:8080/api/v1/moderation/twitch/ban" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/moderation/twitch/ban', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    // Your request data
-  })
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/moderation/twitch/ban', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // Your request data
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -6181,11 +8540,16 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.post(
-    '/api/v1/moderation/twitch/ban',
-    json={}  # Your request data
-)
-data = response.json()
+try:
+    response = requests.post(
+        '/api/v1/moderation/twitch/ban',
+        json={}  # Your request data
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -6195,17 +8559,31 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("POST", "/api/v1/moderation/twitch/ban", nil)
+    req, err := http.NewRequest("POST", "/api/v1/moderation/twitch/ban", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -6244,16 +8622,26 @@ curl -X DELETE "http://localhost:8080/api/v1/moderation/twitch/ban" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/moderation/twitch/ban', {
-  method: 'DELETE',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    // Your request data
-  })
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/moderation/twitch/ban', {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // Your request data
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -6261,11 +8649,16 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.delete(
-    '/api/v1/moderation/twitch/ban',
-    json={}  # Your request data
-)
-data = response.json()
+try:
+    response = requests.delete(
+        '/api/v1/moderation/twitch/ban',
+        json={}  # Your request data
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -6275,17 +8668,31 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("DELETE", "/api/v1/moderation/twitch/ban", nil)
+    req, err := http.NewRequest("DELETE", "/api/v1/moderation/twitch/ban", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -6326,10 +8733,20 @@ curl -X GET "http://localhost:8080/api/v1/moderation/moderators"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/moderation/moderators', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/moderation/moderators', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -6337,10 +8754,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/moderation/moderators'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/moderation/moderators'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -6350,16 +8772,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/moderation/moderators", nil)
+    req, err := http.NewRequest("GET", "/api/v1/moderation/moderators", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -6399,16 +8835,26 @@ curl -X POST "http://localhost:8080/api/v1/moderation/moderators" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/moderation/moderators', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    // Your request data
-  })
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/moderation/moderators', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // Your request data
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -6416,11 +8862,16 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.post(
-    '/api/v1/moderation/moderators',
-    json={}  # Your request data
-)
-data = response.json()
+try:
+    response = requests.post(
+        '/api/v1/moderation/moderators',
+        json={}  # Your request data
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -6430,17 +8881,31 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("POST", "/api/v1/moderation/moderators", nil)
+    req, err := http.NewRequest("POST", "/api/v1/moderation/moderators", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -6488,16 +8953,26 @@ curl -X PATCH "http://localhost:8080/api/v1/moderation/moderators/{id}" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/moderation/moderators/{id}', {
-  method: 'PATCH',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    // Your request data
-  })
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/moderation/moderators/{id}', {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // Your request data
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -6505,11 +8980,16 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.patch(
-    '/api/v1/moderation/moderators/{id}',
-    json={}  # Your request data
-)
-data = response.json()
+try:
+    response = requests.patch(
+        '/api/v1/moderation/moderators/{id}',
+        json={}  # Your request data
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -6519,17 +8999,31 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("PATCH", "/api/v1/moderation/moderators/{id}", nil)
+    req, err := http.NewRequest("PATCH", "/api/v1/moderation/moderators/{id}", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -6571,10 +9065,20 @@ curl -X DELETE "http://localhost:8080/api/v1/moderation/moderators/{id}"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/moderation/moderators/{id}', {
-  method: 'DELETE',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/moderation/moderators/{id}', {
+    method: 'DELETE',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -6582,10 +9086,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.delete(
-    '/api/v1/moderation/moderators/{id}'
-)
-data = response.json()
+try:
+    response = requests.delete(
+        '/api/v1/moderation/moderators/{id}'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -6595,16 +9104,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("DELETE", "/api/v1/moderation/moderators/{id}", nil)
+    req, err := http.NewRequest("DELETE", "/api/v1/moderation/moderators/{id}", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -6647,10 +9170,20 @@ curl -X GET "http://localhost:8080/api/v1/moderation/audit-logs"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/moderation/audit-logs', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/moderation/audit-logs', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -6658,10 +9191,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/moderation/audit-logs'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/moderation/audit-logs'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -6671,16 +9209,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/moderation/audit-logs", nil)
+    req, err := http.NewRequest("GET", "/api/v1/moderation/audit-logs", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -6723,10 +9275,20 @@ curl -X GET "http://localhost:8080/api/v1/moderation/audit-logs/export"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/moderation/audit-logs/export', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/moderation/audit-logs/export', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -6734,10 +9296,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/moderation/audit-logs/export'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/moderation/audit-logs/export'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -6747,16 +9314,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/moderation/audit-logs/export", nil)
+    req, err := http.NewRequest("GET", "/api/v1/moderation/audit-logs/export", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -6800,10 +9381,20 @@ curl -X GET "http://localhost:8080/api/v1/moderation/audit-logs/{id}"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/moderation/audit-logs/{id}', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/moderation/audit-logs/{id}', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -6811,10 +9402,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/moderation/audit-logs/{id}'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/moderation/audit-logs/{id}'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -6824,16 +9420,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/moderation/audit-logs/{id}", nil)
+    req, err := http.NewRequest("GET", "/api/v1/moderation/audit-logs/{id}", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -6874,10 +9484,20 @@ curl -X GET "http://localhost:8080/api/v1/moderation/ban-templates"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/moderation/ban-templates', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/moderation/ban-templates', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -6885,10 +9505,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/moderation/ban-templates'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/moderation/ban-templates'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -6898,16 +9523,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/moderation/ban-templates", nil)
+    req, err := http.NewRequest("GET", "/api/v1/moderation/ban-templates", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -6947,16 +9586,26 @@ curl -X POST "http://localhost:8080/api/v1/moderation/ban-templates" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/moderation/ban-templates', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    // Your request data
-  })
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/moderation/ban-templates', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // Your request data
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -6964,11 +9613,16 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.post(
-    '/api/v1/moderation/ban-templates',
-    json={}  # Your request data
-)
-data = response.json()
+try:
+    response = requests.post(
+        '/api/v1/moderation/ban-templates',
+        json={}  # Your request data
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -6978,17 +9632,31 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("POST", "/api/v1/moderation/ban-templates", nil)
+    req, err := http.NewRequest("POST", "/api/v1/moderation/ban-templates", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -7022,10 +9690,20 @@ curl -X GET "http://localhost:8080/api/v1/moderation/ban-templates/stats"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/moderation/ban-templates/stats', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/moderation/ban-templates/stats', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -7033,10 +9711,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/moderation/ban-templates/stats'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/moderation/ban-templates/stats'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -7046,16 +9729,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/moderation/ban-templates/stats", nil)
+    req, err := http.NewRequest("GET", "/api/v1/moderation/ban-templates/stats", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -7097,10 +9794,20 @@ curl -X GET "http://localhost:8080/api/v1/moderation/ban-templates/{id}"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/moderation/ban-templates/{id}', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/moderation/ban-templates/{id}', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -7108,10 +9815,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/moderation/ban-templates/{id}'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/moderation/ban-templates/{id}'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -7121,16 +9833,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/moderation/ban-templates/{id}", nil)
+    req, err := http.NewRequest("GET", "/api/v1/moderation/ban-templates/{id}", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -7178,16 +9904,26 @@ curl -X PATCH "http://localhost:8080/api/v1/moderation/ban-templates/{id}" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/moderation/ban-templates/{id}', {
-  method: 'PATCH',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    // Your request data
-  })
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/moderation/ban-templates/{id}', {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // Your request data
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -7195,11 +9931,16 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.patch(
-    '/api/v1/moderation/ban-templates/{id}',
-    json={}  # Your request data
-)
-data = response.json()
+try:
+    response = requests.patch(
+        '/api/v1/moderation/ban-templates/{id}',
+        json={}  # Your request data
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -7209,17 +9950,31 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("PATCH", "/api/v1/moderation/ban-templates/{id}", nil)
+    req, err := http.NewRequest("PATCH", "/api/v1/moderation/ban-templates/{id}", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -7261,10 +10016,20 @@ curl -X DELETE "http://localhost:8080/api/v1/moderation/ban-templates/{id}"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/moderation/ban-templates/{id}', {
-  method: 'DELETE',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/moderation/ban-templates/{id}', {
+    method: 'DELETE',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -7272,10 +10037,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.delete(
-    '/api/v1/moderation/ban-templates/{id}'
-)
-data = response.json()
+try:
+    response = requests.delete(
+        '/api/v1/moderation/ban-templates/{id}'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -7285,16 +10055,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("DELETE", "/api/v1/moderation/ban-templates/{id}", nil)
+    req, err := http.NewRequest("DELETE", "/api/v1/moderation/ban-templates/{id}", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -7336,10 +10120,20 @@ curl -X GET "http://localhost:8080/api/v1/users/by-username/{username}"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/users/by-username/{username}', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/users/by-username/{username}', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -7347,10 +10141,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/users/by-username/{username}'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/users/by-username/{username}'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -7360,16 +10159,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/users/by-username/{username}", nil)
+    req, err := http.NewRequest("GET", "/api/v1/users/by-username/{username}", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -7408,10 +10221,20 @@ curl -X GET "http://localhost:8080/api/v1/users/autocomplete"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/users/autocomplete', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/users/autocomplete', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -7419,10 +10242,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/users/autocomplete'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/users/autocomplete'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -7432,16 +10260,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/users/autocomplete", nil)
+    req, err := http.NewRequest("GET", "/api/v1/users/autocomplete", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -7479,10 +10321,20 @@ curl -X GET "http://localhost:8080/api/v1/users/{id}"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/users/{id}', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/users/{id}', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -7490,10 +10342,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/users/{id}'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/users/{id}'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -7503,16 +10360,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/users/{id}", nil)
+    req, err := http.NewRequest("GET", "/api/v1/users/{id}", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -7552,16 +10423,26 @@ curl -X POST "http://localhost:8080/api/v1/users/claim-account" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/users/claim-account', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    // Your request data
-  })
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/users/claim-account', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // Your request data
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -7569,11 +10450,16 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.post(
-    '/api/v1/users/claim-account',
-    json={}  # Your request data
-)
-data = response.json()
+try:
+    response = requests.post(
+        '/api/v1/users/claim-account',
+        json={}  # Your request data
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -7583,17 +10469,31 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("POST", "/api/v1/users/claim-account", nil)
+    req, err := http.NewRequest("POST", "/api/v1/users/claim-account", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -7631,10 +10531,20 @@ curl -X GET "http://localhost:8080/api/v1/users/{id}/reputation"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/users/{id}/reputation', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/users/{id}/reputation', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -7642,10 +10552,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/users/{id}/reputation'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/users/{id}/reputation'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -7655,16 +10570,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/users/{id}/reputation", nil)
+    req, err := http.NewRequest("GET", "/api/v1/users/{id}/reputation", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -7702,10 +10631,20 @@ curl -X GET "http://localhost:8080/api/v1/users/{id}/karma"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/users/{id}/karma', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/users/{id}/karma', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -7713,10 +10652,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/users/{id}/karma'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/users/{id}/karma'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -7726,16 +10670,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/users/{id}/karma", nil)
+    req, err := http.NewRequest("GET", "/api/v1/users/{id}/karma", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -7773,10 +10731,20 @@ curl -X GET "http://localhost:8080/api/v1/users/{id}/badges"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/users/{id}/badges', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/users/{id}/badges', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -7784,10 +10752,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/users/{id}/badges'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/users/{id}/badges'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -7797,16 +10770,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/users/{id}/badges", nil)
+    req, err := http.NewRequest("GET", "/api/v1/users/{id}/badges", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -7846,10 +10833,20 @@ curl -X GET "http://localhost:8080/api/v1/users/{id}/comments"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/users/{id}/comments', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/users/{id}/comments', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -7857,10 +10854,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/users/{id}/comments'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/users/{id}/comments'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -7870,16 +10872,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/users/{id}/comments", nil)
+    req, err := http.NewRequest("GET", "/api/v1/users/{id}/comments", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -7919,10 +10935,20 @@ curl -X GET "http://localhost:8080/api/v1/users/{id}/clips"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/users/{id}/clips', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/users/{id}/clips', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -7930,10 +10956,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/users/{id}/clips'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/users/{id}/clips'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -7943,16 +10974,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/users/{id}/clips", nil)
+    req, err := http.NewRequest("GET", "/api/v1/users/{id}/clips", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -7992,10 +11037,20 @@ curl -X GET "http://localhost:8080/api/v1/users/{id}/activity"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/users/{id}/activity', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/users/{id}/activity', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -8003,10 +11058,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/users/{id}/activity'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/users/{id}/activity'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -8016,16 +11076,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/users/{id}/activity", nil)
+    req, err := http.NewRequest("GET", "/api/v1/users/{id}/activity", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -8065,10 +11139,20 @@ curl -X GET "http://localhost:8080/api/v1/users/{id}/upvoted"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/users/{id}/upvoted', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/users/{id}/upvoted', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -8076,10 +11160,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/users/{id}/upvoted'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/users/{id}/upvoted'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -8089,16 +11178,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/users/{id}/upvoted", nil)
+    req, err := http.NewRequest("GET", "/api/v1/users/{id}/upvoted", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -8138,10 +11241,20 @@ curl -X GET "http://localhost:8080/api/v1/users/{id}/downvoted"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/users/{id}/downvoted', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/users/{id}/downvoted', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -8149,10 +11262,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/users/{id}/downvoted'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/users/{id}/downvoted'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -8162,16 +11280,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/users/{id}/downvoted", nil)
+    req, err := http.NewRequest("GET", "/api/v1/users/{id}/downvoted", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -8211,10 +11343,20 @@ curl -X GET "http://localhost:8080/api/v1/users/{id}/followers"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/users/{id}/followers', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/users/{id}/followers', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -8222,10 +11364,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/users/{id}/followers'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/users/{id}/followers'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -8235,16 +11382,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/users/{id}/followers", nil)
+    req, err := http.NewRequest("GET", "/api/v1/users/{id}/followers", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -8284,10 +11445,20 @@ curl -X GET "http://localhost:8080/api/v1/users/{id}/following"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/users/{id}/following', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/users/{id}/following', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -8295,10 +11466,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/users/{id}/following'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/users/{id}/following'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -8308,16 +11484,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/users/{id}/following", nil)
+    req, err := http.NewRequest("GET", "/api/v1/users/{id}/following", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -8357,10 +11547,20 @@ curl -X GET "http://localhost:8080/api/v1/users/{id}/following/broadcasters"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/users/{id}/following/broadcasters', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/users/{id}/following/broadcasters', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -8368,10 +11568,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/users/{id}/following/broadcasters'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/users/{id}/following/broadcasters'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -8381,16 +11586,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/users/{id}/following/broadcasters", nil)
+    req, err := http.NewRequest("GET", "/api/v1/users/{id}/following/broadcasters", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -8431,10 +11650,20 @@ curl -X POST "http://localhost:8080/api/v1/users/{id}/follow" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/users/{id}/follow', {
-  method: 'POST',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/users/{id}/follow', {
+    method: 'POST',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -8442,10 +11671,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.post(
-    '/api/v1/users/{id}/follow'
-)
-data = response.json()
+try:
+    response = requests.post(
+        '/api/v1/users/{id}/follow'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -8455,16 +11689,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("POST", "/api/v1/users/{id}/follow", nil)
+    req, err := http.NewRequest("POST", "/api/v1/users/{id}/follow", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -8504,10 +11752,20 @@ curl -X DELETE "http://localhost:8080/api/v1/users/{id}/follow"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/users/{id}/follow', {
-  method: 'DELETE',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/users/{id}/follow', {
+    method: 'DELETE',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -8515,10 +11773,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.delete(
-    '/api/v1/users/{id}/follow'
-)
-data = response.json()
+try:
+    response = requests.delete(
+        '/api/v1/users/{id}/follow'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -8528,16 +11791,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("DELETE", "/api/v1/users/{id}/follow", nil)
+    req, err := http.NewRequest("DELETE", "/api/v1/users/{id}/follow", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -8580,10 +11857,20 @@ curl -X POST "http://localhost:8080/api/v1/users/{id}/block" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/users/{id}/block', {
-  method: 'POST',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/users/{id}/block', {
+    method: 'POST',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -8591,10 +11878,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.post(
-    '/api/v1/users/{id}/block'
-)
-data = response.json()
+try:
+    response = requests.post(
+        '/api/v1/users/{id}/block'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -8604,16 +11896,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("POST", "/api/v1/users/{id}/block", nil)
+    req, err := http.NewRequest("POST", "/api/v1/users/{id}/block", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -8653,10 +11959,20 @@ curl -X DELETE "http://localhost:8080/api/v1/users/{id}/block"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/users/{id}/block', {
-  method: 'DELETE',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/users/{id}/block', {
+    method: 'DELETE',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -8664,10 +11980,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.delete(
-    '/api/v1/users/{id}/block'
-)
-data = response.json()
+try:
+    response = requests.delete(
+        '/api/v1/users/{id}/block'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -8677,16 +11998,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("DELETE", "/api/v1/users/{id}/block", nil)
+    req, err := http.NewRequest("DELETE", "/api/v1/users/{id}/block", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -8725,10 +12060,20 @@ curl -X GET "http://localhost:8080/api/v1/users/me/blocked"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/users/me/blocked', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/users/me/blocked', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -8736,10 +12081,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/users/me/blocked'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/users/me/blocked'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -8749,16 +12099,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/users/me/blocked", nil)
+    req, err := http.NewRequest("GET", "/api/v1/users/me/blocked", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -8790,10 +12154,20 @@ curl -X GET "http://localhost:8080/api/v1/users/me/stats"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/users/me/stats', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/users/me/stats', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -8801,10 +12175,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/users/me/stats'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/users/me/stats'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -8814,16 +12193,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/users/me/stats", nil)
+    req, err := http.NewRequest("GET", "/api/v1/users/me/stats", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -8863,10 +12256,20 @@ curl -X GET "http://localhost:8080/api/v1/users/{id}/engagement"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/users/{id}/engagement', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/users/{id}/engagement', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -8874,10 +12277,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/users/{id}/engagement'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/users/{id}/engagement'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -8887,16 +12295,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/users/{id}/engagement", nil)
+    req, err := http.NewRequest("GET", "/api/v1/users/{id}/engagement", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -8936,16 +12358,26 @@ curl -X PUT "http://localhost:8080/api/v1/users/me/profile" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/users/me/profile', {
-  method: 'PUT',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    // Your request data
-  })
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/users/me/profile', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // Your request data
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -8953,11 +12385,16 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.put(
-    '/api/v1/users/me/profile',
-    json={}  # Your request data
-)
-data = response.json()
+try:
+    response = requests.put(
+        '/api/v1/users/me/profile',
+        json={}  # Your request data
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -8967,17 +12404,31 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("PUT", "/api/v1/users/me/profile", nil)
+    req, err := http.NewRequest("PUT", "/api/v1/users/me/profile", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -9017,16 +12468,26 @@ curl -X PUT "http://localhost:8080/api/v1/users/me/social-links" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/users/me/social-links', {
-  method: 'PUT',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    // Your request data
-  })
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/users/me/social-links', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // Your request data
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -9034,11 +12495,16 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.put(
-    '/api/v1/users/me/social-links',
-    json={}  # Your request data
-)
-data = response.json()
+try:
+    response = requests.put(
+        '/api/v1/users/me/social-links',
+        json={}  # Your request data
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -9048,17 +12514,31 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("PUT", "/api/v1/users/me/social-links", nil)
+    req, err := http.NewRequest("PUT", "/api/v1/users/me/social-links", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -9090,10 +12570,20 @@ curl -X GET "http://localhost:8080/api/v1/users/me/settings"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/users/me/settings', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/users/me/settings', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -9101,10 +12591,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/users/me/settings'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/users/me/settings'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -9114,16 +12609,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/users/me/settings", nil)
+    req, err := http.NewRequest("GET", "/api/v1/users/me/settings", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -9163,16 +12672,26 @@ curl -X PUT "http://localhost:8080/api/v1/users/me/settings" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/users/me/settings', {
-  method: 'PUT',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    // Your request data
-  })
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/users/me/settings', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // Your request data
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -9180,11 +12699,16 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.put(
-    '/api/v1/users/me/settings',
-    json={}  # Your request data
-)
-data = response.json()
+try:
+    response = requests.put(
+        '/api/v1/users/me/settings',
+        json={}  # Your request data
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -9194,17 +12718,31 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("PUT", "/api/v1/users/me/settings", nil)
+    req, err := http.NewRequest("PUT", "/api/v1/users/me/settings", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -9238,10 +12776,20 @@ curl -X GET "http://localhost:8080/api/v1/users/me/export"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/users/me/export', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/users/me/export', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -9249,10 +12797,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/users/me/export'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/users/me/export'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -9262,16 +12815,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/users/me/export", nil)
+    req, err := http.NewRequest("GET", "/api/v1/users/me/export", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -9303,10 +12870,20 @@ curl -X GET "http://localhost:8080/api/v1/users/me/consent"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/users/me/consent', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/users/me/consent', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -9314,10 +12891,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/users/me/consent'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/users/me/consent'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -9327,16 +12909,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/users/me/consent", nil)
+    req, err := http.NewRequest("GET", "/api/v1/users/me/consent", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -9378,16 +12974,26 @@ curl -X POST "http://localhost:8080/api/v1/users/me/consent" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/users/me/consent', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    // Your request data
-  })
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/users/me/consent', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // Your request data
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -9395,11 +13001,16 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.post(
-    '/api/v1/users/me/consent',
-    json={}  # Your request data
-)
-data = response.json()
+try:
+    response = requests.post(
+        '/api/v1/users/me/consent',
+        json={}  # Your request data
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -9409,17 +13020,31 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("POST", "/api/v1/users/me/consent", nil)
+    req, err := http.NewRequest("POST", "/api/v1/users/me/consent", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -9461,16 +13086,26 @@ curl -X POST "http://localhost:8080/api/v1/users/me/delete" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/users/me/delete', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    // Your request data
-  })
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/users/me/delete', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // Your request data
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -9478,11 +13113,16 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.post(
-    '/api/v1/users/me/delete',
-    json={}  # Your request data
-)
-data = response.json()
+try:
+    response = requests.post(
+        '/api/v1/users/me/delete',
+        json={}  # Your request data
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -9492,17 +13132,31 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("POST", "/api/v1/users/me/delete", nil)
+    req, err := http.NewRequest("POST", "/api/v1/users/me/delete", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     req.Header.Set("Content-Type", "application/json")
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -9535,10 +13189,20 @@ curl -X POST "http://localhost:8080/api/v1/users/me/delete/cancel" \
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/users/me/delete/cancel', {
-  method: 'POST',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/users/me/delete/cancel', {
+    method: 'POST',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -9546,10 +13210,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.post(
-    '/api/v1/users/me/delete/cancel'
-)
-data = response.json()
+try:
+    response = requests.post(
+        '/api/v1/users/me/delete/cancel'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -9559,16 +13228,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("POST", "/api/v1/users/me/delete/cancel", nil)
+    req, err := http.NewRequest("POST", "/api/v1/users/me/delete/cancel", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -9600,10 +13283,20 @@ curl -X GET "http://localhost:8080/api/v1/users/me/delete/status"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/users/me/delete/status', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/users/me/delete/status', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -9611,10 +13304,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/users/me/delete/status'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/users/me/delete/status'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -9624,16 +13322,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/users/me/delete/status", nil)
+    req, err := http.NewRequest("GET", "/api/v1/users/me/delete/status", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
@@ -9672,10 +13384,20 @@ curl -X GET "http://localhost:8080/api/v1/users/me/email-logs"
 
 ```javascript
 // Using fetch API
-const response = await fetch('/api/v1/users/me/email-logs', {
-  method: 'GET',
-});
-const data = await response.json();
+try {
+  const response = await fetch('/api/v1/users/me/email-logs', {
+    method: 'GET',
+  });
+  
+  if (!response.ok) {
+    throw new Error('HTTP error ' + response.status);
+  }
+  
+  const data = await response.json();
+  // Process data
+} catch (error) {
+  console.error('Error:', error);
+}
 ```
 
 ##### Python
@@ -9683,10 +13405,15 @@ const data = await response.json();
 ```python
 import requests
 
-response = requests.get(
-    '/api/v1/users/me/email-logs'
-)
-data = response.json()
+try:
+    response = requests.get(
+        '/api/v1/users/me/email-logs'
+    )
+    response.raise_for_status()  # Raise error for bad status
+    data = response.json()
+    # Process data
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 ```
 
 ##### Go
@@ -9696,16 +13423,30 @@ package main
 
 import (
     "net/http"
-    "io/ioutil"
+    "io"
 )
 
 func main() {
-    req, _ := http.NewRequest("GET", "/api/v1/users/me/email-logs", nil)
+    req, err := http.NewRequest("GET", "/api/v1/users/me/email-logs", nil)
+    if err != nil {
+        // Handle error
+        return
+    }
     
     client := &http.Client{}
-    resp, _ := client.Do(req)
+    resp, err := client.Do(req)
+    if err != nil {
+        // Handle error
+        return
+    }
     defer resp.Body.Close()
-    body, _ := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        // Handle error
+        return
+    }
+    // Process body
+    _ = body
 }
 ```
 
