@@ -24,6 +24,7 @@ export interface Clip {
     view_count: number;
     created_at: string;
     imported_at: string;
+    video_url?: string; // HLS video URL for clips with adaptive streaming support
     vote_score: number;
     comment_count: number;
     favorite_count: number;

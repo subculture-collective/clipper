@@ -5,6 +5,7 @@ import {
     CommentSection,
     SEO,
     VideoPlayer,
+    TheatreMode,
 } from '../components';
 import {
     useClipById,
@@ -314,11 +315,19 @@ export function ClipDetailPage() {
                     </div>
 
                     <div className='mb-4 xs:mb-6'>
-                        <VideoPlayer
-                            clipId={clip.id}
-                            title={clip.title}
-                            embedUrl={clip.embed_url}
-                        />
+                        {/* Render TheatreMode for HLS clips, otherwise use VideoPlayer */}
+                        {clip.video_url ? (
+                            <TheatreMode
+                                title={clip.title}
+                                hlsUrl={clip.video_url}
+                            />
+                        ) : (
+                            <VideoPlayer
+                                clipId={clip.id}
+                                title={clip.title}
+                                embedUrl={clip.embed_url}
+                            />
+                        )}
                     </div>
 
                     <div className='grid grid-cols-1 xs:grid-cols-3 gap-3 xs:gap-4 mb-4 xs:mb-6'>
