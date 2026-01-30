@@ -12,7 +12,7 @@ export interface SyncStatusProps {
  */
 export function SyncStatus({
   isConnected,
-  syncState = 'in-sync',
+  syncState,
   className = '',
 }: SyncStatusProps) {
   const getStatusColor = () => {

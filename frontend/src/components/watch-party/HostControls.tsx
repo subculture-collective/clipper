@@ -8,7 +8,7 @@ export interface HostControlsProps {
   onPlay: () => void;
   onPause: () => void;
   onSeek: (position: number) => void;
-  onSkip: () => void;
+  onSkip?: () => void;
   disabled?: boolean;
   className?: string;
 }
@@ -76,17 +76,19 @@ export function HostControls({
           </Button>
         )}
 
-        {/* Skip button */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onSkip}
-          disabled={disabled}
-          title="Skip to next clip"
-        >
-          <SkipForward className="w-4 h-4 mr-1" />
-          Skip
-        </Button>
+        {/* Skip button - only show when onSkip handler is provided (playlist support) */}
+        {onSkip && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onSkip}
+            disabled={disabled}
+            title="Skip to next clip"
+          >
+            <SkipForward className="w-4 h-4 mr-1" />
+            Skip
+          </Button>
+        )}
       </div>
 
       {/* Current position display */}

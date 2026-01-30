@@ -197,12 +197,6 @@ export function WatchPartyPage() {
     sendCommand({ type: 'seek', position });
   };
 
-  const handleSkip = () => {
-    // For now, skip doesn't change clip since we need playlist support
-    // This is a placeholder for future playlist integration
-    showToast('Skip functionality requires playlist support', 'info');
-  };
-
   if (loading) {
     return (
       <>
@@ -322,7 +316,6 @@ export function WatchPartyPage() {
                     onPlay={handlePlay}
                     onPause={handlePause}
                     onSeek={handleSeek}
-                    onSkip={handleSkip}
                     disabled={!isConnected}
                   />
                 </div>

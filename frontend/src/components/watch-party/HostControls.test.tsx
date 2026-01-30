@@ -12,7 +12,6 @@ describe('HostControls', () => {
         onPlay={onPlay}
         onPause={vi.fn()}
         onSeek={vi.fn()}
-        onSkip={vi.fn()}
       />
     );
 
@@ -32,7 +31,6 @@ describe('HostControls', () => {
         onPlay={vi.fn()}
         onPause={onPause}
         onSeek={vi.fn()}
-        onSkip={vi.fn()}
       />
     );
 
@@ -52,7 +50,6 @@ describe('HostControls', () => {
         onPlay={vi.fn()}
         onPause={vi.fn()}
         onSeek={onSeek}
-        onSkip={vi.fn()}
       />
     );
 
@@ -73,16 +70,13 @@ describe('HostControls', () => {
         onPlay={vi.fn()}
         onPause={vi.fn()}
         onSeek={vi.fn()}
-        onSkip={vi.fn()}
         disabled={true}
       />
     );
 
     const playButton = screen.getByRole('button', { name: /play/i });
-    const skipButton = screen.getByRole('button', { name: /skip/i });
     
     expect(playButton).toBeDisabled();
-    expect(skipButton).toBeDisabled();
   });
 
   it('displays current position in MM:SS format', () => {
@@ -93,10 +87,44 @@ describe('HostControls', () => {
         onPlay={vi.fn()}
         onPause={vi.fn()}
         onSeek={vi.fn()}
-        onSkip={vi.fn()}
       />
     );
 
     expect(screen.getByText(/2:05/)).toBeInTheDocument();
+  });
+
+  it('hides skip button when onSkip is not provided', () => {
+    render(
+      <HostControls
+        isPlaying={false}
+        currentPosition={0}
+        onPlay={vi.fn()}
+        onPause={vi.fn()}
+        onSeek={vi.fn()}
+      />
+    );
+
+    const skipButton = screen.queryByRole('button', { name: /skip/i });
+    expect(skipButton).not.toBeInTheDocument();
+  });
+
+  it('shows skip button when onSkip is provided', () => {
+    const onSkip = vi.fn();
+    render(
+      <HostControls
+        isPlaying={false}
+        currentPosition={0}
+        onPlay={vi.fn()}
+        onPause={vi.fn()}
+        onSeek={vi.fn()}
+        onSkip={onSkip}
+      />
+    );
+
+    const skipButton = screen.getByRole('button', { name: /skip/i });
+    expect(skipButton).toBeInTheDocument();
+    
+    fireEvent.click(skipButton);
+    expect(onSkip).toHaveBeenCalledTimes(1);
   });
 });
