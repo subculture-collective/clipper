@@ -1,31 +1,25 @@
-import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchClipById } from '@/lib/clip-api';
 import { VideoPlayer } from '@/components/video';
-import type { WatchPartySyncEvent } from '@/types/watchParty';
 
 export interface SyncedVideoPlayerProps {
   clipId: string | undefined;
   currentPosition: number;
   isPlaying: boolean;
-  onSyncEvent?: (event: WatchPartySyncEvent) => void;
   className?: string;
 }
 
 /**
  * Video player component for watch parties with synchronized playback
  * Fetches clip data and displays video player that responds to sync events
+ * 
+ * Note: Currently uses Twitch iframe embed which doesn't support programmatic sync.
+ * Future enhancement: Implement HLS player with custom controls for full sync support.
  */
 export function SyncedVideoPlayer({
   clipId,
-  currentPosition,
-  isPlaying,
-  onSyncEvent,
   className = '',
 }: SyncedVideoPlayerProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [lastSyncTime, setLastSyncTime] = useState(0);
-
   // Fetch clip data when clipId is available
   const { data: clip, isLoading, error } = useQuery({
     queryKey: ['clip', clipId],
@@ -33,31 +27,20 @@ export function SyncedVideoPlayer({
     enabled: !!clipId,
   });
 
-  // Apply sync events to video element
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !clip) return;
-
-    // Only sync if we have a significant time difference (>1 second)
-    // This prevents constant micro-adjustments
-    const timeDiff = Math.abs(video.currentTime - currentPosition);
-    if (timeDiff > 1) {
-      video.currentTime = currentPosition;
-      setLastSyncTime(Date.now());
-    }
-
-    // Sync play/pause state
-    if (isPlaying && video.paused) {
-      video.play().catch((err) => {
-        console.error('Failed to play video:', err);
-      });
-    } else if (!isPlaying && !video.paused) {
-      video.pause();
-    }
-  }, [currentPosition, isPlaying, clip]);
+  // No clip selected state
+  if (!clipId) {
+    return (
+      <div className={`relative bg-surface-secondary rounded-lg aspect-video flex items-center justify-center ${className}`}>
+        <div className="text-center text-content-secondary">
+          <p className="text-lg mb-2">No Video Selected</p>
+          <p className="text-sm">The host hasn't selected a video yet</p>
+        </div>
+      </div>
+    );
+  }
 
   // Loading state
-  if (isLoading || !clipId) {
+  if (isLoading) {
     return (
       <div className={`relative bg-surface-secondary rounded-lg aspect-video flex items-center justify-center ${className}`}>
         <div className="text-center text-content-secondary">
@@ -95,21 +78,10 @@ export function SyncedVideoPlayer({
     );
   }
 
-  // No clip selected state
-  if (!clipId) {
-    return (
-      <div className={`relative bg-surface-secondary rounded-lg aspect-video flex items-center justify-center ${className}`}>
-        <div className="text-center text-content-secondary">
-          <p className="text-lg mb-2">No Video Selected</p>
-          <p className="text-sm">The host hasn't selected a video yet</p>
-        </div>
-      </div>
-    );
-  }
-
   // Render video player
-  // For now, we use the simple VideoPlayer component with Twitch embed
-  // Future enhancement: Support HLS playback with custom controls for better sync
+  // Note: VideoPlayer uses Twitch iframe embed which handles its own playback.
+  // Full synchronized playback control requires implementing an HLS player with
+  // custom controls that can respond to WebSocket sync events.
   return (
     <div className={`relative ${className}`}>
       <VideoPlayer
