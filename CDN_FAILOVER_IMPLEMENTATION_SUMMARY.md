@@ -25,7 +25,7 @@ These variables are automatically set when running `make test-setup`.
 
 **Playwright Configuration** (`frontend/playwright.config.ts`)
 - Added support for `E2E_CDN_FAILOVER_MODE` environment variable
-- Automatically passes `VITE_CDN_FAILOVER_MODE` to the dev server when enabled
+- Conditionally passes `VITE_CDN_FAILOVER_MODE` to the dev server when `E2E_CDN_FAILOVER_MODE=true`
 - Enables CDN failover simulation during E2E test runs
 
 **Frontend Environment** (`frontend/.env.example`)
