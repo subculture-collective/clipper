@@ -240,6 +240,8 @@ export function WatchPartyPage() {
   }
 
   const isHost = party.host_user_id === user?.id;
+  const userParticipant = participants.find(p => p.user_id === user?.id);
+  const canControl = isHost || userParticipant?.role === 'co-host';
 
   return (
     <>
@@ -312,7 +314,7 @@ export function WatchPartyPage() {
               </div>
 
               {/* Host controls - only show for host/co-host */}
-              {isHost && (
+              {canControl && (
                 <div className="mt-4">
                   <HostControls
                     isPlaying={party.is_playing}
