@@ -49,7 +49,9 @@ go run cmd/migrate/main.go up
 # Docs: http://localhost:3000
 \`\`\`
 
-### Development Without Docker
+
+This will start all services in Docker containers.
+## Development Without Docker
 
 See the complete [Development Setup Guide](docs/setup/development.md) for detailed instructions.
 
