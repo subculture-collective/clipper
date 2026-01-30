@@ -169,11 +169,10 @@ describe('useTheatreMode', () => {
   describe('localStorage Error Handling', () => {
     it('should handle localStorage.getItem errors gracefully', () => {
       // Mock localStorage.getItem to throw an error
-      const originalGetItem = Storage.prototype.getItem;
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      Storage.prototype.getItem = vi.fn(() => {
+      const getItemSpy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
         throw new Error('localStorage is disabled');
       });
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       // Hook should still work and default to false
       const { result } = renderHook(() => useTheatreMode());
@@ -185,17 +184,16 @@ describe('useTheatreMode', () => {
       );
 
       // Restore
-      Storage.prototype.getItem = originalGetItem;
+      getItemSpy.mockRestore();
       consoleErrorSpy.mockRestore();
     });
 
     it('should handle localStorage.setItem errors gracefully', () => {
       // Mock localStorage.setItem to throw an error
-      const originalSetItem = Storage.prototype.setItem;
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      Storage.prototype.setItem = vi.fn(() => {
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
         throw new Error('Quota exceeded');
       });
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       const { result } = renderHook(() => useTheatreMode());
       
@@ -211,22 +209,25 @@ describe('useTheatreMode', () => {
       );
 
       // Restore
-      Storage.prototype.setItem = originalSetItem;
+      setItemSpy.mockRestore();
       consoleErrorSpy.mockRestore();
     });
 
     it('should continue working after localStorage failures', () => {
       // Simulate localStorage failure, then restore it
-      const originalSetItem = Storage.prototype.setItem;
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       let callCount = 0;
-      Storage.prototype.setItem = vi.fn(() => {
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function(key: string, value: string) {
         callCount++;
         if (callCount === 1) {
           throw new Error('First call fails');
         }
-        // Second call succeeds
-        originalSetItem.apply(localStorage, arguments as any);
+        // Second call succeeds - restore original behavior temporarily
+        setItemSpy.mockRestore();
+        const result = localStorage.setItem(key, value);
+        // Re-mock for cleanup
+        vi.spyOn(Storage.prototype, 'setItem');
+        return result;
       });
 
       const { result } = renderHook(() => useTheatreMode());
@@ -246,8 +247,7 @@ describe('useTheatreMode', () => {
       expect(result.current.isTheatreMode).toBe(false);
       
       // Restore
-      Storage.prototype.setItem = originalSetItem;
-      consoleErrorSpy.mockRestore();
+      vi.restoreAllMocks();
     });
   });
 });
