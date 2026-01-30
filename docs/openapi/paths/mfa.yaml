@@ -3,7 +3,16 @@ enroll:
     tags:
       - MFA
     summary: Enroll in MFA
-    description: Generate TOTP secret and QR code for MFA enrollment
+    description: |
+      Generate TOTP secret and QR code for MFA enrollment.
+      
+      **Security Note**: This endpoint returns sensitive cryptographic secrets that should be:
+      - Transmitted only over HTTPS
+      - Never logged or cached
+      - Stored securely by the client
+      - Displayed to the user only once
+      
+      The backup codes should be stored securely and shown to the user for offline recovery.
     operationId: mfaEnroll
     security:
       - BearerAuth: []
@@ -17,12 +26,15 @@ enroll:
               properties:
                 secret:
                   type: string
+                  description: TOTP secret (sensitive - handle securely)
                 qr_code:
                   type: string
+                  description: QR code data URL for easy setup
                 backup_codes:
                   type: array
                   items:
                     type: string
+                  description: One-time backup codes for account recovery
       '400':
         description: MFA already enabled
       '401':
@@ -86,7 +98,9 @@ disable:
     tags:
       - MFA
     summary: Disable MFA
-    description: Disable multi-factor authentication
+    description: |
+      Disable multi-factor authentication.
+      Requires verification with either a TOTP code or a backup code.
     operationId: mfaDisable
     security:
       - BearerAuth: []
@@ -101,6 +115,12 @@ disable:
             properties:
               code:
                 type: string
+                description: Either a 6-digit TOTP code or a backup code
+                oneOf:
+                  - pattern: '^\d{6}$'
+                    description: 6-digit TOTP code
+                  - pattern: '^[A-Z0-9]{8}$'
+                    description: 8-character backup code
     responses:
       '200':
         description: MFA disabled successfully
