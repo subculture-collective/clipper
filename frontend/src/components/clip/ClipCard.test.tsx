@@ -243,8 +243,9 @@ describe('ClipCard', () => {
         render(<ClipCard clip={clipWithExcessProgress} />);
 
         const progressBar = screen.getByRole('progressbar');
-        // Should clamp to 100
-        expect(progressBar).toHaveAttribute('aria-valuenow', '133');
+        // Should clamp to 100 for ARIA attributes
+        expect(progressBar).toHaveAttribute('aria-valuenow', '100');
+        expect(progressBar).toHaveAttribute('aria-label', '100% watched');
         // Visual indicator should be clamped to 100%
         const progressFill = progressBar.querySelector('.bg-purple-600');
         expect(progressFill).toHaveStyle({ width: '100%' });
@@ -265,7 +266,9 @@ describe('ClipCard', () => {
         render(<ClipCard clip={clipWithNegativeProgress} />);
 
         const progressBar = screen.getByRole('progressbar');
-        expect(progressBar).toHaveAttribute('aria-valuenow', '-10');
+        // Should clamp to 0 for ARIA attributes
+        expect(progressBar).toHaveAttribute('aria-valuenow', '0');
+        expect(progressBar).toHaveAttribute('aria-label', '0% watched');
         // Visual indicator should be clamped to 0%
         const progressFill = progressBar.querySelector('.bg-purple-600');
         expect(progressFill).toHaveStyle({ width: '0%' });

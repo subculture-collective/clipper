@@ -260,11 +260,13 @@ export function ClipCard({ clip }: ClipCardProps) {
                                     className='bottom-0 left-0 right-0 absolute h-1 bg-gray-700'
                                     role='progressbar'
                                     aria-valuenow={Math.round(
-                                        clip.watch_progress.progress_percent,
+                                        Math.min(100, Math.max(0, clip.watch_progress.progress_percent)),
                                     )}
                                     aria-valuemin={0}
                                     aria-valuemax={100}
-                                    aria-label={`${Math.round(clip.watch_progress.progress_percent)}% watched`}
+                                    aria-label={`${Math.round(
+                                        Math.min(100, Math.max(0, clip.watch_progress.progress_percent)),
+                                    )}% watched`}
                                 >
                                     <div
                                         className='h-full bg-purple-600'
