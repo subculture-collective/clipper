@@ -46,6 +46,14 @@ export interface Clip {
     hot_score?: number;
     popularity_index?: number;
     engagement_count?: number;
+    // Watch progress (when available from watch history)
+    watch_progress?: {
+        progress_seconds: number;
+        duration_seconds: number;
+        progress_percent: number;
+        completed: boolean;
+        watched_at: string;
+    };
 }
 
 export interface ClipFeedResponse {
