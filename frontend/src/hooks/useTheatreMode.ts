@@ -1,16 +1,35 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
+// Theatre mode preference key for localStorage
+const THEATRE_MODE_PREF_KEY = 'clipper_theatre_mode';
+
 /**
  * Custom hook to manage theatre mode state and keyboard shortcuts
+ * Persists theatre mode preference in localStorage
  * 
  * @returns Theatre mode state and control functions
  */
 export function useTheatreMode() {
-  const [isTheatreMode, setIsTheatreMode] = useState(false);
+  const [isTheatreMode, setIsTheatreMode] = useState(() => {
+    // Check localStorage for user's theatre mode preference
+    // Default to false for first-time users
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(THEATRE_MODE_PREF_KEY);
+      return stored === 'true';
+    }
+    return false;
+  });
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPictureInPicture, setIsPictureInPicture] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Persist theatre mode preference to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(THEATRE_MODE_PREF_KEY, String(isTheatreMode));
+    }
+  }, [isTheatreMode]);
 
   // Handle fullscreen changes
   useEffect(() => {
