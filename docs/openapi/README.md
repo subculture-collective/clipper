@@ -281,6 +281,57 @@ components:
   responses:               # Reusable responses
 ```
 
+## 📚 API Documentation Generator
+
+### Generating Markdown Documentation
+
+Convert the OpenAPI spec to formatted Markdown with code samples:
+
+```bash
+# Using npm
+npm run openapi:generate-docs
+
+# Output: docs/openapi/generated/api-reference.md
+```
+
+The generator creates:
+- Complete API reference with all endpoints
+- Multi-language code samples (cURL, JavaScript, Python, Go)
+- Organized by tags/categories
+- Table of contents with navigation links
+- Request/response documentation
+
+### Generating Changelog
+
+Compare OpenAPI spec versions to track API changes:
+
+```bash
+# Generate baseline (first run)
+npm run openapi:changelog
+
+# Compare two versions
+node scripts/generate-api-changelog.js [old-spec.yaml] [new-spec.yaml]
+
+# Output: docs/openapi/generated/api-changelog.md
+```
+
+The changelog includes:
+- Added endpoints
+- Modified endpoints
+- Removed endpoints
+- Deprecated endpoints
+- Migration guide
+
+### Viewing in Admin Dashboard
+
+Access the generated API documentation through the admin dashboard:
+
+1. Navigate to `/admin/api-docs`
+2. Select version (Current, Baseline, Changelog)
+3. Search endpoints by keyword
+4. Filter by category/tag
+5. View code samples in multiple languages
+
 ## 🔗 Related Documentation
 
 - [Main API Documentation](../backend/api.md)
