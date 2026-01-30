@@ -17,12 +17,17 @@ Complete OpenAPI 3.1 specification documenting all 474+ API endpoints for the Cl
 
 ### Complete API Specification
 
-- **File**: [`openapi.yaml`](./openapi.yaml)
+- **File**: [`openapi.yaml`](./openapi.yaml) ⭐ **Primary spec - edit this file**
 - **Version**: 1.0.0 (OpenAPI 3.1)
 - **Description**: Complete API documentation covering all endpoints
 - **Size**: 4,691 lines
 - **Endpoints**: 474+ documented routes
 - **Status**: ✅ Production-ready and validated
+
+> **Note on file organization:**
+> - `openapi.yaml` - **Primary source of truth**. Edit this file when making changes.
+> - `openapi-bundled.yaml` - Auto-generated bundled version (created by `npm run openapi:bundle`). Do not edit manually.
+> - `openapi-main.yaml` - Alternative simplified spec (currently unused). For most cases, use `openapi.yaml`.
 
 **Major API Groups:**
 - Health & Monitoring (10 endpoints)

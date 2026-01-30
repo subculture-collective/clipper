@@ -12,20 +12,20 @@ info:
     ```
     
     ## Rate Limiting
-    API requests are rate limited based on your subscription tier:
-    - **Free**: 300 requests/minute
-    - **Premium**: 1000 requests/minute
-    - **Enterprise**: Custom limits
+    API requests are rate limited on a per-endpoint basis:
+    - **Public endpoints**: typically 60–100 requests/minute
+    - **Authenticated endpoints**: typically 10–30 requests/minute
+    - **Submission/mutation endpoints** (e.g. creating or updating resources): typically 5–10 requests/hour
     
     Rate limit headers are included in responses:
-    - `X-RateLimit-Limit`: Maximum requests allowed
-    - `X-RateLimit-Remaining`: Requests remaining
-    - `X-RateLimit-Reset`: Timestamp when limit resets
+    - `X-RateLimit-Limit`: Maximum requests allowed for the current endpoint and time window
+    - `X-RateLimit-Remaining`: Requests remaining in the current window
+    - `X-RateLimit-Reset`: Timestamp when the current window resets
     
     ## Pagination
-    List endpoints support cursor-based pagination:
+    List endpoints support page-based pagination:
     - `limit`: Number of items per page (default: 20, max: 100)
-    - `cursor`: Pagination cursor from previous response
+    - `page`: Page number to retrieve (starting from 1)
     
     ## Error Responses
     All errors follow a consistent format:
@@ -420,7 +420,7 @@ components:
           type: string
           format: uuid
         parent_comment_id:
-          type: [string, "null"]
+          type: ["string", "null"]
           format: uuid
         content:
           type: string

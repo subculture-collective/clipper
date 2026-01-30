@@ -51,7 +51,7 @@ twitch-callback:
                 refresh_token:
                   type: string
                 user:
-                  type: object
+                  $ref: '#/components/schemas/User'
       '401':
         description: Authentication failed
 
@@ -123,6 +123,6 @@ me:
                 success:
                   type: boolean
                 data:
-                  type: object
+                  $ref: '#/components/schemas/User'
       '401':
         description: Not authenticated

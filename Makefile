@@ -859,23 +859,23 @@ k8s-status-staging: ## Show status of staging deployment
 
 # OpenAPI Documentation
 openapi-validate: ## Validate OpenAPI specification
-@echo "Validating OpenAPI specification..."
-npm run openapi:validate
+	@echo "Validating OpenAPI specification..."
+	npm run openapi:validate
 
 openapi-serve: ## Start Swagger UI server on http://localhost:8081
-@echo "Starting Swagger UI server..."
-@echo "Open http://localhost:8081 in your browser"
-npm run openapi:serve
+	@echo "Starting Swagger UI server..."
+	@echo "Open http://localhost:8081 in your browser"
+	npm run openapi:serve
 
 openapi-build: ## Build static API documentation
-@echo "Building static API documentation..."
-npm run openapi:build
-@echo "✓ Documentation built at docs/openapi/api-docs.html"
+	@echo "Building static API documentation..."
+	npm run openapi:build
+	@echo "✓ Documentation built at docs/openapi/api-docs.html"
 
 openapi-preview: ## Preview OpenAPI docs with live reload
-@echo "Starting Redocly preview server..."
-npm run openapi:preview
+	@echo "Starting Redocly preview server..."
+	npm run openapi:preview
 
 openapi-stats: ## Show OpenAPI spec statistics
-@echo "Analyzing OpenAPI specification..."
-npm run openapi:stats
+	@echo "Analyzing OpenAPI specification..."
+	npm run openapi:stats

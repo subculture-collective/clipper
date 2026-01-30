@@ -42,7 +42,7 @@ info:
 servers:
   - url: http://localhost:8080
     description: Local development server
-  - url: https://staging.clpr.tv
+  - url: https://api-staging.clpr.tv
     description: Staging environment
   - url: https://api.clpr.tv
     description: Production API server
