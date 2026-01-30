@@ -1,0 +1,110 @@
+enroll:
+  post:
+    tags:
+      - MFA
+    summary: Enroll in MFA
+    description: Generate TOTP secret and QR code for MFA enrollment
+    operationId: mfaEnroll
+    security:
+      - BearerAuth: []
+    responses:
+      '200':
+        description: MFA enrollment initiated
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                secret:
+                  type: string
+                qr_code:
+                  type: string
+                backup_codes:
+                  type: array
+                  items:
+                    type: string
+      '400':
+        description: MFA already enabled
+      '401':
+        description: Not authenticated
+
+verify-enrollment:
+  post:
+    tags:
+      - MFA
+    summary: Verify MFA enrollment
+    description: Complete MFA enrollment by verifying TOTP code
+    operationId: mfaVerifyEnrollment
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - code
+            properties:
+              code:
+                type: string
+                pattern: '^\d{6}$'
+    responses:
+      '200':
+        description: MFA enabled successfully
+      '400':
+        description: Invalid code
+      '401':
+        description: Not authenticated
+
+status:
+  get:
+    tags:
+      - MFA
+    summary: Get MFA status
+    description: Check if MFA is enabled for current user
+    operationId: mfaStatus
+    security:
+      - BearerAuth: []
+    responses:
+      '200':
+        description: MFA status
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                backup_codes_remaining:
+                  type: integer
+      '401':
+        description: Not authenticated
+
+disable:
+  post:
+    tags:
+      - MFA
+    summary: Disable MFA
+    description: Disable multi-factor authentication
+    operationId: mfaDisable
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - code
+            properties:
+              code:
+                type: string
+    responses:
+      '200':
+        description: MFA disabled successfully
+      '400':
+        description: Invalid code
+      '401':
+        description: Not authenticated

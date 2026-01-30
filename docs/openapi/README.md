@@ -1,65 +1,92 @@
 ---
 title: "README"
-summary: "This directory contains OpenAPI 3.0 specifications for the Clipper API."
+summary: "This directory contains OpenAPI 3.1 specifications for the Clipper API."
 tags: ["openapi"]
 area: "openapi"
 status: "stable"
 owner: "team-core"
-version: "1.0"
+version: "2.0"
 last_reviewed: 2026-01-29
 ---
 
 # OpenAPI Specifications
 
-This directory contains OpenAPI 3.0 specifications for the Clipper API.
+This directory contains OpenAPI 3.1 specifications for the Clipper API.
 
 ## Available Specifications
 
-### Clip Submission API
+### Complete API Specification (NEW)
+
+- **File**: [`openapi.yaml`](./openapi.yaml)
+- **Description**: **Complete OpenAPI 3.1 specification documenting all 474 API endpoints**
+- **Version**: 1.0.0
+- **Coverage**: 
+  - Health & Monitoring (10 endpoints)
+  - Authentication & MFA (15 endpoints)
+  - Clips & Content (25+ endpoints)
+  - Comments & Engagement (10 endpoints)
+  - Tags & Search (15 endpoints)
+  - Submissions & Reports (10 endpoints)
+  - Moderation & Appeals (20+ endpoints)
+  - Users & Profiles (40+ endpoints)
+  - Creators & Analytics (9 endpoints)
+  - Broadcasters & Live (6 endpoints)
+  - Categories & Games
+  - Streams & Twitch Integration
+  - Discovery Lists & Leaderboards
+  - Feeds & Recommendations
+  - Notifications
+  - Verification & Subscriptions
+  - Webhooks & Integrations
+  - Chat & WebSocket
+  - Ads & Campaigns
+  - Communities & Forums
+  - Playlists & Queue
+  - Watch History & Parties
+  - Service Status
+  - Admin Operations (100+ endpoints)
+- **Features**:
+  - Complete request/response schemas
+  - Authentication patterns
+  - Rate limiting documentation
+  - Error responses
+  - Pagination support
+  - WebSocket endpoints
+  - Comprehensive component schemas
+
+### Legacy Specifications (DEPRECATED - use openapi.yaml)
+
+### Clip Submission API (DEPRECATED)
 
 - **File**: [`clip-submission-api.yaml`](./clip-submission-api.yaml)
-- **Description**: API for submitting Twitch clips to the platform
+- **Description**: Partial API spec for submitting Twitch clips
+- **Status**: Deprecated - Superseded by openapi.yaml
 - **Version**: 1.0.0
-- **Endpoints**:
-  - `GET /api/v1/submissions/metadata` - Fetch clip metadata from Twitch
-  - `POST /api/v1/submissions` - Submit a clip for review
-  - `GET /api/v1/submissions` - List user's submissions
-  - `GET /api/v1/submissions/stats` - Get submission statistics
 
-### Comments API
+### Comments API (DEPRECATED)
 
 - **File**: [`comments-api.yaml`](./comments-api.yaml)
-- **Description**: API for managing comments on clips with nested threading support
+- **Description**: Partial API spec for managing comments on clips
+- **Status**: Deprecated - Superseded by openapi.yaml
 - **Version**: 1.0.0
-- **Endpoints**:
-  - `GET /api/v1/clips/{clipId}/comments` - List comments for a clip (with optional nested replies)
-  - `POST /api/v1/clips/{clipId}/comments` - Create a comment on a clip
-  - `GET /api/v1/comments/{commentId}/replies` - Get direct replies to a comment
-- **Features**:
-  - Flat list or nested tree structure (up to 10 levels deep)
-  - Vote scores and user vote status
-  - Reply counts
-  - Markdown rendering
-  - Author information
-  - Moderation fields (is_removed, removed_reason)
 
 ## Viewing the Specifications
 
 ### Online Viewers
 
-You can view and interact with these specifications using:
+You can view and interact with the complete API specification using:
 
 1. **Swagger Editor**: <https://editor.swagger.io/>
-   - Copy and paste the YAML content into the editor
+   - Copy and paste the YAML content from `openapi.yaml` into the editor
 
-2. **Redoc**: Generate a beautiful HTML documentation
+2. **Redoc**: Generate beautiful HTML documentation
    ```bash
-   npx @redocly/cli build-docs docs/openapi/clip-submission-api.yaml
+   npx @redocly/cli build-docs docs/openapi/openapi.yaml
    ```
 
 3. **Swagger UI**: Run a local Swagger UI server
    ```bash
-   docker run -p 8081:8080 -e SWAGGER_JSON=/api/clip-submission-api.yaml -v $(pwd)/docs/openapi:/api swaggerapi/swagger-ui
+   docker run -p 8081:8080 -e SWAGGER_JSON=/api/openapi.yaml -v $(pwd)/docs/openapi:/api swaggerapi/swagger-ui
    ```
    Then visit <http://localhost:8081>
 
@@ -79,7 +106,7 @@ You can generate client libraries in various languages using [OpenAPI Generator]
 
 ```bash
 npx @openapitools/openapi-generator-cli generate \
-  -i docs/openapi/clip-submission-api.yaml \
+  -i docs/openapi/openapi.yaml \
   -g typescript-axios \
   -o generated/typescript-client
 ```
@@ -88,7 +115,7 @@ npx @openapitools/openapi-generator-cli generate \
 
 ```bash
 npx @openapitools/openapi-generator-cli generate \
-  -i docs/openapi/clip-submission-api.yaml \
+  -i docs/openapi/openapi.yaml \
   -g python \
   -o generated/python-client
 ```
@@ -97,7 +124,7 @@ npx @openapitools/openapi-generator-cli generate \
 
 ```bash
 npx @openapitools/openapi-generator-cli generate \
-  -i docs/openapi/clip-submission-api.yaml \
+  -i docs/openapi/openapi.yaml \
   -g go \
   -o generated/go-client
 ```
@@ -108,14 +135,17 @@ OpenAPI Generator supports 50+ languages and frameworks. See the [full list of g
 
 ## Validating Specifications
 
-Validate the OpenAPI specifications using:
+Validate the OpenAPI specification using:
 
 ```bash
 # Using Redocly CLI
-npx @redocly/cli lint docs/openapi/clip-submission-api.yaml
+npx @redocly/cli lint docs/openapi/openapi.yaml
 
 # Using Swagger CLI
-npx swagger-cli validate docs/openapi/clip-submission-api.yaml
+npx swagger-cli validate docs/openapi/openapi.yaml
+
+# Using Python
+python3 -c "import yaml; yaml.safe_load(open('docs/openapi/openapi.yaml'))"
 ```
 
 ## Testing the API

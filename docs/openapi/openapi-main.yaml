@@ -1,0 +1,550 @@
+openapi: 3.1.0
+info:
+  title: Clipper API
+  version: 1.0.0
+  description: |
+    Complete API documentation for Clipper - A platform for discovering and sharing Twitch clips.
+    
+    ## Authentication
+    Most endpoints require authentication via JWT Bearer token. Include your token in the `Authorization` header:
+    ```
+    Authorization: Bearer <your_jwt_token>
+    ```
+    
+    ## Rate Limiting
+    API requests are rate limited based on your subscription tier:
+    - **Free**: 300 requests/minute
+    - **Premium**: 1000 requests/minute
+    - **Enterprise**: Custom limits
+    
+    Rate limit headers are included in responses:
+    - `X-RateLimit-Limit`: Maximum requests allowed
+    - `X-RateLimit-Remaining`: Requests remaining
+    - `X-RateLimit-Reset`: Timestamp when limit resets
+    
+    ## Pagination
+    List endpoints support cursor-based pagination:
+    - `limit`: Number of items per page (default: 20, max: 100)
+    - `cursor`: Pagination cursor from previous response
+    
+    ## Error Responses
+    All errors follow a consistent format:
+    ```json
+    {
+      "success": false,
+      "error": "Human-readable error message",
+      "code": "ERROR_CODE",
+      "details": {}
+    }
+    ```
+    
+    ## Versioning
+    The API uses URL-based versioning (e.g., `/api/v1/`). Breaking changes will increment the version number.
+    
+  contact:
+    name: Clipper API Support
+    url: https://github.com/subculture-collective/clipper
+    email: support@clpr.tv
+  license:
+    name: MIT
+    url: https://github.com/subculture-collective/clipper/blob/main/LICENSE
+  termsOfService: https://clpr.tv/terms
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+  - url: https://api-staging.clpr.tv
+    description: Staging environment
+  - url: https://api.clpr.tv
+    description: Production API server
+
+tags:
+  - name: Health
+    description: Health check and monitoring endpoints
+  - name: Authentication
+    description: User authentication and session management
+  - name: MFA
+    description: Multi-factor authentication endpoints
+  - name: Clips
+    description: Clip discovery, viewing, and management
+  - name: Comments
+    description: Comment and reply management
+  - name: Users
+    description: User profiles and social features
+  - name: Search
+    description: Search and discovery features
+  - name: Submissions
+    description: Clip submission and review workflow
+  - name: Tags
+    description: Tag management and categorization
+  - name: Favorites
+    description: User favorites and bookmarks
+  - name: Votes
+    description: Voting and scoring system
+  - name: Reports
+    description: Content reporting and moderation
+  - name: Moderation
+    description: Moderation tools and workflows
+  - name: Analytics
+    description: Usage analytics and metrics
+  - name: Premium
+    description: Subscription and premium features
+  - name: Notifications
+    description: User notifications
+  - name: Feeds
+    description: Content feeds and recommendations
+  - name: Communities
+    description: Community management
+  - name: Playlists
+    description: Playlist creation and management
+  - name: Watch Parties
+    description: Social viewing features
+  - name: Broadcasters
+    description: Twitch broadcaster information
+  - name: Admin
+    description: Administrative operations
+
+security:
+  - BearerAuth: []
+
+paths:
+  # Health & Monitoring
+  /health/live:
+    $ref: './paths/health.yaml#/live'
+  /health/ready:
+    $ref: './paths/health.yaml#/ready'
+  /api/v1/health:
+    $ref: './paths/health.yaml#/health'
+  /api/v1/ping:
+    $ref: './paths/health.yaml#/ping'
+  
+  # Authentication
+  /api/v1/auth/twitch:
+    $ref: './paths/auth.yaml#/twitch'
+  /api/v1/auth/twitch/callback:
+    $ref: './paths/auth.yaml#/twitch-callback'
+  /api/v1/auth/refresh:
+    $ref: './paths/auth.yaml#/refresh'
+  /api/v1/auth/logout:
+    $ref: './paths/auth.yaml#/logout'
+  /api/v1/auth/me:
+    $ref: './paths/auth.yaml#/me'
+  
+  # MFA
+  /api/v1/auth/mfa/enroll:
+    $ref: './paths/mfa.yaml#/enroll'
+  /api/v1/auth/mfa/verify-enrollment:
+    $ref: './paths/mfa.yaml#/verify-enrollment'
+  /api/v1/auth/mfa/status:
+    $ref: './paths/mfa.yaml#/status'
+  /api/v1/auth/mfa/disable:
+    $ref: './paths/mfa.yaml#/disable'
+  
+  # Clips (main endpoints)
+  /api/v1/clips:
+    get:
+      tags:
+        - Clips
+      summary: List clips
+      description: |
+        Retrieve a paginated list of clips with optional filtering and sorting.
+        Supports advanced filters for game, broadcaster, time range, and more.
+      operationId: listClips
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [popular, new, trending, top]
+            default: popular
+        - name: game
+          in: query
+          schema:
+            type: string
+          description: Filter by game name
+        - name: broadcaster
+          in: query
+          schema:
+            type: string
+          description: Filter by broadcaster name
+        - name: tag
+          in: query
+          schema:
+            type: string
+          description: Filter by tag slug
+      responses:
+        '200':
+          description: List of clips
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Clip'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  
+  /api/v1/clips/{id}:
+    get:
+      tags:
+        - Clips
+      summary: Get clip by ID
+      operationId: getClip
+      parameters:
+        - $ref: '#/components/parameters/ClipId'
+      responses:
+        '200':
+          description: Clip details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Clip'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  
+  # Submissions
+  /api/v1/submissions:
+    $ref: './clip-submission-api.yaml#/paths/~1submissions'
+  /api/v1/submissions/metadata:
+    $ref: './clip-submission-api.yaml#/paths/~1submissions~1metadata'
+  /api/v1/submissions/stats:
+    $ref: './clip-submission-api.yaml#/paths/~1submissions~1stats'
+  
+  # Comments
+  /api/v1/clips/{clipId}/comments:
+    $ref: './comments-api.yaml#/paths/~1clips~1{clipId}~1comments'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT authentication token obtained from the `/api/v1/auth/twitch` or `/api/v1/auth/refresh` endpoints.
+        Include the token in the Authorization header: `Authorization: Bearer <token>`
+
+  parameters:
+    ClipId:
+      name: id
+      in: path
+      required: true
+      description: Unique clip identifier (UUID)
+      schema:
+        type: string
+        format: uuid
+    
+    UserId:
+      name: id
+      in: path
+      required: true
+      description: Unique user identifier (UUID)
+      schema:
+        type: string
+        format: uuid
+    
+    Page:
+      name: page
+      in: query
+      description: Page number (starts at 1)
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    
+    Limit:
+      name: limit
+      in: query
+      description: Number of items per page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+  schemas:
+    # Core Models
+    Clip:
+      type: object
+      required:
+        - id
+        - title
+        - broadcaster_name
+        - game_name
+        - view_count
+        - created_at
+        - thumbnail_url
+        - video_url
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique clip identifier
+        twitch_clip_id:
+          type: string
+          description: Original Twitch clip ID
+        title:
+          type: string
+          description: Clip title
+        broadcaster_name:
+          type: string
+          description: Broadcaster/streamer name
+        broadcaster_id:
+          type: string
+          description: Broadcaster Twitch ID
+        game_name:
+          type: string
+          description: Game name
+        game_id:
+          type: string
+          description: Game ID
+        view_count:
+          type: integer
+          description: Number of views
+        created_at:
+          type: string
+          format: date-time
+          description: Clip creation timestamp
+        duration:
+          type: number
+          format: float
+          description: Clip duration in seconds
+        thumbnail_url:
+          type: string
+          format: uri
+          description: Thumbnail image URL
+        video_url:
+          type: string
+          format: uri
+          description: Video playback URL
+        tags:
+          type: array
+          items:
+            type: string
+          description: Associated tags
+        score:
+          type: integer
+          description: Aggregate vote score
+        is_nsfw:
+          type: boolean
+          description: NSFW flag
+        user_vote:
+          type: integer
+          nullable: true
+          enum: [1, -1, null]
+          description: Current user's vote (1=upvote, -1=downvote, null=no vote)
+        is_favorited:
+          type: boolean
+          description: Whether the current user has favorited this clip
+    
+    User:
+      type: object
+      required:
+        - id
+        - username
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        display_name:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+        bio:
+          type: string
+        karma:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        account_type:
+          type: string
+          enum: [free, premium, premium_plus]
+        badges:
+          type: array
+          items:
+            type: string
+    
+    Comment:
+      type: object
+      required:
+        - id
+        - clip_id
+        - user_id
+        - content
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        clip_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        parent_comment_id:
+          type: string
+          format: uuid
+          nullable: true
+        content:
+          type: string
+        vote_score:
+          type: integer
+        reply_count:
+          type: integer
+        is_edited:
+          type: boolean
+        is_removed:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    
+    PaginationMeta:
+      type: object
+      required:
+        - page
+        - limit
+        - total
+        - total_pages
+      properties:
+        page:
+          type: integer
+          description: Current page number
+        limit:
+          type: integer
+          description: Items per page
+        total:
+          type: integer
+          description: Total number of items
+        total_pages:
+          type: integer
+          description: Total number of pages
+        has_more:
+          type: boolean
+          description: Whether there are more pages
+    
+    Error:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          description: Human-readable error message
+        code:
+          type: string
+          description: Machine-readable error code
+        details:
+          type: object
+          description: Additional error details
+
+  responses:
+    BadRequest:
+      description: Bad request - Invalid input parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error: "Invalid input parameters"
+            code: "INVALID_INPUT"
+    
+    Unauthorized:
+      description: Unauthorized - Missing or invalid authentication
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error: "Authentication required"
+            code: "UNAUTHORIZED"
+    
+    Forbidden:
+      description: Forbidden - Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error: "Insufficient permissions"
+            code: "FORBIDDEN"
+    
+    NotFound:
+      description: Not found - Resource does not exist
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error: "Resource not found"
+            code: "NOT_FOUND"
+    
+    RateLimit:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error: "Rate limit exceeded"
+            code: "RATE_LIMIT_EXCEEDED"
+    
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error: "An internal error occurred"
+            code: "INTERNAL_ERROR"
