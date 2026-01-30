@@ -45,6 +45,7 @@ Comprehensive testing guides and procedures for ensuring quality across the plat
 - [[HYBRID_SEARCH_OPTIMIZATION_REPORT|Hybrid Search Optimization]] - Search optimization
 - [[HYBRID_SEARCH_ROLLOUT|Hybrid Search Rollout]] - Rollout documentation
 - [[MODERATION_SERVICES_TEST_COVERAGE|Moderation Services Coverage]] - Moderation test coverage
+- [[stripe-subscription-testing|Stripe Subscription Testing]] - Additional Stripe testing docs
 
 ## E2E Test Suites
 
