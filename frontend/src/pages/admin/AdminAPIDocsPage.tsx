@@ -402,7 +402,6 @@ export function AdminAPIDocsPage() {
                                     id='category-filter'
                                     value={selectedTag}
                                     onChange={e => setSelectedTag(e.target.value)}
-                                    aria-label='Filter by category'
                                     className='px-3 py-2 bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary'
                                 >
                                     {tags.map(tag => (
