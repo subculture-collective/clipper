@@ -304,10 +304,18 @@ function WatchHistoryCard({ entry, formatTime, formatDate }: WatchHistoryCardPro
               Completed
             </span>
           ) : (
-            <span>
-              {formatTime(entry.progress_seconds)} / {formatTime(entry.duration_seconds)} •{' '}
-              {Math.floor(progressPercent)}% watched
-            </span>
+            <>
+              <span>
+                {formatTime(entry.progress_seconds)} / {formatTime(entry.duration_seconds)} •{' '}
+                {Math.floor(progressPercent)}% watched
+              </span>
+              <span className="text-purple-500 flex items-center gap-1 font-medium">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                </svg>
+                Resume
+              </span>
+            </>
           )}
           <span>Watched {formatDate(entry.watched_at)}</span>
         </div>
