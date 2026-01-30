@@ -3,6 +3,12 @@ import { Container, Grid, Card, CardHeader, CardBody } from '../../components';
 
 const quickDocLinks = [
     {
+        name: 'API Reference',
+        path: '/admin/api-docs',
+        description: 'Interactive API documentation',
+        isRoute: true,
+    },
+    {
         name: 'Runbook',
         path: 'operations/runbook',
         description: 'Incident response procedures',
@@ -16,11 +22,6 @@ const quickDocLinks = [
         name: 'Monitoring',
         path: 'operations/monitoring',
         description: 'Metrics and alerts',
-    },
-    {
-        name: 'API Reference',
-        path: 'backend/api',
-        description: 'Complete API docs',
     },
     {
         name: 'Database',
@@ -37,9 +38,14 @@ const quickDocLinks = [
 export function AdminDashboard() {
     const navigate = useNavigate();
 
-    const handleDocClick = (path: string) => {
-        // Navigate to docs page with the specific document
-        navigate(`/docs?doc=${path}`);
+    const handleDocClick = (path: string, isRoute: boolean = false) => {
+        if (isRoute) {
+            // Navigate to route directly
+            navigate(path);
+        } else {
+            // Navigate to docs page with the specific document
+            navigate(`/docs?doc=${path}`);
+        }
     };
 
     return (
@@ -68,7 +74,7 @@ export function AdminDashboard() {
                         {quickDocLinks.map(doc => (
                             <button
                                 key={doc.path}
-                                onClick={() => handleDocClick(doc.path)}
+                                onClick={() => handleDocClick(doc.path, doc.isRoute)}
                                 className='text-left p-3 border border-border rounded-lg hover:bg-accent transition-colors'
                             >
                                 <h3 className='font-semibold text-sm mb-1'>

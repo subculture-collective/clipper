@@ -218,6 +218,11 @@ const ServiceStatusPage = lazy(() =>
         default: m.ServiceStatusPage,
     })),
 );
+const AdminAPIDocsPage = lazy(() =>
+    import('./pages/admin/AdminAPIDocsPage').then(m => ({
+        default: m.AdminAPIDocsPage,
+    })),
+);
 const PricingPage = lazy(() => import('./pages/PricingPage'));
 const SubscriptionSuccessPage = lazy(
     () => import('./pages/SubscriptionSuccessPage'),
@@ -865,6 +870,14 @@ function App() {
                                             element={
                                                 <AdminRoute>
                                                     <ServiceStatusPage />
+                                                </AdminRoute>
+                                            }
+                                        />
+                                        <Route
+                                            path='/admin/api-docs'
+                                            element={
+                                                <AdminRoute>
+                                                    <AdminAPIDocsPage />
                                                 </AdminRoute>
                                             }
                                         />

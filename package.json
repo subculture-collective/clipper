@@ -16,7 +16,9 @@
     "openapi:preview": "redocly preview-docs docs/openapi/openapi.yaml",
     "openapi:stats": "redocly stats docs/openapi/openapi.yaml",
     "openapi:validate": "npm run openapi:lint && npm run openapi:bundle",
-    "openapi:serve": "npx http-server docs/openapi -p 8081 -o /index.html"
+    "openapi:serve": "npx http-server docs/openapi -p 8081 -o /index.html",
+    "openapi:generate-docs": "node scripts/generate-api-docs.js",
+    "openapi:changelog": "node scripts/generate-api-changelog.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",
@@ -26,6 +28,7 @@
     "cspell": "^8.11.0",
     "doctoc": "^2.2.1",
     "glob": "^10.3.10",
+    "js-yaml": "^4.1.0",
     "markdownlint-cli2": "^0.15.0",
     "npm-run-all": "^4.1.5"
   },
