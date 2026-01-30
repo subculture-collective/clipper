@@ -227,4 +227,47 @@ describe('ClipCard', () => {
         // Should not have "Watched" badge
         expect(screen.queryByText('Watched')).not.toBeInTheDocument();
     });
+
+    it('clamps progress percentage to 100 when value exceeds maximum', () => {
+        const clipWithExcessProgress = {
+            ...mockClip,
+            watch_progress: {
+                progress_seconds: 40,
+                duration_seconds: 30,
+                progress_percent: 133, // Over 100%
+                completed: false,
+                watched_at: '2024-01-01T12:00:00Z',
+            },
+        };
+
+        render(<ClipCard clip={clipWithExcessProgress} />);
+
+        const progressBar = screen.getByRole('progressbar');
+        // Should clamp to 100
+        expect(progressBar).toHaveAttribute('aria-valuenow', '133');
+        // Visual indicator should be clamped to 100%
+        const progressFill = progressBar.querySelector('.bg-purple-600');
+        expect(progressFill).toHaveStyle({ width: '100%' });
+    });
+
+    it('clamps progress percentage to 0 when value is negative', () => {
+        const clipWithNegativeProgress = {
+            ...mockClip,
+            watch_progress: {
+                progress_seconds: -5,
+                duration_seconds: 30,
+                progress_percent: -10,
+                completed: false,
+                watched_at: '2024-01-01T12:00:00Z',
+            },
+        };
+
+        render(<ClipCard clip={clipWithNegativeProgress} />);
+
+        const progressBar = screen.getByRole('progressbar');
+        expect(progressBar).toHaveAttribute('aria-valuenow', '-10');
+        // Visual indicator should be clamped to 0%
+        const progressFill = progressBar.querySelector('.bg-purple-600');
+        expect(progressFill).toHaveStyle({ width: '0%' });
+    });
 });
