@@ -114,7 +114,6 @@ disable:
               - code
             properties:
               code:
-                type: string
                 description: Either a 6-digit TOTP code or a backup code
                 oneOf:
                   - type: string
