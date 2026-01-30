@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container, ScrollToTop, SEO } from '../components';
 import { MiniFooter } from '../components/layout';
-import { ChatPanel, ReactionOverlay } from '../components/watch-party';
+import { ChatPanel, FloatingReactions, SyncedVideoPlayer } from '../components/watch-party';
 import { useWatchPartyWebSocket } from '../hooks/useWatchPartyWebSocket';
 import { getWatchParty, getWatchPartyParticipants, leaveWatchParty, endWatchParty, kickParticipant } from '../lib/watch-party-api';
 import { useAuth } from '../hooks/useAuth';
@@ -281,19 +281,17 @@ export function WatchPartyPage() {
 
           {/* Main content area */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* Video player area (placeholder) */}
+            {/* Video player area */}
             <div className="lg:col-span-2">
-              <div className="relative bg-surface-secondary rounded-lg aspect-video flex items-center justify-center">
-                <div className="text-center text-content-secondary">
-                  <p className="text-lg mb-2">Video Player</p>
-                  <p className="text-sm">Synchronized playback will appear here</p>
-                  {party.current_clip_id && (
-                    <p className="text-xs mt-2">Clip ID: {party.current_clip_id}</p>
-                  )}
-                </div>
+              <div className="relative">
+                <SyncedVideoPlayer
+                  clipId={party.current_clip_id}
+                  currentPosition={party.current_position_seconds}
+                  isPlaying={party.is_playing}
+                />
 
                 {/* Reaction overlay */}
-                <ReactionOverlay reactions={reactions} />
+                <FloatingReactions reactions={reactions} />
               </div>
 
               {/* Reaction buttons */}
