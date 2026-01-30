@@ -66,6 +66,10 @@ export function AdminAPIDocsPage() {
                 );
 
                 if (!response.ok) {
+                    // Special message for changelog
+                    if (versionInfo.version === 'changelog') {
+                        throw new Error('Changelog not yet generated. Run: npm run openapi:changelog old-spec.yaml new-spec.yaml');
+                    }
                     throw new Error('Failed to load API documentation');
                 }
 
@@ -77,7 +81,7 @@ export function AdminAPIDocsPage() {
                 setProcessedDoc(processed);
             } catch (err) {
                 console.error('Error loading API docs:', err);
-                setError('Failed to load API documentation');
+                setError(err instanceof Error ? err.message : 'Failed to load API documentation');
             } finally {
                 setLoading(false);
             }
@@ -96,7 +100,9 @@ export function AdminAPIDocsPage() {
         if (selectedTag !== 'all') {
             // Extract section for the selected tag
             const lines = filtered.split('\n');
-            const startPattern = new RegExp(`^## ${selectedTag}$`, 'i');
+            // Escape special regex characters in selectedTag
+            const escapedTag = selectedTag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const startPattern = new RegExp(`^## ${escapedTag}$`, 'i');
             const endPattern = /^## /;
 
             let inSection = false;
@@ -124,6 +130,7 @@ export function AdminAPIDocsPage() {
             const query = searchQuery.toLowerCase();
             const lines = filtered.split('\n');
             const matchingLines: string[] = [];
+            const addedLineIndices = new Set<number>();
             let inMatchingSection = false;
             let sectionStart = 0;
 
@@ -147,8 +154,9 @@ export function AdminAPIDocsPage() {
                     // Include some context around the match
                     const contextStart = Math.max(0, sectionStart);
                     for (let j = contextStart; j <= i; j++) {
-                        if (!matchingLines.includes(lines[j])) {
+                        if (!addedLineIndices.has(j)) {
                             matchingLines.push(lines[j]);
+                            addedLineIndices.add(j);
                         }
                     }
                 }
@@ -353,10 +361,11 @@ export function AdminAPIDocsPage() {
 
                             {/* Version Selector */}
                             <div className='flex gap-4 items-center flex-wrap'>
-                                <label className='text-sm font-medium'>
+                                <label htmlFor='version-select' className='text-sm font-medium'>
                                     Version:
                                 </label>
                                 <select
+                                    id='version-select'
                                     value={selectedVersion}
                                     onChange={e =>
                                         setSelectedVersion(e.target.value)
@@ -383,11 +392,14 @@ export function AdminAPIDocsPage() {
                                     onChange={e =>
                                         setSearchQuery(e.target.value)
                                     }
+                                    aria-label='Search API endpoints'
                                     className='flex-1 px-4 py-2 bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary'
                                 />
                                 <select
+                                    id='category-filter'
                                     value={selectedTag}
                                     onChange={e => setSelectedTag(e.target.value)}
+                                    aria-label='Filter by category'
                                     className='px-3 py-2 bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary'
                                 >
                                     {tags.map(tag => (

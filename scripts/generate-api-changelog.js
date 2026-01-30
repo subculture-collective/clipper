@@ -240,58 +240,63 @@ function main() {
         console.log('ℹ️  Usage: node scripts/generate-api-changelog.js [old-spec] [new-spec]');
         console.log('ℹ️  If no arguments provided, will create a baseline changelog from current spec');
         
-        // Generate baseline changelog
-        console.log('📖 Loading current OpenAPI spec...');
-        const spec = loadSpec(OPENAPI_FILE);
-        
-        const endpoints = extractEndpoints(spec);
-        
-        let md = '';
-        md += `---\n`;
-        md += `title: "API Reference - Baseline"\n`;
-        md += `summary: "Baseline API reference for version ${spec.info.version}"\n`;
-        md += `tags: ["api", "changelog", "openapi"]\n`;
-        md += `area: "openapi"\n`;
-        md += `generated: ${new Date().toISOString()}\n`;
-        md += `---\n\n`;
-        
-        md += `# API Baseline - Version ${spec.info.version}\n\n`;
-        md += `**Total Endpoints:** ${endpoints.length}\n\n`;
-        
-        // Group by tag
-        const byTag = {};
-        endpoints.forEach(endpoint => {
-            const tag = endpoint.tags[0] || 'Other';
-            if (!byTag[tag]) byTag[tag] = [];
-            byTag[tag].push(endpoint);
-        });
-        
-        md += `## Endpoints by Category\n\n`;
-        Object.entries(byTag).forEach(([tag, endpoints]) => {
-            md += `### ${tag} (${endpoints.length})\n\n`;
+        try {
+            // Generate baseline changelog
+            console.log('📖 Loading current OpenAPI spec...');
+            const spec = loadSpec(OPENAPI_FILE);
+            
+            const endpoints = extractEndpoints(spec);
+            
+            let md = '';
+            md += `---\n`;
+            md += `title: "API Reference - Baseline"\n`;
+            md += `summary: "Baseline API reference for version ${spec.info.version}"\n`;
+            md += `tags: ["api", "changelog", "openapi"]\n`;
+            md += `area: "openapi"\n`;
+            md += `generated: ${new Date().toISOString()}\n`;
+            md += `---\n\n`;
+            
+            md += `# API Baseline - Version ${spec.info.version}\n\n`;
+            md += `**Total Endpoints:** ${endpoints.length}\n\n`;
+            
+            // Group by tag
+            const byTag = {};
             endpoints.forEach(endpoint => {
-                md += `- **${endpoint.method} ${endpoint.path}**`;
-                if (endpoint.summary) {
-                    md += ` - ${endpoint.summary}`;
-                }
+                const tag = endpoint.tags[0] || 'Other';
+                if (!byTag[tag]) byTag[tag] = [];
+                byTag[tag].push(endpoint);
+            });
+            
+            md += `## Endpoints by Category\n\n`;
+            Object.entries(byTag).forEach(([tag, endpoints]) => {
+                md += `### ${tag} (${endpoints.length})\n\n`;
+                endpoints.forEach(endpoint => {
+                    md += `- **${endpoint.method} ${endpoint.path}**`;
+                    if (endpoint.summary) {
+                        md += ` - ${endpoint.summary}`;
+                    }
+                    md += `\n`;
+                });
                 md += `\n`;
             });
-            md += `\n`;
-        });
-        
-        // Create output directory
-        if (!fs.existsSync(OUTPUT_DIR)) {
-            fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+            
+            // Create output directory
+            if (!fs.existsSync(OUTPUT_DIR)) {
+                fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+            }
+            
+            const outputFile = path.join(OUTPUT_DIR, 'api-baseline.md');
+            fs.writeFileSync(outputFile, md, 'utf8');
+            
+            console.log(`✅ Baseline changelog generated!`);
+            console.log(`📄 Output: ${outputFile}`);
+            console.log(`🔢 Documented ${endpoints.length} endpoints`);
+            
+            return;
+        } catch (error) {
+            console.error('❌ Error generating baseline changelog:', error);
+            process.exit(1);
         }
-        
-        const outputFile = path.join(OUTPUT_DIR, 'api-baseline.md');
-        fs.writeFileSync(outputFile, md, 'utf8');
-        
-        console.log(`✅ Baseline changelog generated!`);
-        console.log(`📄 Output: ${outputFile}`);
-        console.log(`🔢 Documented ${endpoints.length} endpoints`);
-        
-        return;
     }
     
     // Compare two specs

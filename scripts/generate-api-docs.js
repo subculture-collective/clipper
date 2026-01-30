@@ -38,8 +38,8 @@ function generateCurlSample(path, method, operation, servers) {
         sample += ` \\\n  -H "Authorization: Bearer YOUR_TOKEN"`;
     }
     
-    // Add content-type header for POST/PUT/PATCH
-    if (['post', 'put', 'patch'].includes(method.toLowerCase())) {
+    // Add content-type header only when a request body is defined
+    if (operation.requestBody && ['post', 'put', 'patch'].includes(method.toLowerCase())) {
         sample += ` \\\n  -H "Content-Type: application/json"`;
     }
     
@@ -129,10 +129,33 @@ function generatePythonSample(path, method, operation) {
  */
 function generateGoSample(path, method, operation) {
     const hasAuth = operation.security && operation.security.length > 0;
+    const hasBody = operation.requestBody;
     
-    let sample = `package main\n\nimport (\n    "net/http"\n    "io"\n)\n\n`;
+    let imports = '"net/http"\n    "io"';
+    if (hasBody) {
+        imports += '\n    "bytes"\n    "encoding/json"';
+    }
+    
+    let sample = `package main\n\nimport (\n    ${imports}\n)\n\n`;
     sample += `func main() {\n`;
-    sample += `    req, err := http.NewRequest("${method.toUpperCase()}", "${path}", nil)\n`;
+    
+    // Create request body if needed
+    if (hasBody) {
+        sample += `    // Create request body\n`;
+        sample += `    data := map[string]interface{}{\n`;
+        sample += `        // Your request data\n`;
+        sample += `    }\n`;
+        sample += `    jsonBody, err := json.Marshal(data)\n`;
+        sample += `    if err != nil {\n`;
+        sample += `        // Handle error\n`;
+        sample += `        return\n`;
+        sample += `    }\n`;
+        sample += `    \n`;
+        sample += `    req, err := http.NewRequest("${method.toUpperCase()}", "${path}", bytes.NewBuffer(jsonBody))\n`;
+    } else {
+        sample += `    req, err := http.NewRequest("${method.toUpperCase()}", "${path}", nil)\n`;
+    }
+    
     sample += `    if err != nil {\n`;
     sample += `        // Handle error\n`;
     sample += `        return\n`;
@@ -142,7 +165,7 @@ function generateGoSample(path, method, operation) {
         sample += `    req.Header.Set("Authorization", "Bearer YOUR_TOKEN")\n`;
     }
     
-    if (operation.requestBody) {
+    if (hasBody) {
         sample += `    req.Header.Set("Content-Type", "application/json")\n`;
     }
     
