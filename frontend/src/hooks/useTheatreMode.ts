@@ -34,7 +34,12 @@ export function useTheatreMode() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
-        localStorage.setItem(THEATRE_MODE_PREF_KEY, String(isTheatreMode));
+        const newValue = String(isTheatreMode);
+        const currentValue = localStorage.getItem(THEATRE_MODE_PREF_KEY);
+        // Only write if value actually changed
+        if (currentValue !== newValue) {
+          localStorage.setItem(THEATRE_MODE_PREF_KEY, newValue);
+        }
       } catch (error) {
         // localStorage may fail when quota is exceeded or in private browsing
         console.error('Failed to save theatre mode preference to localStorage:', error);
