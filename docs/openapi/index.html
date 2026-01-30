@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clipper API Documentation</title>
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.10.5/swagger-ui.css" 
+          integrity="sha384-VPzMBLhMv28fjZRuEI8QnHFcYqXl7uHX0X0PnKEJvmNNjS0LPq7vPqXaKhbkzGZs" 
+          crossorigin="anonymous" />
+    <link rel="icon" type="image/png" href="https://unpkg.com/swagger-ui-dist@5.10.5/favicon-32x32.png" sizes="32x32" 
+          crossorigin="anonymous" />
+    <link rel="icon" type="image/png" href="https://unpkg.com/swagger-ui-dist@5.10.5/favicon-16x16.png" sizes="16x16" 
+          crossorigin="anonymous" />
+    <style>
+        html {
+            box-sizing: border-box;
+            overflow: -moz-scrollbars-vertical;
+            overflow-y: scroll;
+        }
+        *,
+        *:before,
+        *:after {
+            box-sizing: inherit;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+        }
+        .topbar {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="swagger-ui"></div>
+    <script src="https://unpkg.com/swagger-ui-dist@5.10.5/swagger-ui-bundle.js" charset="UTF-8" 
+            integrity="sha384-kLWGCWiH7jL1ivdPOhtL+CtgKsZg3VPG6aLQyYu5NB/rI9Y0rvS8iFdEJH8B8DJL" 
+            crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@5.10.5/swagger-ui-standalone-preset.js" charset="UTF-8" 
+            integrity="sha384-azzkurII4f+bjmZvm3hWhj7JezshyXtwobwneRyWCCIksK61Xi0Ry3xA2am9/TWp" 
+            crossorigin="anonymous"></script>
+    <script>
+        window.onload = function() {
+            const ui = SwaggerUIBundle({
+                url: "./openapi.yaml",
+                dom_id: '#swagger-ui',
+                deepLinking: true,
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIStandalonePreset
+                ],
+                plugins: [
+                    SwaggerUIBundle.plugins.DownloadUrl
+                ],
+                layout: "StandaloneLayout",
+                persistAuthorization: true,
+                filter: true,
+                tryItOutEnabled: true,
+                displayOperationId: true,
+                displayRequestDuration: true,
+                docExpansion: 'list',
+                defaultModelsExpandDepth: 1,
+                defaultModelExpandDepth: 1,
+                syntaxHighlight: {
+                    activate: true,
+                    theme: 'monokai'
+                }
+            });
+            window.ui = ui;
+        };
+    </script>
+</body>
+</html>

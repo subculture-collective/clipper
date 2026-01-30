@@ -9,10 +9,18 @@
     "docs:anchors": "node scripts/check-anchors.js",
     "docs:orphans": "node scripts/check-orphans.js",
     "docs:assets": "node scripts/check-unused-assets.js",
-    "docs:check": "npm-run-all -l -s docs:lint docs:spell docs:links docs:anchors docs:orphans docs:assets"
+    "docs:check": "npm-run-all -l -s docs:lint docs:spell docs:links docs:anchors docs:orphans docs:assets",
+    "openapi:lint": "redocly lint docs/openapi/openapi.yaml",
+    "openapi:bundle": "redocly bundle docs/openapi/openapi.yaml -o docs/openapi/openapi-bundled.yaml",
+    "openapi:build": "redocly build-docs docs/openapi/openapi.yaml -o docs/openapi/api-docs.html",
+    "openapi:preview": "redocly preview-docs docs/openapi/openapi.yaml",
+    "openapi:stats": "redocly stats docs/openapi/openapi.yaml",
+    "openapi:validate": "npm run openapi:lint && npm run openapi:bundle",
+    "openapi:serve": "npx http-server docs/openapi -p 8081 -o /index.html"
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",
+    "@redocly/cli": "^2.15.0",
     "@types/node": "^25.0.3",
     "baseline-browser-mapping": "^2.9.11",
     "cspell": "^8.11.0",
