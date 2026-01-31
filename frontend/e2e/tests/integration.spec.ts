@@ -660,9 +660,9 @@ test.describe('Engagement Features', () => {
         // Navigate directly to clip detail page where comments are shown
         await page.goto(`/clip/${demoClip.id}`);
         
-        // Wait for the comments heading instead of network idle
+        // Wait for the comments heading specifically instead of network idle
         // This is more reliable as it doesn't depend on all network requests completing
-        await page.waitForSelector('h2, h3, h4', { timeout: 10000 });
+        await page.locator('h2, h3, h4').filter({ hasText: /comment/i }).first().waitFor({ state: 'visible', timeout: 10000 });
 
         // Look for comment-related elements: textarea, input, or section header
         const commentTextarea = page.locator('textarea');
