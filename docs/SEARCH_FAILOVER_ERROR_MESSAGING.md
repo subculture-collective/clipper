@@ -2,7 +2,7 @@
 
 ## Overview
 
-The search failover error messaging system provides user-friendly error handling for search service degradation or failure scenarios. This implementation resolves Epic #1139 and related issue #1140.
+The search failover error messaging system provides user-friendly error handling for search service degradation or failure scenarios. This implementation resolves Epic #1121 and related issue #1140.
 
 ## Status
 
@@ -343,7 +343,7 @@ npx playwright test search-failover.spec.ts --ui
 
 ## Related Issues
 
-- Epic #1139 - Search Failover UI - Error Messaging (Parent)
+- Epic #1121 - Search Failover UI - Error Messaging (Parent)
 - Issue #1140 - Search Failover Error Messaging (This implementation)
 - Issue #1141 - Automatic Retry & Recovery Logic (Implemented)
 - Issue #1142 - Service Status Dashboard (Future enhancement)
