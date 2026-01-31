@@ -134,7 +134,7 @@ type RateLimitError struct {
 	RetryAfter int64  `json:"retry_after"`  // Unix timestamp when user can retry
 }
 
-func (e *RateLimitError) ErrorString() string {
+func (e *RateLimitError) Error() string {
 	return fmt.Sprintf("rate limit exceeded: %d submissions per %d seconds", e.Limit, e.Window)
 }
 
