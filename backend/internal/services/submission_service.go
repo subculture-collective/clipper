@@ -776,7 +776,9 @@ func (s *SubmissionService) checkRateLimits(ctx context.Context, userID uuid.UUI
 		return fmt.Errorf("failed to check hourly rate limit: %w", err)
 	}
 	if hourlyCount >= 10 {
-		// Calculate retry_after timestamp (end of current hour window)
+		// TODO: Calculate retry_after based on oldest submission timestamp + window
+		// For now, using a conservative 1-hour wait from current time
+		// This matches E2E test expectations (simple cooldown period)
 		retryAfter := time.Now().Add(1 * time.Hour).Unix()
 		return &RateLimitError{
 			Error:      "rate_limit_exceeded",
@@ -792,7 +794,8 @@ func (s *SubmissionService) checkRateLimits(ctx context.Context, userID uuid.UUI
 		return fmt.Errorf("failed to check daily rate limit: %w", err)
 	}
 	if dailyCount >= 20 {
-		// Calculate retry_after timestamp (end of current 24-hour window)
+		// TODO: Calculate retry_after based on oldest submission timestamp + window
+		// For now, using a conservative 24-hour wait from current time
 		retryAfter := time.Now().Add(24 * time.Hour).Unix()
 		return &RateLimitError{
 			Error:      "rate_limit_exceeded",
