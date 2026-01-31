@@ -52,6 +52,17 @@ func (h *SubmissionHandler) SubmitClip(c *gin.Context) {
 
 	submission, err := h.submissionService.SubmitClip(c.Request.Context(), userID, &req, ip, deviceFingerprint)
 	if err != nil {
+		// Check if it's a rate limit error
+		if rateLimitErr, ok := err.(*services.RateLimitError); ok {
+			c.JSON(http.StatusTooManyRequests, gin.H{
+				"error":       rateLimitErr.Error,
+				"limit":       rateLimitErr.Limit,
+				"window":      rateLimitErr.Window,
+				"retry_after": rateLimitErr.RetryAfter,
+			})
+			return
+		}
+
 		// Check if it's a validation error
 		if valErr, ok := err.(*services.ValidationError); ok {
 			c.JSON(http.StatusBadRequest, gin.H{
