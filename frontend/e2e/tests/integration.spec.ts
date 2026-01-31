@@ -151,6 +151,23 @@ async function setupIntegrationMocks(page: Page) {
         }),
     );
 
+    // Watch progress/history
+    await page.route('**/api/v1/clips/*/progress', route =>
+        route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ progress: 0 }),
+        }),
+    );
+
+    await page.route('**/api/v1/watch-history**', route =>
+        route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ success: true }),
+        }),
+    );
+
     // Favorite/follow-on actions to avoid 404s when buttons are clicked
     await page.route('**/api/v1/clips/*/favorite', route =>
         route.fulfill({
@@ -303,6 +320,19 @@ async function setupAuthenticatedMocks(page: Page) {
             status: 200,
             contentType: 'application/json',
             body: JSON.stringify({ tags: [] }),
+        }),
+    );
+
+    // Consent endpoint
+    await page.route('**/api/v1/users/me/consent', route =>
+        route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                analytics: true,
+                marketing: false,
+                functional: true,
+            }),
         }),
     );
 }
@@ -629,7 +659,10 @@ test.describe('Engagement Features', () => {
 
         // Navigate directly to clip detail page where comments are shown
         await page.goto(`/clip/${demoClip.id}`);
-        await page.waitForLoadState('networkidle');
+        
+        // Wait for the comments heading instead of network idle
+        // This is more reliable as it doesn't depend on all network requests completing
+        await page.waitForSelector('h2, h3, h4', { timeout: 10000 });
 
         // Look for comment-related elements: textarea, input, or section header
         const commentTextarea = page.locator('textarea');
