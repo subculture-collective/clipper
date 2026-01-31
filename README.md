@@ -1,196 +1,151 @@
-[![GitHub Workflow Status (branch)](https://img.shields.io/github/actions/workflow/status/golang-migrate/migrate/ci.yaml?branch=master)](https://github.com/golang-migrate/migrate/actions/workflows/ci.yaml?query=branch%3Amaster)
-[![GoDoc](https://pkg.go.dev/badge/github.com/golang-migrate/migrate)](https://pkg.go.dev/github.com/golang-migrate/migrate/v4)
-[![Coverage Status](https://img.shields.io/coveralls/github/golang-migrate/migrate/master.svg)](https://coveralls.io/github/golang-migrate/migrate?branch=master)
-[![packagecloud.io](https://img.shields.io/badge/deb-packagecloud.io-844fec.svg)](https://packagecloud.io/golang-migrate/migrate?filter=debs)
-[![Docker Pulls](https://img.shields.io/docker/pulls/migrate/migrate.svg)](https://hub.docker.com/r/migrate/migrate/)
-![Supported Go Versions](https://img.shields.io/badge/Go-1.20%2C%201.21-lightgrey.svg)
-[![GitHub Release](https://img.shields.io/github/release/golang-migrate/migrate.svg)](https://github.com/golang-migrate/migrate/releases)
-[![Go Report Card](https://goreportcard.com/badge/github.com/golang-migrate/migrate/v4)](https://goreportcard.com/report/github.com/golang-migrate/migrate/v4)
+# Clipper
 
-# migrate
+**Community-driven Twitch clip curation.** Discover, vote, and organize the best moments — ranked by people, not algorithms.
 
-__Database migrations written in Go. Use as [CLI](#cli-usage) or import as [library](#use-in-your-go-project).__
-
-* Migrate reads migrations from [sources](#migration-sources)
-   and applies them in correct order to a [database](#databases).
-* Drivers are "dumb", migrate glues everything together and makes sure the logic is bulletproof.
-   (Keeps the drivers lightweight, too.)
-* Database drivers don't assume things or try to correct user input. When in doubt, fail.
-
-Forked from [mattes/migrate](https://github.com/mattes/migrate)
-
-## Databases
-
-Database drivers run migrations. [Add a new database?](database/driver.go)
-
-* [PostgreSQL](database/postgres)
-* [PGX v4](database/pgx)
-* [PGX v5](database/pgx/v5)
-* [Redshift](database/redshift)
-* [Ql](database/ql)
-* [Cassandra / ScyllaDB](database/cassandra)
-* [SQLite](database/sqlite)
-* [SQLite3](database/sqlite3) ([todo #165](https://github.com/mattes/migrate/issues/165))
-* [SQLCipher](database/sqlcipher)
-* [MySQL / MariaDB](database/mysql)
-* [Neo4j](database/neo4j)
-* [MongoDB](database/mongodb)
-* [CrateDB](database/crate) ([todo #170](https://github.com/mattes/migrate/issues/170))
-* [Shell](database/shell) ([todo #171](https://github.com/mattes/migrate/issues/171))
-* [Google Cloud Spanner](database/spanner)
-* [CockroachDB](database/cockroachdb)
-* [YugabyteDB](database/yugabytedb)
-* [ClickHouse](database/clickhouse)
-* [Firebird](database/firebird)
-* [MS SQL Server](database/sqlserver)
-* [RQLite](database/rqlite)
-
-### Database URLs
-
-Database connection strings are specified via URLs. The URL format is driver dependent but generally has the form: `dbdriver://username:password@host:port/dbname?param1=true&param2=false`
-
-Any [reserved URL characters](https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_reserved_characters) need to be escaped. Note, the `%` character also [needs to be escaped](https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_the_percent_character)
-
-Explicitly, the following characters need to be escaped:
-`!`, `#`, `$`, `%`, `&`, `'`, `(`, `)`, `*`, `+`, `,`, `/`, `:`, `;`, `=`, `?`, `@`, `[`, `]`
-
-It's easiest to always run the URL parts of your DB connection URL (e.g. username, password, etc) through an URL encoder. See the example Python snippets below:
-
-```bash
-$ python3 -c 'import urllib.parse; print(urllib.parse.quote(input("String to encode: "), ""))'
-String to encode: FAKEpassword!#$%&'()*+,/:;=?@[]
-FAKEpassword%21%23%24%25%26%27%28%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D
-$ python2 -c 'import urllib; print urllib.quote(raw_input("String to encode: "), "")'
-String to encode: FAKEpassword!#$%&'()*+,/:;=?@[]
-FAKEpassword%21%23%24%25%26%27%28%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D
-$
-```
-
-## Migration Sources
-
-Source drivers read migrations from local or remote sources. [Add a new source?](source/driver.go)
-
-* [Filesystem](source/file) - read from filesystem
-* [io/fs](source/iofs) - read from a Go [io/fs](https://pkg.go.dev/io/fs#FS)
-* [Go-Bindata](source/go_bindata) - read from embedded binary data ([jteeuwen/go-bindata](https://github.com/jteeuwen/go-bindata))
-* [pkger](source/pkger) - read from embedded binary data ([markbates/pkger](https://github.com/markbates/pkger))
-* [GitHub](source/github) - read from remote GitHub repositories
-* [GitHub Enterprise](source/github_ee) - read from remote GitHub Enterprise repositories
-* [Bitbucket](source/bitbucket) - read from remote Bitbucket repositories
-* [Gitlab](source/gitlab) - read from remote Gitlab repositories
-* [AWS S3](source/aws_s3) - read from Amazon Web Services S3
-* [Google Cloud Storage](source/google_cloud_storage) - read from Google Cloud Platform Storage
-
-## CLI usage
-
-* Simple wrapper around this library.
-* Handles ctrl+c (SIGINT) gracefully.
-* No config search paths, no config files, no magic ENV var injections.
-
-__[CLI Documentation](cmd/migrate)__
-
-### Basic usage
-
-```bash
-$ migrate -source file://path/to/migrations -database postgres://localhost:5432/database up 2
-```
-
-### Docker usage
-
-```bash
-$ docker run -v {{ migration dir }}:/migrations --network host migrate/migrate
-    -path=/migrations/ -database postgres://localhost:5432/database up 2
-```
-
-## Use in your Go project
-
-* API is stable and frozen for this release (v3 & v4).
-* Uses [Go modules](https://golang.org/cmd/go/#hdr-Modules__module_versions__and_more) to manage dependencies.
-* To help prevent database corruptions, it supports graceful stops via `GracefulStop chan bool`.
-* Bring your own logger.
-* Uses `io.Reader` streams internally for low memory overhead.
-* Thread-safe and no goroutine leaks.
-
-__[Go Documentation](https://pkg.go.dev/github.com/golang-migrate/migrate/v4)__
-
-```go
-import (
-    "github.com/golang-migrate/migrate/v4"
-    _ "github.com/golang-migrate/migrate/v4/database/postgres"
-    _ "github.com/golang-migrate/migrate/v4/source/github"
-)
-
-func main() {
-    m, err := migrate.New(
-        "github://mattes:personal-access-token@mattes/migrate_test",
-        "postgres://localhost:5432/database?sslmode=enable")
-    m.Steps(2)
-}
-```
-
-Want to use an existing database client?
-
-```go
-import (
-    "database/sql"
-    _ "github.com/lib/pq"
-    "github.com/golang-migrate/migrate/v4"
-    "github.com/golang-migrate/migrate/v4/database/postgres"
-    _ "github.com/golang-migrate/migrate/v4/source/file"
-)
-
-func main() {
-    db, err := sql.Open("postgres", "postgres://localhost:5432/database?sslmode=enable")
-    driver, err := postgres.WithInstance(db, &postgres.Config{})
-    m, err := migrate.NewWithDatabaseInstance(
-        "file:///migrations",
-        "postgres", driver)
-    m.Up() // or m.Step(2) if you want to explicitly set the number of migrations to run
-}
-```
-
-## Getting started
-
-Go to [getting started](GETTING_STARTED.md)
-
-## Tutorials
-
-* [CockroachDB](database/cockroachdb/TUTORIAL.md)
-* [PostgreSQL](database/postgres/TUTORIAL.md)
-
-(more tutorials to come)
-
-## Migration files
-
-Each migration has an up and down migration. [Why?](FAQ.md#why-two-separate-files-up-and-down-for-a-migration)
-
-```bash
-1481574547_create_users_table.up.sql
-1481574547_create_users_table.down.sql
-```
-
-[Best practices: How to write migrations.](MIGRATIONS.md)
-
-## Coming from another db migration tool?
-
-Check out [migradaptor](https://github.com/musinit/migradaptor/).
-*Note: migradaptor is not affiliated or supported by this project*
-
-## Versions
-
-Version | Supported? | Import | Notes
---------|------------|--------|------
-**master** | :white_check_mark: | `import "github.com/golang-migrate/migrate/v4"` | New features and bug fixes arrive here first |
-**v4** | :white_check_mark: | `import "github.com/golang-migrate/migrate/v4"` | Used for stable releases |
-**v3** | :x: | `import "github.com/golang-migrate/migrate"` (with package manager) or `import "gopkg.in/golang-migrate/migrate.v3"` (not recommended) | **DO NOT USE** - No longer supported |
-
-## Development and Contributing
-
-Yes, please! [`Makefile`](Makefile) is your friend,
-read the [development guide](CONTRIBUTING.md).
-
-Also have a look at the [FAQ](FAQ.md).
+![Status](https://img.shields.io/badge/status-active%20development-blue)
+![Go](https://img.shields.io/badge/Go-1.24+-00ADD8?logo=go&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![License](https://img.shields.io/badge/license-MIT-green)
 
 ---
 
-Looking for alternatives? [https://awesome-go.com/#database](https://awesome-go.com/#database).
+## What is Clipper?
+
+Clipper is a platform for discovering and curating Twitch clips through community voting. Think Reddit meets Twitch clips:
+
+- **Vote on clips** — upvote/downvote to surface the best content
+- **Earn karma** — build reputation through quality contributions  
+- **Comment & discuss** — nested threads with markdown support
+- **Search everything** — hybrid BM25 + semantic vector search
+- **Save & organize** — favorites, playlists, and collections
+
+The goal: replace algorithmic black boxes with transparent, community-driven curation.
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| **Backend** | Go 1.24+, Gin, PostgreSQL 17, Redis 8, OpenSearch 2.11 |
+| **Web** | React 19, TypeScript, Vite, TailwindCSS, TanStack Query |
+| **Mobile** | React Native 0.76, Expo 52, Expo Router |
+| **Auth** | Twitch OAuth, JWT with refresh tokens |
+| **Infra** | Docker, Kubernetes, GitHub Actions CI/CD |
+
+## Quick Start
+
+### Prerequisites
+
+- Docker & Docker Compose
+- Go 1.24+
+- Node.js 20+ (or use `nvm`)
+- [golang-migrate](https://github.com/golang-migrate/migrate) CLI
+
+### Development Setup
+
+```bash
+# Clone
+git clone git@github.com:subculture-collective/clipper.git
+cd clipper
+
+# Copy environment configs
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+
+# Start services (Postgres, Redis, OpenSearch)
+docker compose up -d
+
+# Run database migrations
+make migrate-up
+
+# (Optional) Seed with sample data
+make migrate-seed
+
+# Start backend (terminal 1)
+cd backend && go run cmd/api/main.go
+
+# Start frontend (terminal 2)
+cd frontend && npm install && npm run dev
+```
+
+The app will be available at `http://localhost:5173` (frontend) and `http://localhost:8080` (API).
+
+See [docs/setup/development.md](docs/setup/development.md) for detailed setup instructions.
+
+## Project Structure
+
+```
+clipper/
+├── backend/           # Go API server
+│   ├── cmd/api/       # Entry point
+│   ├── internal/      # Handlers, services, repository, middleware
+│   ├── pkg/           # Shared packages (database, jwt, twitch, redis)
+│   └── migrations/    # PostgreSQL migrations
+├── frontend/          # React web app
+│   └── src/           # Components, pages, hooks, context
+├── mobile/            # React Native apps (iOS/Android)
+├── docs/              # Obsidian documentation vault
+├── helm/              # Kubernetes Helm charts
+├── monitoring/        # Grafana, Prometheus configs
+└── infrastructure/    # Terraform, deployment scripts
+```
+
+## Features
+
+### Implemented ✅
+
+- Twitch OAuth authentication
+- Clip browsing with hot/new/top/rising sorts
+- Upvote/downvote with karma system
+- Reddit-style nested comments (10 levels deep)
+- Hybrid search (BM25 + vector embeddings)
+- Advanced query language (`game:Valorant votes:>50 after:last-week`)
+- Favorites and playlists
+- User profiles and karma tracking
+- Role-based access control (RBAC)
+- Rate limiting and abuse detection
+- Moderation tools (reports, bans, Twitch mod actions)
+- Premium tier infrastructure
+
+### In Progress 🚧
+
+- Tag and creator pages
+- Saved searches and history
+- Watch parties
+- Push notifications (mobile)
+- Recommendation personalization
+
+See the [Roadmap](docs/product/roadmap.md) and [GitHub Issues](https://github.com/subculture-collective/clipper/issues) for current priorities.
+
+## Documentation
+
+Comprehensive docs live in the `docs/` folder as an Obsidian vault:
+
+- **[Introduction](docs/introduction.md)** — Project overview
+- **[API Reference](docs/backend/api.md)** — REST endpoints
+- **[Database Schema](docs/DATABASE-SCHEMA.md)** — Tables and relationships
+- **[Development Setup](docs/setup/development.md)** — Getting started
+- **[Architecture](docs/backend/architecture.md)** — System design
+
+## Contributing
+
+Contributions welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting PRs.
+
+```bash
+# Run tests
+make test
+
+# Lint
+cd backend && golangci-lint run
+cd frontend && npm run lint
+
+# Check docs
+npm run docs:check
+```
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+---
+
+Built by [Subcult](https://github.com/subculture-collective) 🦞
