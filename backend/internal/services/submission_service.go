@@ -128,7 +128,7 @@ func (e *TwitchAPIError) Error() string {
 
 // RateLimitError represents a rate limit exceeded error
 type RateLimitError struct {
-	Message    string `json:"error"`
+	Error      string `json:"error"`
 	Limit      int    `json:"limit"`
 	Window     int    `json:"window"`       // Window in seconds
 	RetryAfter int64  `json:"retry_after"`  // Unix timestamp when user can retry
@@ -781,7 +781,7 @@ func (s *SubmissionService) checkRateLimits(ctx context.Context, userID uuid.UUI
 		// This matches E2E test expectations (simple cooldown period)
 		retryAfter := time.Now().Add(1 * time.Hour).Unix()
 		return &RateLimitError{
-			Message:    "rate_limit_exceeded",
+			Error:      "rate_limit_exceeded",
 			Limit:      10,
 			Window:     3600,        // 1 hour in seconds
 			RetryAfter: retryAfter,
@@ -798,7 +798,7 @@ func (s *SubmissionService) checkRateLimits(ctx context.Context, userID uuid.UUI
 		// For now, using a conservative 24-hour wait from current time
 		retryAfter := time.Now().Add(24 * time.Hour).Unix()
 		return &RateLimitError{
-			Message:    "rate_limit_exceeded",
+			Error:      "rate_limit_exceeded",
 			Limit:      20,
 			Window:     86400,       // 24 hours in seconds
 			RetryAfter: retryAfter,

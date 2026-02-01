@@ -55,7 +55,7 @@ func (h *SubmissionHandler) SubmitClip(c *gin.Context) {
 		// Check if it's a rate limit error
 		if rateLimitErr, ok := err.(*services.RateLimitError); ok {
 			c.JSON(http.StatusTooManyRequests, gin.H{
-				"error":       rateLimitErr.Message,
+				"error":       rateLimitErr.Error,
 				"limit":       rateLimitErr.Limit,
 				"window":      rateLimitErr.Window,
 				"retry_after": rateLimitErr.RetryAfter,
