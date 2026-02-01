@@ -1,6 +1,6 @@
 ---
 title: "Skipped E2E Tests Status Report"
-summary: "Comprehensive status tracking for Epic #XXX - Enabling 96 skipped E2E tests requiring external service integration"
+summary: "Comprehensive status tracking for Epic #1122 - Enabling 96 skipped E2E tests requiring external service integration"
 tags: ["testing", "e2e", "epic-tracking"]
 area: "testing"
 status: "in-progress"
@@ -71,9 +71,9 @@ last_updated: 2026-02-01
 | Show subscription menu item | (conditional skip) | Optional feature | #1149 |
 
 #### premium-subscription-webhooks.spec.ts
-- **Total tests**: 5
-- **Currently passing**: 2
-- **Skipped**: 3
+- **Total tests**: 12
+- **Currently passing**: 7
+- **Skipped**: 5
 
 | Test Name | Status | Blocker | Child Issue |
 |-----------|--------|---------|-------------|
@@ -197,9 +197,9 @@ last_updated: 2026-02-01
 | Pagination works correctly | ✅ Passing | None | - |
 
 **Enablement Strategy for Moderation Tests**:
-- Tests use comprehensive mock setup in the test file
-- Need to implement mock audit log endpoints
-- Or connect to real backend audit log API
+- Tests use comprehensive mock setup in the test file, including audit log creation and retrieval with filters
+- Mock audit log endpoints are implemented in the test helpers and were used to enable these tests
+- Optionally, add tests that connect to the real backend audit log API for end-to-end verification
 
 ### 6. Integration Tests (1 test)
 
@@ -247,7 +247,7 @@ last_updated: 2026-02-01
   - Tests use comprehensive mock infrastructure with audit logging
   - Tests enabled: reject with reason, bulk approve, bulk reject, p95 performance, audit log creation, audit log retrieval
 
-**Deliverable**: +11 tests enabled (67% → 79% pass rate)
+**Deliverable**: +11 tests enabled (67% → 80% pass rate)
 
 ### Phase 2: Stripe Mock Infrastructure (Week 2-3)
 **Estimated Effort**: 24-40 hours
@@ -310,8 +310,8 @@ last_updated: 2026-02-01
 
 ## Success Metrics (From Epic)
 
-- [ ] 96 skipped tests → 0 skipped *(Current: 60/89 = 67% enabled)*
-- [ ] All tests passing *(Current: 60/89 passing)*
+- [ ] 96 skipped tests → 0 skipped *(Current: 71/89 = 80% enabled)*
+- [ ] All tests passing *(Current: 71/89 passing)*
 - [ ] External services properly mocked/configured *(In Progress)*
 - [ ] Test reliability >99% *(To be measured)*
 

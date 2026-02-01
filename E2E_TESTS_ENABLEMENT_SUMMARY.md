@@ -1,12 +1,12 @@
 # E2E Tests Enablement Summary
 
-**Epic**: [#XXX] Skipped Tests - External Service Integration  
+**Epic**: [#1122] Skipped Tests - External Service Integration  
 **Date**: 2026-02-01  
 **Agent**: GitHub Copilot
 
 ## Executive Summary
 
-Successfully enabled **11 out of 18** remaining skipped E2E tests (61% of skipped tests) by utilizing existing mock infrastructure. This brings the overall test pass rate from **67% to 80%**.
+Successfully enabled **11 out of 29** previously skipped E2E tests (~38% of skipped tests), reducing the number of skipped tests from **29 to 18** by utilizing existing mock infrastructure. This brings the overall test pass rate from **67% to 80%**.
 
 ### Key Achievements
 
