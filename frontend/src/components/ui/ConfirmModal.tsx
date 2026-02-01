@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Modal, ModalFooter } from './Modal';
 import { Button } from './Button';
 
@@ -14,7 +14,7 @@ interface ConfirmModalProps {
   /**
    * Callback when user confirms
    */
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   /**
    * Modal title
    */
@@ -53,24 +53,35 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   cancelText = 'Cancel',
   variant = 'primary',
 }) => {
-  const handleConfirm = () => {
-    onConfirm();
-    onClose();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleConfirm = async () => {
+    try {
+      setIsLoading(true);
+      await onConfirm();
+      onClose();
+    } catch (error) {
+      // Keep modal open on error so user can see the error state
+      console.error('Confirmation action failed:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <Modal open={open} onClose={onClose} title={title} size="sm">
       <div className="py-2">
-        <p className="text-sm text-gray-700 dark:text-gray-300">{message}</p>
+        <p className="text-sm text-muted-foreground">{message}</p>
       </div>
       <ModalFooter>
-        <Button type="button" variant="ghost" onClick={onClose}>
+        <Button type="button" variant="ghost" onClick={onClose} disabled={isLoading}>
           {cancelText}
         </Button>
         <Button
           type="button"
           variant={variant === 'danger' ? 'danger' : 'primary'}
           onClick={handleConfirm}
+          loading={isLoading}
         >
           {confirmText}
         </Button>

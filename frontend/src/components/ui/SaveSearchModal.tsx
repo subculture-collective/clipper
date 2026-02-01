@@ -15,7 +15,7 @@ interface SaveSearchModalProps {
   /**
    * Callback when user saves the search
    */
-  onSave: (name: string) => void;
+  onSave: (name: string) => void | Promise<void>;
 }
 
 /**
@@ -27,12 +27,21 @@ export const SaveSearchModal: React.FC<SaveSearchModalProps> = ({
   onSave,
 }) => {
   const [name, setName] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(name.trim());
-    setName('');
-    onClose();
+    try {
+      setIsLoading(true);
+      await onSave(name.trim());
+      setName('');
+      onClose();
+    } catch (error) {
+      // Keep modal open on error so user can see the error state
+      console.error('Save search failed:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleCancel = () => {
@@ -54,16 +63,17 @@ export const SaveSearchModal: React.FC<SaveSearchModalProps> = ({
             onChange={(e) => setName(e.target.value)}
             placeholder="My search"
             autoFocus
+            disabled={isLoading}
           />
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+          <p className="text-xs text-muted-foreground mt-2">
             Leave empty to use the search query as the name
           </p>
         </div>
         <ModalFooter>
-          <Button type="button" variant="ghost" onClick={handleCancel}>
+          <Button type="button" variant="ghost" onClick={handleCancel} disabled={isLoading}>
             Cancel
           </Button>
-          <Button type="submit">
+          <Button type="submit" loading={isLoading}>
             Save
           </Button>
         </ModalFooter>
