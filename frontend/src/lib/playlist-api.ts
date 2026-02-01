@@ -10,8 +10,19 @@ interface AddToPlaylistResponse {
  * Fetch user's playlists
  */
 export async function fetchUserPlaylists(): Promise<Playlist[]> {
-    const response = await apiClient.get<{ playlists?: Playlist[] }>('/playlists');
-    return response.data.playlists || [];
+    const response = await apiClient.get<{
+        success: boolean;
+        data: Playlist[];
+        meta: {
+            page: number;
+            limit: number;
+            total: number;
+            total_pages: number;
+            has_next: boolean;
+            has_prev: boolean;
+        };
+    }>('/playlists');
+    return response.data.data || [];
 }
 
 /**
