@@ -67,6 +67,34 @@ export function QueuePanel() {
         setDragOverId(null);
     };
 
+    const handleDragEnd = () => {
+        setDraggedId(null);
+        setDragOverId(null);
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent, itemId: string, currentIndex: number) => {
+        // Only handle Alt+ArrowUp and Alt+ArrowDown for reordering
+        if (!e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) {
+            return;
+        }
+
+        e.preventDefault();
+
+        const items = queue?.items || [];
+        const newIndex = e.key === 'ArrowUp' ? currentIndex - 1 : currentIndex + 1;
+
+        // Check bounds
+        if (newIndex < 0 || newIndex >= items.length) {
+            return;
+        }
+
+        // Call the reorder API with the new position
+        reorderQueue.mutate({
+            item_id: itemId,
+            new_position: newIndex,
+        });
+    };
+
     if (isLoading) {
         return (
             <div className="w-80 bg-zinc-900 border-l border-zinc-800 flex flex-col h-screen">
@@ -109,20 +137,25 @@ export function QueuePanel() {
                         Queue is empty
                     </div>
                 ) : (
-                    <div className="divide-y divide-zinc-800">
+                    <div className="divide-y divide-zinc-800" role="list" aria-label="Queue items">
                         {queueItems.map((item, idx) => (
                             <div
                                 key={item.id}
                                 draggable
+                                tabIndex={0}
                                 onDragStart={() => handleDragStart(item.id)}
                                 onDragOver={(e) => handleDragOver(e, item.id)}
                                 onDragLeave={handleDragLeave}
                                 onDrop={(e) => handleDrop(e, item.id)}
+                                onDragEnd={handleDragEnd}
+                                onKeyDown={(e) => handleKeyDown(e, item.id, idx)}
                                 className={`p-3 hover:bg-zinc-800/50 cursor-move transition-colors ${
                                     draggedId === item.id ? 'opacity-50 bg-zinc-800' : ''
                                 } ${
                                     dragOverId === item.id ? 'border-t-2 border-primary' : ''
                                 }`}
+                                role="listitem"
+                                aria-label={`Queue item ${idx + 1}: ${item.clip?.title || 'Unknown Clip'}. Press Alt+Arrow Up or Alt+Arrow Down to reorder.`}
                             >
                                 <div className="flex gap-3">
                                     {/* Position Number */}
