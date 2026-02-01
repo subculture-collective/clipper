@@ -63,7 +63,34 @@ export const useAddToQueue = () => {
 
     return useMutation({
         mutationFn: addToQueue,
+        onMutate: async () => {
+            // Cancel any outgoing refetches to avoid race conditions
+            await queryClient.cancelQueries({ queryKey: ['queue'] });
+
+            // Snapshot all queue queries (handles different limits like 20, 100, etc.)
+            const previousQueues = queryClient.getQueriesData({
+                queryKey: ['queue'],
+            });
+
+            // Optimistically update the count
+            const currentCount = queryClient.getQueryData(['queue', 'count']);
+            if (typeof currentCount === 'number') {
+                queryClient.setQueryData(['queue', 'count'], currentCount + 1);
+            }
+
+            // Return context with the snapshot values
+            return { previousQueues };
+        },
+        onError: (_err, _variables, context) => {
+            // Rollback all queue queries to their previous state
+            if (context?.previousQueues) {
+                context.previousQueues.forEach(([queryKey, data]) => {
+                    queryClient.setQueryData(queryKey, data);
+                });
+            }
+        },
         onSuccess: () => {
+            // Invalidate to ensure data is fresh from server
             queryClient.invalidateQueries({ queryKey: ['queue'] });
         },
     });
@@ -74,7 +101,34 @@ export const useRemoveFromQueue = () => {
 
     return useMutation({
         mutationFn: removeFromQueue,
+        onMutate: async () => {
+            // Cancel any outgoing refetches to avoid race conditions
+            await queryClient.cancelQueries({ queryKey: ['queue'] });
+
+            // Snapshot all queue queries (handles different limits like 20, 100, etc.)
+            const previousQueues = queryClient.getQueriesData({
+                queryKey: ['queue'],
+            });
+
+            // Optimistically update the count
+            const currentCount = queryClient.getQueryData(['queue', 'count']);
+            if (typeof currentCount === 'number' && currentCount > 0) {
+                queryClient.setQueryData(['queue', 'count'], currentCount - 1);
+            }
+
+            // Return context with the snapshot values
+            return { previousQueues };
+        },
+        onError: (_err, _variables, context) => {
+            // Rollback all queue queries to their previous state
+            if (context?.previousQueues) {
+                context.previousQueues.forEach(([queryKey, data]) => {
+                    queryClient.setQueryData(queryKey, data);
+                });
+            }
+        },
         onSuccess: () => {
+            // Invalidate to ensure data is fresh from server
             queryClient.invalidateQueries({ queryKey: ['queue'] });
         },
     });
@@ -96,7 +150,31 @@ export const useClearQueue = () => {
 
     return useMutation({
         mutationFn: clearQueue,
+        onMutate: async () => {
+            // Cancel any outgoing refetches to avoid race conditions
+            await queryClient.cancelQueries({ queryKey: ['queue'] });
+
+            // Snapshot all queue queries (handles different limits like 20, 100, etc.)
+            const previousQueues = queryClient.getQueriesData({
+                queryKey: ['queue'],
+            });
+
+            // Optimistically update to empty
+            queryClient.setQueryData(['queue', 'count'], 0);
+
+            // Return context with the snapshot values
+            return { previousQueues };
+        },
+        onError: (_err, _variables, context) => {
+            // Rollback all queue queries to their previous state
+            if (context?.previousQueues) {
+                context.previousQueues.forEach(([queryKey, data]) => {
+                    queryClient.setQueryData(queryKey, data);
+                });
+            }
+        },
         onSuccess: () => {
+            // Invalidate to ensure data is fresh from server
             queryClient.invalidateQueries({ queryKey: ['queue'] });
         },
     });
