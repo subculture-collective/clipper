@@ -385,12 +385,11 @@ test.describe('Channel Management', () => {
         expect(getResponse.status).toBe(404);
     });
 
-    test.skip('non-owner should not be able to delete channel', async ({
+    test('non-owner should not be able to delete channel', async ({
         page,
         multiUserContexts,
     }) => {
-        // TODO: Requires backend API for channel management
-        // Now using fixture-based multi-user setup
+        // Using fixture-based multi-user setup with mock API
         const primaryPage = page;
         const secondaryContext = multiUserContexts.moderator;
         const secondaryPage = secondaryContext.page;
@@ -426,12 +425,11 @@ test.describe('Channel Management', () => {
         expect(getResponse.ok).toBeTruthy();
     });
 
-    test.skip('admin should be able to remove members but not owner', async ({
+    test('admin should be able to remove members but not owner', async ({
         page,
         multiUserContexts,
     }) => {
-        // TODO: Requires backend API for channel management
-        // Now using fixture-based multi-user setup
+        // Using fixture-based multi-user setup with mock API
         const ownerPage = page;
         const adminContext = multiUserContexts.moderator;
         const memberContext = multiUserContexts.regular;
@@ -505,12 +503,11 @@ test.describe('Channel Management', () => {
 });
 
 test.describe('Channel Member Permissions', () => {
-    test.skip('member should not see admin controls', async ({
+    test('member should not see admin controls', async ({
         page,
         multiUserContexts,
     }) => {
-        // TODO: Requires backend API and UI implementation
-        // Now using fixture-based multi-user setup
+        // Using fixture-based multi-user setup with mock API
         const ownerPage = page;
         const memberContext = multiUserContexts.regular;
         const memberPage = memberContext.page;
@@ -540,12 +537,11 @@ test.describe('Channel Member Permissions', () => {
         await expect(adminControls).toHaveCount(0);
     });
 
-    test.skip('moderator should not be able to update roles', async ({
+    test('moderator should not be able to update roles', async ({
         page,
         multiUserContexts,
     }) => {
-        // TODO: Requires backend API for channel management
-        // Now using fixture-based multi-user setup
+        // Using fixture-based multi-user setup with mock API
         const ownerPage = page;
         const modContext = multiUserContexts.moderator;
         const targetContext = multiUserContexts.regular;
@@ -589,12 +585,11 @@ test.describe('Channel Member Permissions', () => {
         expect(updateResponse.status).toBe(403);
     });
 
-    test.skip('only owner and admin can add members', async ({
+    test('only owner and admin can add members', async ({
         page,
         multiUserContexts,
     }) => {
-        // TODO: Requires backend API for channel management
-        // Now using fixture-based multi-user setup
+        // Using fixture-based multi-user setup with mock API
         const ownerPage = page;
         const memberContext = multiUserContexts.regular;
         const newUserContext = multiUserContexts.secondary;
