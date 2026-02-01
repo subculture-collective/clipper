@@ -62,7 +62,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
       onClose();
     } catch (error) {
       // Keep modal open on error so user can see the error state
-      console.error('Confirmation action failed:', error);
+      console.error(`Confirmation action failed (${title}):`, error);
     } finally {
       setIsLoading(false);
     }

@@ -38,7 +38,7 @@ export const SaveSearchModal: React.FC<SaveSearchModalProps> = ({
       onClose();
     } catch (error) {
       // Keep modal open on error so user can see the error state
-      console.error('Save search failed:', error);
+      console.error(`Save search failed (name: "${name.trim()}"):`, error);
     } finally {
       setIsLoading(false);
     }
