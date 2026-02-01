@@ -156,7 +156,11 @@ async function setupIntegrationMocks(page: Page) {
         route.fulfill({
             status: 200,
             contentType: 'application/json',
-            body: JSON.stringify({ progress: 0 }),
+            body: JSON.stringify({
+                has_progress: false,
+                progress_seconds: 0,
+                completed: false,
+            }),
         }),
     );
 
@@ -329,9 +333,13 @@ async function setupAuthenticatedMocks(page: Page) {
             status: 200,
             contentType: 'application/json',
             body: JSON.stringify({
-                analytics: true,
-                marketing: false,
-                functional: true,
+                success: true,
+                data: {
+                    essential: true,
+                    functional: true,
+                    analytics: true,
+                    advertising: false,
+                },
             }),
         }),
     );
@@ -498,7 +506,7 @@ test.describe('Submission Workflows', () => {
 
         // Click submit button in main content (not header)
         const submitButton = page
-            .locator('#main-content')
+            .locator('[data-testid="submit-clip-main-content"]')
             .getByRole('button', { name: /Submit Clip/i });
         await submitButton.click();
 
@@ -660,9 +668,15 @@ test.describe('Engagement Features', () => {
         // Navigate directly to clip detail page where comments are shown
         await page.goto(`/clip/${demoClip.id}`);
         
-        // Wait for the comments heading specifically instead of network idle
-        // This is more reliable as it doesn't depend on all network requests completing
-        await page.locator('h2, h3, h4').filter({ hasText: /comment/i }).first().waitFor({ state: 'visible', timeout: 10000 });
+        // Wait for any of the acceptable comment-related elements to appear
+        // This is more flexible and aligns with the test's actual assertion logic
+        await Promise.race([
+            page.locator('textarea').first().waitFor({ state: 'visible', timeout: 10000 }),
+            page.locator('text=/comments|add.*comment|write.*comment/i').first().waitFor({ state: 'visible', timeout: 10000 }),
+            page.locator('h2, h3, h4').filter({ hasText: /comment/i }).first().waitFor({ state: 'visible', timeout: 10000 }),
+        ]).catch(() => {
+            // If none appear within timeout, continue - the assertion below will fail appropriately
+        });
 
         // Look for comment-related elements: textarea, input, or section header
         const commentTextarea = page.locator('textarea');
