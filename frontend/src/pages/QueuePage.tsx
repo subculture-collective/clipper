@@ -4,17 +4,22 @@ import {
     useRemoveFromQueue,
     useClearQueue,
     useMarkAsPlayed,
+    useReorderQueue,
 } from '@/hooks/useQueue';
 import { formatDuration, cn } from '@/lib/utils';
 import { X, Trash2, Play, GripVertical } from 'lucide-react';
 import { Button, Spinner } from '@/components/ui';
 import { SEO } from '@/components/SEO';
+import { useState } from 'react';
 
 export function QueuePage() {
     const { data: queue, isLoading, isError } = useQueue(100);
     const removeFromQueue = useRemoveFromQueue();
     const clearQueue = useClearQueue();
     const markAsPlayed = useMarkAsPlayed();
+    const reorderQueue = useReorderQueue();
+    const [draggedId, setDraggedId] = useState<string | null>(null);
+    const [dragOverId, setDragOverId] = useState<string | null>(null);
 
     const handleRemove = (itemId: string) => {
         removeFromQueue.mutate(itemId);
@@ -31,6 +36,51 @@ export function QueuePage() {
     const handlePlay = (itemId: string, clipId: string) => {
         markAsPlayed.mutate(itemId);
         window.open(`/clip/${clipId}`, '_blank');
+    };
+
+    const handleDragStart = (id: string) => {
+        setDraggedId(id);
+    };
+
+    const handleDragOver = (e: React.DragEvent, id: string) => {
+        e.preventDefault();
+        setDragOverId(id);
+    };
+
+    const handleDragLeave = () => {
+        setDragOverId(null);
+    };
+
+    const handleDrop = (e: React.DragEvent, targetId: string) => {
+        e.preventDefault();
+        
+        if (!draggedId || draggedId === targetId) {
+            setDraggedId(null);
+            setDragOverId(null);
+            return;
+        }
+
+        const items = queue?.items || [];
+        const draggedIndex = items.findIndex(item => item.id === draggedId);
+        const targetIndex = items.findIndex(item => item.id === targetId);
+
+        if (draggedIndex === -1 || targetIndex === -1) {
+            setDraggedId(null);
+            setDragOverId(null);
+            return;
+        }
+
+        // Use target position as the new position
+        const newPosition = targetIndex;
+
+        // Call the reorder API
+        reorderQueue.mutate({
+            item_id: draggedId,
+            new_position: newPosition,
+        });
+
+        setDraggedId(null);
+        setDragOverId(null);
     };
 
     const queueItems = queue?.items || [];
@@ -110,15 +160,22 @@ export function QueuePage() {
                         {queueItems.map((item, idx) => (
                             <div
                                 key={item.id}
+                                draggable
+                                onDragStart={() => handleDragStart(item.id)}
+                                onDragOver={(e) => handleDragOver(e, item.id)}
+                                onDragLeave={handleDragLeave}
+                                onDrop={(e) => handleDrop(e, item.id)}
                                 className={cn(
                                     'bg-card border border-border rounded-lg p-4 hover:shadow-md transition-shadow',
                                     item.played_at && 'opacity-60',
+                                    draggedId === item.id && 'opacity-50',
+                                    dragOverId === item.id && 'border-t-2 border-primary',
                                 )}
                             >
                                 <div className='flex gap-4'>
                                     {/* Drag Handle & Position */}
                                     <div className='flex items-center gap-2 text-muted-foreground'>
-                                        <GripVertical className='h-5 w-5 cursor-grab' />
+                                        <GripVertical className='h-5 w-5 cursor-grab active:cursor-grabbing' />
                                         <span className='text-sm font-mono w-6'>
                                             {idx + 1}.
                                         </span>
