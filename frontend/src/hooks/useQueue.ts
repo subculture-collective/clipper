@@ -63,7 +63,33 @@ export const useAddToQueue = () => {
 
     return useMutation({
         mutationFn: addToQueue,
+        onMutate: async () => {
+            // Cancel any outgoing refetches to avoid race conditions
+            await queryClient.cancelQueries({ queryKey: ['queue'] });
+
+            // Snapshot the previous values
+            const previousQueue = queryClient.getQueryData(['queue', 100]);
+            const previousCount = queryClient.getQueryData(['queue', 'count']);
+
+            // Optimistically update the count
+            if (typeof previousCount === 'number') {
+                queryClient.setQueryData(['queue', 'count'], previousCount + 1);
+            }
+
+            // Return context with the snapshot values
+            return { previousQueue, previousCount };
+        },
+        onError: (_err, _variables, context) => {
+            // Rollback to the previous values on error
+            if (context?.previousQueue !== undefined) {
+                queryClient.setQueryData(['queue', 100], context.previousQueue);
+            }
+            if (context?.previousCount !== undefined) {
+                queryClient.setQueryData(['queue', 'count'], context.previousCount);
+            }
+        },
         onSuccess: () => {
+            // Invalidate to ensure data is fresh from server
             queryClient.invalidateQueries({ queryKey: ['queue'] });
         },
     });
@@ -74,7 +100,33 @@ export const useRemoveFromQueue = () => {
 
     return useMutation({
         mutationFn: removeFromQueue,
+        onMutate: async () => {
+            // Cancel any outgoing refetches to avoid race conditions
+            await queryClient.cancelQueries({ queryKey: ['queue'] });
+
+            // Snapshot the previous values
+            const previousQueue = queryClient.getQueryData(['queue', 100]);
+            const previousCount = queryClient.getQueryData(['queue', 'count']);
+
+            // Optimistically update the count
+            if (typeof previousCount === 'number' && previousCount > 0) {
+                queryClient.setQueryData(['queue', 'count'], previousCount - 1);
+            }
+
+            // Return context with the snapshot values
+            return { previousQueue, previousCount };
+        },
+        onError: (_err, _variables, context) => {
+            // Rollback to the previous values on error
+            if (context?.previousQueue !== undefined) {
+                queryClient.setQueryData(['queue', 100], context.previousQueue);
+            }
+            if (context?.previousCount !== undefined) {
+                queryClient.setQueryData(['queue', 'count'], context.previousCount);
+            }
+        },
         onSuccess: () => {
+            // Invalidate to ensure data is fresh from server
             queryClient.invalidateQueries({ queryKey: ['queue'] });
         },
     });
@@ -96,7 +148,31 @@ export const useClearQueue = () => {
 
     return useMutation({
         mutationFn: clearQueue,
+        onMutate: async () => {
+            // Cancel any outgoing refetches to avoid race conditions
+            await queryClient.cancelQueries({ queryKey: ['queue'] });
+
+            // Snapshot the previous values
+            const previousQueue = queryClient.getQueryData(['queue', 100]);
+            const previousCount = queryClient.getQueryData(['queue', 'count']);
+
+            // Optimistically update to empty
+            queryClient.setQueryData(['queue', 'count'], 0);
+
+            // Return context with the snapshot values
+            return { previousQueue, previousCount };
+        },
+        onError: (_err, _variables, context) => {
+            // Rollback to the previous values on error
+            if (context?.previousQueue !== undefined) {
+                queryClient.setQueryData(['queue', 100], context.previousQueue);
+            }
+            if (context?.previousCount !== undefined) {
+                queryClient.setQueryData(['queue', 'count'], context.previousCount);
+            }
+        },
         onSuccess: () => {
+            // Invalidate to ensure data is fresh from server
             queryClient.invalidateQueries({ queryKey: ['queue'] });
         },
     });
