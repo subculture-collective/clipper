@@ -1,3 +1,4 @@
+import apiClient from './api';
 import type { Playlist } from '@/types/playlist';
 
 interface AddToPlaylistResponse {
@@ -9,16 +10,8 @@ interface AddToPlaylistResponse {
  * Fetch user's playlists
  */
 export async function fetchUserPlaylists(): Promise<Playlist[]> {
-    const response = await fetch('/api/v1/playlists', {
-        credentials: 'include',
-    });
-
-    if (!response.ok) {
-        throw new Error('Failed to fetch playlists');
-    }
-
-    const data = await response.json();
-    return data.playlists || [];
+    const response = await apiClient.get<{ playlists?: Playlist[] }>('/playlists');
+    return response.data.playlists || [];
 }
 
 /**
@@ -28,21 +21,11 @@ export async function addClipToPlaylist(
     playlistId: string,
     clipId: string
 ): Promise<AddToPlaylistResponse> {
-    const response = await fetch(`/api/v1/playlists/${playlistId}/clips`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ clip_id: clipId }),
-    });
-
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to add clip to playlist');
-    }
-
-    return await response.json();
+    const response = await apiClient.post<AddToPlaylistResponse>(
+        `/playlists/${playlistId}/clips`,
+        { clip_id: clipId }
+    );
+    return response.data;
 }
 
 /**
@@ -52,15 +35,5 @@ export async function removeClipFromPlaylist(
     playlistId: string,
     clipId: string
 ): Promise<void> {
-    const response = await fetch(
-        `/api/v1/playlists/${playlistId}/clips/${clipId}`,
-        {
-            method: 'DELETE',
-            credentials: 'include',
-        }
-    );
-
-    if (!response.ok) {
-        throw new Error('Failed to remove clip from playlist');
-    }
+    await apiClient.delete(`/playlists/${playlistId}/clips/${clipId}`);
 }

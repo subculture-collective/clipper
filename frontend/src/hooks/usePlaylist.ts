@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import apiClient from '@/lib/api';
 import type {
     Playlist,
     CreatePlaylistRequest,
@@ -9,146 +10,69 @@ import type {
     PlaylistWithClipsResponse,
 } from '@/types/playlist';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
-
 // API functions
 const fetchPlaylists = async (page = 1, limit = 20): Promise<PlaylistListResponse> => {
-    const response = await fetch(
-        `${API_BASE_URL}/playlists?page=${page}&limit=${limit}`,
+    const response = await apiClient.get<PlaylistListResponse>(
+        '/playlists',
         {
-            credentials: 'include',
+            params: { page, limit },
         }
     );
-    if (!response.ok) {
-        throw new Error('Failed to fetch playlists');
-    }
-    return response.json();
+    return response.data;
 };
 
 const fetchPublicPlaylists = async (page = 1, limit = 20): Promise<PlaylistListResponse> => {
-    const response = await fetch(
-        `${API_BASE_URL}/playlists/public?page=${page}&limit=${limit}`,
+    const response = await apiClient.get<PlaylistListResponse>(
+        '/playlists/public',
         {
-            credentials: 'include',
+            params: { page, limit },
         }
     );
-    if (!response.ok) {
-        throw new Error('Failed to fetch public playlists');
-    }
-    return response.json();
+    return response.data;
 };
 
 const fetchPlaylist = async (id: string, page = 1, limit = 20): Promise<PlaylistWithClipsResponse> => {
-    const response = await fetch(
-        `${API_BASE_URL}/playlists/${id}?page=${page}&limit=${limit}`,
+    const response = await apiClient.get<PlaylistWithClipsResponse>(
+        `/playlists/${id}`,
         {
-            credentials: 'include',
+            params: { page, limit },
         }
     );
-    if (!response.ok) {
-        throw new Error('Failed to fetch playlist');
-    }
-    return response.json();
+    return response.data;
 };
 
 const createPlaylist = async (data: CreatePlaylistRequest): Promise<Playlist> => {
-    const response = await fetch(`${API_BASE_URL}/playlists`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-    });
-    if (!response.ok) {
-        throw new Error('Failed to create playlist');
-    }
-    const result = await response.json();
-    return result.data;
+    const response = await apiClient.post<{ data: Playlist }>('/playlists', data);
+    return response.data.data;
 };
 
 const updatePlaylist = async (id: string, data: UpdatePlaylistRequest): Promise<Playlist> => {
-    const response = await fetch(`${API_BASE_URL}/playlists/${id}`, {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-    });
-    if (!response.ok) {
-        throw new Error('Failed to update playlist');
-    }
-    const result = await response.json();
-    return result.data;
+    const response = await apiClient.patch<{ data: Playlist }>(`/playlists/${id}`, data);
+    return response.data.data;
 };
 
 const deletePlaylist = async (id: string): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/playlists/${id}`, {
-        method: 'DELETE',
-        credentials: 'include',
-    });
-    if (!response.ok) {
-        throw new Error('Failed to delete playlist');
-    }
+    await apiClient.delete(`/playlists/${id}`);
 };
 
 const addClipsToPlaylist = async (id: string, data: AddClipsToPlaylistRequest): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/playlists/${id}/clips`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-    });
-    if (!response.ok) {
-        throw new Error('Failed to add clips to playlist');
-    }
+    await apiClient.post(`/playlists/${id}/clips`, data);
 };
 
 const removeClipFromPlaylist = async (playlistId: string, clipId: string): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/playlists/${playlistId}/clips/${clipId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-    });
-    if (!response.ok) {
-        throw new Error('Failed to remove clip from playlist');
-    }
+    await apiClient.delete(`/playlists/${playlistId}/clips/${clipId}`);
 };
 
 const reorderPlaylistClips = async (id: string, data: ReorderPlaylistClipsRequest): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/playlists/${id}/clips/order`, {
-        method: 'PUT',
-        credentials: 'include',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-    });
-    if (!response.ok) {
-        throw new Error('Failed to reorder clips');
-    }
+    await apiClient.put(`/playlists/${id}/clips/order`, data);
 };
 
 const likePlaylist = async (id: string): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/playlists/${id}/like`, {
-        method: 'POST',
-        credentials: 'include',
-    });
-    if (!response.ok) {
-        throw new Error('Failed to like playlist');
-    }
+    await apiClient.post(`/playlists/${id}/like`);
 };
 
 const unlikePlaylist = async (id: string): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/playlists/${id}/like`, {
-        method: 'DELETE',
-        credentials: 'include',
-    });
-    if (!response.ok) {
-        throw new Error('Failed to unlike playlist');
-    }
+    await apiClient.delete(`/playlists/${id}/like`);
 };
 
 // React Query hooks
