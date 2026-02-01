@@ -40,15 +40,21 @@ export function DiscoveryListDetailPage() {
     if (!list) return;
 
     if (list.is_following) {
-      unfollowMutation.mutate(list.id, {
-        onSuccess: () => toast.success('Unfollowed list'),
-        onError: () => toast.error('Failed to unfollow list'),
-      });
+      unfollowMutation.mutate(
+        { id: list.id, slug: list.slug },
+        {
+          onSuccess: () => toast.success('Unfollowed list'),
+          onError: () => toast.error('Failed to unfollow list'),
+        }
+      );
     } else {
-      followMutation.mutate(list.id, {
-        onSuccess: () => toast.success('Following list'),
-        onError: () => toast.error('Failed to follow list'),
-      });
+      followMutation.mutate(
+        { id: list.id, slug: list.slug },
+        {
+          onSuccess: () => toast.success('Following list'),
+          onError: () => toast.error('Failed to follow list'),
+        }
+      );
     }
   };
 
@@ -60,15 +66,21 @@ export function DiscoveryListDetailPage() {
     if (!list) return;
 
     if (list.is_bookmarked) {
-      unbookmarkMutation.mutate(list.id, {
-        onSuccess: () => toast.success('Removed bookmark'),
-        onError: () => toast.error('Failed to remove bookmark'),
-      });
+      unbookmarkMutation.mutate(
+        { id: list.id, slug: list.slug },
+        {
+          onSuccess: () => toast.success('Removed bookmark'),
+          onError: () => toast.error('Failed to remove bookmark'),
+        }
+      );
     } else {
-      bookmarkMutation.mutate(list.id, {
-        onSuccess: () => toast.success('Bookmarked list'),
-        onError: () => toast.error('Failed to bookmark list'),
-      });
+      bookmarkMutation.mutate(
+        { id: list.id, slug: list.slug },
+        {
+          onSuccess: () => toast.success('Bookmarked list'),
+          onError: () => toast.error('Failed to bookmark list'),
+        }
+      );
     }
   };
 

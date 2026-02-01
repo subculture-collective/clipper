@@ -36,10 +36,16 @@ export function useFollowDiscoveryList() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (listId: string) => discoveryListApi.followDiscoveryList(listId),
-    onSuccess: (_data, listId) => {
+    mutationFn: ({ id }: { id: string; slug?: string }) =>
+      discoveryListApi.followDiscoveryList(id),
+    onSuccess: (_data, { id, slug }) => {
       // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ['discovery-list', listId] });
+      // Invalidate by ID
+      queryClient.invalidateQueries({ queryKey: ['discovery-list', id] });
+      // Also invalidate by slug if provided (for slug-based cache keys)
+      if (slug) {
+        queryClient.invalidateQueries({ queryKey: ['discovery-list', slug] });
+      }
       queryClient.invalidateQueries({ queryKey: ['discovery-lists'] });
       queryClient.invalidateQueries({ queryKey: ['user-followed-lists'] });
     },
@@ -53,11 +59,16 @@ export function useUnfollowDiscoveryList() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (listId: string) =>
-      discoveryListApi.unfollowDiscoveryList(listId),
-    onSuccess: (_data, listId) => {
+    mutationFn: ({ id }: { id: string; slug?: string }) =>
+      discoveryListApi.unfollowDiscoveryList(id),
+    onSuccess: (_data, { id, slug }) => {
       // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ['discovery-list', listId] });
+      // Invalidate by ID
+      queryClient.invalidateQueries({ queryKey: ['discovery-list', id] });
+      // Also invalidate by slug if provided (for slug-based cache keys)
+      if (slug) {
+        queryClient.invalidateQueries({ queryKey: ['discovery-list', slug] });
+      }
       queryClient.invalidateQueries({ queryKey: ['discovery-lists'] });
       queryClient.invalidateQueries({ queryKey: ['user-followed-lists'] });
     },
@@ -71,11 +82,16 @@ export function useBookmarkDiscoveryList() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (listId: string) =>
-      discoveryListApi.bookmarkDiscoveryList(listId),
-    onSuccess: (_data, listId) => {
+    mutationFn: ({ id }: { id: string; slug?: string }) =>
+      discoveryListApi.bookmarkDiscoveryList(id),
+    onSuccess: (_data, { id, slug }) => {
       // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ['discovery-list', listId] });
+      // Invalidate by ID
+      queryClient.invalidateQueries({ queryKey: ['discovery-list', id] });
+      // Also invalidate by slug if provided (for slug-based cache keys)
+      if (slug) {
+        queryClient.invalidateQueries({ queryKey: ['discovery-list', slug] });
+      }
       queryClient.invalidateQueries({ queryKey: ['discovery-lists'] });
     },
     onError: (error) => {
@@ -88,11 +104,16 @@ export function useUnbookmarkDiscoveryList() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (listId: string) =>
-      discoveryListApi.unbookmarkDiscoveryList(listId),
-    onSuccess: (_data, listId) => {
+    mutationFn: ({ id }: { id: string; slug?: string }) =>
+      discoveryListApi.unbookmarkDiscoveryList(id),
+    onSuccess: (_data, { id, slug }) => {
       // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ['discovery-list', listId] });
+      // Invalidate by ID
+      queryClient.invalidateQueries({ queryKey: ['discovery-list', id] });
+      // Also invalidate by slug if provided (for slug-based cache keys)
+      if (slug) {
+        queryClient.invalidateQueries({ queryKey: ['discovery-list', slug] });
+      }
       queryClient.invalidateQueries({ queryKey: ['discovery-lists'] });
     },
     onError: (error) => {
