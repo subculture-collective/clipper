@@ -67,25 +67,26 @@ export const useAddToQueue = () => {
             // Cancel any outgoing refetches to avoid race conditions
             await queryClient.cancelQueries({ queryKey: ['queue'] });
 
-            // Snapshot the previous values
-            const previousQueue = queryClient.getQueryData(['queue', 100]);
-            const previousCount = queryClient.getQueryData(['queue', 'count']);
+            // Snapshot all queue queries (handles different limits like 20, 100, etc.)
+            const previousQueues = queryClient.getQueriesData({
+                queryKey: ['queue'],
+            });
 
             // Optimistically update the count
-            if (typeof previousCount === 'number') {
-                queryClient.setQueryData(['queue', 'count'], previousCount + 1);
+            const currentCount = queryClient.getQueryData(['queue', 'count']);
+            if (typeof currentCount === 'number') {
+                queryClient.setQueryData(['queue', 'count'], currentCount + 1);
             }
 
             // Return context with the snapshot values
-            return { previousQueue, previousCount };
+            return { previousQueues };
         },
         onError: (_err, _variables, context) => {
-            // Rollback to the previous values on error
-            if (context?.previousQueue !== undefined) {
-                queryClient.setQueryData(['queue', 100], context.previousQueue);
-            }
-            if (context?.previousCount !== undefined) {
-                queryClient.setQueryData(['queue', 'count'], context.previousCount);
+            // Rollback all queue queries to their previous state
+            if (context?.previousQueues) {
+                context.previousQueues.forEach(([queryKey, data]) => {
+                    queryClient.setQueryData(queryKey, data);
+                });
             }
         },
         onSuccess: () => {
@@ -104,25 +105,26 @@ export const useRemoveFromQueue = () => {
             // Cancel any outgoing refetches to avoid race conditions
             await queryClient.cancelQueries({ queryKey: ['queue'] });
 
-            // Snapshot the previous values
-            const previousQueue = queryClient.getQueryData(['queue', 100]);
-            const previousCount = queryClient.getQueryData(['queue', 'count']);
+            // Snapshot all queue queries (handles different limits like 20, 100, etc.)
+            const previousQueues = queryClient.getQueriesData({
+                queryKey: ['queue'],
+            });
 
             // Optimistically update the count
-            if (typeof previousCount === 'number' && previousCount > 0) {
-                queryClient.setQueryData(['queue', 'count'], previousCount - 1);
+            const currentCount = queryClient.getQueryData(['queue', 'count']);
+            if (typeof currentCount === 'number' && currentCount > 0) {
+                queryClient.setQueryData(['queue', 'count'], currentCount - 1);
             }
 
             // Return context with the snapshot values
-            return { previousQueue, previousCount };
+            return { previousQueues };
         },
         onError: (_err, _variables, context) => {
-            // Rollback to the previous values on error
-            if (context?.previousQueue !== undefined) {
-                queryClient.setQueryData(['queue', 100], context.previousQueue);
-            }
-            if (context?.previousCount !== undefined) {
-                queryClient.setQueryData(['queue', 'count'], context.previousCount);
+            // Rollback all queue queries to their previous state
+            if (context?.previousQueues) {
+                context.previousQueues.forEach(([queryKey, data]) => {
+                    queryClient.setQueryData(queryKey, data);
+                });
             }
         },
         onSuccess: () => {
@@ -152,23 +154,23 @@ export const useClearQueue = () => {
             // Cancel any outgoing refetches to avoid race conditions
             await queryClient.cancelQueries({ queryKey: ['queue'] });
 
-            // Snapshot the previous values
-            const previousQueue = queryClient.getQueryData(['queue', 100]);
-            const previousCount = queryClient.getQueryData(['queue', 'count']);
+            // Snapshot all queue queries (handles different limits like 20, 100, etc.)
+            const previousQueues = queryClient.getQueriesData({
+                queryKey: ['queue'],
+            });
 
             // Optimistically update to empty
             queryClient.setQueryData(['queue', 'count'], 0);
 
             // Return context with the snapshot values
-            return { previousQueue, previousCount };
+            return { previousQueues };
         },
         onError: (_err, _variables, context) => {
-            // Rollback to the previous values on error
-            if (context?.previousQueue !== undefined) {
-                queryClient.setQueryData(['queue', 100], context.previousQueue);
-            }
-            if (context?.previousCount !== undefined) {
-                queryClient.setQueryData(['queue', 'count'], context.previousCount);
+            // Rollback all queue queries to their previous state
+            if (context?.previousQueues) {
+                context.previousQueues.forEach(([queryKey, data]) => {
+                    queryClient.setQueryData(queryKey, data);
+                });
             }
         },
         onSuccess: () => {

@@ -206,6 +206,61 @@ describe('useQueue hooks', () => {
             expect(rolledBackCount).toBe(3);
             expect(result.current.error).toEqual(error);
         });
+
+        it('should optimistically update all queue queries with different limits', async () => {
+            vi.mocked(apiClient.apiClient.post).mockResolvedValue({
+                data: {},
+            } as never);
+
+            const queryClient = new QueryClient({
+                defaultOptions: {
+                    queries: { retry: false },
+                    mutations: { retry: false },
+                },
+            });
+
+            // Pre-populate multiple queue caches with different limits
+            queryClient.setQueryData(['queue', 20], {
+                items: [],
+                total: 2,
+            });
+            queryClient.setQueryData(['queue', 100], {
+                items: [],
+                total: 2,
+            });
+            queryClient.setQueryData(['queue', 'count'], 2);
+
+            const wrapper = ({ children }: { children: ReactNode }) =>
+                createElement(
+                    QueryClientProvider,
+                    { client: queryClient },
+                    children,
+                );
+
+            const { result } = renderHook(() => useAddToQueue(), { wrapper });
+
+            result.current.mutate({
+                clip_id: 'clip-1',
+                at_end: true,
+            });
+
+            // Wait for onMutate to run
+            await waitFor(() => {
+                const updatedCount = queryClient.getQueryData([
+                    'queue',
+                    'count',
+                ]);
+                expect(updatedCount).toBe(3);
+            });
+
+            await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+            // Verify both queue caches are preserved in snapshot
+            const queue20 = queryClient.getQueryData(['queue', 20]);
+            const queue100 = queryClient.getQueryData(['queue', 100]);
+            expect(queue20).toBeDefined();
+            expect(queue100).toBeDefined();
+        });
     });
 
     describe('useRemoveFromQueue', () => {
@@ -302,6 +357,53 @@ describe('useQueue hooks', () => {
                 'count',
             ]);
             expect(rolledBackCount).toBe(5);
+            expect(result.current.error).toEqual(error);
+        });
+
+        it('should rollback all queue queries on error with multiple limits', async () => {
+            const error = new Error('Failed to remove from queue');
+            vi.mocked(apiClient.apiClient.delete).mockRejectedValue(error);
+
+            const queryClient = new QueryClient({
+                defaultOptions: {
+                    queries: { retry: false },
+                    mutations: { retry: false },
+                },
+            });
+
+            // Pre-populate multiple queue caches with different limits
+            const mockQueue20 = { items: [], total: 5 };
+            const mockQueue100 = { items: [], total: 5 };
+            queryClient.setQueryData(['queue', 20], mockQueue20);
+            queryClient.setQueryData(['queue', 100], mockQueue100);
+            queryClient.setQueryData(['queue', 'count'], 5);
+
+            const wrapper = ({ children }: { children: ReactNode }) =>
+                createElement(
+                    QueryClientProvider,
+                    { client: queryClient },
+                    children,
+                );
+
+            const { result } = renderHook(() => useRemoveFromQueue(), {
+                wrapper,
+            });
+
+            result.current.mutate('item-1');
+
+            await waitFor(() => expect(result.current.isError).toBe(true));
+
+            // Verify all queue caches were rolled back
+            const rolledBackCount = queryClient.getQueryData([
+                'queue',
+                'count',
+            ]);
+            expect(rolledBackCount).toBe(5);
+            
+            const rolledBackQueue20 = queryClient.getQueryData(['queue', 20]);
+            const rolledBackQueue100 = queryClient.getQueryData(['queue', 100]);
+            expect(rolledBackQueue20).toEqual(mockQueue20);
+            expect(rolledBackQueue100).toEqual(mockQueue100);
             expect(result.current.error).toEqual(error);
         });
 
