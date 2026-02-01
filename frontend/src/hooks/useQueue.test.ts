@@ -399,7 +399,7 @@ describe('useQueue hooks', () => {
                 'count',
             ]);
             expect(rolledBackCount).toBe(5);
-            
+
             const rolledBackQueue20 = queryClient.getQueryData(['queue', 20]);
             const rolledBackQueue100 = queryClient.getQueryData(['queue', 100]);
             expect(rolledBackQueue20).toEqual(mockQueue20);
