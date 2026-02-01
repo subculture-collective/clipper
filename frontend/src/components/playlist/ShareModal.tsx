@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Copy, Check, Share2 } from 'lucide-react';
+import apiClient from '@/lib/api';
 import type { GetShareLinkResponse, TrackShareRequest } from '@/types/playlist';
 
 interface ShareModalProps {
@@ -17,21 +18,14 @@ export function ShareModal({ playlistId, onClose }: ShareModalProps) {
         const fetchShareLink = async () => {
             try {
                 setLoading(true);
-                const response = await fetch(`/api/v1/playlists/${playlistId}/share-link`, {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                    },
-                });
+                const response = await apiClient.get<{ success: boolean; data: GetShareLinkResponse; error?: { message: string } }>(
+                    `/playlists/${playlistId}/share-link`
+                );
 
-                if (!response.ok) {
-                    throw new Error('Failed to get share link');
-                }
-
-                const data = await response.json();
-                if (data.success) {
-                    setShareData(data.data);
+                if (response.data.success) {
+                    setShareData(response.data.data);
                 } else {
-                    throw new Error(data.error?.message || 'Failed to get share link');
+                    throw new Error(response.data.error?.message || 'Failed to get share link');
                 }
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'An error occurred');
@@ -55,15 +49,9 @@ export function ShareModal({ playlistId, onClose }: ShareModalProps) {
 
     const trackShare = async (platform: TrackShareRequest['platform']) => {
         try {
-            await fetch(`/api/v1/playlists/${playlistId}/track-share`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    platform,
-                    referrer: window.location.href,
-                }),
+            await apiClient.post(`/playlists/${playlistId}/track-share`, {
+                platform,
+                referrer: window.location.href,
             });
         } catch (err) {
             console.error('Failed to track share:', err);
