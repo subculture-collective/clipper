@@ -57,9 +57,9 @@ type EmailConfig struct {
 type EmailRequest struct {
 	To       []string               // List of recipient email addresses
 	Subject  string                 // Email subject line
-	Template string                 // Template ID or name (TODO: future SendGrid template integration)
+	Template string                 // Template ID or name (reserved for future SendGrid dynamic template integration)
 	Data     map[string]interface{} // Template data/variables
-	Tags     []string               // Email tags for categorization (TODO: future SendGrid categories API integration)
+	Tags     []string               // Email tags for categorization (reserved for future SendGrid Categories API integration)
 }
 
 // NewEmailService creates a new EmailService
