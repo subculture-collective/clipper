@@ -69,7 +69,7 @@ export default function SubmitScreen() {
         } catch (error) {
             trackEvent(SubmissionEvents.SUBMISSION_CREATE_FAILED, {
                 source: 'mobile_app',
-                error: error instanceof Error ? error.message : 'Unknown error',
+                error: error instanceof Error ? error.message : 'unknown error',
             });
 
             Alert.alert('Error', 'Failed to submit clip. Please try again.');

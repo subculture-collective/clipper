@@ -21,6 +21,9 @@ import {
 } from '../../lib/constants/pricing';
 import { trackEvent, PremiumEvents } from '../../lib/analytics';
 
+/** Default feature name for analytics when none is provided */
+const UNKNOWN_FEATURE = 'unknown';
+
 export interface PaywallModalProps {
   /** Whether the modal is visible */
   visible: boolean;
@@ -64,7 +67,7 @@ export function PaywallModal({
   useEffect(() => {
     if (visible) {
       trackEvent(PremiumEvents.PAYWALL_VIEWED, { 
-        feature: featureName || 'unknown',
+        feature: featureName || UNKNOWN_FEATURE,
         source: 'mobile_app',
       });
     }
@@ -77,7 +80,7 @@ export function PaywallModal({
 
     trackEvent(PremiumEvents.PAYWALL_UPGRADE_CLICKED, { 
       billing_period: period, 
-      feature: featureName || 'unknown',
+      feature: featureName || UNKNOWN_FEATURE,
       source: 'mobile_app',
     });
 
@@ -100,7 +103,7 @@ export function PaywallModal({
 
   const handleClose = () => {
     trackEvent(PremiumEvents.PAYWALL_DISMISSED, { 
-      feature: featureName || 'unknown',
+      feature: featureName || UNKNOWN_FEATURE,
       source: 'mobile_app',
     });
     onClose();
@@ -109,7 +112,7 @@ export function PaywallModal({
   const handleBillingPeriodChange = (period: 'monthly' | 'yearly') => {
     trackEvent(PremiumEvents.PRICING_TIER_CLICKED, { 
       billing_period: period, 
-      feature: featureName || 'unknown',
+      feature: featureName || UNKNOWN_FEATURE,
       source: 'paywall_modal',
     });
     setBillingPeriod(period);
