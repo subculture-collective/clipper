@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom';
-import { Container } from '../components';
+import { Container, SEO } from '../components';
 import { ClipFeed } from '../components/clip/ClipFeed';
 
 export function TagPage() {
@@ -16,14 +16,21 @@ export function TagPage() {
   }
 
   return (
-    <Container className="py-8">
-      <ClipFeed
+    <>
+      <SEO
         title={`#${tagSlug}`}
-        description={`Clips tagged with ${tagSlug}`}
-        filters={{ tags: [tagSlug] }}
-        showSearch={false}
-        useSortTitle={false}
+        description={`Explore Twitch clips tagged with ${tagSlug}. Watch, vote, and discover the best ${tagSlug} moments from the community.`}
+        canonicalUrl={`/tags/${tagSlug}`}
       />
-    </Container>
+      <Container className="py-8">
+        <ClipFeed
+          title={`#${tagSlug}`}
+          description={`Clips tagged with ${tagSlug}`}
+          filters={{ tags: [tagSlug] }}
+          showSearch={false}
+          useSortTitle={false}
+        />
+      </Container>
+    </>
   );
 }

@@ -8,6 +8,7 @@ vi.mock('../components', () => ({
     Container: ({ children }: { children: React.ReactNode }) => (
         <div data-testid="container">{children}</div>
     ),
+    SEO: () => null,
 }));
 
 // Mock ClipFeed component
