@@ -69,9 +69,9 @@ docker run --rm \
     --network clipper-network \
     -v "$DEPLOY_DIR/backend/migrations:/migrations:ro" \
     -e DATABASE_URL="$DB_URL" \
-    migrate/migrate:v4.17.0 \
+    migrate/migrate@sha256:4d017c6fb5997127093648cab09e63d377997125c3d3dcca18e5d1c847da49fa \
     -path /migrations \
-    -database "$DATABASE_URL" \
+    -database "$DB_URL" \
     up
 ```
 
