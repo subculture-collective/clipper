@@ -693,8 +693,8 @@ export default function MFAEnrollScreen() {
                 <TouchableOpacity
                     className="bg-primary-600 rounded-lg py-4 mb-3"
                     onPress={() => {
-                        // TODO: Implement actual email OTP sending when backend endpoint is ready
-                        // For now, proceed directly to manual setup
+                        // Email OTP is not yet available in the backend
+                        // Users can use authenticator app (TOTP) via manual setup
                         setCurrentStep('manual');
                     }}
                     disabled={isLoading}

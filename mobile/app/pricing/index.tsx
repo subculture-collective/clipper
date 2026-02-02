@@ -37,7 +37,8 @@ export default function PricingScreen() {
     });
 
     // For mobile, redirect to web checkout
-    // TODO: In future, integrate with in-app purchases (RevenueCat, Stripe mobile SDK)
+    // Future enhancement: Native in-app purchases (RevenueCat/Stripe mobile SDK)
+    // requires app store developer accounts and additional SDK integration
     const webCheckoutUrl = `https://clipper.tv/pricing?plan=${period}`;
     
     try {
