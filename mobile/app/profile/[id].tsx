@@ -53,9 +53,9 @@ export default function UserProfileScreen() {
     return (
         <ScrollView className='flex-1 bg-white'>
             <View className='items-center p-6 border-b border-gray-200'>
-                {user.profile_image_url ? (
+                {user.avatar_url ? (
                     <Image
-                        source={{ uri: user.profile_image_url }}
+                        source={{ uri: user.avatar_url }}
                         className='w-24 h-24 rounded-full mb-3'
                     />
                 ) : (
@@ -71,10 +71,10 @@ export default function UserProfileScreen() {
                 <Text className='text-base text-gray-500 mb-2'>
                     @{user.username}
                 </Text>
-                {user.reputation_score && user.reputation_score > 0 && (
+                {user.karma_points && user.karma_points > 0 && (
                     <View className='bg-primary-50 px-3 py-1 rounded-full'>
                         <Text className='text-sm text-primary-700 font-semibold'>
-                            ⭐ {user.reputation_score} reputation
+                            ⭐ {user.karma_points} karma
                         </Text>
                     </View>
                 )}

@@ -8,8 +8,8 @@ export interface User {
     id: string;
     username: string;
     display_name: string;
-    profile_image_url?: string;
-    reputation_score?: number;
+    avatar_url?: string;
+    karma_points?: number;
     bio?: string;
     created_at: string;
 }
@@ -36,8 +36,8 @@ export interface UpdateSettingsData {
  * Get public user profile by ID
  */
 export async function getUser(userId: string): Promise<User> {
-    const response = await api.get<{ user: User }>(`/api/v1/users/${userId}`);
-    return response.data.user;
+    const response = await api.get<{ success: boolean; data: User }>(`/api/v1/users/${userId}`);
+    return response.data.data;
 }
 
 /**
