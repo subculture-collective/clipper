@@ -32,7 +32,7 @@ This Epic tracked 5 child issues related to handler and API completeness. After 
 ### ✅ Issue #993: submitted_by_user_id Filter
 
 **Implementation Location:** 
-- `backend/internal/repository/clip_repository.go` (line 14)
+- `backend/internal/repository/clip_repository.go` (line 373)
 - `backend/internal/handlers/clip_handler.go` (lines 235, 250-262, 306-308)
 
 **Features:**
