@@ -19,6 +19,7 @@ import {
   calculateYearlyMonthlyPrice, 
   calculateSavingsPercent 
 } from '../../lib/constants/pricing';
+import { trackEvent, PremiumEvents } from '../../lib/analytics';
 
 export interface PaywallModalProps {
   /** Whether the modal is visible */
@@ -62,8 +63,10 @@ export function PaywallModal({
   // Track analytics when modal is shown
   useEffect(() => {
     if (visible) {
-      // TODO: Add analytics tracking for mobile
-      console.log('[Paywall Analytics] Modal viewed', { feature: featureName });
+      trackEvent(PremiumEvents.PAYWALL_VIEWED, { 
+        feature: featureName || 'unknown',
+        source: 'mobile_app',
+      });
     }
   }, [visible, featureName]);
 
@@ -72,8 +75,11 @@ export function PaywallModal({
       onUpgradeClick();
     }
 
-    // TODO: Add analytics tracking
-    console.log('[Paywall Analytics] Upgrade clicked', { period, feature: featureName });
+    trackEvent(PremiumEvents.PAYWALL_UPGRADE_CLICKED, { 
+      billing_period: period, 
+      feature: featureName || 'unknown',
+      source: 'mobile_app',
+    });
 
     // For mobile, redirect to web checkout
     // In future, integrate with in-app purchases (RevenueCat, Stripe mobile SDK, etc.)
@@ -93,14 +99,19 @@ export function PaywallModal({
   };
 
   const handleClose = () => {
-    // TODO: Add analytics tracking
-    console.log('[Paywall Analytics] Modal dismissed', { feature: featureName });
+    trackEvent(PremiumEvents.PAYWALL_DISMISSED, { 
+      feature: featureName || 'unknown',
+      source: 'mobile_app',
+    });
     onClose();
   };
 
   const handleBillingPeriodChange = (period: 'monthly' | 'yearly') => {
-    // TODO: Add analytics tracking
-    console.log('[Paywall Analytics] Billing period changed', { period, feature: featureName });
+    trackEvent(PremiumEvents.PRICING_TIER_CLICKED, { 
+      billing_period: period, 
+      feature: featureName || 'unknown',
+      source: 'paywall_modal',
+    });
     setBillingPeriod(period);
   };
 

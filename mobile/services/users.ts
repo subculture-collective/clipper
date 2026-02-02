@@ -4,6 +4,16 @@
 
 import { api } from '@/lib/api';
 
+export interface User {
+    id: string;
+    username: string;
+    display_name: string;
+    profile_image_url?: string;
+    reputation_score?: number;
+    bio?: string;
+    created_at: string;
+}
+
 export interface UserSettings {
     user_id: string;
     profile_visibility: 'public' | 'private' | 'followers';
@@ -20,6 +30,14 @@ export interface UpdateProfileData {
 export interface UpdateSettingsData {
     profile_visibility?: 'public' | 'private' | 'followers';
     show_karma_publicly?: boolean;
+}
+
+/**
+ * Get public user profile by ID
+ */
+export async function getUser(userId: string): Promise<User> {
+    const response = await api.get<{ user: User }>(`/api/v1/users/${userId}`);
+    return response.data.user;
 }
 
 /**

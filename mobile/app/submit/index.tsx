@@ -16,6 +16,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
+import { submitClip } from '../../services/clips';
+import { trackEvent, SubmissionEvents } from '../../lib/analytics';
 
 export default function SubmitScreen() {
     const router = useRouter();
@@ -45,14 +47,31 @@ export default function SubmitScreen() {
         }
 
         setIsSubmitting(true);
+        trackEvent(SubmissionEvents.SUBMISSION_CREATE_STARTED, {
+            source: 'mobile_app',
+        });
+
         try {
-            // TODO: Implement clip submission API call
+            const result = await submitClip({
+                clip_url: clipUrl.trim(),
+            });
+
+            trackEvent(SubmissionEvents.SUBMISSION_CREATE_COMPLETED, {
+                source: 'mobile_app',
+                submission_id: result.submission.id,
+            });
+
             Alert.alert(
                 'Success',
                 'Your clip has been submitted for review!',
                 [{ text: 'OK', onPress: () => router.back() }]
             );
         } catch (error) {
+            trackEvent(SubmissionEvents.SUBMISSION_CREATE_FAILED, {
+                source: 'mobile_app',
+                error: error instanceof Error ? error.message : 'Unknown error',
+            });
+
             Alert.alert('Error', 'Failed to submit clip. Please try again.');
         } finally {
             setIsSubmitting(false);

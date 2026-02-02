@@ -15,29 +15,7 @@ import { useQuery } from '@tanstack/react-query';
 import { TouchableOpacity } from 'react-native';
 import { Colors } from '../../constants/theme';
 import { useColorScheme } from '../../hooks/use-color-scheme';
-
-// TODO: Import actual user API service
-// import { getUser } from '@/services/users';
-
-interface User {
-    id: string;
-    username: string;
-    display_name: string;
-    profile_image_url?: string;
-    reputation_score?: number;
-    bio?: string;
-}
-
-// Placeholder function - replace with actual API call
-async function getUser(id: string): Promise<User> {
-    // This should be replaced with actual API call
-    return {
-        id,
-        username: `user_${id}`,
-        display_name: `User ${id}`,
-        reputation_score: 100,
-    };
-}
+import { getUser } from '../../services/users';
 
 export default function UserProfileScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
