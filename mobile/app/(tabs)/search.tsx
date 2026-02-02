@@ -95,7 +95,7 @@ export default function SearchScreen() {
                 filters: JSON.stringify(filters),
             });
         }
-    }, [data, shouldSearch, debouncedQuery, hasActiveFilters, filters]);
+    }, [data, shouldSearch, debouncedQuery, filters]);
 
     // Batch fetch media URLs for search results
     const clipIds = useMemo(() => data?.data.map(clip => clip.id) ?? [], [data?.data]);

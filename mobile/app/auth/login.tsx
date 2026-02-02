@@ -28,10 +28,11 @@ export default function LoginScreen() {
         
         try {
             // Step 1: Initiate OAuth flow and get authorization code
+            const { code, state, codeVerifier } = await initiateOAuthFlow();
+            
             trackEvent(AuthEvents.OAUTH_REDIRECT, {
                 provider: 'twitch',
             });
-            const { code, state, codeVerifier } = await initiateOAuthFlow();
 
             // Step 2: Exchange code for tokens via backend
             await exchangeCodeForTokens(code, state, codeVerifier);

@@ -113,23 +113,33 @@ export default function SettingsScreen() {
 
   const handlePrivacySettingChange = (value: 'public' | 'private' | 'followers') => {
     if (!updateSettingsMutation.isPending) {
-      updateSettingsMutation.mutate({ profile_visibility: value });
-      
-      trackEvent(SettingsEvents.PRIVACY_SETTINGS_CHANGED, {
-        setting: 'profile_visibility',
-        value,
-      });
+      updateSettingsMutation.mutate(
+        { profile_visibility: value },
+        {
+          onSuccess: () => {
+            trackEvent(SettingsEvents.PRIVACY_SETTINGS_CHANGED, {
+              setting: 'profile_visibility',
+              value,
+            });
+          },
+        }
+      );
     }
   };
 
   const handleKarmaVisibilityToggle = (value: boolean) => {
     if (!updateSettingsMutation.isPending) {
-      updateSettingsMutation.mutate({ show_karma_publicly: value });
-      
-      trackEvent(SettingsEvents.PRIVACY_SETTINGS_CHANGED, {
-        setting: 'show_karma_publicly',
-        value,
-      });
+      updateSettingsMutation.mutate(
+        { show_karma_publicly: value },
+        {
+          onSuccess: () => {
+            trackEvent(SettingsEvents.PRIVACY_SETTINGS_CHANGED, {
+              setting: 'show_karma_publicly',
+              value,
+            });
+          },
+        }
+      );
     }
   };
 
