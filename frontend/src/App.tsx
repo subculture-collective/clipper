@@ -45,6 +45,11 @@ const BroadcasterPage = lazy(() =>
         default: m.BroadcasterPage,
     })),
 );
+const CreatorPage = lazy(() =>
+    import('./pages/CreatorPage').then(m => ({
+        default: m.CreatorPage,
+    })),
+);
 const UserProfilePage = lazy(() =>
     import('./pages/UserProfilePage').then(m => ({
         default: m.UserProfilePage,
@@ -409,6 +414,10 @@ function App() {
                                         <Route
                                             path='/broadcaster/:broadcasterId'
                                             element={<BroadcasterPage />}
+                                        />
+                                        <Route
+                                            path='/creator/:creatorId'
+                                            element={<CreatorPage />}
                                         />
                                         <Route
                                             path='/stream/:streamer'
