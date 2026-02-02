@@ -1270,3 +1270,86 @@ func TestPrepareDMCANoticeIncompleteEmail(t *testing.T) {
 	assert.Contains(t, textBody, "DMCA Notice Incomplete")
 	assert.Contains(t, textBody, "Missing required signature")
 }
+
+// TestPrepareExportCompletedEmail tests export completed notification email
+func TestPrepareExportCompletedEmail(t *testing.T) {
+	cfg := &EmailConfig{
+		SendGridAPIKey:   "test-key",
+		FromEmail:        "noreply@example.com",
+		FromName:         "Clipper Data Team",
+		BaseURL:          "http://localhost:5173",
+		Enabled:          true,
+		SandboxMode:      true,
+		MaxEmailsPerHour: 10,
+	}
+
+	service := NewEmailService(cfg, nil, nil)
+
+	data := map[string]interface{}{
+		"UserName":       "TestUser",
+		"DownloadURL":    "http://localhost:5173/api/v1/creators/me/export/download/123",
+		"ExportSize":     "2.5 MB",
+		"RequestedDate":  "January 15, 2024 at 2:30 PM",
+		"ExpirationDate": "January 22, 2024 at 2:30 PM",
+		"Format":         "csv",
+		"RetentionDays":  7,
+	}
+
+	htmlBody, textBody := service.prepareExportCompletedEmail(data)
+
+	// Check HTML content
+	assert.Contains(t, htmlBody, "Your Data Export is Ready")
+	assert.Contains(t, htmlBody, "TestUser")
+	assert.Contains(t, htmlBody, "http://localhost:5173/api/v1/creators/me/export/download/123")
+	assert.Contains(t, htmlBody, "2.5 MB")
+	assert.Contains(t, htmlBody, "January 15, 2024 at 2:30 PM")
+	assert.Contains(t, htmlBody, "January 22, 2024 at 2:30 PM")
+	assert.Contains(t, htmlBody, "csv")
+	assert.Contains(t, htmlBody, "7 days")
+	assert.Contains(t, htmlBody, "Download Your Data")
+
+	// Check text content
+	assert.Contains(t, textBody, "Your Clipper Data Export is Ready")
+	assert.Contains(t, textBody, "TestUser")
+	assert.Contains(t, textBody, "http://localhost:5173/api/v1/creators/me/export/download/123")
+	assert.Contains(t, textBody, "2.5 MB")
+	assert.Contains(t, textBody, "csv")
+	assert.Contains(t, textBody, "7 days")
+}
+
+// TestPrepareExportFailedEmail tests export failed notification email
+func TestPrepareExportFailedEmail(t *testing.T) {
+	cfg := &EmailConfig{
+		SendGridAPIKey:   "test-key",
+		FromEmail:        "noreply@example.com",
+		FromName:         "Clipper Data Team",
+		BaseURL:          "http://localhost:5173",
+		Enabled:          true,
+		SandboxMode:      true,
+		MaxEmailsPerHour: 10,
+	}
+
+	service := NewEmailService(cfg, nil, nil)
+
+	data := map[string]interface{}{
+		"UserName":      "TestUser",
+		"ErrorMessage":  "Failed to retrieve clips: database connection timeout",
+		"RequestedDate": "January 15, 2024 at 2:30 PM",
+	}
+
+	htmlBody, textBody := service.prepareExportFailedEmail(data)
+
+	// Check HTML content
+	assert.Contains(t, htmlBody, "Export Request Failed")
+	assert.Contains(t, htmlBody, "TestUser")
+	assert.Contains(t, htmlBody, "Failed to retrieve clips: database connection timeout")
+	assert.Contains(t, htmlBody, "January 15, 2024 at 2:30 PM")
+	assert.Contains(t, htmlBody, "Retry Export")
+	assert.Contains(t, htmlBody, "Contact Support")
+
+	// Check text content
+	assert.Contains(t, textBody, "Export Request Failed")
+	assert.Contains(t, textBody, "TestUser")
+	assert.Contains(t, textBody, "Failed to retrieve clips: database connection timeout")
+	assert.Contains(t, textBody, "January 15, 2024 at 2:30 PM")
+}
