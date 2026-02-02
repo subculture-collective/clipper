@@ -36,15 +36,19 @@ export function useFollowDiscoveryList() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id }: { id: string; slug?: string }) =>
+    mutationFn: ({ id }: { id: string; slug?: string; idOrSlug?: string }) =>
       discoveryListApi.followDiscoveryList(id),
-    onSuccess: (_data, { id, slug }) => {
+    onSuccess: (_data, { id, slug, idOrSlug }) => {
       // Invalidate queries to refresh data
       // Invalidate by ID
       queryClient.invalidateQueries({ queryKey: ['discovery-list', id] });
       // Also invalidate by slug if provided (for slug-based cache keys)
       if (slug) {
         queryClient.invalidateQueries({ queryKey: ['discovery-list', slug] });
+      }
+      // Also invalidate by the original idOrSlug from URL (in case it differs)
+      if (idOrSlug && idOrSlug !== id && idOrSlug !== slug) {
+        queryClient.invalidateQueries({ queryKey: ['discovery-list', idOrSlug] });
       }
       queryClient.invalidateQueries({ queryKey: ['discovery-lists'] });
       queryClient.invalidateQueries({ queryKey: ['user-followed-lists'] });
@@ -59,15 +63,19 @@ export function useUnfollowDiscoveryList() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id }: { id: string; slug?: string }) =>
+    mutationFn: ({ id }: { id: string; slug?: string; idOrSlug?: string }) =>
       discoveryListApi.unfollowDiscoveryList(id),
-    onSuccess: (_data, { id, slug }) => {
+    onSuccess: (_data, { id, slug, idOrSlug }) => {
       // Invalidate queries to refresh data
       // Invalidate by ID
       queryClient.invalidateQueries({ queryKey: ['discovery-list', id] });
       // Also invalidate by slug if provided (for slug-based cache keys)
       if (slug) {
         queryClient.invalidateQueries({ queryKey: ['discovery-list', slug] });
+      }
+      // Also invalidate by the original idOrSlug from URL (in case it differs)
+      if (idOrSlug && idOrSlug !== id && idOrSlug !== slug) {
+        queryClient.invalidateQueries({ queryKey: ['discovery-list', idOrSlug] });
       }
       queryClient.invalidateQueries({ queryKey: ['discovery-lists'] });
       queryClient.invalidateQueries({ queryKey: ['user-followed-lists'] });
@@ -82,15 +90,19 @@ export function useBookmarkDiscoveryList() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id }: { id: string; slug?: string }) =>
+    mutationFn: ({ id }: { id: string; slug?: string; idOrSlug?: string }) =>
       discoveryListApi.bookmarkDiscoveryList(id),
-    onSuccess: (_data, { id, slug }) => {
+    onSuccess: (_data, { id, slug, idOrSlug }) => {
       // Invalidate queries to refresh data
       // Invalidate by ID
       queryClient.invalidateQueries({ queryKey: ['discovery-list', id] });
       // Also invalidate by slug if provided (for slug-based cache keys)
       if (slug) {
         queryClient.invalidateQueries({ queryKey: ['discovery-list', slug] });
+      }
+      // Also invalidate by the original idOrSlug from URL (in case it differs)
+      if (idOrSlug && idOrSlug !== id && idOrSlug !== slug) {
+        queryClient.invalidateQueries({ queryKey: ['discovery-list', idOrSlug] });
       }
       queryClient.invalidateQueries({ queryKey: ['discovery-lists'] });
     },
@@ -104,15 +116,19 @@ export function useUnbookmarkDiscoveryList() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id }: { id: string; slug?: string }) =>
+    mutationFn: ({ id }: { id: string; slug?: string; idOrSlug?: string }) =>
       discoveryListApi.unbookmarkDiscoveryList(id),
-    onSuccess: (_data, { id, slug }) => {
+    onSuccess: (_data, { id, slug, idOrSlug }) => {
       // Invalidate queries to refresh data
       // Invalidate by ID
       queryClient.invalidateQueries({ queryKey: ['discovery-list', id] });
       // Also invalidate by slug if provided (for slug-based cache keys)
       if (slug) {
         queryClient.invalidateQueries({ queryKey: ['discovery-list', slug] });
+      }
+      // Also invalidate by the original idOrSlug from URL (in case it differs)
+      if (idOrSlug && idOrSlug !== id && idOrSlug !== slug) {
+        queryClient.invalidateQueries({ queryKey: ['discovery-list', idOrSlug] });
       }
       queryClient.invalidateQueries({ queryKey: ['discovery-lists'] });
     },
