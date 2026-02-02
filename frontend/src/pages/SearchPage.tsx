@@ -9,13 +9,16 @@ import { TrendingSearches } from '../components/search/TrendingSearches';
 import { SearchHistory } from '../components/search/SearchHistory';
 import { SavedSearches } from '../components/search/SavedSearches';
 import { SearchResultSkeleton, EmptyStateWithAction } from '../components/ui';
+import { SaveSearchModal } from '../components/ui/SaveSearchModal';
 import { searchApi } from '../lib/search-api';
 import { useSearchErrorState } from '../hooks/useSearchErrorState';
 import { useSearchHistory } from '../hooks/useSearchHistory';
+import { useToast } from '../context/ToastContext';
 import type { SearchRequest, SearchResponse, SearchFilters as SearchFiltersType } from '../types/search';
 
 export function SearchPage() {
     const [searchParams, setSearchParams] = useSearchParams();
+    const toast = useToast();
     const query = searchParams.get('q') || '';
     const typeParam = searchParams.get('type') || 'all';
     const sortParam = searchParams.get('sort') || 'relevance';
@@ -44,6 +47,8 @@ export function SearchPage() {
         minVotes: minVotesParam ? parseInt(minVotesParam, 10) : undefined,
         tags: tagsParam ? tagsParam.split(',') : undefined,
     });
+
+    const [showSaveSearchModal, setShowSaveSearchModal] = useState(false);
 
     // Persist the latest search params so navigation back restores state
     const searchParamsString = useMemo(() => searchParams.toString(), [searchParams]);
@@ -260,11 +265,7 @@ export function SearchPage() {
     };
 
     // Handle save search
-    const handleSaveSearch = () => {
-        // TODO: Replace with proper modal component for better UX
-        const name = prompt('Enter a name for this search (optional):');
-        if (name === null) return; // User cancelled
-        
+    const handleSaveSearch = (name: string) => {
         // Only treat filters as active if at least one has a meaningful value
         const hasActiveFilters =
             !!filters.language ||
@@ -279,8 +280,7 @@ export function SearchPage() {
         const activeFilters = hasActiveFilters ? filters : undefined;
         searchApi.saveSearch(query, activeFilters, name || undefined);
         
-        // TODO: Replace with toast notification for better UX
-        alert('Search saved successfully!');
+        toast.success('Search saved successfully!');
     };
 
     const goToNextPage = () => {
@@ -389,7 +389,7 @@ export function SearchPage() {
                             </p>
                         </div>
                         <button
-                            onClick={handleSaveSearch}
+                            onClick={() => setShowSaveSearchModal(true)}
                             className='flex items-center gap-2 px-3 py-2 text-sm rounded-lg border border-border hover:bg-accent transition-colors'
                             title='Save this search'
                             data-testid='save-search-button'
@@ -699,6 +699,12 @@ export function SearchPage() {
                         </div>
                     )}
         </Container>
+
+        <SaveSearchModal
+            open={showSaveSearchModal}
+            onClose={() => setShowSaveSearchModal(false)}
+            onSave={handleSaveSearch}
+        />
         </>
     );
 }

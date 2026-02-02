@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SearchPage } from './SearchPage';
 import { HelmetProvider } from '@dr.pogodin/react-helmet';
 import { searchApi } from '../lib/search-api';
+import { ToastProvider } from '../context/ToastContext';
 
 vi.mock('../lib/search-api', () => {
     const search = vi.fn();
@@ -12,6 +13,8 @@ vi.mock('../lib/search-api', () => {
         searchApi: {
             search,
             getSuggestions: vi.fn(),
+            getSavedSearches: vi.fn(() => []),
+            getTrendingSearches: vi.fn(() => []),
         },
     };
 });
@@ -72,9 +75,11 @@ describe('SearchPage - Sort Controls', () => {
         render(
             <HelmetProvider>
                 <QueryClientProvider client={queryClient}>
-                    <MemoryRouter>
-                        <SearchPage />
-                    </MemoryRouter>
+                    <ToastProvider>
+                        <MemoryRouter>
+                            <SearchPage />
+                        </MemoryRouter>
+                    </ToastProvider>
                 </QueryClientProvider>
             </HelmetProvider>
         );
@@ -89,9 +94,11 @@ describe('SearchPage - Sort Controls', () => {
         const wrapper = ({ children }: { children: React.ReactNode }) => (
             <HelmetProvider>
                 <QueryClientProvider client={queryClient}>
-                    <MemoryRouter initialEntries={['/?q=test']}>
-                        {children}
-                    </MemoryRouter>
+                    <ToastProvider>
+                        <MemoryRouter initialEntries={['/?q=test']}>
+                            {children}
+                        </MemoryRouter>
+                    </ToastProvider>
                 </QueryClientProvider>
             </HelmetProvider>
         );
