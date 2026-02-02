@@ -14,6 +14,7 @@ import { useSearchErrorState } from '../hooks/useSearchErrorState';
 import { useSearchHistory } from '../hooks/useSearchHistory';
 import { useSavedSearches } from '../hooks/useSavedSearches';
 import { useToast } from '../context/ToastContext';
+import { searchApi } from '../lib/search-api';
 import type { SearchRequest, SearchResponse, SearchFilters as SearchFiltersType } from '../types/search';
 
 export function SearchPage() {
