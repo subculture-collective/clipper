@@ -99,14 +99,8 @@ export default function ClipDetailScreen() {
                     </TouchableOpacity>
                 </View>
 
-                {/* Description */}
-                {false && (
-                    <View className='mb-4'>
-                        <Text className='text-base text-gray-700 leading-6'>
-                            {/* TODO: add description if available */}
-                        </Text>
-                    </View>
-                )}
+                {/* Description - not available in current clip model */}
+                {/* Future enhancement: Add description field to Clip model in backend */}
 
                 {/* Comments Section */}
                 <View className='border-t border-gray-200 pt-4'>
