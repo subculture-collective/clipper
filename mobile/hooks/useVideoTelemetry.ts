@@ -11,7 +11,7 @@
  */
 
 import { useEffect, useRef, useCallback } from 'react';
-import { trackEvent } from '../lib/analytics';
+import { trackEvent, SubmissionEvents } from '../lib/analytics';
 
 export interface VideoTelemetryConfig {
     videoId: string;
@@ -82,6 +82,7 @@ export function useVideoTelemetry(config: VideoTelemetryConfig) {
     const trackPlaybackStarted = useCallback((loadTimeMs: number, quality: string) => {
         metricsRef.current.startTime = Date.now();
         
+        // Track technical video event
         trackEvent('video_playback_started', {
             video_id: config.videoId,
             video_title: config.videoTitle || 'unknown',
@@ -89,7 +90,14 @@ export function useVideoTelemetry(config: VideoTelemetryConfig) {
             quality,
             timestamp: Date.now(),
         });
-    }, [config.videoId, config.videoTitle]);
+        
+        // Track submission play event for analytics dashboards
+        trackEvent(SubmissionEvents.SUBMISSION_PLAY_STARTED, {
+            submission_id: config.videoId,
+            duration_seconds: config.videoDuration || 0,
+            quality,
+        });
+    }, [config.videoId, config.videoTitle, config.videoDuration]);
 
     // Track buffering started
     const trackBufferingStarted = useCallback(() => {
@@ -187,6 +195,7 @@ export function useVideoTelemetry(config: VideoTelemetryConfig) {
 
             const watchDuration = Date.now() - metricsRef.current.startTime;
 
+            // Track technical video event
             trackEvent('video_playback_completed', {
                 video_id: config.videoId,
                 video_title: config.videoTitle || 'unknown',
@@ -197,16 +206,31 @@ export function useVideoTelemetry(config: VideoTelemetryConfig) {
                 buffering_event_count: metricsRef.current.bufferingEventCount,
                 quality_changes: metricsRef.current.qualityChanges,
             });
+            
+            // Track submission completion for analytics dashboards
+            trackEvent(SubmissionEvents.SUBMISSION_PLAY_COMPLETED, {
+                submission_id: config.videoId,
+                watch_percentage: 100,
+                watched_seconds: totalDuration,
+                quality,
+            });
         }
     }, [config.videoId, config.videoTitle]);
 
     // Track pause event
     const trackPause = useCallback((currentTime: number, quality: string) => {
+        // Track technical video event
         trackEvent('video_paused', {
             video_id: config.videoId,
             video_title: config.videoTitle || 'unknown',
             timestamp: currentTime,
             quality,
+        });
+        
+        // Track submission pause for analytics dashboards
+        trackEvent(SubmissionEvents.SUBMISSION_PLAY_PAUSED, {
+            submission_id: config.videoId,
+            timestamp: currentTime,
         });
     }, [config.videoId, config.videoTitle]);
 
