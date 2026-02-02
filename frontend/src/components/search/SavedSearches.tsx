@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { searchApi } from '../../lib/search-api';
+import { useSavedSearches } from '../../hooks/useSavedSearches';
 import type { SavedSearch } from '../../types/search';
 import { ConfirmModal } from '../ui/ConfirmModal';
 
@@ -9,15 +9,9 @@ interface SavedSearchesProps {
 }
 
 export function SavedSearches({ className = '' }: SavedSearchesProps) {
-  const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
+  const { savedSearches, deleteSavedSearch, clearSavedSearches } = useSavedSearches();
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    // Load saved searches from localStorage on mount
-    const searches = searchApi.getSavedSearches();
-    setSavedSearches(searches);
-  }, []);
 
   const handleSearchClick = (search: SavedSearch) => {
     const params = new URLSearchParams({ q: search.query });
@@ -39,15 +33,11 @@ export function SavedSearches({ className = '' }: SavedSearchesProps) {
 
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    searchApi.deleteSavedSearch(id);
-    // Reload saved searches
-    const searches = searchApi.getSavedSearches();
-    setSavedSearches(searches);
+    deleteSavedSearch(id);
   };
 
   const handleClearAll = () => {
-    searchApi.clearSavedSearches();
-    setSavedSearches([]);
+    clearSavedSearches();
   };
 
   if (savedSearches.length === 0) {

@@ -10,10 +10,11 @@ import { SearchHistory } from '../components/search/SearchHistory';
 import { SavedSearches } from '../components/search/SavedSearches';
 import { SearchResultSkeleton, EmptyStateWithAction } from '../components/ui';
 import { SaveSearchModal } from '../components/ui/SaveSearchModal';
-import { searchApi } from '../lib/search-api';
 import { useSearchErrorState } from '../hooks/useSearchErrorState';
 import { useSearchHistory } from '../hooks/useSearchHistory';
+import { useSavedSearches } from '../hooks/useSavedSearches';
 import { useToast } from '../context/ToastContext';
+import { searchApi } from '../lib/search-api';
 import type { SearchRequest, SearchResponse, SearchFilters as SearchFiltersType } from '../types/search';
 
 export function SearchPage() {
@@ -109,6 +110,9 @@ export function SearchPage() {
 
     // Search history management
     const { addToHistory } = useSearchHistory();
+
+    // Saved searches management
+    const { saveSearch } = useSavedSearches();
 
     // Fetch search results
     const { data, isLoading, error, refetch } = useQuery<SearchResponse>({
@@ -278,7 +282,7 @@ export function SearchPage() {
             (Array.isArray(filters.tags) && filters.tags.length > 0);
 
         const activeFilters = hasActiveFilters ? filters : undefined;
-        searchApi.saveSearch(query, activeFilters, name || undefined);
+        saveSearch(query, activeFilters, name || undefined);
         
         toast.success('Search saved successfully!');
     };
