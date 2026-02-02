@@ -33,7 +33,6 @@ export function CreatorPage() {
           filters={{ creator_id: creatorId }}
           showSearch={false}
           useSortTitle={false}
-          title={`Clips by ${creatorId}`}
         />
       </Container>
     </>
