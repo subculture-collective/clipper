@@ -102,6 +102,8 @@ SORT title ASC
 
 ### Content Moderation
 
+- [[api-moderation-index|Moderation API Quick Start]] - Quick start guide for moderation API
+- [[moderation-api|Moderation API Reference]] - Complete moderation API documentation
 - [[CHAT_MODERATION|Chat Moderation]] - Chat moderation features
 - [[NSFW_DETECTION|NSFW Detection]] - Content safety detection
 - [[NSFW_ENV_VARS|NSFW Environment Variables]] - Configuration
