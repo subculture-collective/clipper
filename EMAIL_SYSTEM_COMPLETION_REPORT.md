@@ -1,6 +1,6 @@
 # Email System Implementation - Epic Completion Report
 
-**Epic**: #[Epic Number] Email System Implementation
+**Epic**: #970 Email System Implementation
 **Date**: 2026-02-02
 **Status**: ✅ COMPLETE
 
