@@ -16,6 +16,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useAuth } from './AuthContext';
+import { trackEvent, SettingsEvents } from '../lib/analytics';
 
 /**
  * Consent categories for different types of tracking/personalization
@@ -237,6 +238,14 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
             setShowConsentModal(false);
 
             await saveConsent(updatedPreferences);
+
+            // Track consent update
+            trackEvent(SettingsEvents.CONSENT_UPDATED, {
+                functional: updatedPreferences.functional,
+                analytics: updatedPreferences.analytics,
+                advertising: updatedPreferences.advertising,
+                source: 'settings',
+            });
 
             // Sync to backend if user is logged in
             if (user) {

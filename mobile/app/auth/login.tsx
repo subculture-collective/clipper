@@ -12,6 +12,7 @@ import {
     getCurrentUser,
 } from '../../services/auth';
 import { getMFAStatus } from '../../services/mfa';
+import { trackEvent, AuthEvents } from '../../lib/analytics';
 
 export default function LoginScreen() {
     const router = useRouter();
@@ -20,12 +21,26 @@ export default function LoginScreen() {
 
     const handleLogin = async () => {
         setIsLoading(true);
+        trackEvent(AuthEvents.LOGIN_STARTED, {
+            method: 'oauth',
+            provider: 'twitch',
+        });
+        
         try {
             // Step 1: Initiate OAuth flow and get authorization code
             const { code, state, codeVerifier } = await initiateOAuthFlow();
+            
+            trackEvent(AuthEvents.OAUTH_REDIRECT, {
+                provider: 'twitch',
+            });
 
             // Step 2: Exchange code for tokens via backend
             await exchangeCodeForTokens(code, state, codeVerifier);
+            
+            trackEvent(AuthEvents.OAUTH_CALLBACK, {
+                provider: 'twitch',
+                success: true,
+            });
 
             // Step 3: Check if MFA is required
             try {
@@ -63,10 +78,25 @@ export default function LoginScreen() {
             const user = await getCurrentUser();
             setUser(user);
 
+            trackEvent(AuthEvents.LOGIN_COMPLETED, {
+                user_id: user.id,
+                username: user.username,
+                method: 'oauth',
+                provider: 'twitch',
+            });
+
             // Step 5: Navigate to the main app
             router.replace('/(tabs)');
         } catch (error) {
             console.error('Login error:', error);
+            
+            trackEvent(AuthEvents.LOGIN_FAILED, {
+                method: 'oauth',
+                provider: 'twitch',
+                error_type: error instanceof Error ? error.name : 'unknown',
+                error_message: error instanceof Error ? error.message : 'Login failed',
+            });
+            
             Alert.alert(
                 'Login Failed',
                 error instanceof Error

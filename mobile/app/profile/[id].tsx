@@ -16,6 +16,8 @@ import { TouchableOpacity } from 'react-native';
 import { Colors } from '../../constants/theme';
 import { useColorScheme } from '../../hooks/use-color-scheme';
 import { getUser } from '../../services/users';
+import { useEffect } from 'react';
+import { trackEvent, SettingsEvents } from '../../lib/analytics';
 
 export default function UserProfileScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -28,6 +30,17 @@ export default function UserProfileScreen() {
         queryFn: () => getUser(String(id)),
         enabled: !!id,
     });
+
+    // Track profile view when user data loads
+    useEffect(() => {
+        if (user) {
+            trackEvent(SettingsEvents.PROFILE_VIEWED, {
+                viewed_user_id: user.id,
+                viewed_username: user.username,
+                has_bio: !!user.bio,
+            });
+        }
+    }, [user]);
 
     if (isLoading) {
         return (
