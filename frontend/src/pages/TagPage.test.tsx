@@ -12,7 +12,7 @@ vi.mock('../components', () => ({
 }));
 
 // Mock ClipFeed component
-vi.mock('../components/clip/ClipFeed', () => ({
+vi.mock('../components/clip', () => ({
     ClipFeed: ({ title, description, filters }: { 
         title?: string; 
         description?: string; 
@@ -29,9 +29,9 @@ vi.mock('../components/clip/ClipFeed', () => ({
 describe('TagPage', () => {
     it('renders ClipFeed with tag filter when tagSlug is provided', () => {
         render(
-            <MemoryRouter initialEntries={['/tags/gaming']}>
+            <MemoryRouter initialEntries={['/tag/gaming']}>
                 <Routes>
-                    <Route path="/tags/:tagSlug" element={<TagPage />} />
+                    <Route path="/tag/:tagSlug" element={<TagPage />} />
                 </Routes>
             </MemoryRouter>
         );
@@ -52,9 +52,9 @@ describe('TagPage', () => {
 
     it('renders different tag correctly', () => {
         render(
-            <MemoryRouter initialEntries={['/tags/funny']}>
+            <MemoryRouter initialEntries={['/tag/funny']}>
                 <Routes>
-                    <Route path="/tags/:tagSlug" element={<TagPage />} />
+                    <Route path="/tag/:tagSlug" element={<TagPage />} />
                 </Routes>
             </MemoryRouter>
         );
@@ -68,9 +68,9 @@ describe('TagPage', () => {
 
     it('handles missing tagSlug gracefully', () => {
         render(
-            <MemoryRouter initialEntries={['/tags/']}>
+            <MemoryRouter initialEntries={['/tag/']}>
                 <Routes>
-                    <Route path="/tags/:tagSlug?" element={<TagPage />} />
+                    <Route path="/tag/:tagSlug?" element={<TagPage />} />
                 </Routes>
             </MemoryRouter>
         );

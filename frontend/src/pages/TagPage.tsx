@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom';
 import { Container, SEO } from '../components';
-import { ClipFeed } from '../components/clip/ClipFeed';
+import { ClipFeed } from '../components/clip';
 
 export function TagPage() {
   const { tagSlug } = useParams<{ tagSlug: string }>();
@@ -20,7 +20,7 @@ export function TagPage() {
       <SEO
         title={`#${tagSlug}`}
         description={`Explore Twitch clips tagged with ${tagSlug}. Watch, vote, and discover the best ${tagSlug} moments from the community.`}
-        canonicalUrl={`/tags/${tagSlug}`}
+        canonicalUrl={`/tag/${tagSlug}`}
       />
       <Container className="py-8">
         <ClipFeed
