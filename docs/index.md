@@ -59,6 +59,7 @@ In-depth documentation for major platform features:
 - **[[backend/index|Backend Hub]]** - Complete backend documentation index
 - **[[backend/architecture|Architecture]]** - System design, components, and data flow
 - **[[backend/api|API Reference]]** - REST API endpoints, authentication, and examples
+- **[[backend/api-moderation-index|Moderation API]]** - Complete moderation API with bans, moderators, and audit logs
 - **[[backend/clip-submission-api-hub|Clip Submission API Hub]]** - Navigate all submission API resources
 - **[[backend/clip-submission-api-guide|Clip Submission API Guide]]** - Complete guide with TypeScript and cURL examples
 - **[[backend/clip-submission-api-quickref|Clip Submission Quick Reference]]** - Quick reference card for developers

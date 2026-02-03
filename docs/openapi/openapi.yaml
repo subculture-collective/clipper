@@ -2218,79 +2218,358 @@ paths:
     post:
       tags: [Moderation]
       summary: Sync bans from Twitch
-      description: Synchronizes ban status from Twitch (rate limited - 5/hour)
+      description: |
+        Synchronizes ban status from Twitch for a specific channel. This endpoint triggers an asynchronous 
+        background job that syncs ban data from Twitch. The operation has a 5-minute timeout.
+        
+        **Required Permissions**: Channel owner, moderator, or admin
+        
+        **Rate Limit**: 5 requests per hour
+        
+        **Requirements**:
+        - Valid Twitch moderator OAuth scopes
+        - Moderator permissions on the target channel
       operationId: syncBans
-      responses:
-        '200':
-          description: Bans synchronized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  synced_count:
-                    type: integer
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-
-  /api/v1/moderation/bans:
-    get:
-      tags: [Moderation]
-      summary: Get bans
-      description: Returns list of bans (rate limited - 60/minute)
-      operationId: getBans
-      parameters:
-        - $ref: '#/components/parameters/Page'
-        - $ref: '#/components/parameters/Limit'
-      responses:
-        '200':
-          description: List of bans
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  bans:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Ban'
-                  pagination:
-                    $ref: '#/components/schemas/Pagination'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-    post:
-      tags: [Moderation]
-      summary: Create ban
-      description: Creates a new ban (rate limited - 10/hour)
-      operationId: createBan
+      security:
+        - BearerAuth: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [user_id, reason]
+              required:
+                - channel_id
               properties:
-                user_id:
+                channel_id:
                   type: string
                   format: uuid
+                  description: Channel ID to sync bans for
+                  example: "123e4567-e89b-12d3-a456-426614174000"
+            examples:
+              syncChannel:
+                summary: Sync bans for a channel
+                value:
+                  channel_id: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '200':
+          description: Ban sync started successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - job_id
+                  - message
+                properties:
+                  status:
+                    type: string
+                    enum: [syncing]
+                    description: Current sync status
+                  job_id:
+                    type: string
+                    format: uuid
+                    description: Unique identifier for the sync job
+                  message:
+                    type: string
+                    description: Human-readable status message
+              examples:
+                success:
+                  summary: Sync started
+                  value:
+                    status: "syncing"
+                    job_id: "987fcdeb-51a2-43c1-b789-123456789abc"
+                    message: "Ban sync started for channel 123e4567-e89b-12d3-a456-426614174000"
+        '400':
+          description: Bad request - Invalid or missing channel_id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalidChannelId:
+                  summary: Invalid channel ID
+                  value:
+                    error: "channel_id is required and must be a valid UUID"
+                    code: "INVALID_REQUEST"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          description: Service unavailable - Twitch ban sync service is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                serviceUnavailable:
+                  summary: Service unavailable
+                  value:
+                    error: "Twitch ban sync service is currently unavailable"
+                    code: "SERVICE_UNAVAILABLE"
+
+  /api/v1/moderation/bans:
+    get:
+      tags: [Moderation]
+      summary: List channel bans
+      description: |
+        Retrieves a paginated list of bans for a specific channel.
+        
+        **Required Permissions**: Channel owner, moderator, or admin
+        
+        **Rate Limit**: 60 requests per minute
+      operationId: getBans
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: channelId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Channel ID to list bans for
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+          description: Number of results per page
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+          description: Number of results to skip (must be multiple of limit)
+      responses:
+        '200':
+          description: List of bans retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - bans
+                  - total
+                  - limit
+                  - offset
+                properties:
+                  bans:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Ban'
+                  total:
+                    type: integer
+                    description: Total number of bans
+                  limit:
+                    type: integer
+                    description: Results per page
+                  offset:
+                    type: integer
+                    description: Current offset
+              examples:
+                success:
+                  summary: List of bans
+                  value:
+                    bans:
+                      - id: "98765432-e89b-12d3-a456-426614174001"
+                        channelId: "123e4567-e89b-12d3-a456-426614174000"
+                        userId: "user-uuid-here"
+                        bannedBy: "moderator-uuid-here"
+                        reason: "Violation of community guidelines"
+                        bannedAt: "2024-01-15T10:30:00Z"
+                        expiresAt: null
+                        isPermanent: true
+                        username: "banneduser123"
+                        bannedByUsername: "moderator456"
+                    total: 150
+                    limit: 20
+                    offset: 0
+        '400':
+          description: Bad request - Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                missingChannelId:
+                  summary: Missing channel ID
+                  value:
+                    error: "channelId is required and must be a valid UUID"
+                    code: "INVALID_REQUEST"
+                invalidOffset:
+                  summary: Invalid offset
+                  value:
+                    error: "offset must be a multiple of limit"
+                    code: "INVALID_REQUEST"
+                    details:
+                      offset: 15
+                      limit: 10
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                forbidden:
+                  summary: Permission denied
+                  value:
+                    error: "Permission denied: You do not have access to view bans for this channel"
+                    code: "FORBIDDEN"
+        '404':
+          description: Not found - Channel does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                channelNotFound:
+                  summary: Channel not found
+                  value:
+                    error: "Channel not found"
+                    code: "NOT_FOUND"
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags: [Moderation]
+      summary: Create ban
+      description: |
+        Creates a new ban for a user in a specific channel. Permanent bans are created by default.
+        
+        **Required Permissions**: Channel owner, admin, or moderator
+        
+        **Rate Limit**: 10 requests per hour
+        
+        **Notes**:
+        - Cannot ban the channel owner
+        - Creates an audit log entry automatically
+        - Broadcasts ban event via WebSocket
+      operationId: createBan
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - channelId
+                - userId
+              properties:
+                channelId:
+                  type: string
+                  format: uuid
+                  description: Channel ID where user will be banned
+                userId:
+                  type: string
+                  format: uuid
+                  description: User ID to ban
                 reason:
                   type: string
-                duration_hours:
-                  type: integer
+                  maxLength: 1000
+                  description: Reason for the ban
+            examples:
+              permanentBan:
+                summary: Create permanent ban
+                value:
+                  channelId: "123e4567-e89b-12d3-a456-426614174000"
+                  userId: "user-uuid-to-ban"
+                  reason: "Violation of community guidelines"
+              banWithReason:
+                summary: Ban with detailed reason
+                value:
+                  channelId: "123e4567-e89b-12d3-a456-426614174000"
+                  userId: "user-uuid-to-ban"
+                  reason: "Repeated harassment of community members. Multiple warnings issued."
       responses:
         '201':
-          description: Ban created
+          description: Ban created successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Ban'
+              examples:
+                success:
+                  summary: Ban created
+                  value:
+                    id: "ban-uuid-here"
+                    channelId: "123e4567-e89b-12d3-a456-426614174000"
+                    userId: "user-uuid-to-ban"
+                    bannedBy: "moderator-uuid-here"
+                    reason: "Violation of community guidelines"
+                    bannedAt: "2024-01-15T10:30:00Z"
+                    expiresAt: null
+                    isPermanent: true
+        '400':
+          description: Bad request - Invalid parameters or cannot ban owner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalidUuid:
+                  summary: Invalid UUID format
+                  value:
+                    error: "Invalid UUID format for channelId"
+                    code: "INVALID_REQUEST"
+                cannotBanOwner:
+                  summary: Cannot ban channel owner
+                  value:
+                    error: "Cannot ban the channel owner"
+                    code: "INVALID_REQUEST"
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                forbidden:
+                  summary: Permission denied
+                  value:
+                    error: "Permission denied: You must be a channel owner, admin, or moderator to ban users"
+                    code: "FORBIDDEN"
+        '404':
+          description: Not found - User or channel not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                userNotFound:
+                  summary: User not found
+                  value:
+                    error: "User not found"
+                    code: "NOT_FOUND"
+                channelNotFound:
+                  summary: Channel not found
+                  value:
+                    error: "Channel not found"
+                    code: "NOT_FOUND"
+        '409':
+          description: Conflict - User already banned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                alreadyBanned:
+                  summary: User already banned
+                  value:
+                    error: "User is already banned in this channel"
+                    code: "CONFLICT"
         '429':
           $ref: '#/components/responses/TooManyRequests'
 
@@ -2386,58 +2665,236 @@ paths:
     get:
       tags: [Moderation]
       summary: List moderators
-      description: Returns list of moderators (rate limited - 60/minute)
+      description: |
+        Retrieves a paginated list of moderators for a specific channel.
+        
+        **Required Permissions**: Authenticated users can view moderators
+        
+        **Rate Limit**: 60 requests per minute
       operationId: listModerators
+      security:
+        - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/Page'
-        - $ref: '#/components/parameters/Limit'
+        - name: channelId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Channel ID to list moderators for
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+          description: Number of results per page
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+          description: Number of results to skip
       responses:
         '200':
-          description: List of moderators
+          description: List of moderators retrieved successfully
           content:
             application/json:
               schema:
                 type: object
+                required:
+                  - moderators
+                  - total
+                  - limit
+                  - offset
                 properties:
                   moderators:
                     type: array
                     items:
                       $ref: '#/components/schemas/Moderator'
-                  pagination:
-                    $ref: '#/components/schemas/Pagination'
+                  total:
+                    type: integer
+                    description: Total number of moderators
+                  limit:
+                    type: integer
+                    description: Results per page
+                  offset:
+                    type: integer
+                    description: Current offset
+              examples:
+                success:
+                  summary: List of moderators
+                  value:
+                    moderators:
+                      - id: "member-uuid-here"
+                        userId: "user-uuid-here"
+                        channelId: "123e4567-e89b-12d3-a456-426614174000"
+                        role: "moderator"
+                        addedAt: "2024-01-10T09:00:00Z"
+                        addedBy: "owner-uuid-here"
+                        username: "mod_user123"
+                        displayName: "Mod User"
+                        avatarUrl: "https://example.com/avatar.jpg"
+                    total: 5
+                    limit: 20
+                    offset: 0
+        '400':
+          description: Bad request - Missing or invalid channelId
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                missingChannelId:
+                  summary: Missing channel ID
+                  value:
+                    error: "channelId query parameter is required"
+                    code: "INVALID_REQUEST"
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                forbidden:
+                  summary: Permission denied
+                  value:
+                    error: "Permission denied: You do not have access to view moderators for this channel"
+                    code: "FORBIDDEN"
         '429':
           $ref: '#/components/responses/TooManyRequests'
     post:
       tags: [Moderation]
       summary: Add moderator
-      description: Adds a new moderator (rate limited - 10/hour)
+      description: |
+        Adds a new moderator to a specific channel.
+        
+        **Required Permissions**: Channel owner or admin only
+        
+        **Rate Limit**: 10 requests per hour
+        
+        **Notes**:
+        - If user is already a member, upgrades them to moderator
+        - If user is not a member, adds them as a new moderator
+        - Validates moderator scope for community-specific permissions
+        - Cannot add users who are already admins
       operationId: addModerator
+      security:
+        - BearerAuth: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [user_id]
+              required:
+                - userId
+                - channelId
               properties:
-                user_id:
+                userId:
                   type: string
                   format: uuid
-                permissions:
-                  type: array
-                  items:
-                    type: string
+                  description: User ID to add as moderator
+                channelId:
+                  type: string
+                  format: uuid
+                  description: Channel ID
+                reason:
+                  type: string
+                  maxLength: 1000
+                  description: Reason for adding moderator
+            examples:
+              addModerator:
+                summary: Add moderator
+                value:
+                  userId: "user-uuid-to-make-moderator"
+                  channelId: "123e4567-e89b-12d3-a456-426614174000"
+                  reason: "Trusted community member"
+              addModeratorNoReason:
+                summary: Add moderator without reason
+                value:
+                  userId: "user-uuid-to-make-moderator"
+                  channelId: "123e4567-e89b-12d3-a456-426614174000"
       responses:
         '201':
-          description: Moderator added
+          description: Moderator added successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Moderator'
+                type: object
+                required:
+                  - success
+                  - moderator
+                  - message
+                properties:
+                  success:
+                    type: boolean
+                  moderator:
+                    $ref: '#/components/schemas/Moderator'
+                  message:
+                    type: string
+              examples:
+                success:
+                  summary: Moderator added
+                  value:
+                    success: true
+                    moderator:
+                      id: "member-uuid-here"
+                      userId: "user-uuid-to-make-moderator"
+                      channelId: "123e4567-e89b-12d3-a456-426614174000"
+                      role: "moderator"
+                      addedAt: "2024-01-15T10:30:00Z"
+                      addedBy: "owner-uuid-here"
+                    message: "Moderator added successfully"
+        '400':
+          description: Bad request - Invalid UUID or user already admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalidUuid:
+                  summary: Invalid UUID format
+                  value:
+                    error: "Invalid UUID format for userId"
+                    code: "INVALID_REQUEST"
+                alreadyAdmin:
+                  summary: User already admin
+                  value:
+                    error: "User is already an admin in this channel"
+                    code: "INVALID_REQUEST"
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden - Not channel owner/admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                forbidden:
+                  summary: Permission denied
+                  value:
+                    error: "Permission denied: Only channel owners and admins can add moderators"
+                    code: "FORBIDDEN"
+        '404':
+          description: Not found - User or channel not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                userNotFound:
+                  summary: User not found
+                  value:
+                    error: "User not found"
+                    code: "NOT_FOUND"
         '429':
           $ref: '#/components/responses/TooManyRequests'
 
