@@ -387,6 +387,47 @@ func (c *ModerationClient) Example7_ListAuditLogs() (*ListAuditLogsResponse, err
 	return &result, nil
 }
 
+// Example8: Export Audit Logs to CSV
+func (c *ModerationClient) Example8_ExportAuditLogs(startDate, endDate string) error {
+	fmt.Println("=== Example 8: Export Audit Logs to CSV ===")
+	
+	params := url.Values{}
+	if startDate != "" {
+		params.Add("start_date", startDate)
+	}
+	if endDate != "" {
+		params.Add("end_date", endDate)
+	}
+
+	resp, err := c.do("GET", "/audit-logs/export?"+params.Encode(), nil)
+	if err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("export failed (%d): %s", resp.StatusCode, body)
+	}
+
+	// Read the CSV content
+	csvContent, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("read response: %w", err)
+	}
+
+	// Save to file
+	filename := "audit-logs-export.csv"
+	if err := os.WriteFile(filename, csvContent, 0644); err != nil {
+		return fmt.Errorf("write file: %w", err)
+	}
+
+	fmt.Printf("Exported audit logs to: %s\n", filename)
+	fmt.Printf("File size: %d bytes\n", len(csvContent))
+	fmt.Println()
+	return nil
+}
+
 // Example9: Revoke a Ban
 func (c *ModerationClient) Example9_RevokeBan(banID string) error {
 	fmt.Println("=== Example 9: Revoke a Ban ===")
@@ -494,6 +535,13 @@ func main() {
 	}
 
 	if _, err := client.Example7_ListAuditLogs(); err != nil {
+		fmt.Printf("Error: %v\n\n", err)
+	}
+
+	// Example 8: Export audit logs (last 30 days)
+	endDate := time.Now().Format("2006-01-02")
+	startDate := time.Now().AddDate(0, 0, -30).Format("2006-01-02")
+	if err := client.Example8_ExportAuditLogs(startDate, endDate); err != nil {
 		fmt.Printf("Error: %v\n\n", err)
 	}
 
