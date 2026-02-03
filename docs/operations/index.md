@@ -72,6 +72,18 @@ For deployment procedures, see the **[[../deployment/index|Deployment Hub]]**:
 - [[runbooks/hpa-scaling|HPA Scaling]] - Horizontal pod autoscaling
 - [[runbook|Operations Runbook]] - General operational procedures
 
+## Moderation System Runbooks
+
+Comprehensive operational runbooks for managing the moderation system in production:
+
+- [[runbooks/moderation-operations|Moderation Operations]] - Emergency procedures, manual ban/unban, moderator management
+- [[runbooks/audit-log-operations|Audit Log Operations]] - Review and export audit logs, compliance procedures
+- [[runbooks/ban-sync-troubleshooting|Ban Sync Troubleshooting]] - Twitch ban synchronization issues and solutions
+- [[runbooks/permission-escalation|Permission Escalation]] - Grant/revoke permissions, emergency access procedures
+- [[runbooks/moderation-rollback|Moderation Rollback]] - Feature flag rollback, database rollback, emergency disable
+- [[runbooks/moderation-monitoring|Moderation Monitoring]] - Key metrics, alert configuration, dashboard setup
+- [[runbooks/moderation-incidents|Moderation Incidents]] - Common issues, security incidents, contact procedures
+
 ## Advanced Topics
 
 - [[feature-flags|Feature Flags]] - Gradual rollouts
