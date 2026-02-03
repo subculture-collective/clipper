@@ -139,6 +139,8 @@ Content creators who can claim and manage their broadcaster profiles.
 
 Channel-specific moderators with limited, scoped permissions.
 
+> **Note**: Community moderators are dedicated moderation accounts that **only** have moderation permissions. They do not inherit basic user permissions (submit, comment, vote, follow). This is intentional to maintain clear separation between moderation and participation roles. If a user needs both moderation and participation capabilities, they should use a separate user account for participation.
+
 **Permissions (4 total):**
 - `community:moderate` - Core community moderation capability
 - `moderate:users` - Moderate user actions within scope
@@ -153,6 +155,7 @@ Channel-specific moderators with limited, scoped permissions.
 - Manage other moderators for assigned channels
 
 **Restrictions:**
+- **Cannot** submit clips, comment, vote, or follow (use separate user account)
 - **Cannot** access content outside assigned channels
 - **Cannot** view sitewide analytics
 - **Cannot** access admin panel
@@ -198,7 +201,8 @@ Trusted community members with sitewide moderation access.
 
 **Restrictions:**
 - **Cannot** delete clips (admin only)
-- **Cannot** change user roles (admin only)
+- **Cannot** change user account types (admin only)
+- **Note**: Has `manage:users` permission but with limited scope - can manage user bans/unbans and basic user actions, but cannot promote users to admin or change account types
 - **Cannot** access full analytics dashboard
 - **Cannot** trigger system-level operations
 - **Cannot** manage system configuration
@@ -254,10 +258,10 @@ Full administrative access to the entire platform.
 | Permission | Member | Broadcaster | Community Mod | Site Mod | Admin |
 |-----------|:------:|:-----------:|:-------------:|:--------:|:-----:|
 | **Basic Permissions** |
-| `create:submission` | ✅ | ✅ | ❌ | ✅ | ✅ |
-| `create:comment` | ✅ | ✅ | ❌ | ✅ | ✅ |
-| `create:vote` | ✅ | ✅ | ❌ | ✅ | ✅ |
-| `create:follow` | ✅ | ✅ | ❌ | ✅ | ✅ |
+| `create:submission` | ✅ | ✅ | ❌¹ | ✅ | ✅ |
+| `create:comment` | ✅ | ✅ | ❌¹ | ✅ | ✅ |
+| `create:vote` | ✅ | ✅ | ❌¹ | ✅ | ✅ |
+| `create:follow` | ✅ | ✅ | ❌¹ | ✅ | ✅ |
 | **Broadcaster Permissions** |
 | `view:broadcaster_analytics` | ❌ | ✅ | ❌ | ✅ | ✅ |
 | `claim:broadcaster_profile` | ❌ | ✅ | ❌ | ✅ | ✅ |
@@ -281,10 +285,10 @@ Full administrative access to the entire platform.
 |---------|:------:|:-----------:|:-------------:|:--------:|:-----:|
 | **Content Actions** |
 | View clips | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Submit clips | ✅ | ✅ | ❌ | ✅ | ✅ |
-| Comment on clips | ✅ | ✅ | ❌ | ✅ | ✅ |
-| Vote on content | ✅ | ✅ | ❌ | ✅ | ✅ |
-| Add to favorites | ✅ | ✅ | ❌ | ✅ | ✅ |
+| Submit clips | ✅ | ✅ | ❌¹ | ✅ | ✅ |
+| Comment on clips | ✅ | ✅ | ❌¹ | ✅ | ✅ |
+| Vote on content | ✅ | ✅ | ❌¹ | ✅ | ✅ |
+| Add to favorites | ✅ | ✅ | ❌¹ | ✅ | ✅ |
 | **Broadcaster Features** |
 | View broadcaster analytics | ❌ | ✅ (own) | ❌ | ✅ | ✅ |
 | Claim broadcaster profile | ❌ | ✅ | ❌ | ✅ | ✅ |
@@ -313,6 +317,7 @@ Full administrative access to the entire platform.
 - ✅ (own) = Only for own resources
 - ✅ (scoped) = Limited to assigned channels
 - ❌ = No access
+- ❌¹ = No access (Community moderators are moderation-only accounts; use separate user account for participation)
 
 ## Scope System
 
