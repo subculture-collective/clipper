@@ -13,6 +13,11 @@ This directory contains automation scripts for deploying, managing, and maintain
 | **`check-migration-compatibility.sh`** | **Check database migrations for backward compatibility** | **No** |
 | **`test-blue-green-deployment.sh`** | **Test blue/green deployment in staging** | **No** |
 | `preflight-check.sh` | Run comprehensive pre-deployment validation | No |
+| **`preflight-moderation.sh`** | **Pre-flight checks for moderation system deployment** | **No** |
+| **`migrate-moderation.sh`** | **Run moderation system migrations** | **No** |
+| **`validate-moderation.sh`** | **Validate moderation system post-migration** | **No** |
+| **`rollback-moderation.sh`** | **Rollback moderation system migrations** | **No** |
+| **`test-migration-scripts.sh`** | **Test moderation migration scripts** | **No** |
 | `staging-rehearsal.sh` | Complete staging deployment rehearsal | No |
 | `health-check.sh` | Run health checks on all services | No |
 | `backup.sh` | Backup database and configuration | No |
@@ -359,6 +364,99 @@ Status: ✓ ALL TESTS PASSED
 ║  All Tests Passed! ✓                           ║
 ╚════════════════════════════════════════════════╝
 ```
+
+---
+
+## Moderation System Migration Scripts (NEW)
+
+**Purpose**: Dedicated scripts for deploying the moderation system to production with comprehensive validation and rollback support.
+
+### preflight-moderation.sh
+
+Pre-flight checks specifically for moderation system deployment.
+
+**Features**:
+- Validates moderation migration files exist
+- Checks database prerequisites (PostgreSQL 12+)
+- Verifies required tables (users, clips, comments)
+- Checks current migration status and dirty state
+- Validates golang-migrate tool installation
+- Checks disk space and backup capability
+- Detects data conflicts
+
+**Usage**:
+
+```bash
+# Run pre-flight checks for staging
+./scripts/preflight-moderation.sh --env staging
+
+# Run checks and generate report
+./scripts/preflight-moderation.sh --env production --report preflight.txt
+```
+
+### migrate-moderation.sh
+
+Migration runner for deploying moderation system migrations (000011, 000049, 000050, 000069, 000097).
+
+**Features**:
+- Automatic pre-flight checks
+- Database backup before migration
+- Incremental migration application
+- Post-migration validation
+- Dry-run mode for testing
+- Production confirmation prompt
+
+**Usage**:
+
+```bash
+# Dry run (test mode)
+./scripts/migrate-moderation.sh --env staging --dry-run
+
+# Run migration on production
+./scripts/migrate-moderation.sh --env production
+```
+
+### validate-moderation.sh
+
+Post-migration validation script to verify moderation system integrity.
+
+**Usage**:
+
+```bash
+# Validate on production and generate report
+./scripts/validate-moderation.sh --env production --report validation.txt
+```
+
+### rollback-moderation.sh
+
+Safe rollback script for moderation system migrations.
+
+**Usage**:
+
+```bash
+# Rollback to before moderation queue (version 11)
+./scripts/rollback-moderation.sh --env production --target 11
+
+# Complete rollback (to before all moderation features)
+./scripts/rollback-moderation.sh --env production --target 10
+```
+
+### test-migration-scripts.sh
+
+Test suite for validating migration scripts.
+
+**Usage**:
+
+```bash
+# Run all tests
+./scripts/test-migration-scripts.sh
+```
+
+**Documentation**:
+- [Moderation Deployment Guide](../docs/deployment/moderation-deployment.md)
+- [Moderation Deployment Checklist](../docs/deployment/MODERATION_DEPLOYMENT_CHECKLIST.md)
+
+---
 
 ## Usage
 
