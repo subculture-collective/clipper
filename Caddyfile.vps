@@ -1,0 +1,81 @@
+# Caddyfile for VPS Production Deployment
+# Serves clpr.tv with automatic HTTPS via Let's Encrypt
+# Routes traffic to clipper-backend and clipper-frontend containers
+
+{
+    # Global options
+    admin localhost:2019
+    log {
+        output stdout
+        format json
+        level INFO
+    }
+}
+
+# Main production site
+clpr.tv {
+    # SSL/TLS (automatic with Let's Encrypt)
+    # Caddy will automatically obtain and renew certificates
+    
+    # Security headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+    
+    # Access log
+    log {
+        output file /var/log/caddy/access.log {
+            roll_size 100mb
+            roll_keep 10
+        }
+    }
+    
+    # API routes -> backend
+    handle /api/* {
+        reverse_proxy clipper-backend:8080 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            
+            health_uri /api/v1/health
+            health_interval 30s
+            health_timeout 10s
+            health_status 200
+        }
+    }
+    
+    # Health check endpoint (bypasses caching)
+    handle /health {
+        reverse_proxy clipper-backend:8080
+    }
+    
+    # WebSocket support (if needed)
+    handle /ws/* {
+        reverse_proxy clipper-backend:8080 {
+            header_up Upgrade {>Upgrade}
+            header_up Connection {>Connection}
+        }
+    }
+    
+    # Frontend (SPA) - must come last to act as catch-all
+    handle /* {
+        reverse_proxy clipper-frontend:80 {
+            health_uri /health.html
+            health_interval 30s
+        }
+    }
+    
+    # Compression
+    encode gzip
+}
+
+# HTTP to HTTPS redirect
+http://clpr.tv {
+    redir https://{host}{uri} permanent
+}

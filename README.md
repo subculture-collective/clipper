@@ -51,6 +51,21 @@ go run cmd/migrate/main.go up
 
 
 This will start all services in Docker containers.
+
+## 🚀 VPS Deployment
+
+For deploying to a production VPS with Vault and Caddy:
+
+\`\`\`bash
+# Quick deploy
+./scripts/deploy-vps.sh
+
+# See quick reference
+cat DEPLOY_VPS_QUICK.md
+\`\`\`
+
+**📖 Complete VPS deployment guide**: [\`docs/VPS_DEPLOYMENT.md\`](docs/VPS_DEPLOYMENT.md)
+
 ## Development Without Docker
 
 See the complete [Development Setup Guide](docs/setup/development.md) for detailed instructions.
@@ -60,10 +75,12 @@ See the complete [Development Setup Guide](docs/setup/development.md) for detail
 Comprehensive documentation is available in the [\`/docs\`](docs/) directory:
 
 - **[Getting Started](docs/setup/development.md)** - Development environment setup
+- **[VPS Deployment](docs/VPS_DEPLOYMENT.md)** - Production VPS deployment guide
+- **[VPS Troubleshooting](docs/VPS_TROUBLESHOOTING.md)** - Common deployment issues
 - **[User Guide](docs/users/user-guide.md)** - Using the platform
 - **[API Reference](docs/backend/api.md)** - REST API documentation
 - **[Architecture](docs/backend/architecture.md)** - System design and components
-- **[Deployment](docs/operations/deployment.md)** - Production deployment guide
+- **[Deployment](docs/operations/deployment.md)** - General deployment guide
 - **[Contributing](docs/contributing.md)** - Contribution guidelines
 
 **📖 Full documentation index**: [\`docs/index.md\`](docs/index.md)
