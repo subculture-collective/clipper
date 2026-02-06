@@ -218,8 +218,6 @@ const AdminDiscoveryListFormPage = lazy(() =>
         default: m.AdminDiscoveryListFormPage,
     })),
 );
-<<<<<<< HEAD
-=======
 const ServiceStatusPage = lazy(() =>
     import('./pages/admin/ServiceStatusPage').then(m => ({
         default: m.ServiceStatusPage,
@@ -230,13 +228,6 @@ const AdminAPIDocsPage = lazy(() =>
         default: m.AdminAPIDocsPage,
     })),
 );
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> main
-=======
->>>>>>> main
-=======
->>>>>>> main
 const PricingPage = lazy(() => import('./pages/PricingPage'));
 const SubscriptionSuccessPage = lazy(
     () => import('./pages/SubscriptionSuccessPage'),
