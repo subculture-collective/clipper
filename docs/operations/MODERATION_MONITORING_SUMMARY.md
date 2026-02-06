@@ -19,7 +19,7 @@ This document summarizes the comprehensive monitoring and alerting infrastructur
    - Comprehensive test coverage
 
 2. **Alerting Rules** (100%)
-   - 16 new moderation-specific alerts
+   - 15 new moderation-specific alerts
    - Runbook links for all alerts
    - Threshold-based monitoring
 
