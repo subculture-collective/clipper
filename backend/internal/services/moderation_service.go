@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
+	"github.com/subculture-collective/clipper/pkg/metrics"
 )
 
 // Sentinel errors for moderation operations
@@ -69,6 +70,32 @@ func NewModerationService(
 
 // BanUser bans a user from a community with permission and scope validation
 func (s *ModerationService) BanUser(ctx context.Context, communityID, moderatorID, targetUserID uuid.UUID, reason *string) error {
+	start := time.Now()
+	var err error
+	var errorType string
+
+	// Defer metrics recording
+	defer func() {
+		duration := time.Since(start).Seconds()
+		metrics.ModerationBanOperationDuration.WithLabelValues("ban").Observe(duration)
+		
+		if err == nil {
+			metrics.ModerationBanOperationsTotal.WithLabelValues("ban", "success", "").Inc()
+		} else {
+			// Determine error type
+			if errors.Is(err, ErrModerationPermissionDenied) || errors.Is(err, ErrModerationNotAuthorized) {
+				errorType = "permission_denied"
+			} else if errors.Is(err, ErrModerationCommunityNotFound) {
+				errorType = "community_not_found"
+			} else if errors.Is(err, ErrModerationCannotBanOwner) {
+				errorType = "cannot_ban_owner"
+			} else {
+				errorType = "database_error"
+			}
+			metrics.ModerationBanOperationsTotal.WithLabelValues("ban", "failed", errorType).Inc()
+		}
+	}()
+
 	// Get moderator user
 	moderator, err := s.userRepo.GetByID(ctx, moderatorID)
 	if err != nil {
@@ -76,30 +103,32 @@ func (s *ModerationService) BanUser(ctx context.Context, communityID, moderatorI
 	}
 
 	// Validate scope first for better error messages
-	if err := s.validateModerationScope(moderator, communityID); err != nil {
+	if err = s.validateModerationScope(moderator, communityID); err != nil {
 		return err
 	}
 
 	// Validate permission
-	if err := s.validateModerationPermission(ctx, moderator, communityID); err != nil {
+	if err = s.validateModerationPermission(ctx, moderator, communityID); err != nil {
 		return err
 	}
 
 	// Check if target user is the community owner
 	community, err := s.communityRepo.GetCommunityByID(ctx, communityID)
 	if err != nil {
-		return ErrModerationCommunityNotFound
+		err = ErrModerationCommunityNotFound
+		return err
 	}
 	if community.OwnerID == targetUserID {
-		return ErrModerationCannotBanOwner
+		err = ErrModerationCannotBanOwner
+		return err
 	}
 
 	// Remove user from community if they are a member
 	// Ignore "not found" errors as the user may not be a member
-	if err := s.communityRepo.RemoveMember(ctx, communityID, targetUserID); err != nil {
+	if removeErr := s.communityRepo.RemoveMember(ctx, communityID, targetUserID); removeErr != nil {
 		// Log non-critical errors but continue with ban operation
 		// Only return error if it's a critical database failure
-		if err.Error() != "member not found" && err.Error() != "no rows affected" {
+		if removeErr.Error() != "member not found" && removeErr.Error() != "no rows affected" {
 			// For now, log and continue as this is not critical for banning
 		}
 	}
@@ -114,11 +143,12 @@ func (s *ModerationService) BanUser(ctx context.Context, communityID, moderatorI
 		BannedAt:       time.Now(),
 	}
 
-	if err := s.communityRepo.BanMember(ctx, ban); err != nil {
+	if err = s.communityRepo.BanMember(ctx, ban); err != nil {
 		return fmt.Errorf("failed to create ban: %w", err)
 	}
 
 	// Log audit entry
+	auditStart := time.Now()
 	metadata := map[string]interface{}{
 		"community_id":    communityID.String(),
 		"banned_user_id":  targetUserID.String(),
@@ -137,15 +167,43 @@ func (s *ModerationService) BanUser(ctx context.Context, communityID, moderatorI
 		Metadata:    metadata,
 	}
 
-	if err := s.auditLogRepo.Create(ctx, auditLog); err != nil {
-		return fmt.Errorf("failed to create audit log: %w", err)
+	if auditErr := s.auditLogRepo.Create(ctx, auditLog); auditErr != nil {
+		metrics.ModerationAuditLogOperationsTotal.WithLabelValues("create", "failed").Inc()
+		metrics.ModerationAuditLogOperationDuration.WithLabelValues("create").Observe(time.Since(auditStart).Seconds())
+		return fmt.Errorf("failed to create audit log: %w", auditErr)
 	}
+	metrics.ModerationAuditLogOperationsTotal.WithLabelValues("create", "success").Inc()
+	metrics.ModerationAuditLogOperationDuration.WithLabelValues("create").Observe(time.Since(auditStart).Seconds())
 
 	return nil
 }
 
 // UnbanUser removes a ban from a user with permission and scope validation
 func (s *ModerationService) UnbanUser(ctx context.Context, communityID, moderatorID, targetUserID uuid.UUID) error {
+	start := time.Now()
+	var err error
+	var errorType string
+
+	// Defer metrics recording
+	defer func() {
+		duration := time.Since(start).Seconds()
+		metrics.ModerationBanOperationDuration.WithLabelValues("unban").Observe(duration)
+		
+		if err == nil {
+			metrics.ModerationBanOperationsTotal.WithLabelValues("unban", "success", "").Inc()
+		} else {
+			// Determine error type
+			if errors.Is(err, ErrModerationPermissionDenied) || errors.Is(err, ErrModerationNotAuthorized) {
+				errorType = "permission_denied"
+			} else if errors.Is(err, ErrModerationNotBanned) {
+				errorType = "not_banned"
+			} else {
+				errorType = "database_error"
+			}
+			metrics.ModerationBanOperationsTotal.WithLabelValues("unban", "failed", errorType).Inc()
+		}
+	}()
+
 	// Get moderator user
 	moderator, err := s.userRepo.GetByID(ctx, moderatorID)
 	if err != nil {
@@ -153,30 +211,33 @@ func (s *ModerationService) UnbanUser(ctx context.Context, communityID, moderato
 	}
 
 	// Validate scope first for better error messages
-	if err := s.validateModerationScope(moderator, communityID); err != nil {
+	if err = s.validateModerationScope(moderator, communityID); err != nil {
 		return err
 	}
 
 	// Validate permission
-	if err := s.validateModerationPermission(ctx, moderator, communityID); err != nil {
+	if err = s.validateModerationPermission(ctx, moderator, communityID); err != nil {
 		return err
 	}
 
 	// Check if user is actually banned
-	isBanned, err := s.communityRepo.IsBanned(ctx, communityID, targetUserID)
-	if err != nil {
-		return fmt.Errorf("failed to check ban status: %w", err)
+	isBanned, checkErr := s.communityRepo.IsBanned(ctx, communityID, targetUserID)
+	if checkErr != nil {
+		err = fmt.Errorf("failed to check ban status: %w", checkErr)
+		return err
 	}
 	if !isBanned {
-		return ErrModerationNotBanned
+		err = ErrModerationNotBanned
+		return err
 	}
 
 	// Remove ban
-	if err := s.communityRepo.UnbanMember(ctx, communityID, targetUserID); err != nil {
+	if err = s.communityRepo.UnbanMember(ctx, communityID, targetUserID); err != nil {
 		return fmt.Errorf("failed to remove ban: %w", err)
 	}
 
 	// Log audit entry
+	auditStart := time.Now()
 	metadata := map[string]interface{}{
 		"community_id":    communityID.String(),
 		"banned_user_id":  targetUserID.String(),
@@ -191,9 +252,13 @@ func (s *ModerationService) UnbanUser(ctx context.Context, communityID, moderato
 		Metadata:    metadata,
 	}
 
-	if err := s.auditLogRepo.Create(ctx, auditLog); err != nil {
-		return fmt.Errorf("failed to create audit log: %w", err)
+	if auditErr := s.auditLogRepo.Create(ctx, auditLog); auditErr != nil {
+		metrics.ModerationAuditLogOperationsTotal.WithLabelValues("create", "failed").Inc()
+		metrics.ModerationAuditLogOperationDuration.WithLabelValues("create").Observe(time.Since(auditStart).Seconds())
+		return fmt.Errorf("failed to create audit log: %w", auditErr)
 	}
+	metrics.ModerationAuditLogOperationsTotal.WithLabelValues("create", "success").Inc()
+	metrics.ModerationAuditLogOperationDuration.WithLabelValues("create").Observe(time.Since(auditStart).Seconds())
 
 	return nil
 }
@@ -311,13 +376,29 @@ func (s *ModerationService) UpdateBan(ctx context.Context, communityID, moderato
 
 // validateModerationPermission checks if a user has permission to perform moderation actions
 func (s *ModerationService) validateModerationPermission(ctx context.Context, moderator *models.User, communityID uuid.UUID) error {
+	start := time.Now()
+	permissionType := "moderation"
+	var result string
+	var reason string
+
+	defer func() {
+		duration := time.Since(start).Seconds()
+		metrics.ModerationPermissionCheckDuration.WithLabelValues(permissionType).Observe(duration)
+		metrics.ModerationPermissionChecksTotal.WithLabelValues(permissionType, result).Inc()
+		if result == "denied" {
+			metrics.ModerationPermissionDenialsTotal.WithLabelValues(permissionType, reason).Inc()
+		}
+	}()
+
 	// Site moderators (AccountType=moderator with ModeratorScope=site) can moderate anywhere
 	if moderator.AccountType == models.AccountTypeModerator && moderator.ModeratorScope == models.ModeratorScopeSite {
+		result = "allowed"
 		return nil
 	}
 
 	// Admins can moderate anywhere
 	if moderator.AccountType == models.AccountTypeAdmin || moderator.Role == models.RoleAdmin {
+		result = "allowed"
 		return nil
 	}
 
@@ -327,17 +408,26 @@ func (s *ModerationService) validateModerationPermission(ctx context.Context, mo
 	if moderator.AccountType == models.AccountTypeCommunityModerator {
 		member, err := s.communityRepo.GetMember(ctx, communityID, moderator.ID)
 		if err != nil {
+			result = "denied"
+			reason = "database_error"
 			return fmt.Errorf("failed to get member: %w", err)
 		}
 		if member == nil {
+			result = "denied"
+			reason = "not_member"
 			return ErrModerationPermissionDenied
 		}
 		if member.Role != models.CommunityRoleMod && member.Role != models.CommunityRoleAdmin {
+			result = "denied"
+			reason = "insufficient_permissions"
 			return ErrModerationPermissionDenied
 		}
+		result = "allowed"
 		return nil
 	}
 
+	result = "denied"
+	reason = "insufficient_permissions"
 	return ErrModerationPermissionDenied
 }
 
