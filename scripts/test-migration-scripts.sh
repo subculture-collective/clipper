@@ -2,7 +2,7 @@
 set -e
 
 # Test script for moderation migration scripts
-# Tests all scripts in dry-run mode without requiring actual database
+# Performs static sanity checks (existence, permissions, shebangs, help, docs, optional shellcheck) without requiring a database
 
 # Colors for output
 RED='\033[0;31m'

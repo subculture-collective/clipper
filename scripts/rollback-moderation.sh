@@ -136,8 +136,19 @@ load_environment() {
         exit 1
     fi
     
+    # Ensure secure SSL mode configuration
+    if [ -z "$DB_SSLMODE" ]; then
+        if [ "$ENVIRONMENT" = "production" ] || [ "$ENVIRONMENT" = "prod" ]; then
+            log_error "DB_SSLMODE must be set in production to enforce secure database connections"
+            exit 1
+        else
+            DB_SSLMODE="require"
+            log_warn "DB_SSLMODE not set, defaulting to 'require' for secure database connection"
+        fi
+    fi
+    
     # Build database URL
-    DB_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=${DB_SSLMODE:-disable}"
+    DB_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=${DB_SSLMODE}"
     
     if [ "$DRY_RUN" = true ]; then
         log_warn "DRY RUN MODE - No changes will be made"
@@ -305,7 +316,11 @@ run_rollback() {
     FINAL_VERSION=$(get_current_version)
     log_info "Final migration version: $FINAL_VERSION"
     
-    if [ "$FINAL_VERSION" != "$TARGET_PADDED" ]; then
+    # Compare numeric values (remove leading zeros for comparison)
+    FINAL_NUM=$(echo "$FINAL_VERSION" | sed 's/^0*//')
+    TARGET_NUM=$(echo "$TARGET_VERSION" | sed 's/^0*//')
+    
+    if [ "$FINAL_NUM" -ne "$TARGET_NUM" ]; then
         log_warn "Final version ($FINAL_VERSION) doesn't match target ($TARGET_PADDED)"
     fi
 }

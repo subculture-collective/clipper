@@ -218,7 +218,7 @@ validate_table_structure() {
     
     # Check moderation_appeals structure
     log_check "moderation_appeals columns"
-    EXPECTED_COLUMNS=("id" "moderation_action_id" "user_id" "reason" "status" "created_at" "resolved_at" "resolved_by" "resolution_note")
+    EXPECTED_COLUMNS=("id" "moderation_action_id" "user_id" "reason" "status" "created_at" "resolved_at" "resolved_by" "resolution")
     
     MISSING_COLUMNS=()
     for col in "${EXPECTED_COLUMNS[@]}"; do
@@ -353,12 +353,14 @@ run_smoke_tests() {
     if [ -z "$TEST_USER_ID" ]; then
         check_warn "No users found for smoke test"
     else
-        # Try to insert a test record
-        if psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "INSERT INTO moderation_queue (content_type, content_id, reason, status) VALUES ('comment', gen_random_uuid(), 'spam', 'pending') RETURNING id;" >/dev/null 2>&1; then
+        # Try to insert a test record and capture its ID
+        TEST_QUEUE_ID=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "INSERT INTO moderation_queue (content_type, content_id, reason, status) VALUES ('comment', gen_random_uuid(), 'spam', 'pending') RETURNING id;" 2>/dev/null | xargs)
+        
+        if [ -n "$TEST_QUEUE_ID" ]; then
             check_pass "Insert test passed"
             
-            # Clean up test record
-            psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "DELETE FROM moderation_queue WHERE reason = 'spam' AND status = 'pending' ORDER BY created_at DESC LIMIT 1;" >/dev/null 2>&1
+            # Clean up test record by its specific ID to avoid deleting real data
+            psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "DELETE FROM moderation_queue WHERE id = '$TEST_QUEUE_ID';" >/dev/null 2>&1
         else
             check_warn "Insert test failed (may be due to constraints)"
         fi

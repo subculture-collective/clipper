@@ -188,7 +188,7 @@ DB_PORT=5436
 DB_USER=clipper
 DB_PASSWORD=secure_password
 DB_NAME=clipper_db
-DB_SSLMODE=disable  # Use 'require' for production
+DB_SSLMODE=require  # For production/staging; use 'disable' only for local development
 
 # Optional
 BACKUP_DIR=/var/backups/clipper
