@@ -70,7 +70,7 @@ export async function getModerationQueue(
         status,
         limit: limit.toString(),
     });
-    
+
     if (contentType) {
         params.append('type', contentType);
     }
@@ -314,7 +314,7 @@ export async function getModerationAuditLogs(params: {
     offset?: number;
 }): Promise<AuditLogsResponse> {
     const queryParams = new URLSearchParams();
-    
+
     if (params.moderator_id) queryParams.append('moderator_id', params.moderator_id);
     if (params.action) queryParams.append('action', params.action);
     if (params.start_date) queryParams.append('start_date', params.start_date);
@@ -343,7 +343,7 @@ export async function getAuditLogs(params: {
     offset?: number;
 }): Promise<NewAuditLogsResponse> {
     const queryParams = new URLSearchParams();
-    
+
     if (params.actor) queryParams.append('actor', params.actor);
     if (params.action) queryParams.append('action', params.action);
     if (params.target) queryParams.append('target', params.target);
@@ -355,7 +355,7 @@ export async function getAuditLogs(params: {
     if (params.offset) queryParams.append('offset', params.offset.toString());
 
     const response = await apiClient.get<NewAuditLogsResponse>(
-        `/api/v1/moderation/audit-logs?${queryParams.toString()}`
+        `/moderation/audit-logs?${queryParams.toString()}`
     );
     return response.data;
 }
@@ -373,7 +373,7 @@ export async function exportAuditLogs(params: {
     search?: string;
 }): Promise<Blob> {
     const queryParams = new URLSearchParams();
-    
+
     if (params.actor) queryParams.append('actor', params.actor);
     if (params.action) queryParams.append('action', params.action);
     if (params.target) queryParams.append('target', params.target);
@@ -383,7 +383,7 @@ export async function exportAuditLogs(params: {
     if (params.search) queryParams.append('search', params.search);
 
     const response = await apiClient.get(
-        `/api/v1/moderation/audit-logs/export?${queryParams.toString()}`,
+        `/moderation/audit-logs/export?${queryParams.toString()}`,
         { responseType: 'blob' }
     );
     return response.data;
@@ -397,7 +397,7 @@ export async function getModerationAnalytics(params: {
     end_date?: string;
 }): Promise<AnalyticsResponse> {
     const queryParams = new URLSearchParams();
-    
+
     if (params.start_date) queryParams.append('start_date', params.start_date);
     if (params.end_date) queryParams.append('end_date', params.end_date);
 
@@ -616,7 +616,7 @@ export async function getBanReasonTemplates(
     const params = new URLSearchParams({
         includeDefaults: includeDefaults.toString(),
     });
-    
+
     if (broadcasterID) {
         params.append('broadcasterID', broadcasterID);
     }
@@ -678,7 +678,7 @@ export async function getBanReasonTemplateStats(
     broadcasterID?: string
 ): Promise<BanReasonTemplatesResponse> {
     const params = new URLSearchParams();
-    
+
     if (broadcasterID) {
         params.append('broadcasterID', broadcasterID);
     }

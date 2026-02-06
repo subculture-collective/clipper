@@ -61,6 +61,14 @@ func (m *MockCommunityRepository) ListBans(ctx context.Context, communityID uuid
 	return args.Get(0).([]*models.CommunityBan), args.Int(1), args.Error(2)
 }
 
+func (m *MockCommunityRepository) ListAllBans(ctx context.Context, limit, offset int) ([]*models.CommunityBan, int, error) {
+	args := m.Called(ctx, limit, offset)
+	if args.Get(0) == nil {
+		return nil, args.Int(1), args.Error(2)
+	}
+	return args.Get(0).([]*models.CommunityBan), args.Int(1), args.Error(2)
+}
+
 func (m *MockCommunityRepository) GetBanByID(ctx context.Context, banID uuid.UUID) (*models.CommunityBan, error) {
 	args := m.Called(ctx, banID)
 	if args.Get(0) == nil {
