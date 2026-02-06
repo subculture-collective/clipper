@@ -127,10 +127,10 @@ export async function banUser(
     return response.data;
 }
 
-// Unban a user by ban ID (matches moderation API contract)
+// Unban a user by ban ID (uses moderation API)
 export async function unbanUser(banId: string): Promise<UnbanUserResponse> {
     const response = await apiClient.delete<UnbanUserResponse>(
-        `/chat/bans/${banId}`
+        `/moderation/ban/${banId}`
     );
     return response.data;
 }
@@ -228,21 +228,46 @@ export async function getChannelBans(
     return response.data;
 }
 
-// Get bans across all channels (optional filter)
+// Get bans across all channels (uses moderation API, admin only)
 export async function getAllBans(
     page: number = 1,
     limit: number = 50,
     channelId?: string
 ): Promise<{ bans: ChatBan[]; total: number; page: number; limit: number }> {
+    // Calculate offset from page for the moderation API
+    const offset = (page - 1) * limit;
+    const params: Record<string, string | number> = { limit, offset };
+    if (channelId) {
+        params.channelId = channelId;
+    }
     const response = await apiClient.get<{
-        bans: ChatBan[];
+        bans: Array<{
+            id: string;
+            community_id: string;
+            banned_user_id: string;
+            banned_by_user_id?: string;
+            reason?: string;
+            banned_at: string;
+        }>;
         total: number;
-        page: number;
         limit: number;
-    }>('/chat/bans', {
-        params: { page, limit, channel_id: channelId },
-    });
-    return response.data;
+        offset: number;
+    }>('/moderation/bans', { params });
+    // Map CommunityBan fields to ChatBan fields
+    const mappedBans: ChatBan[] = (response.data.bans || []).map(ban => ({
+        id: ban.id,
+        channel_id: ban.community_id,
+        user_id: ban.banned_user_id,
+        banned_by: ban.banned_by_user_id || '',
+        reason: ban.reason,
+        created_at: ban.banned_at,
+    }));
+    return {
+        bans: mappedBans,
+        total: response.data.total,
+        page,
+        limit: response.data.limit,
+    };
 }
 
 // Create a new channel

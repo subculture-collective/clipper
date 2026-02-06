@@ -12,7 +12,7 @@ import type {
  */
 function buildClipParams(
     cursor: string | undefined,
-    filters?: ClipFeedFilters
+    filters?: ClipFeedFilters,
 ): Record<string, string | number | boolean> {
     const params: Record<string, string | number | boolean> = {
         limit: 20,
@@ -86,9 +86,13 @@ export async function fetchClips({
         clips: response.data.clips,
         total: response.data.pagination.total,
         // Only calculate page for offset-based pagination
-        page: response.data.pagination.cursor 
-            ? 1 
-            : Math.floor(response.data.pagination.offset / response.data.pagination.limit) + 1,
+        page:
+            response.data.pagination.cursor ?
+                1
+            :   Math.floor(
+                    response.data.pagination.offset /
+                        response.data.pagination.limit,
+                ) + 1,
         limit: response.data.pagination.limit,
         has_more: response.data.pagination.has_more,
         cursor: response.data.pagination.cursor,
@@ -261,7 +265,7 @@ export async function updateClipMetadata(
     payload: {
         title?: string;
         tags?: string[];
-    }
+    },
 ): Promise<{ message: string }> {
     const response = await apiClient.put<{
         success: boolean;
@@ -276,7 +280,7 @@ export async function updateClipMetadata(
  */
 export async function updateClipVisibility(
     clipId: string,
-    isHidden: boolean
+    isHidden: boolean,
 ): Promise<{
     message: string;
     is_hidden: boolean;

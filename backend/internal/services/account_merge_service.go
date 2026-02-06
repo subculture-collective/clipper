@@ -343,7 +343,7 @@ func (s *AccountMergeService) transferBroadcasterFollows(ctx context.Context, tx
 	var exists bool
 	err := tx.QueryRow(ctx,
 		`SELECT EXISTS (
-			SELECT FROM information_schema.tables 
+			SELECT FROM information_schema.tables
 			WHERE table_schema = 'public' AND table_name = 'broadcaster_follows'
 		)`).Scan(&exists)
 
@@ -388,7 +388,7 @@ func (s *AccountMergeService) transferStreamFollows(ctx context.Context, tx pgx.
 	var exists bool
 	err := tx.QueryRow(ctx,
 		`SELECT EXISTS (
-			SELECT FROM information_schema.tables 
+			SELECT FROM information_schema.tables
 			WHERE table_schema = 'public' AND table_name = 'stream_follows'
 		)`).Scan(&exists)
 
@@ -433,7 +433,7 @@ func (s *AccountMergeService) transferGameFollows(ctx context.Context, tx pgx.Tx
 	var exists bool
 	err := tx.QueryRow(ctx,
 		`SELECT EXISTS (
-			SELECT FROM information_schema.tables 
+			SELECT FROM information_schema.tables
 			WHERE table_schema = 'public' AND table_name = 'game_follows'
 		)`).Scan(&exists)
 
@@ -478,7 +478,7 @@ func (s *AccountMergeService) transferUserFollows(ctx context.Context, tx pgx.Tx
 	var exists bool
 	err := tx.QueryRow(ctx,
 		`SELECT EXISTS (
-			SELECT FROM information_schema.tables 
+			SELECT FROM information_schema.tables
 			WHERE table_schema = 'public' AND table_name = 'user_follows'
 		)`).Scan(&exists)
 
@@ -585,7 +585,7 @@ func (s *AccountMergeService) mergeUserPreferences(ctx context.Context, tx pgx.T
 	// Check if user_preferences table exists in the public schema
 	checkQuery := `
 		SELECT EXISTS (
-			SELECT FROM information_schema.tables 
+			SELECT FROM information_schema.tables
 			WHERE table_schema = 'public' AND table_name = 'user_preferences'
 		)
 	`
@@ -602,38 +602,38 @@ func (s *AccountMergeService) mergeUserPreferences(ctx context.Context, tx pgx.T
 	// Merge preferences by taking union of arrays
 	mergeQuery := `
 		INSERT INTO user_preferences (
-			user_id, 
-			favorite_games, 
-			followed_streamers, 
-			preferred_categories, 
+			user_id,
+			favorite_games,
+			followed_streamers,
+			preferred_categories,
 			preferred_tags,
 			updated_at
 		)
-		SELECT 
+		SELECT
 			$1 as user_id,
 			ARRAY(SELECT DISTINCT unnest(
-				COALESCE(to_prefs.favorite_games, '{}') || 
+				COALESCE(to_prefs.favorite_games, '{}') ||
 				COALESCE(from_prefs.favorite_games, '{}')
 			)) as favorite_games,
 			ARRAY(SELECT DISTINCT unnest(
-				COALESCE(to_prefs.followed_streamers, '{}') || 
+				COALESCE(to_prefs.followed_streamers, '{}') ||
 				COALESCE(from_prefs.followed_streamers, '{}')
 			)) as followed_streamers,
 			ARRAY(SELECT DISTINCT unnest(
-				COALESCE(to_prefs.preferred_categories, '{}') || 
+				COALESCE(to_prefs.preferred_categories, '{}') ||
 				COALESCE(from_prefs.preferred_categories, '{}')
 			)) as preferred_categories,
 			ARRAY(SELECT DISTINCT unnest(
-				COALESCE(to_prefs.preferred_tags, '{}') || 
+				COALESCE(to_prefs.preferred_tags, '{}') ||
 				COALESCE(from_prefs.preferred_tags, '{}')
 			)) as preferred_tags,
 			NOW() as updated_at
-		FROM 
+		FROM
 			(SELECT * FROM user_preferences WHERE user_id = $1) to_prefs
-		FULL OUTER JOIN 
-			(SELECT * FROM user_preferences WHERE user_id = $2) from_prefs 
+		FULL OUTER JOIN
+			(SELECT * FROM user_preferences WHERE user_id = $2) from_prefs
 			ON true
-		ON CONFLICT (user_id) 
+		ON CONFLICT (user_id)
 		DO UPDATE SET
 			favorite_games = EXCLUDED.favorite_games,
 			followed_streamers = EXCLUDED.followed_streamers,
@@ -660,7 +660,7 @@ func (s *AccountMergeService) transferSubscription(ctx context.Context, tx pgx.T
 	// Check if subscriptions table exists in the public schema
 	checkQuery := `
 		SELECT EXISTS (
-			SELECT FROM information_schema.tables 
+			SELECT FROM information_schema.tables
 			WHERE table_schema = 'public' AND table_name = 'subscriptions'
 		)
 	`
@@ -677,8 +677,8 @@ func (s *AccountMergeService) transferSubscription(ctx context.Context, tx pgx.T
 	// Check if unclaimed user has an active subscription
 	hasSubQuery := `
 		SELECT EXISTS (
-			SELECT 1 FROM subscriptions 
-			WHERE user_id = $1 
+			SELECT 1 FROM subscriptions
+			WHERE user_id = $1
 			AND status IN ('active', 'trialing')
 		)
 	`
@@ -695,7 +695,7 @@ func (s *AccountMergeService) transferSubscription(ctx context.Context, tx pgx.T
 	// Check if authenticated user already has subscription
 	hasToSubQuery := `
 		SELECT EXISTS (
-			SELECT 1 FROM subscriptions 
+			SELECT 1 FROM subscriptions
 			WHERE user_id = $1
 		)
 	`

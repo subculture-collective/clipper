@@ -27,7 +27,7 @@ describe('AppealResolutionModal', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
   });
 
   afterEach(() => {
@@ -71,7 +71,7 @@ describe('AppealResolutionModal', () => {
 
       expect(screen.getByText(/testuser/)).toBeInTheDocument();
       expect(screen.getByText(/Test User/)).toBeInTheDocument();
-      expect(screen.getByText(/ban/)).toBeInTheDocument();
+      expect(screen.getAllByText(/ban/).length).toBeGreaterThan(0);
       expect(screen.getByText(/Spam violations/)).toBeInTheDocument();
       expect(screen.getByText(/I believe this ban was unfair/)).toBeInTheDocument();
     });

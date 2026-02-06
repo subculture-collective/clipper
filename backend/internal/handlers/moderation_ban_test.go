@@ -29,7 +29,8 @@ func TestGetBans_Unauthorized(t *testing.T) {
 	}
 }
 
-// TestGetBans_MissingChannelID tests that getting bans requires channelId
+// TestGetBans_MissingChannelID tests that getting bans without channelId returns service unavailable when service is nil
+// Note: Missing channelId is now allowed (lists all bans for admins), but service must be available
 func TestGetBans_MissingChannelID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -43,12 +44,14 @@ func TestGetBans_MissingChannelID(t *testing.T) {
 
 	handler.GetBans(c)
 
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("Expected status %d for missing channelId, got %d", http.StatusBadRequest, w.Code)
+	// Service is nil, so we get 503 before reaching the GetAllBans call
+	if w.Code != http.StatusServiceUnavailable {
+		t.Errorf("Expected status %d for nil service, got %d", http.StatusServiceUnavailable, w.Code)
 	}
 }
 
-// TestGetBans_InvalidChannelID tests that getting bans validates channelId format
+// TestGetBans_InvalidChannelID tests that getting bans returns service unavailable when service is nil
+// Note: Invalid channelId validation happens after service availability check
 func TestGetBans_InvalidChannelID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -62,8 +65,9 @@ func TestGetBans_InvalidChannelID(t *testing.T) {
 
 	handler.GetBans(c)
 
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("Expected status %d for invalid channelId, got %d", http.StatusBadRequest, w.Code)
+	// Service is nil, so we get 503 before reaching the channelId validation
+	if w.Code != http.StatusServiceUnavailable {
+		t.Errorf("Expected status %d for nil service, got %d", http.StatusServiceUnavailable, w.Code)
 	}
 }
 

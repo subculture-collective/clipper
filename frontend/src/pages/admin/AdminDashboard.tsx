@@ -212,7 +212,8 @@ export function AdminDashboard() {
                         </CardHeader>
                         <CardBody>
                             <p className='text-sm xs:text-base text-muted-foreground'>
-                                Review and manage creator verification applications
+                                Review and manage creator verification
+                                applications
                             </p>
                         </CardBody>
                     </Card>

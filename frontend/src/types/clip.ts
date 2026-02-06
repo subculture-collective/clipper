@@ -85,7 +85,7 @@ export interface ClipFeedFilters {
     game_id?: string;
     games?: string[]; // Multi-select game filter
     creator_id?: string;
-    streamers?: string[]; // Multi-select streamer filter  
+    streamers?: string[]; // Multi-select streamer filter
     tags?: string[];
     exclude_tags?: string[]; // Tags to exclude
     language?: string;

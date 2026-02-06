@@ -17,13 +17,16 @@ interface ScrapedClipFeedProps {
 }
 
 // Memoized DiscoverClipCard wrapper for performance
-const MemoizedDiscoverClipCard = memo(DiscoverClipCard, (prevProps, nextProps) => {
-    return (
-        prevProps.clip.id === nextProps.clip.id &&
-        prevProps.clip.view_count === nextProps.clip.view_count &&
-        prevProps.clip.submitted_by?.id === nextProps.clip.submitted_by?.id
-    );
-});
+const MemoizedDiscoverClipCard = memo(
+    DiscoverClipCard,
+    (prevProps, nextProps) => {
+        return (
+            prevProps.clip.id === nextProps.clip.id &&
+            prevProps.clip.view_count === nextProps.clip.view_count &&
+            prevProps.clip.submitted_by?.id === nextProps.clip.submitted_by?.id
+        );
+    },
+);
 
 export function ScrapedClipFeed({
     title = 'Scraped Clips',

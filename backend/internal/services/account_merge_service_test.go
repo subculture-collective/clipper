@@ -448,9 +448,9 @@ func TestAccountMergeService_CompleteMerge(t *testing.T) {
 		// Verify audit log was created
 		var auditCount int
 		err = db.Pool.QueryRow(ctx,
-			`SELECT COUNT(*) FROM moderation_audit_logs 
-			 WHERE action = 'account_merged' 
-			 AND entity_id = $1 
+			`SELECT COUNT(*) FROM moderation_audit_logs
+			 WHERE action = 'account_merged'
+			 AND entity_id = $1
 			 AND entity_type = 'user'`,
 			authUser.ID).Scan(&auditCount)
 		require.NoError(t, err)

@@ -32,6 +32,7 @@ type ModerationCommunityRepo interface {
 	UnbanMember(ctx context.Context, communityID, userID uuid.UUID) error
 	RemoveMember(ctx context.Context, communityID, userID uuid.UUID) error
 	ListBans(ctx context.Context, communityID uuid.UUID, limit, offset int) ([]*models.CommunityBan, int, error)
+	ListAllBans(ctx context.Context, limit, offset int) ([]*models.CommunityBan, int, error)
 	GetBanByID(ctx context.Context, banID uuid.UUID) (*models.CommunityBan, error)
 }
 
@@ -294,6 +295,36 @@ func (s *ModerationService) GetBans(ctx context.Context, communityID, moderatorI
 
 	offset := (page - 1) * limit
 	return s.communityRepo.ListBans(ctx, communityID, limit, offset)
+}
+
+// GetAllBans retrieves all bans across all communities (admin/site moderator only)
+func (s *ModerationService) GetAllBans(ctx context.Context, moderatorID uuid.UUID, page, limit int) ([]*models.CommunityBan, int, error) {
+	// Get moderator user
+	moderator, err := s.userRepo.GetByID(ctx, moderatorID)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get moderator: %w", err)
+	}
+
+	// Only admins and site moderators can list all bans
+	isAdmin := moderator.AccountType == models.AccountTypeAdmin || moderator.Role == models.RoleAdmin
+	isSiteMod := moderator.AccountType == models.AccountTypeModerator && moderator.ModeratorScope == models.ModeratorScopeSite
+	if !isAdmin && !isSiteMod {
+		return nil, 0, ErrModerationPermissionDenied
+	}
+
+	// Normalize pagination parameters
+	if page < 1 {
+		page = 1
+	}
+	const maxLimit = 100
+	if limit <= 0 {
+		limit = 20
+	} else if limit > maxLimit {
+		limit = maxLimit
+	}
+
+	offset := (page - 1) * limit
+	return s.communityRepo.ListAllBans(ctx, limit, offset)
 }
 
 // UpdateBan updates the reason for an existing ban

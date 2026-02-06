@@ -96,7 +96,7 @@ func (s *IndexVersionService) GetIndexVersionInfo(ctx context.Context, baseIndex
 		Index      string `json:"index"`
 		DocsCount  string `json:"docs.count"`
 		StoreSize  string `json:"store.size"`
-		StoreBytes int64  `json:"pri.store.size"`
+		StoreBytes string `json:"pri.store.size"`
 	}
 
 	if err := json.NewDecoder(res.Body).Decode(&indices); err != nil {
@@ -141,12 +141,15 @@ func (s *IndexVersionService) GetIndexVersionInfo(ctx context.Context, baseIndex
 		var docCount int64
 		fmt.Sscanf(idx.DocsCount, "%d", &docCount)
 
+		var sizeBytes int64
+		fmt.Sscanf(idx.StoreBytes, "%d", &sizeBytes)
+
 		indexVersion := IndexVersion{
 			Name:      idx.Index,
 			Version:   version,
 			Alias:     baseIndex,
 			DocCount:  docCount,
-			SizeBytes: idx.StoreBytes,
+			SizeBytes: sizeBytes,
 			IsActive:  idx.Index == activeIndex,
 		}
 

@@ -230,6 +230,9 @@ const AdminAPIDocsPage = lazy(() =>
         default: m.AdminAPIDocsPage,
     })),
 );
+<<<<<<< HEAD
+>>>>>>> main
+=======
 >>>>>>> main
 const PricingPage = lazy(() => import('./pages/PricingPage'));
 const SubscriptionSuccessPage = lazy(

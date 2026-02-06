@@ -80,7 +80,7 @@ describe('ConsentContext', () => {
         render(
             <ConsentProvider>
                 <TestConsumer />
-            </ConsentProvider>
+            </ConsentProvider>,
         );
 
         expect(screen.getByTestId('has-consented')).toHaveTextContent('false');
@@ -91,7 +91,7 @@ describe('ConsentContext', () => {
         render(
             <ConsentProvider>
                 <TestConsumer />
-            </ConsentProvider>
+            </ConsentProvider>,
         );
 
         expect(screen.getByTestId('analytics')).toHaveTextContent('false');
@@ -103,7 +103,7 @@ describe('ConsentContext', () => {
         render(
             <ConsentProvider>
                 <TestConsumer />
-            </ConsentProvider>
+            </ConsentProvider>,
         );
 
         act(() => {
@@ -121,7 +121,7 @@ describe('ConsentContext', () => {
         render(
             <ConsentProvider>
                 <TestConsumer />
-            </ConsentProvider>
+            </ConsentProvider>,
         );
 
         act(() => {
@@ -139,7 +139,7 @@ describe('ConsentContext', () => {
         render(
             <ConsentProvider>
                 <TestConsumer />
-            </ConsentProvider>
+            </ConsentProvider>,
         );
 
         act(() => {
@@ -155,7 +155,7 @@ describe('ConsentContext', () => {
         render(
             <ConsentProvider>
                 <TestConsumer />
-            </ConsentProvider>
+            </ConsentProvider>,
         );
 
         act(() => {
@@ -188,13 +188,13 @@ describe('ConsentContext', () => {
                     updatedAt: new Date().toISOString(),
                     expiresAt: expiresAt.toISOString(),
                 },
-            })
+            }),
         );
 
         render(
             <ConsentProvider>
                 <TestConsumer />
-            </ConsentProvider>
+            </ConsentProvider>,
         );
 
         expect(screen.getByTestId('has-consented')).toHaveTextContent('true');
@@ -217,13 +217,13 @@ describe('ConsentContext', () => {
                     functional: true,
                     updatedAt: new Date().toISOString(),
                 },
-            })
+            }),
         );
 
         render(
             <ConsentProvider>
                 <TestConsumer />
-            </ConsentProvider>
+            </ConsentProvider>,
         );
 
         act(() => {
@@ -246,7 +246,7 @@ describe('ConsentContext', () => {
         render(
             <ConsentProvider>
                 <TestConsumer />
-            </ConsentProvider>
+            </ConsentProvider>,
         );
 
         expect(screen.getByTestId('do-not-track')).toHaveTextContent('true');
@@ -263,7 +263,7 @@ describe('ConsentContext', () => {
         render(
             <ConsentProvider>
                 <TestConsumer />
-            </ConsentProvider>
+            </ConsentProvider>,
         );
 
         // Accept all consent
@@ -274,7 +274,7 @@ describe('ConsentContext', () => {
         // Even though we consented, DNT should block personalized ads
         expect(screen.getByTestId('advertising')).toHaveTextContent('true');
         expect(screen.getByTestId('can-personalized')).toHaveTextContent(
-            'false'
+            'false',
         );
         expect(screen.getByTestId('can-analytics')).toHaveTextContent('false');
     });
@@ -283,7 +283,7 @@ describe('ConsentContext', () => {
         render(
             <ConsentProvider>
                 <TestConsumer />
-            </ConsentProvider>
+            </ConsentProvider>,
         );
 
         act(() => {
@@ -291,7 +291,7 @@ describe('ConsentContext', () => {
         });
 
         expect(screen.getByTestId('can-personalized')).toHaveTextContent(
-            'true'
+            'true',
         );
         expect(screen.getByTestId('can-analytics')).toHaveTextContent('true');
     });
@@ -322,13 +322,13 @@ describe('ConsentContext', () => {
                     functional: true,
                     updatedAt: new Date().toISOString(),
                 },
-            })
+            }),
         );
 
         render(
             <ConsentProvider>
                 <TestConsumer />
-            </ConsentProvider>
+            </ConsentProvider>,
         );
 
         // Should show banner again due to version mismatch

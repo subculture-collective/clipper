@@ -51,9 +51,12 @@ export function DiscoverClipCard({ clip }: DiscoverClipCardProps) {
             return;
         }
         // Navigate to submit page with the clip URL prefilled
-        navigate(`/submit?url=${encodeURIComponent(clip.twitch_clip_url)}&from=discover`, {
-            state: { clipUrl: clip.twitch_clip_url, fromDiscover: true },
-        });
+        navigate(
+            `/submit?url=${encodeURIComponent(clip.twitch_clip_url)}&from=discover`,
+            {
+                state: { clipUrl: clip.twitch_clip_url, fromDiscover: true },
+            },
+        );
     };
 
     return (

@@ -33,7 +33,7 @@ func NewDiscoveryListRepository(db *pgxpool.Pool) *DiscoveryListRepository {
 func (r *DiscoveryListRepository) ListDiscoveryLists(ctx context.Context, featuredOnly bool, userID *uuid.UUID, limit, offset int) ([]models.DiscoveryListWithStats, error) {
 	query := `
 		WITH list_stats AS (
-			SELECT 
+			SELECT
 				dl.id,
 				dl.name,
 				dl.slug,
@@ -98,7 +98,7 @@ func (r *DiscoveryListRepository) ListDiscoveryLists(ctx context.Context, featur
 
 		// Get follows
 		followQuery := `
-			SELECT list_id FROM discovery_list_follows 
+			SELECT list_id FROM discovery_list_follows
 			WHERE user_id = $1 AND list_id = ANY($2)
 		`
 		followRows, err := r.db.Query(ctx, followQuery, userID, listIDs)
@@ -122,7 +122,7 @@ func (r *DiscoveryListRepository) ListDiscoveryLists(ctx context.Context, featur
 
 		// Get bookmarks
 		bookmarkQuery := `
-			SELECT list_id FROM discovery_list_bookmarks 
+			SELECT list_id FROM discovery_list_bookmarks
 			WHERE user_id = $1 AND list_id = ANY($2)
 		`
 		bookmarkRows, err := r.db.Query(ctx, bookmarkQuery, userID, listIDs)
@@ -161,7 +161,7 @@ func (r *DiscoveryListRepository) ListDiscoveryLists(ctx context.Context, featur
 		// Fetch preview clips for all lists in a single query using window function
 		previewQuery := `
 			WITH ranked_clips AS (
-				SELECT 
+				SELECT
 					c.*,
 					dlc.list_id,
 					ROW_NUMBER() OVER (PARTITION BY dlc.list_id ORDER BY dlc.display_order ASC, dlc.added_at DESC) as rn
@@ -169,7 +169,7 @@ func (r *DiscoveryListRepository) ListDiscoveryLists(ctx context.Context, featur
 				INNER JOIN clips c ON dlc.clip_id = c.id
 				WHERE dlc.list_id = ANY($1) AND c.is_removed = false
 			)
-			SELECT 
+			SELECT
 				list_id, rn,
 				id, twitch_clip_id, twitch_clip_url, embed_url, title,
 				creator_name, creator_id, broadcaster_name, broadcaster_id,
@@ -177,8 +177,8 @@ func (r *DiscoveryListRepository) ListDiscoveryLists(ctx context.Context, featur
 				view_count, created_at, imported_at, vote_score, comment_count,
 				favorite_count, is_featured, is_nsfw, is_removed, removed_reason, is_hidden,
 				submitted_by_user_id, submitted_at
-			FROM ranked_clips 
-			WHERE rn <= 4 
+			FROM ranked_clips
+			WHERE rn <= 4
 			ORDER BY list_id, rn
 		`
 
@@ -226,7 +226,7 @@ func (r *DiscoveryListRepository) ListDiscoveryLists(ctx context.Context, featur
 // GetDiscoveryList retrieves a specific discovery list by ID or slug
 func (r *DiscoveryListRepository) GetDiscoveryList(ctx context.Context, idOrSlug string, userID *uuid.UUID) (*models.DiscoveryListWithStats, error) {
 	query := `
-		SELECT 
+		SELECT
 			dl.id,
 			dl.name,
 			dl.slug,
@@ -303,7 +303,7 @@ func (r *DiscoveryListRepository) GetListClips(ctx context.Context, listID uuid.
 
 	// Then get the clips with pagination
 	query := `
-		SELECT 
+		SELECT
 			c.id, c.twitch_clip_id, c.twitch_clip_url, c.embed_url, c.title,
 			c.creator_name, c.creator_id, c.broadcaster_name, c.broadcaster_id,
 			c.game_id, c.game_name, c.language, c.thumbnail_url, c.duration,
@@ -419,7 +419,7 @@ func (r *DiscoveryListRepository) GetListClipCount(ctx context.Context, listID u
 // GetListClipsForExport retrieves all clips from a list for export
 func (r *DiscoveryListRepository) GetListClipsForExport(ctx context.Context, listID uuid.UUID, limit int) ([]models.ClipWithSubmitter, error) {
 	query := `
-		SELECT 
+		SELECT
 			c.id, c.twitch_clip_id, c.twitch_clip_url, c.embed_url, c.title,
 			c.creator_name, c.creator_id, c.broadcaster_name, c.broadcaster_id,
 			c.game_id, c.game_name, c.language, c.thumbnail_url, c.duration,
@@ -539,7 +539,7 @@ func (r *DiscoveryListRepository) UnbookmarkList(ctx context.Context, userID, li
 // GetUserFollowedLists retrieves lists followed by a user
 func (r *DiscoveryListRepository) GetUserFollowedLists(ctx context.Context, userID uuid.UUID, limit, offset int) ([]models.DiscoveryListWithStats, error) {
 	query := `
-		SELECT 
+		SELECT
 			dl.id,
 			dl.name,
 			dl.slug,
@@ -600,7 +600,7 @@ func (r *DiscoveryListRepository) GetUserFollowedLists(ctx context.Context, user
 		// Fetch preview clips for all lists in a single query using window function
 		previewQuery := `
 			WITH ranked_clips AS (
-				SELECT 
+				SELECT
 					c.id, c.twitch_clip_id, c.twitch_clip_url, c.embed_url, c.title,
 					c.creator_name, c.creator_id, c.broadcaster_name, c.broadcaster_id,
 					c.game_id, c.game_name, c.language, c.thumbnail_url, c.duration,
@@ -613,7 +613,7 @@ func (r *DiscoveryListRepository) GetUserFollowedLists(ctx context.Context, user
 				INNER JOIN clips c ON dlc.clip_id = c.id
 				WHERE dlc.list_id = ANY($1) AND c.is_removed = false
 			)
-			SELECT 
+			SELECT
 				list_id,
 				id, twitch_clip_id, twitch_clip_url, embed_url, title,
 				creator_name, creator_id, broadcaster_name, broadcaster_id,
@@ -621,8 +621,8 @@ func (r *DiscoveryListRepository) GetUserFollowedLists(ctx context.Context, user
 				view_count, created_at, imported_at, vote_score, comment_count,
 				favorite_count, is_featured, is_nsfw, is_removed, removed_reason, is_hidden,
 				submitted_by_user_id, submitted_at
-			FROM ranked_clips 
-			WHERE rn <= 4 
+			FROM ranked_clips
+			WHERE rn <= 4
 			ORDER BY list_id, rn
 		`
 
@@ -849,7 +849,7 @@ func (r *DiscoveryListRepository) GetListClipsCount(ctx context.Context, listID 
 // ListAllDiscoveryLists retrieves all discovery lists
 func (r *DiscoveryListRepository) ListAllDiscoveryLists(ctx context.Context, limit, offset int) ([]models.DiscoveryListWithStats, error) {
 	query := `
-		SELECT 
+		SELECT
 			dl.id,
 			dl.name,
 			dl.slug,

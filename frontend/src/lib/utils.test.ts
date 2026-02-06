@@ -79,7 +79,7 @@ describe('formatTimestamp', () => {
             const yesterday = new Date('2024-03-14T14:30:00.000Z');
             const result = formatTimestamp(yesterday);
             expect(result.display).toBe(
-                `Yesterday ${format(yesterday, 'h:mm a')}`
+                `Yesterday ${format(yesterday, 'h:mm a')}`,
             );
             expect(result.title).toContain('Mar 14, 2024');
         });

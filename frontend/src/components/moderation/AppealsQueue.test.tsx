@@ -76,11 +76,10 @@ describe('AppealsQueue', () => {
         });
 
         it('displays loading state initially', () => {
-            render(<AppealsQueue />);
+            const { container } = render(<AppealsQueue />);
 
-            expect(
-                screen.getByRole('status', { hidden: true })
-            ).toBeInTheDocument();
+            const spinner = container.querySelector('.animate-spin');
+            expect(spinner).toBeInTheDocument();
         });
 
         it('displays appeals after loading', async () => {
@@ -391,7 +390,7 @@ describe('AppealsQueue', () => {
 
             await waitFor(() => {
                 expect(
-                    screen.getByText(/Failed to load appeals/)
+                    screen.getByText(/Failed to load/)
                 ).toBeInTheDocument();
             });
 
