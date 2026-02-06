@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSearchHistory } from '../../hooks/useSearchHistory';
+import { ConfirmModal } from '../ui/ConfirmModal';
 
 interface SearchHistoryProps {
   className?: string;
@@ -9,16 +11,14 @@ interface SearchHistoryProps {
 export function SearchHistory({ className = '', maxItems = 10 }: SearchHistoryProps) {
   const { history, loading, clearHistory } = useSearchHistory();
   const navigate = useNavigate();
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const handleSearchClick = (query: string) => {
     navigate(`/search?q=${encodeURIComponent(query)}`);
   };
 
   const handleClearHistory = async () => {
-    // TODO: Replace with proper modal component for better UX
-    if (confirm('Clear search history?')) {
-      await clearHistory();
-    }
+    await clearHistory();
   };
 
   if (loading) {
@@ -39,19 +39,20 @@ export function SearchHistory({ className = '', maxItems = 10 }: SearchHistoryPr
   const displayHistory = history.slice(0, maxItems);
 
   return (
-    <div className={className} data-testid="search-history">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-          Recent Searches
-        </h3>
-        <button
-          onClick={handleClearHistory}
-          className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-          data-testid="clear-history-button"
-        >
-          Clear
-        </button>
-      </div>
+    <>
+      <div className={className} data-testid="search-history">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+            Recent Searches
+          </h3>
+          <button
+            onClick={() => setShowConfirmModal(true)}
+            className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            data-testid="clear-history-button"
+          >
+            Clear
+          </button>
+        </div>
       <div className="space-y-1">
         {displayHistory.map((item, index) => (
           <button
@@ -71,6 +72,17 @@ export function SearchHistory({ className = '', maxItems = 10 }: SearchHistoryPr
           </button>
         ))}
       </div>
-    </div>
+      </div>
+
+      <ConfirmModal
+        open={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={handleClearHistory}
+        title="Clear Search History"
+        message="Are you sure you want to clear your search history? This action cannot be undone."
+        confirmText="Clear"
+        variant="danger"
+      />
+    </>
   );
 }

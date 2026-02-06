@@ -24,6 +24,7 @@ export interface Clip {
     view_count: number;
     created_at: string;
     imported_at: string;
+    video_url?: string; // HLS video URL for clips with adaptive streaming support
     vote_score: number;
     comment_count: number;
     favorite_count: number;
@@ -45,6 +46,14 @@ export interface Clip {
     hot_score?: number;
     popularity_index?: number;
     engagement_count?: number;
+    // Watch progress (when available from watch history)
+    watch_progress?: {
+        progress_seconds: number;
+        duration_seconds: number;
+        progress_percent: number;
+        completed: boolean;
+        watched_at: string;
+    };
 }
 
 export interface ClipFeedResponse {

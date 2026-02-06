@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { UserPlus, Shield, Edit, Eye, Trash2 } from 'lucide-react';
+import apiClient from '@/lib/api';
 import type { PlaylistCollaborator, AddCollaboratorRequest } from '@/types/playlist';
 
 interface CollaboratorManagerProps {
@@ -21,21 +22,14 @@ export function CollaboratorManager({ playlistId, isOwner, canManageCollaborator
         try {
             setLoading(true);
             setError(null); // Clear any previous errors
-            const response = await fetch(`/api/v1/playlists/${playlistId}/collaborators`, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                },
-            });
+            const response = await apiClient.get<{ success: boolean; data: PlaylistCollaborator[]; error?: { message: string } }>(
+                `/playlists/${playlistId}/collaborators`
+            );
 
-            if (!response.ok) {
-                throw new Error('Failed to fetch collaborators');
-            }
-
-            const data = await response.json();
-            if (data.success) {
-                setCollaborators(data.data || []);
+            if (response.data.success) {
+                setCollaborators(response.data.data || []);
             } else {
-                throw new Error(data.error?.message || 'Failed to fetch collaborators');
+                throw new Error(response.data.error?.message || 'Failed to fetch collaborators');
             }
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An error occurred');
@@ -63,19 +57,10 @@ export function CollaboratorManager({ playlistId, isOwner, canManageCollaborator
                 permission: newCollaboratorPermission,
             };
 
-            const response = await fetch(`/api/v1/playlists/${playlistId}/collaborators`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                },
-                body: JSON.stringify(requestBody),
-            });
-
-            if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.error?.message || 'Failed to add collaborator');
-            }
+            await apiClient.post(
+                `/playlists/${playlistId}/collaborators`,
+                requestBody
+            );
 
             // Reset form and refresh list
             setNewCollaboratorUserId('');
@@ -96,18 +81,7 @@ export function CollaboratorManager({ playlistId, isOwner, canManageCollaborator
 
         try {
             setError(null); // Clear any previous errors
-            const response = await fetch(`/api/v1/playlists/${playlistId}/collaborators/${userId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                },
-            });
-
-            if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.error?.message || 'Failed to remove collaborator');
-            }
-
+            await apiClient.delete(`/playlists/${playlistId}/collaborators/${userId}`);
             await fetchCollaborators();
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An error occurred');
@@ -117,20 +91,10 @@ export function CollaboratorManager({ playlistId, isOwner, canManageCollaborator
     const updatePermission = async (userId: string, newPermission: 'view' | 'edit' | 'admin') => {
         try {
             setError(null); // Clear any previous errors
-            const response = await fetch(`/api/v1/playlists/${playlistId}/collaborators/${userId}`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                },
-                body: JSON.stringify({ permission: newPermission }),
-            });
-
-            if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.error?.message || 'Failed to update permission');
-            }
-
+            await apiClient.patch(
+                `/playlists/${playlistId}/collaborators/${userId}`,
+                { permission: newPermission }
+            );
             await fetchCollaborators();
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An error occurred');

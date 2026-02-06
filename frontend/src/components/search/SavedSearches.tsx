@@ -1,21 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { searchApi } from '../../lib/search-api';
+import { useSavedSearches } from '../../hooks/useSavedSearches';
 import type { SavedSearch } from '../../types/search';
+import { ConfirmModal } from '../ui/ConfirmModal';
 
 interface SavedSearchesProps {
   className?: string;
 }
 
 export function SavedSearches({ className = '' }: SavedSearchesProps) {
-  const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
+  const { savedSearches, deleteSavedSearch, clearSavedSearches } = useSavedSearches();
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    // Load saved searches from localStorage on mount
-    const searches = searchApi.getSavedSearches();
-    setSavedSearches(searches);
-  }, []);
 
   const handleSearchClick = (search: SavedSearch) => {
     const params = new URLSearchParams({ q: search.query });
@@ -37,18 +33,11 @@ export function SavedSearches({ className = '' }: SavedSearchesProps) {
 
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    searchApi.deleteSavedSearch(id);
-    // Reload saved searches
-    const searches = searchApi.getSavedSearches();
-    setSavedSearches(searches);
+    deleteSavedSearch(id);
   };
 
   const handleClearAll = () => {
-    // TODO: Replace with proper modal component for better UX
-    if (confirm('Clear all saved searches?')) {
-      searchApi.clearSavedSearches();
-      setSavedSearches([]);
-    }
+    clearSavedSearches();
   };
 
   if (savedSearches.length === 0) {
@@ -56,19 +45,20 @@ export function SavedSearches({ className = '' }: SavedSearchesProps) {
   }
 
   return (
-    <div className={className} data-testid="saved-searches">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-          Saved Searches
-        </h3>
-        <button
-          onClick={handleClearAll}
-          className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-          data-testid="clear-saved-searches"
-        >
-          Clear all
-        </button>
-      </div>
+    <>
+      <div className={className} data-testid="saved-searches">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+            Saved Searches
+          </h3>
+          <button
+            onClick={() => setShowConfirmModal(true)}
+            className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            data-testid="clear-saved-searches"
+          >
+            Clear all
+          </button>
+        </div>
       <div className="space-y-1">
         {savedSearches.map((search) => (
           <div
@@ -131,6 +121,17 @@ export function SavedSearches({ className = '' }: SavedSearchesProps) {
           </div>
         ))}
       </div>
-    </div>
+      </div>
+
+      <ConfirmModal
+        open={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={handleClearAll}
+        title="Clear All Saved Searches"
+        message="Are you sure you want to clear all saved searches? This action cannot be undone."
+        confirmText="Clear All"
+        variant="danger"
+      />
+    </>
   );
 }

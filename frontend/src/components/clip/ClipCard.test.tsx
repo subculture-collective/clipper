@@ -177,4 +177,100 @@ describe('ClipCard', () => {
         const link = screen.getByRole('link', { name: /amazing play/i });
         expect(link).toHaveAttribute('href', `/clip/${mockClip.id}`);
     });
+
+    it('displays watch progress indicator when progress data is available', () => {
+        const clipWithProgress = {
+            ...mockClip,
+            watch_progress: {
+                progress_seconds: 15,
+                duration_seconds: 30,
+                progress_percent: 50,
+                completed: false,
+                watched_at: '2024-01-01T12:00:00Z',
+            },
+        };
+
+        render(<ClipCard clip={clipWithProgress} />);
+
+        // Check for progress bar with correct aria attributes
+        const progressBar = screen.getByRole('progressbar');
+        expect(progressBar).toBeInTheDocument();
+        expect(progressBar).toHaveAttribute('aria-valuenow', '50');
+        expect(progressBar).toHaveAttribute('aria-valuemin', '0');
+        expect(progressBar).toHaveAttribute('aria-valuemax', '100');
+        expect(progressBar).toHaveAttribute('aria-label', '50% watched');
+    });
+
+    it('displays "Watched" badge when clip is completed', () => {
+        const completedClip = {
+            ...mockClip,
+            watch_progress: {
+                progress_seconds: 30,
+                duration_seconds: 30,
+                progress_percent: 100,
+                completed: true,
+                watched_at: '2024-01-01T12:00:00Z',
+            },
+        };
+
+        render(<ClipCard clip={completedClip} />);
+
+        // Check for "Watched" badge
+        expect(screen.getByText('Watched')).toBeInTheDocument();
+    });
+
+    it('does not display progress indicator when watch progress is not available', () => {
+        render(<ClipCard clip={mockClip} />);
+
+        // Should not have progress bar
+        expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+        // Should not have "Watched" badge
+        expect(screen.queryByText('Watched')).not.toBeInTheDocument();
+    });
+
+    it('clamps progress percentage to 100 when value exceeds maximum', () => {
+        const clipWithExcessProgress = {
+            ...mockClip,
+            watch_progress: {
+                progress_seconds: 40,
+                duration_seconds: 30,
+                progress_percent: 133, // Over 100%
+                completed: false,
+                watched_at: '2024-01-01T12:00:00Z',
+            },
+        };
+
+        render(<ClipCard clip={clipWithExcessProgress} />);
+
+        const progressBar = screen.getByRole('progressbar');
+        // Should clamp to 100 for ARIA attributes
+        expect(progressBar).toHaveAttribute('aria-valuenow', '100');
+        expect(progressBar).toHaveAttribute('aria-label', '100% watched');
+        // Visual indicator should be clamped to 100%
+        const progressFill = progressBar.querySelector('.bg-purple-600');
+        expect(progressFill).toHaveStyle({ width: '100%' });
+    });
+
+    it('clamps progress percentage to 0 when value is negative', () => {
+        const clipWithNegativeProgress = {
+            ...mockClip,
+            watch_progress: {
+                progress_seconds: -5,
+                duration_seconds: 30,
+                progress_percent: -10,
+                completed: false,
+                watched_at: '2024-01-01T12:00:00Z',
+            },
+        };
+
+        render(<ClipCard clip={clipWithNegativeProgress} />);
+
+        const progressBar = screen.getByRole('progressbar');
+        // Should clamp to 0 for ARIA attributes
+        expect(progressBar).toHaveAttribute('aria-valuenow', '0');
+        expect(progressBar).toHaveAttribute('aria-label', '0% watched');
+        // Visual indicator should be clamped to 0%
+        const progressFill = progressBar.querySelector('.bg-purple-600');
+        expect(progressFill).toHaveStyle({ width: '0%' });
+    });
 });

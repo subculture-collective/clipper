@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container, ScrollToTop, SEO } from '../components';
 import { MiniFooter } from '../components/layout';
-import { ChatPanel, ReactionOverlay } from '../components/watch-party';
+import { ChatPanel, FloatingReactions, SyncedVideoPlayer, HostControls, SyncStatus } from '../components/watch-party';
 import { useWatchPartyWebSocket } from '../hooks/useWatchPartyWebSocket';
 import { getWatchParty, getWatchPartyParticipants, leaveWatchParty, endWatchParty, kickParticipant } from '../lib/watch-party-api';
 import { useAuth } from '../hooks/useAuth';
@@ -26,6 +26,7 @@ export function WatchPartyPage() {
 
   // WebSocket connection
   const {
+    sendCommand,
     sendChatMessage,
     sendReaction,
     sendTyping,
@@ -183,6 +184,19 @@ export function WatchPartyPage() {
     sendTyping(isTyping);
   };
 
+  // Host control handlers
+  const handlePlay = () => {
+    sendCommand({ type: 'play' });
+  };
+
+  const handlePause = () => {
+    sendCommand({ type: 'pause' });
+  };
+
+  const handleSeek = (position: number) => {
+    sendCommand({ type: 'seek', position });
+  };
+
   if (loading) {
     return (
       <>
@@ -220,6 +234,8 @@ export function WatchPartyPage() {
   }
 
   const isHost = party.host_user_id === user?.id;
+  const userParticipant = participants.find(p => p.user_id === user?.id);
+  const canControl = isHost || userParticipant?.role === 'co-host';
 
   return (
     <>
@@ -238,10 +254,7 @@ export function WatchPartyPage() {
                   <Users className="w-4 h-4" />
                   <span>{participants.length} watching</span>
                 </div>
-                <div className={`flex items-center gap-1 ${isConnected ? 'text-success-600' : 'text-error-600'}`}>
-                  <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-success-600' : 'bg-error-600'}`}></div>
-                  <span>{isConnected ? 'Connected' : 'Disconnected'}</span>
-                </div>
+                <SyncStatus isConnected={isConnected} />
               </div>
             </div>
 
@@ -281,20 +294,32 @@ export function WatchPartyPage() {
 
           {/* Main content area */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* Video player area (placeholder) */}
+            {/* Video player area */}
             <div className="lg:col-span-2">
-              <div className="relative bg-surface-secondary rounded-lg aspect-video flex items-center justify-center">
-                <div className="text-center text-content-secondary">
-                  <p className="text-lg mb-2">Video Player</p>
-                  <p className="text-sm">Synchronized playback will appear here</p>
-                  {party.current_clip_id && (
-                    <p className="text-xs mt-2">Clip ID: {party.current_clip_id}</p>
-                  )}
-                </div>
+              <div className="relative">
+                <SyncedVideoPlayer
+                  clipId={party.current_clip_id}
+                  currentPosition={party.current_position_seconds}
+                  isPlaying={party.is_playing}
+                />
 
                 {/* Reaction overlay */}
-                <ReactionOverlay reactions={reactions} />
+                <FloatingReactions reactions={reactions} />
               </div>
+
+              {/* Host controls - only show for host/co-host */}
+              {canControl && (
+                <div className="mt-4">
+                  <HostControls
+                    isPlaying={party.is_playing}
+                    currentPosition={party.current_position_seconds}
+                    onPlay={handlePlay}
+                    onPause={handlePause}
+                    onSeek={handleSeek}
+                    disabled={!isConnected}
+                  />
+                </div>
+              )}
 
               {/* Reaction buttons */}
               <div className="mt-4 flex gap-2 flex-wrap">
@@ -328,39 +353,61 @@ export function WatchPartyPage() {
           <div className="mt-6">
             <h2 className="text-lg font-semibold text-content-primary mb-3">Participants ({participants.length})</h2>
             <div className="flex flex-wrap gap-2">
-              {participants.map((participant) => (
-                <div
-                  key={participant.id}
-                  className="flex items-center gap-2 px-3 py-2 bg-surface-secondary rounded-lg"
-                >
-                  {participant.user?.avatar_url ? (
-                    <img
-                      src={participant.user.avatar_url}
-                      alt={participant.user.display_name}
-                      className="w-6 h-6 rounded-full"
-                    />
-                  ) : (
-                    <div className="w-6 h-6 rounded-full bg-primary-500 flex items-center justify-center text-white text-xs">
-                      {participant.user?.display_name?.charAt(0) || '?'}
+              {participants.map((participant) => {
+                // Calculate sync status based on offset
+                const getSyncIndicator = () => {
+                  const offset = Math.abs(participant.sync_offset_ms);
+                  if (offset < 1000) return { color: 'bg-success-500', title: 'In sync' };
+                  if (offset < 3000) return { color: 'bg-warning-500', title: 'Slight delay' };
+                  return { color: 'bg-error-500', title: 'Out of sync' };
+                };
+                
+                const syncIndicator = getSyncIndicator();
+                
+                return (
+                  <div
+                    key={participant.id}
+                    className="flex items-center gap-2 px-3 py-2 bg-surface-secondary rounded-lg"
+                  >
+                    <div className="relative">
+                      {participant.user?.avatar_url ? (
+                        <img
+                          src={participant.user.avatar_url}
+                          alt={participant.user.display_name}
+                          className="w-6 h-6 rounded-full"
+                        />
+                      ) : (
+                        <div className="w-6 h-6 rounded-full bg-primary-500 flex items-center justify-center text-white text-xs">
+                          {participant.user?.display_name?.charAt(0) || '?'}
+                        </div>
+                      )}
+                      {/* Sync indicator dot */}
+                      <div
+                        className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full ${syncIndicator.color} ring-2 ring-surface-secondary`}
+                        title={syncIndicator.title}
+                      />
                     </div>
-                  )}
-                  <span className="text-sm text-content-primary">
-                    {participant.user?.display_name || participant.user?.username}
-                  </span>
-                  {participant.role === 'host' && (
-                    <span className="text-xs bg-primary-500 text-white px-2 py-0.5 rounded">Host</span>
-                  )}
-                  {isHost && participant.user_id !== user?.id && (
-                    <button
-                      onClick={() => handleKickParticipant(participant.user_id)}
-                      className="ml-1 p-1 hover:bg-error-500/10 text-error-600 rounded transition-colors"
-                      title="Kick participant"
-                    >
-                      <UserMinus className="w-3 h-3" />
-                    </button>
-                  )}
-                </div>
-              ))}
+                    <span className="text-sm text-content-primary">
+                      {participant.user?.display_name || participant.user?.username}
+                    </span>
+                    {participant.role === 'host' && (
+                      <span className="text-xs bg-primary-500 text-white px-2 py-0.5 rounded">Host</span>
+                    )}
+                    {participant.role === 'co-host' && (
+                      <span className="text-xs bg-primary-400 text-white px-2 py-0.5 rounded">Co-Host</span>
+                    )}
+                    {isHost && participant.user_id !== user?.id && (
+                      <button
+                        onClick={() => handleKickParticipant(participant.user_id)}
+                        className="ml-1 p-1 hover:bg-error-500/10 text-error-600 rounded transition-colors"
+                        title="Kick participant"
+                      >
+                        <UserMinus className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

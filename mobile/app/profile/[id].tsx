@@ -1,0 +1,114 @@
+/**
+ * User profile detail screen
+ * Shows profile information for a specific user
+ */
+
+import {
+    View,
+    Text,
+    ScrollView,
+    ActivityIndicator,
+    Image,
+} from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
+import { TouchableOpacity } from 'react-native';
+import { Colors } from '../../constants/theme';
+import { useColorScheme } from '../../hooks/use-color-scheme';
+import { getUser } from '../../services/users';
+import { useEffect } from 'react';
+import { trackEvent, SettingsEvents } from '../../lib/analytics';
+
+export default function UserProfileScreen() {
+    const { id } = useLocalSearchParams<{ id: string }>();
+    const router = useRouter();
+    const colorScheme = useColorScheme();
+    const primaryColor = Colors[colorScheme ?? 'light'].primary;
+
+    const { data: user, isLoading } = useQuery({
+        queryKey: ['user', id],
+        queryFn: () => getUser(String(id)),
+        enabled: !!id,
+    });
+
+    // Track profile view when user data loads
+    useEffect(() => {
+        if (user) {
+            trackEvent(SettingsEvents.PROFILE_VIEWED, {
+                viewed_user_id: user.id,
+                viewed_username: user.username,
+                has_bio: !!user.bio,
+            });
+        }
+    }, [user]);
+
+    if (isLoading) {
+        return (
+            <View className='flex-1 items-center justify-center bg-white'>
+                <ActivityIndicator size='large' color={primaryColor} />
+            </View>
+        );
+    }
+
+    if (!user) {
+        return (
+            <View className='flex-1 items-center justify-center bg-white p-4'>
+                <Text className='text-xl font-bold text-gray-900 mb-2'>
+                    User not found
+                </Text>
+                <TouchableOpacity onPress={() => router.back()}>
+                    <Text className='text-primary-600'>Go back</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
+
+    return (
+        <ScrollView className='flex-1 bg-white'>
+            <View className='items-center p-6 border-b border-gray-200'>
+                {user.avatar_url ? (
+                    <Image
+                        source={{ uri: user.avatar_url }}
+                        className='w-24 h-24 rounded-full mb-3'
+                    />
+                ) : (
+                    <View className='w-24 h-24 rounded-full bg-primary-500 items-center justify-center mb-3'>
+                        <Text className='text-4xl text-white'>
+                            {user.display_name.charAt(0).toUpperCase()}
+                        </Text>
+                    </View>
+                )}
+                <Text className='text-2xl font-bold text-gray-900'>
+                    {user.display_name}
+                </Text>
+                <Text className='text-base text-gray-500 mb-2'>
+                    @{user.username}
+                </Text>
+                {user.karma_points && user.karma_points > 0 && (
+                    <View className='bg-primary-50 px-3 py-1 rounded-full'>
+                        <Text className='text-sm text-primary-700 font-semibold'>
+                            ⭐ {user.karma_points} karma
+                        </Text>
+                    </View>
+                )}
+            </View>
+
+            {user.bio && (
+                <View className='p-4 border-b border-gray-200'>
+                    <Text className='text-base text-gray-700'>{user.bio}</Text>
+                </View>
+            )}
+
+            <View className='p-4'>
+                <Text className='text-lg font-bold text-gray-900 mb-3'>
+                    Activity
+                </Text>
+                <View className='items-center py-8'>
+                    <Text className='text-gray-500'>
+                        User activity coming soon
+                    </Text>
+                </View>
+            </View>
+        </ScrollView>
+    );
+}

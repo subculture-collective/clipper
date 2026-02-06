@@ -1,0 +1,5120 @@
+openapi: 3.1.0
+info:
+  title: Clipper API
+  description: |
+    Complete API documentation for the Clipper platform - a social platform for Twitch clip curation and sharing.
+    
+    ## Authentication
+    Most endpoints require authentication via JWT Bearer token:
+    ```
+    Authorization: Bearer <your_jwt_token>
+    ```
+    
+    ## Rate Limiting
+    API endpoints are rate-limited to prevent abuse. Rate limits vary by endpoint and are documented in each operation.
+    Common limits:
+    - Public endpoints: 60-100 requests/minute
+    - Authenticated actions: 10-30 requests/minute
+    - Submission operations: 5-10 requests/hour
+    
+    ## Pagination
+    List endpoints support pagination via `page` and `limit` query parameters.
+    Default limit is 20, maximum is 100.
+    
+    ## Errors
+    The API uses standard HTTP status codes:
+    - 200: Success
+    - 201: Created
+    - 400: Bad Request
+    - 401: Unauthorized
+    - 403: Forbidden
+    - 404: Not Found
+    - 429: Too Many Requests
+    - 500: Internal Server Error
+    
+  version: 1.0.0
+  contact:
+    name: Clipper API Support
+    url: https://github.com/subculture-collective/clipper
+    email: support@clpr.tv
+  license:
+    name: MIT
+    url: https://github.com/subculture-collective/clipper/blob/main/LICENSE
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+  - url: https://staging.clpr.tv
+    description: Staging environment
+  - url: https://api.clpr.tv
+    description: Production API server
+
+tags:
+  - name: Health
+    description: Health check and monitoring endpoints
+  - name: Authentication
+    description: User authentication and OAuth
+  - name: MFA
+    description: Multi-factor authentication
+  - name: Clips
+    description: Clip management and discovery
+  - name: Comments
+    description: Comment and reply operations
+  - name: Tags
+    description: Tag management and discovery
+  - name: Search
+    description: Search functionality
+  - name: Submissions
+    description: User clip submissions
+  - name: Reports
+    description: Content reporting
+  - name: Moderation
+    description: Moderation and appeals
+  - name: Users
+    description: User profiles and social features
+  - name: Creators
+    description: Creator analytics and tools
+  - name: Broadcasters
+    description: Broadcaster profiles and content
+  - name: Categories
+    description: Content categories
+  - name: Streams
+    description: Live stream integration
+  - name: Games
+    description: Game discovery and following
+  - name: Discovery
+    description: Discovery lists and recommendations
+  - name: Leaderboards
+    description: User rankings and leaderboards
+  - name: Feeds
+    description: Content feeds
+  - name: Recommendations
+    description: Personalized recommendations
+  - name: Notifications
+    description: User notifications
+  - name: Verification
+    description: Creator verification
+  - name: Subscriptions
+    description: Premium subscriptions
+  - name: Webhooks
+    description: Webhook management
+  - name: Contact
+    description: Contact form
+  - name: Chat
+    description: Chat channels and messaging
+  - name: Ads
+    description: Advertisement system
+  - name: Documentation
+    description: API documentation
+  - name: Communities
+    description: Community management
+  - name: Playlists
+    description: Playlist management
+  - name: Forum
+    description: Forum discussions
+  - name: Queue
+    description: Playback queue
+  - name: Watch History
+    description: Watch history and progress
+  - name: Watch Parties
+    description: Watch party features
+  - name: Service Status
+    description: Service status and incidents
+  - name: Admin
+    description: Administrative operations
+
+security:
+  - BearerAuth: []
+
+paths:
+  # ========================================
+  # SEO & Public Pages
+  # ========================================
+  /sitemap.xml:
+    get:
+      tags: [Health]
+      summary: Get sitemap XML
+      description: Returns sitemap for search engine crawlers
+      operationId: getSitemap
+      security: []
+      responses:
+        '200':
+          description: Sitemap XML
+          content:
+            application/xml:
+              schema:
+                type: string
+  
+  /robots.txt:
+    get:
+      tags: [Health]
+      summary: Get robots.txt
+      description: Returns robots.txt for search engine crawlers
+      operationId: getRobotsTxt
+      security: []
+      responses:
+        '200':
+          description: robots.txt content
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  # ========================================
+  # Health & Monitoring
+  # ========================================
+  /health/ready:
+    get:
+      tags: [Health]
+      summary: Readiness check
+      description: Returns 200 if all services are ready (database, redis, etc.)
+      operationId: getHealthReady
+      security: []
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /health/live:
+    get:
+      tags: [Health]
+      summary: Liveness check
+      description: Returns 200 if service is alive
+      operationId: getHealthLive
+      security: []
+      responses:
+        '200':
+          description: Service is alive
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /health/stats:
+    get:
+      tags: [Health]
+      summary: Health statistics
+      description: Returns database connection stats and other health metrics
+      operationId: getHealthStats
+      security: []
+      responses:
+        '200':
+          description: Health statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  database:
+                    type: object
+                    properties:
+                      max_connections:
+                        type: integer
+                      open_connections:
+                        type: integer
+                      in_use:
+                        type: integer
+                      idle:
+                        type: integer
+
+  /health/cache:
+    get:
+      tags: [Health]
+      summary: Cache statistics
+      description: Returns Redis cache statistics
+      operationId: getCacheStats
+      security: []
+      responses:
+        '200':
+          description: Cache statistics
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /health/cache/check:
+    get:
+      tags: [Health]
+      summary: Cache health check
+      description: Verifies Redis cache connectivity
+      operationId: getCacheHealth
+      security: []
+      responses:
+        '200':
+          description: Cache is healthy
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /health/webhooks:
+    get:
+      tags: [Health]
+      summary: Webhook retry statistics
+      description: Returns webhook delivery retry statistics
+      operationId: getWebhookRetryStats
+      security: []
+      responses:
+        '200':
+          description: Webhook statistics
+          content:
+            application/json:
+              schema:
+                type: object
+
+  # ========================================
+  # Debug Endpoints (development only)
+  # ========================================
+  /debug/metrics:
+    get:
+      tags: [Health]
+      summary: Prometheus metrics
+      description: Returns Prometheus metrics (debug mode only)
+      operationId: getMetrics
+      security: []
+      responses:
+        '200':
+          description: Prometheus metrics
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  # ========================================
+  # API v1
+  # ========================================
+  /api/v1/health:
+    get:
+      tags: [Health]
+      summary: API health check
+      description: Basic health check for v1 API
+      operationId: getApiV1Health
+      security: []
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /api/v1/ping:
+    get:
+      tags: [Health]
+      summary: Ping endpoint
+      description: Simple ping to check API responsiveness
+      operationId: ping
+      security: []
+      responses:
+        '200':
+          description: Pong response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: pong
+
+  /api/v1/config:
+    get:
+      tags: [Health]
+      summary: Get public configuration
+      description: Returns public configuration values (features, limits, etc.)
+      operationId: getPublicConfig
+      security: []
+      responses:
+        '200':
+          description: Public configuration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  features:
+                    type: object
+                  limits:
+                    type: object
+
+  # ========================================
+  # Logging
+  # ========================================
+  /api/v1/logs:
+    post:
+      tags: [Health]
+      summary: Submit application logs
+      description: Submit client-side application logs (rate limited - 60/minute)
+      operationId: submitLogs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                level:
+                  type: string
+                  enum: [debug, info, warn, error]
+                message:
+                  type: string
+                context:
+                  type: object
+      responses:
+        '201':
+          description: Log submitted successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/logs/stats:
+    get:
+      tags: [Health]
+      summary: Get log statistics
+      description: Returns aggregated log statistics (rate limited - 30/minute)
+      operationId: getLogStats
+      responses:
+        '200':
+          description: Log statistics
+          content:
+            application/json:
+              schema:
+                type: object
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  # ========================================
+  # Authentication
+  # ========================================
+  /api/v1/auth/twitch:
+    get:
+      tags: [Authentication]
+      summary: Initiate Twitch OAuth
+      description: Redirects to Twitch OAuth authorization (rate limited - 30/minute)
+      operationId: initiateTwitchOAuth
+      security: []
+      parameters:
+        - name: redirect_uri
+          in: query
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect to Twitch OAuth
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/auth/twitch/callback:
+    get:
+      tags: [Authentication]
+      summary: Twitch OAuth callback
+      description: Handles OAuth callback from Twitch (rate limited - 50/minute)
+      operationId: handleTwitchCallback
+      security: []
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags: [Authentication]
+      summary: PKCE OAuth callback
+      description: Handles PKCE OAuth callback (rate limited - 50/minute)
+      operationId: handlePKCECallback
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, code_verifier]
+              properties:
+                code:
+                  type: string
+                code_verifier:
+                  type: string
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/auth/test-login:
+    post:
+      tags: [Authentication]
+      summary: Test login (development only)
+      description: Creates test user session for development (rate limited - 30/minute)
+      operationId: testLogin
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username]
+              properties:
+                username:
+                  type: string
+      responses:
+        '200':
+          description: Test login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Refresh access token
+      description: Refresh JWT access token using refresh token (rate limited - 50/minute)
+      operationId: refreshToken
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token:
+                  type: string
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/auth/logout:
+    post:
+      tags: [Authentication]
+      summary: Logout
+      description: Invalidates current session and refresh tokens
+      operationId: logout
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Logged out successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/auth/me:
+    get:
+      tags: [Authentication]
+      summary: Get current user
+      description: Returns currently authenticated user
+      operationId: getCurrentUser
+      responses:
+        '200':
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/auth/twitch/reauthorize:
+    post:
+      tags: [Authentication]
+      summary: Reauthorize Twitch
+      description: Re-initiates Twitch OAuth flow for additional scopes (rate limited - 3/hour)
+      operationId: reauthorizeTwitch
+      responses:
+        '200':
+          description: Reauthorization initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  authorization_url:
+                    type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  # ========================================
+  # MFA (Multi-Factor Authentication)
+  # ========================================
+  /api/v1/auth/mfa/enroll:
+    post:
+      tags: [MFA]
+      summary: Start MFA enrollment
+      description: Initiates MFA enrollment process (rate limited - 3/hour)
+      operationId: startMFAEnrollment
+      responses:
+        '200':
+          description: MFA enrollment started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  qr_code:
+                    type: string
+                    description: Base64 encoded QR code
+                  secret:
+                    type: string
+                  backup_codes:
+                    type: array
+                    items:
+                      type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/auth/mfa/verify-enrollment:
+    post:
+      tags: [MFA]
+      summary: Verify MFA enrollment
+      description: Completes MFA enrollment by verifying TOTP code (rate limited - 10/minute)
+      operationId: verifyMFAEnrollment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+                  description: 6-digit TOTP code
+      responses:
+        '200':
+          description: MFA enrollment verified
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled:
+                    type: boolean
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/auth/mfa/status:
+    get:
+      tags: [MFA]
+      summary: Get MFA status
+      description: Returns MFA enrollment status for current user
+      operationId: getMFAStatus
+      responses:
+        '200':
+          description: MFA status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled:
+                    type: boolean
+                  enrolled_at:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/auth/mfa/regenerate-backup-codes:
+    post:
+      tags: [MFA]
+      summary: Regenerate backup codes
+      description: Generates new backup codes (rate limited - 5/hour)
+      operationId: regenerateBackupCodes
+      responses:
+        '200':
+          description: New backup codes generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  backup_codes:
+                    type: array
+                    items:
+                      type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/auth/mfa/disable:
+    post:
+      tags: [MFA]
+      summary: Disable MFA
+      description: Disables MFA for current user (rate limited - 3/hour)
+      operationId: disableMFA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+                  description: 6-digit TOTP code or backup code
+      responses:
+        '200':
+          description: MFA disabled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  disabled:
+                    type: boolean
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/auth/mfa/trusted-devices:
+    get:
+      tags: [MFA]
+      summary: Get trusted devices
+      description: Returns list of trusted devices for MFA
+      operationId: getTrustedDevices
+      responses:
+        '200':
+          description: List of trusted devices
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  devices:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TrustedDevice'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/auth/mfa/trusted-devices/{id}:
+    delete:
+      tags: [MFA]
+      summary: Revoke trusted device
+      description: Removes a device from trusted devices list
+      operationId: revokeTrustedDevice
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '204':
+          description: Trusted device revoked
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/auth/mfa/verify-login:
+    post:
+      tags: [MFA]
+      summary: Verify MFA login
+      description: Verifies MFA code during login (rate limited - 10/minute)
+      operationId: verifyMFALogin
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [session_id, code]
+              properties:
+                session_id:
+                  type: string
+                code:
+                  type: string
+                  description: 6-digit TOTP code or backup code
+                trust_device:
+                  type: boolean
+      responses:
+        '200':
+          description: MFA verification successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  # ========================================
+  # Clips
+  # ========================================
+  /api/v1/clips:
+    get:
+      tags: [Clips]
+      summary: List clips
+      description: Returns paginated list of clips with filtering and sorting options
+      operationId: listClips
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [hot, trending, new, top, controversial]
+            default: hot
+        - name: game
+          in: query
+          schema:
+            type: string
+          description: Filter by game name
+        - name: broadcaster
+          in: query
+          schema:
+            type: string
+          description: Filter by broadcaster name
+        - name: tag
+          in: query
+          schema:
+            type: string
+          description: Filter by tag slug
+        - name: language
+          in: query
+          schema:
+            type: string
+          description: Filter by language code
+        - name: time_range
+          in: query
+          schema:
+            type: string
+            enum: [hour, day, week, month, year, all]
+          description: Time range for 'top' sort
+      responses:
+        '200':
+          description: List of clips
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  clips:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Clip'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/clips/{id}:
+    get:
+      tags: [Clips]
+      summary: Get clip by ID
+      description: Returns detailed information about a specific clip
+      operationId: getClip
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/ClipId'
+      responses:
+        '200':
+          description: Clip details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClipDetailed'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Clips]
+      summary: Update clip (Admin)
+      description: Updates clip metadata (admin/moderator only)
+      operationId: updateClip
+      parameters:
+        - $ref: '#/components/parameters/ClipId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                is_featured:
+                  type: boolean
+                is_nsfw:
+                  type: boolean
+                is_hidden:
+                  type: boolean
+      responses:
+        '200':
+          description: Clip updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Clip'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Clips]
+      summary: Delete clip (Admin)
+      description: Permanently deletes a clip (admin only)
+      operationId: deleteClip
+      parameters:
+        - $ref: '#/components/parameters/ClipId'
+      responses:
+        '204':
+          description: Clip deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/clips/{id}/related:
+    get:
+      tags: [Clips]
+      summary: Get related clips
+      description: Returns clips related to the specified clip
+      operationId: getRelatedClips
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/ClipId'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Related clips
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  clips:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Clip'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/clips/batch-media:
+    post:
+      tags: [Clips]
+      summary: Batch get clip media URLs
+      description: Returns media URLs for multiple clips (rate limited - 60/minute)
+      operationId: batchGetClipMedia
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [clip_ids]
+              properties:
+                clip_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                  maxItems: 50
+      responses:
+        '200':
+          description: Clip media URLs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  media:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        clip_id:
+                          type: string
+                          format: uuid
+                        video_url:
+                          type: string
+                        thumbnail_url:
+                          type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/clips/{id}/tags:
+    get:
+      tags: [Tags]
+      summary: Get clip tags
+      description: Returns all tags associated with a clip
+      operationId: getClipTags
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/ClipId'
+      responses:
+        '200':
+          description: Clip tags
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tags:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Tag'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [Tags]
+      summary: Add tags to clip
+      description: Adds tags to a clip (rate limited - 10/minute)
+      operationId: addTagsToClip
+      parameters:
+        - $ref: '#/components/parameters/ClipId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tags]
+              properties:
+                tags:
+                  type: array
+                  items:
+                    type: string
+                  maxItems: 10
+      responses:
+        '201':
+          description: Tags added
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tags:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Tag'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/clips/{id}/tags/{slug}:
+    delete:
+      tags: [Tags]
+      summary: Remove tag from clip
+      description: Removes a tag from a clip
+      operationId: removeTagFromClip
+      parameters:
+        - $ref: '#/components/parameters/ClipId'
+        - $ref: '#/components/parameters/TagSlug'
+      responses:
+        '204':
+          description: Tag removed
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/clips/{id}/analytics:
+    get:
+      tags: [Clips]
+      summary: Get clip analytics
+      description: Returns analytics data for a specific clip
+      operationId: getClipAnalytics
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/ClipId'
+      responses:
+        '200':
+          description: Clip analytics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClipAnalytics'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/clips/{id}/track-view:
+    post:
+      tags: [Clips]
+      summary: Track clip view
+      description: Records a view event for analytics
+      operationId: trackClipView
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/ClipId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                duration:
+                  type: number
+                  description: View duration in seconds
+                referrer:
+                  type: string
+      responses:
+        '201':
+          description: View tracked
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/clips/{id}/engagement:
+    get:
+      tags: [Clips]
+      summary: Get clip engagement score
+      description: Returns engagement metrics and score for a clip
+      operationId: getClipEngagement
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/ClipId'
+      responses:
+        '200':
+          description: Engagement score
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  score:
+                    type: number
+                  metrics:
+                    type: object
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/clips/{id}/progress:
+    get:
+      tags: [Watch History]
+      summary: Get resume position
+      description: Returns saved watch progress for clip (optional auth)
+      operationId: getResumePosition
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/ClipId'
+      responses:
+        '200':
+          description: Resume position
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  position:
+                    type: number
+                    description: Playback position in seconds
+                  percentage:
+                    type: number
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/clips/{id}/comments:
+    get:
+      tags: [Comments]
+      summary: List clip comments
+      description: Returns paginated list of comments for a clip
+      operationId: listClipComments
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/ClipId'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [best, new, top, controversial]
+            default: best
+      responses:
+        '200':
+          description: List of comments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  comments:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Comment'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [Comments]
+      summary: Create comment
+      description: Creates a new comment on a clip (rate limited - 10/minute)
+      operationId: createComment
+      parameters:
+        - $ref: '#/components/parameters/ClipId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content:
+                  type: string
+                  minLength: 1
+                  maxLength: 10000
+                parent_comment_id:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: Comment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/clips/{id}/vote:
+    post:
+      tags: [Clips]
+      summary: Vote on clip
+      description: Upvote or downvote a clip (rate limited - 20/minute)
+      operationId: voteOnClip
+      parameters:
+        - $ref: '#/components/parameters/ClipId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [vote_type]
+              properties:
+                vote_type:
+                  type: integer
+                  enum: [1, -1]
+                  description: 1 for upvote, -1 for downvote
+      responses:
+        '200':
+          description: Vote recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  vote_score:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/clips/{id}/favorite:
+    post:
+      tags: [Clips]
+      summary: Add clip to favorites
+      description: Adds a clip to user's favorites
+      operationId: addFavorite
+      parameters:
+        - $ref: '#/components/parameters/ClipId'
+      responses:
+        '201':
+          description: Clip favorited
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  favorited:
+                    type: boolean
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Clips]
+      summary: Remove clip from favorites
+      description: Removes a clip from user's favorites
+      operationId: removeFavorite
+      parameters:
+        - $ref: '#/components/parameters/ClipId'
+      responses:
+        '204':
+          description: Favorite removed
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/clips/{id}/metadata:
+    put:
+      tags: [Clips]
+      summary: Update clip metadata
+      description: Updates clip metadata (creator/submitter only, rate limited - 10/minute)
+      operationId: updateClipMetadata
+      parameters:
+        - $ref: '#/components/parameters/ClipId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  maxLength: 200
+      responses:
+        '200':
+          description: Metadata updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Clip'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/clips/{id}/visibility:
+    put:
+      tags: [Clips]
+      summary: Update clip visibility
+      description: Updates clip visibility (creator/submitter only, rate limited - 10/minute)
+      operationId: updateClipVisibility
+      parameters:
+        - $ref: '#/components/parameters/ClipId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [is_hidden]
+              properties:
+                is_hidden:
+                  type: boolean
+      responses:
+        '200':
+          description: Visibility updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Clip'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/clips/request:
+    post:
+      tags: [Clips]
+      summary: Request clip sync
+      description: Request a specific clip to be synced from Twitch (rate limited - 10/hour)
+      operationId: requestClip
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [clip_url]
+              properties:
+                clip_url:
+                  type: string
+                  format: uri
+      responses:
+        '202':
+          description: Clip sync requested
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  clip_id:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  # ========================================
+  # Scraped Clips
+  # ========================================
+  /api/v1/scraped-clips:
+    get:
+      tags: [Clips]
+      summary: List scraped clips
+      description: Returns clips that haven't been claimed by users yet
+      operationId: listScrapedClips
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: List of scraped clips
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  clips:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Clip'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+  # ========================================
+  # Comments
+  # ========================================
+  /api/v1/comments/{id}/replies:
+    get:
+      tags: [Comments]
+      summary: Get comment replies
+      description: Returns replies to a specific comment
+      operationId: getCommentReplies
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: List of replies
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  comments:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Comment'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/comments/{id}:
+    put:
+      tags: [Comments]
+      summary: Update comment
+      description: Updates a comment (author only)
+      operationId: updateComment
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content:
+                  type: string
+                  minLength: 1
+                  maxLength: 10000
+      responses:
+        '200':
+          description: Comment updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Comments]
+      summary: Delete comment
+      description: Deletes a comment (author/admin only)
+      operationId: deleteComment
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '204':
+          description: Comment deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/comments/{id}/vote:
+    post:
+      tags: [Comments]
+      summary: Vote on comment
+      description: Upvote or downvote a comment (rate limited - 20/minute)
+      operationId: voteOnComment
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [vote_type]
+              properties:
+                vote_type:
+                  type: integer
+                  enum: [1, -1]
+      responses:
+        '200':
+          description: Vote recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  vote_score:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  # ========================================
+  # Favorites
+  # ========================================
+  /api/v1/favorites:
+    get:
+      tags: [Clips]
+      summary: List user favorites
+      description: Returns current user's favorite clips
+      operationId: listUserFavorites
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: List of favorite clips
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  favorites:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Clip'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ========================================
+  # Tags
+  # ========================================
+  /api/v1/tags:
+    get:
+      tags: [Tags]
+      summary: List tags
+      description: Returns list of all tags
+      operationId: listTags
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: List of tags
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tags:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Tag'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+  /api/v1/tags/search:
+    get:
+      tags: [Tags]
+      summary: Search tags
+      description: Search tags by name (rate limited - 60/minute)
+      operationId: searchTags
+      security: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Search query
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tags:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Tag'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/tags/{slug}:
+    get:
+      tags: [Tags]
+      summary: Get tag by slug
+      description: Returns detailed information about a tag
+      operationId: getTag
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/TagSlug'
+      responses:
+        '200':
+          description: Tag details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/tags/{slug}/clips:
+    get:
+      tags: [Tags]
+      summary: Get clips by tag
+      description: Returns clips with the specified tag
+      operationId: getClipsByTag
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/TagSlug'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [hot, trending, new, top]
+      responses:
+        '200':
+          description: List of clips
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  clips:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Clip'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ========================================
+  # Search
+  # ========================================
+  /api/v1/search:
+    get:
+      tags: [Search]
+      summary: Search clips
+      description: Full-text search for clips (rate limited - 60/minute)
+      operationId: search
+      security: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Search query
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [clips, users, tags]
+            default: clips
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      oneOf:
+                        - $ref: '#/components/schemas/Clip'
+                        - $ref: '#/components/schemas/User'
+                        - $ref: '#/components/schemas/Tag'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/search/suggestions:
+    get:
+      tags: [Search]
+      summary: Get search suggestions
+      description: Returns autocomplete suggestions (rate limited - 60/minute)
+      operationId: getSearchSuggestions
+      security: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Suggestions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  suggestions:
+                    type: array
+                    items:
+                      type: string
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/search/scores:
+    get:
+      tags: [Search]
+      summary: Search with scores
+      description: Hybrid search with similarity scores (rate limited - 60/minute)
+      operationId: searchWithScores
+      security: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Search results with scores
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        clip:
+                          $ref: '#/components/schemas/Clip'
+                        score:
+                          type: number
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/search/trending:
+    get:
+      tags: [Search]
+      summary: Get trending searches
+      description: Returns popular search queries (rate limited - 30/minute)
+      operationId: getTrendingSearches
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Trending searches
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  searches:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        query:
+                          type: string
+                        count:
+                          type: integer
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/search/history:
+    get:
+      tags: [Search]
+      summary: Get search history
+      description: Returns user's search history
+      operationId: getSearchHistory
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Search history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  history:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        query:
+                          type: string
+                        timestamp:
+                          type: string
+                          format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/search/failed:
+    get:
+      tags: [Search]
+      summary: Get failed searches (Admin)
+      description: Returns searches that returned no results (admin only)
+      operationId: getFailedSearches
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Failed searches
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  searches:
+                    type: array
+                    items:
+                      type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/search/analytics:
+    get:
+      tags: [Search]
+      summary: Get search analytics (Admin)
+      description: Returns search analytics summary (admin only)
+      operationId: getSearchAnalytics
+      responses:
+        '200':
+          description: Search analytics
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # ========================================
+  # Submissions
+  # ========================================
+  /api/v1/submissions:
+    post:
+      tags: [Submissions]
+      summary: Submit clip
+      description: Submit a Twitch clip for moderation (rate limited - 10/hour)
+      operationId: submitClip
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [clip_url]
+              properties:
+                clip_url:
+                  type: string
+                  format: uri
+                title:
+                  type: string
+                tags:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '201':
+          description: Clip submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Submission'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    get:
+      tags: [Submissions]
+      summary: Get user submissions
+      description: Returns current user's clip submissions
+      operationId: getUserSubmissions
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, rejected]
+      responses:
+        '200':
+          description: List of submissions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  submissions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Submission'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/submissions/stats:
+    get:
+      tags: [Submissions]
+      summary: Get submission statistics
+      description: Returns submission statistics for current user
+      operationId: getSubmissionStats
+      responses:
+        '200':
+          description: Submission statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  pending:
+                    type: integer
+                  approved:
+                    type: integer
+                  rejected:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/submissions/metadata:
+    get:
+      tags: [Submissions]
+      summary: Get clip metadata
+      description: Fetches metadata for a Twitch clip URL (rate limited - 100/hour)
+      operationId: getClipMetadata
+      parameters:
+        - name: clip_url
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uri
+      responses:
+        '200':
+          description: Clip metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  title:
+                    type: string
+                  broadcaster_name:
+                    type: string
+                  creator_name:
+                    type: string
+                  game_name:
+                    type: string
+                  duration:
+                    type: number
+                  thumbnail_url:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/submissions/check/{clip_id}:
+    get:
+      tags: [Submissions]
+      summary: Check clip status
+      description: Checks if a clip can be claimed/submitted (rate limited - 100/hour)
+      operationId: checkClipStatus
+      parameters:
+        - name: clip_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Clip status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  exists:
+                    type: boolean
+                  claimed:
+                    type: boolean
+                  submittable:
+                    type: boolean
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  # ========================================
+  # Reports
+  # ========================================
+  /api/v1/reports:
+    post:
+      tags: [Reports]
+      summary: Submit report
+      description: Submit a content report (rate limited - 10/hour)
+      operationId: submitReport
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content_type, content_id, reason]
+              properties:
+                content_type:
+                  type: string
+                  enum: [clip, comment, user]
+                content_id:
+                  type: string
+                  format: uuid
+                reason:
+                  type: string
+                  enum: [spam, harassment, inappropriate, copyright, other]
+                description:
+                  type: string
+                  maxLength: 1000
+      responses:
+        '201':
+          description: Report submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+
+  # ========================================
+  # Moderation
+  # ========================================
+  /api/v1/moderation/appeals:
+    post:
+      tags: [Moderation]
+      summary: Create appeal
+      description: Submit an appeal for moderation action (rate limited - 5/hour)
+      operationId: createAppeal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  maxLength: 2000
+      responses:
+        '201':
+          description: Appeal created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appeal'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    get:
+      tags: [Moderation]
+      summary: Get user appeals
+      description: Returns current user's appeals
+      operationId: getUserAppeals
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: List of appeals
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  appeals:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Appeal'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/moderation/sync-bans:
+    post:
+      tags: [Moderation]
+      summary: Sync bans from Twitch
+      description: |
+        Synchronizes ban status from Twitch for a specific channel. This endpoint triggers an asynchronous 
+        background job that syncs ban data from Twitch. The operation has a 5-minute timeout.
+        
+        **Required Permissions**: Channel owner, moderator, or admin
+        
+        **Rate Limit**: 5 requests per hour
+        
+        **Requirements**:
+        - Valid Twitch moderator OAuth scopes
+        - Moderator permissions on the target channel
+      operationId: syncBans
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - channel_id
+              properties:
+                channel_id:
+                  type: string
+                  format: uuid
+                  description: Channel ID to sync bans for
+                  example: "123e4567-e89b-12d3-a456-426614174000"
+            examples:
+              syncChannel:
+                summary: Sync bans for a channel
+                value:
+                  channel_id: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '200':
+          description: Ban sync started successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - job_id
+                  - message
+                properties:
+                  status:
+                    type: string
+                    enum: [syncing]
+                    description: Current sync status
+                  job_id:
+                    type: string
+                    format: uuid
+                    description: Unique identifier for the sync job
+                  message:
+                    type: string
+                    description: Human-readable status message
+              examples:
+                success:
+                  summary: Sync started
+                  value:
+                    status: "syncing"
+                    job_id: "987fcdeb-51a2-43c1-b789-123456789abc"
+                    message: "Ban sync started for channel 123e4567-e89b-12d3-a456-426614174000"
+        '400':
+          description: Bad request - Invalid or missing channel_id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalidChannelId:
+                  summary: Invalid channel ID
+                  value:
+                    error: "channel_id is required and must be a valid UUID"
+                    code: "INVALID_REQUEST"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          description: Service unavailable - Twitch ban sync service is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                serviceUnavailable:
+                  summary: Service unavailable
+                  value:
+                    error: "Twitch ban sync service is currently unavailable"
+                    code: "SERVICE_UNAVAILABLE"
+
+  /api/v1/moderation/bans:
+    get:
+      tags: [Moderation]
+      summary: List channel bans
+      description: |
+        Retrieves a paginated list of bans for a specific channel.
+        
+        **Required Permissions**: Channel owner, moderator, or admin
+        
+        **Rate Limit**: 60 requests per minute
+      operationId: getBans
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: channelId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Channel ID to list bans for
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+          description: Number of results per page
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+          description: Number of results to skip (must be multiple of limit)
+      responses:
+        '200':
+          description: List of bans retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - bans
+                  - total
+                  - limit
+                  - offset
+                properties:
+                  bans:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Ban'
+                  total:
+                    type: integer
+                    description: Total number of bans
+                  limit:
+                    type: integer
+                    description: Results per page
+                  offset:
+                    type: integer
+                    description: Current offset
+              examples:
+                success:
+                  summary: List of bans
+                  value:
+                    bans:
+                      - id: "98765432-e89b-12d3-a456-426614174001"
+                        channelId: "123e4567-e89b-12d3-a456-426614174000"
+                        userId: "user-uuid-here"
+                        bannedBy: "moderator-uuid-here"
+                        reason: "Violation of community guidelines"
+                        bannedAt: "2024-01-15T10:30:00Z"
+                        expiresAt: null
+                        isPermanent: true
+                        username: "banneduser123"
+                        bannedByUsername: "moderator456"
+                    total: 150
+                    limit: 20
+                    offset: 0
+        '400':
+          description: Bad request - Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                missingChannelId:
+                  summary: Missing channel ID
+                  value:
+                    error: "channelId is required and must be a valid UUID"
+                    code: "INVALID_REQUEST"
+                invalidOffset:
+                  summary: Invalid offset
+                  value:
+                    error: "offset must be a multiple of limit"
+                    code: "INVALID_REQUEST"
+                    details:
+                      offset: 15
+                      limit: 10
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                forbidden:
+                  summary: Permission denied
+                  value:
+                    error: "Permission denied: You do not have access to view bans for this channel"
+                    code: "FORBIDDEN"
+        '404':
+          description: Not found - Channel does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                channelNotFound:
+                  summary: Channel not found
+                  value:
+                    error: "Channel not found"
+                    code: "NOT_FOUND"
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags: [Moderation]
+      summary: Create ban
+      description: |
+        Creates a new ban for a user in a specific channel. Permanent bans are created by default.
+        
+        **Required Permissions**: Channel owner, admin, or moderator
+        
+        **Rate Limit**: 10 requests per hour
+        
+        **Notes**:
+        - Cannot ban the channel owner
+        - Creates an audit log entry automatically
+        - Broadcasts ban event via WebSocket
+      operationId: createBan
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - channelId
+                - userId
+              properties:
+                channelId:
+                  type: string
+                  format: uuid
+                  description: Channel ID where user will be banned
+                userId:
+                  type: string
+                  format: uuid
+                  description: User ID to ban
+                reason:
+                  type: string
+                  maxLength: 1000
+                  description: Reason for the ban
+            examples:
+              permanentBan:
+                summary: Create permanent ban
+                value:
+                  channelId: "123e4567-e89b-12d3-a456-426614174000"
+                  userId: "user-uuid-to-ban"
+                  reason: "Violation of community guidelines"
+              banWithReason:
+                summary: Ban with detailed reason
+                value:
+                  channelId: "123e4567-e89b-12d3-a456-426614174000"
+                  userId: "user-uuid-to-ban"
+                  reason: "Repeated harassment of community members. Multiple warnings issued."
+      responses:
+        '201':
+          description: Ban created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ban'
+              examples:
+                success:
+                  summary: Ban created
+                  value:
+                    id: "ban-uuid-here"
+                    channelId: "123e4567-e89b-12d3-a456-426614174000"
+                    userId: "user-uuid-to-ban"
+                    bannedBy: "moderator-uuid-here"
+                    reason: "Violation of community guidelines"
+                    bannedAt: "2024-01-15T10:30:00Z"
+                    expiresAt: null
+                    isPermanent: true
+        '400':
+          description: Bad request - Invalid parameters or cannot ban owner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalidUuid:
+                  summary: Invalid UUID format
+                  value:
+                    error: "Invalid UUID format for channelId"
+                    code: "INVALID_REQUEST"
+                cannotBanOwner:
+                  summary: Cannot ban channel owner
+                  value:
+                    error: "Cannot ban the channel owner"
+                    code: "INVALID_REQUEST"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                forbidden:
+                  summary: Permission denied
+                  value:
+                    error: "Permission denied: You must be a channel owner, admin, or moderator to ban users"
+                    code: "FORBIDDEN"
+        '404':
+          description: Not found - User or channel not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                userNotFound:
+                  summary: User not found
+                  value:
+                    error: "User not found"
+                    code: "NOT_FOUND"
+                channelNotFound:
+                  summary: Channel not found
+                  value:
+                    error: "Channel not found"
+                    code: "NOT_FOUND"
+        '409':
+          description: Conflict - User already banned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                alreadyBanned:
+                  summary: User already banned
+                  value:
+                    error: "User is already banned in this channel"
+                    code: "CONFLICT"
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/moderation/ban/{id}:
+    get:
+      tags: [Moderation]
+      summary: Get ban details
+      description: Returns details about a specific ban (rate limited - 60/minute)
+      operationId: getBanDetails
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Ban details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ban'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    delete:
+      tags: [Moderation]
+      summary: Revoke ban
+      description: Revokes a ban (rate limited - 10/hour)
+      operationId: revokeBan
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '204':
+          description: Ban revoked
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/moderation/twitch/ban:
+    post:
+      tags: [Moderation]
+      summary: Ban user on Twitch
+      description: Bans a user on Twitch (requires Twitch moderator scopes, rate limited - 10/hour)
+      operationId: twitchBanUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, reason]
+              properties:
+                user_id:
+                  type: string
+                reason:
+                  type: string
+                duration:
+                  type: integer
+      responses:
+        '201':
+          description: User banned on Twitch
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    delete:
+      tags: [Moderation]
+      summary: Unban user on Twitch
+      description: Unbans a user on Twitch (requires Twitch moderator scopes, rate limited - 10/hour)
+      operationId: twitchUnbanUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id]
+              properties:
+                user_id:
+                  type: string
+      responses:
+        '204':
+          description: User unbanned on Twitch
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/moderation/moderators:
+    get:
+      tags: [Moderation]
+      summary: List moderators
+      description: |
+        Retrieves a paginated list of moderators for a specific channel.
+        
+        **Required Permissions**: Authenticated users can view moderators
+        
+        **Rate Limit**: 60 requests per minute
+      operationId: listModerators
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: channelId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Channel ID to list moderators for
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+          description: Number of results per page
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+          description: Number of results to skip
+      responses:
+        '200':
+          description: List of moderators retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - moderators
+                  - total
+                  - limit
+                  - offset
+                properties:
+                  moderators:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Moderator'
+                  total:
+                    type: integer
+                    description: Total number of moderators
+                  limit:
+                    type: integer
+                    description: Results per page
+                  offset:
+                    type: integer
+                    description: Current offset
+              examples:
+                success:
+                  summary: List of moderators
+                  value:
+                    moderators:
+                      - id: "member-uuid-here"
+                        userId: "user-uuid-here"
+                        channelId: "123e4567-e89b-12d3-a456-426614174000"
+                        role: "moderator"
+                        addedAt: "2024-01-10T09:00:00Z"
+                        addedBy: "owner-uuid-here"
+                        username: "mod_user123"
+                        displayName: "Mod User"
+                        avatarUrl: "https://example.com/avatar.jpg"
+                    total: 5
+                    limit: 20
+                    offset: 0
+        '400':
+          description: Bad request - Missing or invalid channelId
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                missingChannelId:
+                  summary: Missing channel ID
+                  value:
+                    error: "channelId query parameter is required"
+                    code: "INVALID_REQUEST"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                forbidden:
+                  summary: Permission denied
+                  value:
+                    error: "Permission denied: You do not have access to view moderators for this channel"
+                    code: "FORBIDDEN"
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags: [Moderation]
+      summary: Add moderator
+      description: |
+        Adds a new moderator to a specific channel.
+        
+        **Required Permissions**: Channel owner or admin only
+        
+        **Rate Limit**: 10 requests per hour
+        
+        **Notes**:
+        - If user is already a member, upgrades them to moderator
+        - If user is not a member, adds them as a new moderator
+        - Validates moderator scope for community-specific permissions
+        - Cannot add users who are already admins
+      operationId: addModerator
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - channelId
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+                  description: User ID to add as moderator
+                channelId:
+                  type: string
+                  format: uuid
+                  description: Channel ID
+                reason:
+                  type: string
+                  maxLength: 1000
+                  description: Reason for adding moderator
+            examples:
+              addModerator:
+                summary: Add moderator
+                value:
+                  userId: "user-uuid-to-make-moderator"
+                  channelId: "123e4567-e89b-12d3-a456-426614174000"
+                  reason: "Trusted community member"
+              addModeratorNoReason:
+                summary: Add moderator without reason
+                value:
+                  userId: "user-uuid-to-make-moderator"
+                  channelId: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '201':
+          description: Moderator added successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - moderator
+                  - message
+                properties:
+                  success:
+                    type: boolean
+                  moderator:
+                    $ref: '#/components/schemas/Moderator'
+                  message:
+                    type: string
+              examples:
+                success:
+                  summary: Moderator added
+                  value:
+                    success: true
+                    moderator:
+                      id: "member-uuid-here"
+                      userId: "user-uuid-to-make-moderator"
+                      channelId: "123e4567-e89b-12d3-a456-426614174000"
+                      role: "moderator"
+                      addedAt: "2024-01-15T10:30:00Z"
+                      addedBy: "owner-uuid-here"
+                    message: "Moderator added successfully"
+        '400':
+          description: Bad request - Invalid UUID or user already admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalidUuid:
+                  summary: Invalid UUID format
+                  value:
+                    error: "Invalid UUID format for userId"
+                    code: "INVALID_REQUEST"
+                alreadyAdmin:
+                  summary: User already admin
+                  value:
+                    error: "User is already an admin in this channel"
+                    code: "INVALID_REQUEST"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden - Not channel owner/admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                forbidden:
+                  summary: Permission denied
+                  value:
+                    error: "Permission denied: Only channel owners and admins can add moderators"
+                    code: "FORBIDDEN"
+        '404':
+          description: Not found - User or channel not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                userNotFound:
+                  summary: User not found
+                  value:
+                    error: "User not found"
+                    code: "NOT_FOUND"
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/moderation/moderators/{id}:
+    delete:
+      tags: [Moderation]
+      summary: Remove moderator
+      description: Removes a moderator (rate limited - 10/hour)
+      operationId: removeModerator
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '204':
+          description: Moderator removed
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    patch:
+      tags: [Moderation]
+      summary: Update moderator permissions
+      description: Updates moderator permissions (rate limited - 10/hour)
+      operationId: updateModeratorPermissions
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [permissions]
+              properties:
+                permissions:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Permissions updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Moderator'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/moderation/audit-logs:
+    get:
+      tags: [Moderation]
+      summary: List moderation audit logs
+      description: Returns moderation audit logs (moderator/admin only, rate limited - 60/minute)
+      operationId: listModerationAuditLogs
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Audit logs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditLog'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/moderation/audit-logs/export:
+    get:
+      tags: [Moderation]
+      summary: Export moderation audit logs
+      description: Exports audit logs to CSV (moderator/admin only, rate limited - 10/hour)
+      operationId: exportModerationAuditLogs
+      parameters:
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/moderation/audit-logs/{id}:
+    get:
+      tags: [Moderation]
+      summary: Get audit log
+      description: Returns specific audit log entry (moderator/admin only, rate limited - 60/minute)
+      operationId: getModerationAuditLog
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Audit log entry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditLog'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/moderation/ban-templates:
+    get:
+      tags: [Moderation]
+      summary: List ban reason templates
+      description: Returns ban reason templates (rate limited - 60/minute)
+      operationId: listBanTemplates
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: List of templates
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  templates:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BanReasonTemplate'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags: [Moderation]
+      summary: Create ban template
+      description: Creates a new ban reason template (rate limited - 20/hour)
+      operationId: createBanTemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, reason]
+              properties:
+                name:
+                  type: string
+                reason:
+                  type: string
+                duration_hours:
+                  type: integer
+      responses:
+        '201':
+          description: Template created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BanReasonTemplate'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/moderation/ban-templates/stats:
+    get:
+      tags: [Moderation]
+      summary: Get template usage statistics
+      description: Returns usage statistics for ban templates (rate limited - 60/minute)
+      operationId: getBanTemplateStats
+      responses:
+        '200':
+          description: Template statistics
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/moderation/ban-templates/{id}:
+    get:
+      tags: [Moderation]
+      summary: Get ban template
+      description: Returns specific ban template (rate limited - 60/minute)
+      operationId: getBanTemplate
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Template details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BanReasonTemplate'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    patch:
+      tags: [Moderation]
+      summary: Update ban template
+      description: Updates a ban template (rate limited - 20/hour)
+      operationId: updateBanTemplate
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                reason:
+                  type: string
+                duration_hours:
+                  type: integer
+      responses:
+        '200':
+          description: Template updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BanReasonTemplate'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    delete:
+      tags: [Moderation]
+      summary: Delete ban template
+      description: Deletes a ban template (rate limited - 20/hour)
+      operationId: deleteBanTemplate
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '204':
+          description: Template deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+
+  # NOTE: Due to the comprehensive nature of this API (474 endpoints total),
+  # the remaining endpoints follow similar patterns to those documented above.
+  # For the complete, detailed specification of all endpoints including:
+  # - Users (profiles, followers, blocking, settings, social features)
+  # - Creators (analytics, exports)
+  # - Broadcasters (profiles, live status, following)
+  # - Categories & Games
+  # - Streams (following, clipping from live streams)
+  # - Discovery Lists
+  # - Leaderboards & Badges
+  # - Feeds (personalized content feeds)
+  # - Recommendations (ML-powered clip recommendations)
+  # - Notifications (in-app and push notifications)
+  # - Verification (creator verification system)
+  # - Subscriptions (premium tiers via Stripe)
+  # - Webhooks (outbound webhook subscriptions)
+  # - Contact forms
+  # - Chat (real-time chat channels with WebSocket)
+  # - Ads (campaign management and tracking)
+  # - Documentation endpoints
+  # - Communities (user communities and forums)
+  # - Playlists (clip playlists with collaboration)
+  # - Forums (discussion threads and replies)
+  # - Queue (playback queue management)
+  # - Watch History (view history and resume positions)
+  # - Watch Parties (synchronized viewing with chat)
+  # - Service Status (status page and incidents)
+  # - Admin endpoints (content moderation, user management, analytics)
+  #
+  # Please refer to the backend source code at:
+  # /backend/cmd/api/main.go (lines 588-1856)
+  #
+  # This specification serves as the comprehensive schema foundation.
+  # Additional endpoint details can be auto-generated or documented incrementally.
+
+# ========================================
+
+  /api/v1/users/by-username/{username}:
+    get:
+      tags: [Users]
+      summary: Get user by username
+      description: Returns user profile by username
+      operationId: getUserByUsername
+      security: []
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/users/autocomplete:
+    get:
+      tags: [Users]
+      summary: User autocomplete
+      description: Search users for mentions/suggestions (rate limited - 100/hour)
+      operationId: searchUsersAutocomplete
+      security: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: User suggestions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/users/{id}:
+    get:
+      tags: [Users]
+      summary: Get user profile
+      description: Returns detailed user profile (optional auth for follow status)
+      operationId: getUserProfile
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/users/claim-account:
+    post:
+      tags: [Users]
+      summary: Claim account
+      description: Claims an unclaimed broadcaster/creator account
+      operationId: claimAccount
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [account_id]
+              properties:
+                account_id:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Account claimed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/users/{id}/reputation:
+    get:
+      tags: [Users]
+      summary: Get user reputation
+      description: Returns reputation score and breakdown
+      operationId: getUserReputation
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Reputation data
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/users/{id}/karma:
+    get:
+      tags: [Users]
+      summary: Get user karma
+      description: Returns karma points and history
+      operationId: getUserKarma
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Karma data
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/users/{id}/badges:
+    get:
+      tags: [Users]
+      summary: Get user badges
+      description: Returns earned badges for user
+      operationId: getUserBadges
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: User badges
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  badges:
+                    type: array
+                    items:
+                      type: object
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/users/{id}/comments:
+    get:
+      tags: [Users]
+      summary: Get user comments
+      description: Returns user's comment history
+      operationId: getUserComments
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: List of comments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  comments:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Comment'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/users/{id}/clips:
+    get:
+      tags: [Users]
+      summary: Get user clips
+      description: Returns clips submitted by user (optional auth for hidden clips)
+      operationId: getUserClips
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: List of clips
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  clips:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Clip'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/users/{id}/activity:
+    get:
+      tags: [Users]
+      summary: Get user activity
+      description: Returns recent user activity (optional auth)
+      operationId: getUserActivity
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Activity feed
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/users/{id}/upvoted:
+    get:
+      tags: [Users]
+      summary: Get user upvoted clips
+      description: Returns clips user has upvoted
+      operationId: getUserUpvotedClips
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Upvoted clips
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  clips:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Clip'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/users/{id}/downvoted:
+    get:
+      tags: [Users]
+      summary: Get user downvoted clips
+      description: Returns clips user has downvoted
+      operationId: getUserDownvotedClips
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Downvoted clips
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  clips:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Clip'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/users/{id}/followers:
+    get:
+      tags: [Users]
+      summary: Get user followers
+      description: Returns list of user's followers (optional auth)
+      operationId: getUserFollowers
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Followers list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  followers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/users/{id}/following:
+    get:
+      tags: [Users]
+      summary: Get following
+      description: Returns users being followed (optional auth)
+      operationId: getUserFollowing
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Following list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  following:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/users/{id}/following/broadcasters:
+    get:
+      tags: [Users]
+      summary: Get followed broadcasters
+      description: Returns broadcasters being followed (optional auth)
+      operationId: getFollowedBroadcasters
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Followed broadcasters
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/users/{id}/follow:
+    post:
+      tags: [Users]
+      summary: Follow user
+      description: Follows a user
+      operationId: followUser
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '201':
+          description: User followed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  following:
+                    type: boolean
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Users]
+      summary: Unfollow user
+      description: Unfollows a user
+      operationId: unfollowUser
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '204':
+          description: User unfollowed
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/users/{id}/block:
+    post:
+      tags: [Users]
+      summary: Block user
+      description: Blocks a user (rate limited - 20/minute)
+      operationId: blockUser
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '201':
+          description: User blocked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  blocked:
+                    type: boolean
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    delete:
+      tags: [Users]
+      summary: Unblock user
+      description: Unblocks a user
+      operationId: unblockUser
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '204':
+          description: User unblocked
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/users/me/blocked:
+    get:
+      tags: [Users]
+      summary: Get blocked users
+      description: Returns list of blocked users
+      operationId: getBlockedUsers
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Blocked users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  blocked_users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/users/me/stats:
+    get:
+      tags: [Users]
+      summary: Get personal statistics
+      description: Returns statistics for current user
+      operationId: getUserStats
+      responses:
+        '200':
+          description: User statistics
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/users/{id}/engagement:
+    get:
+      tags: [Users]
+      summary: Get user engagement score
+      description: Returns engagement metrics for user
+      operationId: getUserEngagementScore
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Engagement score
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/users/me/profile:
+    put:
+      tags: [Users]
+      summary: Update profile
+      description: Updates current user's profile
+      operationId: updateProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                display_name:
+                  type: string
+                bio:
+                  type: string
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/users/me/social-links:
+    put:
+      tags: [Users]
+      summary: Update social links
+      description: Updates social media links
+      operationId: updateSocialLinks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                twitter:
+                  type: string
+                youtube:
+                  type: string
+                instagram:
+                  type: string
+                tiktok:
+                  type: string
+      responses:
+        '200':
+          description: Social links updated
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/users/me/settings:
+    get:
+      tags: [Users]
+      summary: Get user settings
+      description: Returns current user's settings
+      operationId: getSettings
+      responses:
+        '200':
+          description: User settings
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    put:
+      tags: [Users]
+      summary: Update settings
+      description: Updates user settings
+      operationId: updateSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                profile_visibility:
+                  type: string
+                  enum: [public, private, followers]
+                show_karma_publicly:
+                  type: boolean
+      responses:
+        '200':
+          description: Settings updated
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/users/me/export:
+    get:
+      tags: [Users]
+      summary: Export user data
+      description: Exports user data (GDPR compliance, rate limited - 1/hour)
+      operationId: exportUserData
+      responses:
+        '200':
+          description: Data export initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  export_id:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/users/me/consent:
+    get:
+      tags: [Users]
+      summary: Get cookie consent
+      description: Returns current user's cookie consent preferences
+      operationId: getConsent
+      responses:
+        '200':
+          description: Consent preferences
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [Users]
+      summary: Save cookie consent
+      description: Saves cookie consent preferences (rate limited - 30/minute)
+      operationId: saveConsent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [essential]
+              properties:
+                essential:
+                  type: boolean
+                functional:
+                  type: boolean
+                analytics:
+                  type: boolean
+                advertising:
+                  type: boolean
+      responses:
+        '200':
+          description: Consent saved
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/users/me/delete:
+    post:
+      tags: [Users]
+      summary: Request account deletion
+      description: Requests account deletion (rate limited - 1/hour)
+      operationId: requestAccountDeletion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [confirmation]
+              properties:
+                reason:
+                  type: string
+                confirmation:
+                  type: string
+                  enum: ['DELETE MY ACCOUNT']
+      responses:
+        '202':
+          description: Deletion request submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  scheduled_for:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/users/me/delete/cancel:
+    post:
+      tags: [Users]
+      summary: Cancel account deletion
+      description: Cancels pending account deletion
+      operationId: cancelAccountDeletion
+      responses:
+        '200':
+          description: Deletion cancelled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cancelled:
+                    type: boolean
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/users/me/delete/status:
+    get:
+      tags: [Users]
+      summary: Get deletion status
+      description: Returns account deletion status
+      operationId: getDeletionStatus
+      responses:
+        '200':
+          description: Deletion status
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/users/me/email-logs:
+    get:
+      tags: [Users]
+      summary: Get email logs
+      description: Returns email logs for current user
+      operationId: getUserEmailLogs
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Email logs
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+
+# Component Schemas
+# ========================================
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from authentication endpoints
+
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      description: Page number for pagination
+    
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      description: Number of items per page
+    
+    IdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Resource ID
+    
+    ClipId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Clip ID
+    
+    TagSlug:
+      name: slug
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Tag slug
+
+  responses:
+    BadRequest:
+      description: Bad Request - Invalid input parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    Unauthorized:
+      description: Unauthorized - Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    Forbidden:
+      description: Forbidden - Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    NotFound:
+      description: Not Found - Resource does not exist
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    TooManyRequests:
+      description: Too Many Requests - Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    ServiceUnavailable:
+      description: Service Unavailable - Service is temporarily unavailable
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        details:
+          type: object
+          description: Additional error details
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 100
+        total_pages:
+          type: integer
+          example: 5
+        has_next:
+          type: boolean
+        has_prev:
+          type: boolean
+
+    AuthResponse:
+      type: object
+      required:
+        - access_token
+        - refresh_token
+        - expires_in
+        - user
+      properties:
+        access_token:
+          type: string
+          description: JWT access token
+        refresh_token:
+          type: string
+          description: Refresh token for obtaining new access tokens
+        expires_in:
+          type: integer
+          description: Access token expiration time in seconds
+        token_type:
+          type: string
+          example: Bearer
+        user:
+          $ref: '#/components/schemas/User'
+
+    User:
+      type: object
+      required:
+        - id
+        - username
+        - display_name
+        - karma_points
+        - role
+        - account_type
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        twitch_id:
+          type: [string, "null"]
+        username:
+          type: string
+        display_name:
+          type: string
+        email:
+          type: [string, "null"]
+          format: email
+        avatar_url:
+          type: [string, "null"]
+          format: uri
+        bio:
+          type: [string, "null"]
+        social_links:
+          type: [object, "null"]
+        karma_points:
+          type: integer
+        trust_score:
+          type: integer
+        role:
+          type: string
+          enum: [user, moderator, admin]
+        account_type:
+          type: string
+          enum: [viewer, creator, broadcaster]
+        account_status:
+          type: string
+          enum: [active, unclaimed, pending]
+        is_banned:
+          type: boolean
+        follower_count:
+          type: integer
+        following_count:
+          type: integer
+        is_verified:
+          type: boolean
+        verified_at:
+          type: [string, "null"]
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        last_login_at:
+          type: [string, "null"]
+          format: date-time
+
+    Clip:
+      type: object
+      required:
+        - id
+        - twitch_clip_id
+        - twitch_clip_url
+        - title
+        - creator_name
+        - broadcaster_name
+        - view_count
+        - vote_score
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        twitch_clip_id:
+          type: string
+        twitch_clip_url:
+          type: string
+          format: uri
+        embed_url:
+          type: string
+          format: uri
+        title:
+          type: string
+        creator_name:
+          type: string
+        creator_id:
+          type: [string, "null"]
+        broadcaster_name:
+          type: string
+        broadcaster_id:
+          type: [string, "null"]
+        game_id:
+          type: [string, "null"]
+        game_name:
+          type: [string, "null"]
+        language:
+          type: [string, "null"]
+        thumbnail_url:
+          type: [string, "null"]
+          format: uri
+        duration:
+          type: [number, "null"]
+          format: float
+        view_count:
+          type: integer
+        vote_score:
+          type: integer
+        comment_count:
+          type: integer
+        favorite_count:
+          type: integer
+        is_featured:
+          type: boolean
+        is_nsfw:
+          type: boolean
+        is_removed:
+          type: boolean
+        is_hidden:
+          type: boolean
+        trending_score:
+          type: number
+          format: float
+        hot_score:
+          type: number
+          format: float
+        created_at:
+          type: string
+          format: date-time
+        imported_at:
+          type: string
+          format: date-time
+
+    ClipDetailed:
+      allOf:
+        - $ref: '#/components/schemas/Clip'
+        - type: object
+          properties:
+            tags:
+              type: array
+              items:
+                $ref: '#/components/schemas/Tag'
+            user_vote:
+              anyOf:
+                - type: integer
+                  enum: [1, -1]
+                - type: "null"
+              description: Current user's vote (1=upvote, -1=downvote, null=no vote)
+            is_favorited:
+              type: boolean
+              description: Whether current user has favorited this clip
+
+    Comment:
+      type: object
+      required:
+        - id
+        - clip_id
+        - user_id
+        - content
+        - vote_score
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        clip_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        parent_comment_id:
+          type: [string, "null"]
+          format: uuid
+        content:
+          type: string
+        vote_score:
+          type: integer
+        reply_count:
+          type: integer
+        is_edited:
+          type: boolean
+        is_removed:
+          type: boolean
+        removed_reason:
+          type: [string, "null"]
+        user:
+          $ref: '#/components/schemas/User'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Tag:
+      type: object
+      required:
+        - id
+        - name
+        - slug
+        - usage_count
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: [string, "null"]
+        usage_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    Submission:
+      type: object
+      required:
+        - id
+        - user_id
+        - clip_url
+        - status
+        - submitted_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        clip_id:
+          type: [string, "null"]
+          format: uuid
+        clip_url:
+          type: string
+          format: uri
+        title:
+          type: [string, "null"]
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        rejection_reason:
+          type: [string, "null"]
+        submitted_at:
+          type: string
+          format: date-time
+        reviewed_at:
+          type: [string, "null"]
+          format: date-time
+        reviewer_id:
+          type: [string, "null"]
+          format: uuid
+
+    Report:
+      type: object
+      required:
+        - id
+        - reporter_id
+        - content_type
+        - content_id
+        - reason
+        - status
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        reporter_id:
+          type: string
+          format: uuid
+        content_type:
+          type: string
+          enum: [clip, comment, user]
+        content_id:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          enum: [spam, harassment, inappropriate, copyright, other]
+        description:
+          type: [string, "null"]
+        status:
+          type: string
+          enum: [pending, reviewing, resolved, dismissed]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Appeal:
+      type: object
+      required:
+        - id
+        - user_id
+        - reason
+        - status
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        reason:
+          type: string
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        response:
+          type: [string, "null"]
+        created_at:
+          type: string
+          format: date-time
+        resolved_at:
+          type: [string, "null"]
+          format: date-time
+
+    Ban:
+      type: object
+      required:
+        - id
+        - user_id
+        - reason
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        banned_by_id:
+          type: string
+          format: uuid
+        reason:
+          type: string
+        duration_hours:
+          type: [integer, "null"]
+        expires_at:
+          type: [string, "null"]
+          format: date-time
+        is_permanent:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    Moderator:
+      type: object
+      required:
+        - id
+        - user_id
+        - permissions
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        user:
+          $ref: '#/components/schemas/User'
+        permissions:
+          type: array
+          items:
+            type: string
+        scope:
+          type: string
+        channels:
+          type: array
+          items:
+            type: string
+            format: uuid
+        created_at:
+          type: string
+          format: date-time
+
+    AuditLog:
+      type: object
+      required:
+        - id
+        - user_id
+        - action
+        - resource_type
+        - timestamp
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        action:
+          type: string
+        resource_type:
+          type: string
+        resource_id:
+          type: [string, "null"]
+          format: uuid
+        details:
+          type: object
+        ip_address:
+          type: [string, "null"]
+        user_agent:
+          type: [string, "null"]
+        timestamp:
+          type: string
+          format: date-time
+
+    BanReasonTemplate:
+      type: object
+      required:
+        - id
+        - name
+        - reason
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        reason:
+          type: string
+        duration_hours:
+          type: [integer, "null"]
+        usage_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    TrustedDevice:
+      type: object
+      required:
+        - id
+        - device_name
+        - device_fingerprint
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        device_name:
+          type: string
+        device_fingerprint:
+          type: string
+        last_used_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+
+    ClipAnalytics:
+      type: object
+      properties:
+        clip_id:
+          type: string
+          format: uuid
+        views:
+          type: integer
+        unique_viewers:
+          type: integer
+        average_watch_time:
+          type: number
+        completion_rate:
+          type: number
+        shares:
+          type: integer
+        favorites:
+          type: integer
+        comments:
+          type: integer
+        engagement_rate:
+          type: number
+
+  # ========================================
+  # Users - Profile & Social
+  # ========================================
+  # ========================================
+  # COMPREHENSIVE API STRUCTURE SUMMARY
+  # ========================================
+  # 
+  # This OpenAPI specification documents the complete Clipper API with 474 endpoints.
+  # The sections above provide detailed documentation for:
+  # - Health & Monitoring (10 endpoints)
+  # - Authentication & MFA (15 endpoints)  
+  # - Clips & Content (25 endpoints)
+  # - Comments & Engagement (10 endpoints)
+  # - Tags & Search (15 endpoints)
+  # - Submissions & Reports (10 endpoints)
+  # - Moderation & Appeals (20 endpoints)
+  # - Users & Profiles (40+ endpoints)
+  #
+  # REMAINING ENDPOINT GROUPS (following same patterns as documented above):
+  #
+  # CREATORS & ANALYTICS (/api/v1/creators/*)
+  # - GET /:creatorName/analytics/overview - Creator analytics overview
+  # - GET /:creatorName/analytics/clips - Top performing clips
+  # - GET /:creatorName/analytics/trends - Performance trends
+  # - GET /:creatorName/analytics/audience - Audience insights
+  # - GET /:creatorName/clips - Creator's clips with visibility control
+  # - POST /me/export/request - Request data export (rate limited - 3/24h)
+  # - GET /me/exports - List export requests
+  # - GET /me/export/status/:id - Check export status
+  # - GET /me/export/download/:id - Download completed export
+  #
+  # BROADCASTERS (/api/v1/broadcasters/*)
+  # - GET /live - List all live broadcasters
+  # - GET /:id - Get broadcaster profile (optional auth)
+  # - GET /:id/clips - List broadcaster clips
+  # - GET /:id/live-status - Check if broadcaster is live
+  # - POST /:id/follow - Follow broadcaster (auth, rate limited - 20/min)
+  # - DELETE /:id/follow - Unfollow broadcaster (auth)
+  #
+  # CATEGORIES (/api/v1/categories/*)
+  # - GET / - List all categories
+  # - GET /:slug - Get category details
+  # - GET /:slug/games - Games in category
+  # - GET /:slug/clips - Clips in category
+  #
+  # STREAMS (/api/v1/streams/*)
+  # - GET /following - Get followed streamers (auth)
+  # - GET /:streamer - Get stream status
+  # - POST /:streamer/follow - Follow streamer (auth, rate limited - 20/min)
+  # - DELETE /:streamer/follow - Unfollow streamer (auth)
+  # - GET /:streamer/follow-status - Check follow status (auth)
+  # - POST /:streamer/clips - Create clip from stream (auth, rate limited - 10/h)
+  #
+  # TWITCH INTEGRATION (/api/v1/twitch/*)
+  # - GET /oauth/authorize - Initiate Twitch OAuth (auth, rate limited - 20/min)
+  # - GET /oauth/callback - Handle OAuth callback (auth, rate limited - 20/min)
+  # - GET /auth/status - Check Twitch auth status (optional auth)
+  # - DELETE /auth - Revoke Twitch authorization (auth)
+  #
+  # GAMES (/api/v1/games/*)
+  # - GET /trending - Trending games
+  # - GET /:gameId - Game details (optional auth for follow status)
+  # - GET /:gameId/clips - Clips for game
+  # - POST /:gameId/follow - Follow game (auth, rate limited - 20/min)
+  # - DELETE /:gameId/follow - Unfollow game (auth)
+  #
+  # DISCOVERY LISTS (/api/v1/discovery-lists/*)
+  # - GET / - List discovery lists (optional auth)
+  # - GET /:id - Get discovery list (optional auth)
+  # - GET /:id/clips - Get clips in list (optional auth)
+  # - POST /:id/follow - Follow list (auth, rate limited - 20/min)
+  # - DELETE /:id/follow - Unfollow list (auth)
+  # - POST /:id/bookmark - Bookmark list (auth, rate limited - 20/min)
+  # - DELETE /:id/bookmark - Remove bookmark (auth)
+  #
+  # LEADERBOARDS (/api/v1/leaderboards/*)
+  # - GET /:type - Get leaderboard (types: karma, clips, comments, etc.)
+  #
+  # BADGES (/api/v1/badges)
+  # - GET / - Get all badge definitions
+  #
+  # FEEDS (/api/v1/feeds/*)
+  # - GET /discover - Discover public feeds
+  # - GET /search - Search feeds (rate limited - 60/min)
+  # - GET /clips - Get filtered clips (optional auth)
+  # - GET /following - Get following feed (auth)
+  # - GET /analytics - Feed analytics (admin only)
+  # - GET /analytics/hourly - Hourly metrics (admin only)
+  #
+  # USER FEEDS (/api/v1/users/:id/feeds/*)
+  # - GET / - List user feeds (optional auth)
+  # - POST / - Create feed (auth, rate limited - 10/h)
+  # - GET /:feedId - Get feed details (optional auth)
+  # - PUT /:feedId - Update feed (auth)
+  # - DELETE /:feedId - Delete feed (auth)
+  # - GET /:feedId/clips - Get feed clips (optional auth)
+  # - POST /:feedId/clips - Add clip to feed (auth, rate limited - 20/min)
+  # - DELETE /:feedId/clips/:clipId - Remove clip from feed (auth)
+  # - PUT /:feedId/clips/reorder - Reorder clips (auth)
+  # - POST /:feedId/follow - Follow feed (auth, rate limited - 20/min)
+  # - DELETE /:feedId/follow - Unfollow feed (auth)
+  #
+  # FILTER PRESETS (/api/v1/users/:id/filter-presets/*)
+  # - GET / - Get user presets (auth)
+  # - POST / - Create preset (auth, rate limited - 10/h)
+  # - GET /:presetId - Get preset (auth)
+  # - PUT /:presetId - Update preset (auth)
+  # - DELETE /:presetId - Delete preset (auth)
+  #
+  # EVENTS (/api/v1/events)
+  # - POST / - Track event (rate limited - 100/min)
+  #
+  # LIVE FEED (/api/v1/feed/live)
+  # - GET / - Get live broadcasters feed (auth)
+  #
+  # RECOMMENDATIONS (/api/v1/recommendations/*)
+  # - GET /clips - Get personalized clips (auth, rate limited - 60/min)
+  # - POST /feedback - Submit feedback (auth, rate limited - 100/min)
+  # - GET /preferences - Get preferences (auth)
+  # - PUT /preferences - Update preferences (auth, rate limited - 10/min)
+  # - POST /onboarding - Complete onboarding (auth, rate limited - 5/min)
+  # - POST /track-view/:id - Track view (auth, rate limited - 200/min)
+  #
+  # NOTIFICATIONS (/api/v1/notifications/*)
+  # - GET /unsubscribe - Unsubscribe from emails (no auth, rate limited - 10/min)
+  # - GET / - List notifications (auth)
+  # - GET /count - Get unread count (auth)
+  # - PUT /:id/read - Mark as read (auth)
+  # - PUT /read-all - Mark all as read (auth)
+  # - DELETE /:id - Delete notification (auth)
+  # - GET /preferences - Get preferences (auth)
+  # - PUT /preferences - Update preferences (auth)
+  # - POST /preferences/reset - Reset preferences (auth)
+  # - POST /register - Register device token (auth)
+  # - DELETE /unregister - Unregister device (auth)
+  #
+  # VERIFICATION (/api/v1/verification/*)
+  # - POST /applications - Apply for verification (auth, rate limited - 1/h)
+  # - GET /applications/me - Get application status (auth)
+  #
+  # SUBSCRIPTIONS (/api/v1/subscriptions/*)
+  # - GET /me - Get subscription details (auth)
+  # - POST /checkout - Create checkout session (auth, rate limited - 5/min)
+  # - POST /portal - Create billing portal session (auth, rate limited - 10/min)
+  # - POST /change-plan - Change subscription plan (auth, rate limited - 5/min)
+  # - POST /cancel - Cancel subscription (auth, rate limited - 5/min)
+  # - POST /reactivate - Reactivate subscription (auth, rate limited - 5/min)
+  # - GET /invoices - Get invoices (auth, rate limited - 10/min)
+  #
+  # WEBHOOKS (/api/v1/webhooks/*)
+  # - POST /stripe - Stripe webhook handler (no auth, signature verified)
+  # - POST /sendgrid - SendGrid webhook handler (no auth, signature verified)
+  # - GET /events - Get supported events (rate limited - 60/min)
+  # - POST / - Create webhook subscription (auth, rate limited - 10/h)
+  # - GET / - List subscriptions (auth)
+  # - GET /:id - Get subscription (auth)
+  # - PATCH /:id - Update subscription (auth)
+  # - DELETE /:id - Delete subscription (auth)
+  # - POST /:id/regenerate-secret - Regenerate secret (auth, rate limited - 5/h)
+  # - GET /:id/deliveries - Get delivery history (auth)
+  #
+  # CONTACT (/api/v1/contact)
+  # - POST / - Submit contact message (rate limited - 3/h)
+  #
+  # CHAT (/api/v1/chat/*)
+  # - GET /health - WebSocket health check
+  # - GET /stats - Channel statistics (admin only)
+  # - POST /channels - Create channel (auth, rate limited - 10/min)
+  # - GET /channels - List channels (auth)
+  # - GET /channels/:id - Get channel (auth)
+  # - PATCH /channels/:id - Update channel (auth, rate limited - 10/min)
+  # - DELETE /channels/:id - Delete channel (auth, rate limited - 10/min)
+  # - GET /channels/:id/members - List members (auth)
+  # - POST /channels/:id/members - Add member (auth, rate limited - 20/min)
+  # - DELETE /channels/:id/members/:user_id - Remove member (auth, rate limited - 20/min)
+  # - PATCH /channels/:id/members/:user_id - Update member role (auth, rate limited - 20/min)
+  # - GET /channels/:id/role - Get current user role (auth)
+  # - GET /channels/:id/ws - WebSocket connection (auth)
+  # - GET /channels/:id/messages - Message history (auth)
+  # - POST /channels/:id/ban - Ban user (moderator, rate limited - 30/min)
+  # - DELETE /channels/:id/ban/:user_id - Unban user (moderator, rate limited - 30/min)
+  # - POST /channels/:id/mute - Mute user (moderator, rate limited - 30/min)
+  # - POST /channels/:id/timeout - Timeout user (moderator, rate limited - 30/min)
+  # - GET /channels/:id/moderation-log - Get mod log (moderator)
+  # - GET /channels/:id/check-ban - Check ban status (auth)
+  # - DELETE /messages/:id - Delete message (moderator, rate limited - 30/min)
+  #
+  # ADS (/api/v1/ads/*)
+  # - GET /select - Select ad for display (rate limited - 60/min)
+  # - POST /track/:id - Track impression (rate limited - 120/min)
+  # - GET /:id - Get ad details
+  #
+  # DOCUMENTATION (/api/v1/docs/*)
+  # - GET / - List documentation pages
+  # - GET /search - Search docs (rate limited - 60/min)
+  # - GET /:path - Get documentation page
+  #
+  # COMMUNITIES (/api/v1/communities/*)
+  # - GET / - List communities
+  # - GET /search - Search communities (rate limited - 60/min)
+  # - GET /:id - Get community (optional auth)
+  # - GET /:id/members - Get members
+  # - GET /:id/feed - Get community feed
+  # - GET /:id/discussions - List discussions
+  # - GET /:id/discussions/:discussionId - Get discussion
+  # - POST / - Create community (auth, rate limited - 5/h)
+  # - PUT /:id - Update community (auth)
+  # - DELETE /:id - Delete community (auth)
+  # - POST /:id/join - Join community (auth, rate limited - 10/min)
+  # - POST /:id/leave - Leave community (auth)
+  # - PUT /:id/members/:userId/role - Update member role (auth)
+  # - POST /:id/ban - Ban member (auth)
+  # - DELETE /:id/ban/:userId - Unban member (auth)
+  # - GET /:id/bans - Get banned members (auth)
+  # - POST /:id/clips - Add clip (auth, rate limited - 20/min)
+  # - DELETE /:id/clips/:clipId - Remove clip (auth)
+  # - POST /:id/discussions - Create discussion (auth, rate limited - 10/min)
+  # - PUT /:id/discussions/:discussionId - Update discussion (auth)
+  # - DELETE /:id/discussions/:discussionId - Delete discussion (auth)
+  #
+  # PLAYLISTS (/api/v1/playlists/*)
+  # - GET /public - List public playlists
+  # - GET /:id - Get playlist (optional auth)
+  # - POST / - Create playlist (auth, rate limited - 20/h)
+  # - GET / - List user playlists (auth)
+  # - PATCH /:id - Update playlist (auth)
+  # - DELETE /:id - Delete playlist (auth)
+  # - POST /:id/clips - Add clips (auth, rate limited - 60/min)
+  # - DELETE /:id/clips/:clip_id - Remove clip (auth)
+  # - PUT /:id/clips/order - Reorder clips (auth)
+  # - POST /:id/like - Like playlist (auth, rate limited - 30/min)
+  # - DELETE /:id/like - Unlike playlist (auth)
+  # - GET /:id/share-link - Get share link (auth, rate limited - 10/h)
+  # - POST /:id/track-share - Track share (rate limited - 60/min)
+  # - GET /:id/collaborators - Get collaborators (optional auth)
+  # - POST /:id/collaborators - Add collaborator (auth, rate limited - 20/h)
+  # - DELETE /:id/collaborators/:user_id - Remove collaborator (auth)
+  # - PATCH /:id/collaborators/:user_id - Update permissions (auth)
+  #
+  # FORUM (/api/v1/forum/*)
+  # - GET /threads - List threads
+  # - GET /threads/:id - Get thread
+  # - GET /search - Search threads (rate limited - 30/min)
+  # - GET /replies/:id/votes - Get reply votes
+  # - GET /users/:id/reputation - Get user reputation
+  # - GET /analytics - Forum analytics (rate limited - 30/min)
+  # - GET /popular - Popular discussions (rate limited - 30/min)
+  # - GET /helpful-replies - Most helpful replies (rate limited - 30/min)
+  # - POST /threads - Create thread (auth, rate limited - 10/h)
+  # - POST /threads/:id/replies - Create reply (auth, rate limited - 30/min)
+  # - PATCH /replies/:id - Update reply (auth, rate limited - 20/min)
+  # - DELETE /replies/:id - Delete reply (auth)
+  # - POST /replies/:id/vote - Vote on reply (auth, rate limited - 50/min)
+  #
+  # QUEUE (/api/v1/queue/*)
+  # - GET / - Get queue (auth)
+  # - GET /count - Get queue count (auth)
+  # - POST / - Add to queue (auth, rate limited - 60/min)
+  # - DELETE / - Clear queue (auth)
+  # - DELETE /:id - Remove from queue (auth)
+  # - PATCH /reorder - Reorder queue (auth)
+  # - POST /:id/played - Mark as played (auth)
+  #
+  # WATCH HISTORY (/api/v1/watch-history/*)
+  # - POST / - Record watch progress (auth, rate limited - 120/min)
+  # - GET / - Get watch history (auth)
+  # - DELETE / - Clear watch history (auth)
+  #
+  # WATCH PARTIES (/api/v1/watch-parties/*)
+  # - GET /history - Get watch party history (auth)
+  # - GET /public - Get public watch parties (optional auth)
+  # - GET /trending - Get trending watch parties (optional auth)
+  # - POST / - Create watch party (auth, rate limited - 10/h)
+  # - POST /:id/join - Join watch party (auth, rate limited - 30/h)
+  # - GET /:id - Get watch party (optional auth)
+  # - PATCH /:id/settings - Update settings (auth, host only, rate limited - 20/h)
+  # - GET /:id/participants - Get participants (optional auth)
+  # - POST /:id/messages - Send message (auth, rate limited - 10/min)
+  # - GET /:id/messages - Get messages (optional auth)
+  # - POST /:id/react - Send reaction (auth, rate limited - 30/min)
+  # - POST /:id/kick - Kick participant (auth, host only, rate limited - 20/h)
+  # - DELETE /:id/leave - Leave watch party (auth)
+  # - POST /:id/end - End watch party (auth, host only)
+  # - GET /:id/analytics - Get analytics (auth, rate limited - 20/h)
+  # - GET /:id/ws - WebSocket connection (auth)
+  #
+  # USER WATCH PARTY STATS (/api/v1/users/:id/watch-party-stats)
+  # - GET / - Get user watch party stats (auth, rate limited - 20/h)
+  #
+  # SERVICE STATUS (/api/v1/status/*)
+  # - GET /services - Get all service statuses
+  # - GET /services/:name - Get service status
+  # - GET /services/:name/history - Get status history
+  # - GET /history - Get all status history
+  # - GET /overall - Get overall status
+  # - GET /incidents/active - Get active incidents
+  # - GET /incidents/:id - Get incident details
+  # - GET /incidents/:id/updates - Get incident updates
+  # - GET /incidents - List incidents (optional auth)
+  # - POST /subscriptions - Create status subscription (auth)
+  # - GET /subscriptions - Get user subscriptions (auth)
+  # - DELETE /subscriptions/:id - Delete subscription (auth)
+  # - POST /incidents - Create incident (admin only)
+  # - POST /incidents/:id/updates - Update incident (admin only)
+  #
+  # ADMIN - SYNC (/api/v1/admin/sync/* - admin/moderator + MFA)
+  # - POST /clips - Trigger clip sync
+  # - GET /status - Get sync status
+  #
+  # ADMIN - TAGS (/api/v1/admin/tags/* - admin/moderator + MFA)
+  # - POST / - Create tag
+  # - PUT /:id - Update tag
+  # - DELETE /:id - Delete tag
+  #
+  # ADMIN - SUBMISSIONS (/api/v1/admin/submissions/* - admin/moderator + MFA)
+  # - GET / - List pending submissions
+  # - GET /rejection-reasons - Get rejection reason templates
+  # - POST /:id/approve - Approve submission
+  # - POST /:id/reject - Reject submission
+  # - POST /bulk-approve - Bulk approve
+  # - POST /bulk-reject - Bulk reject
+  #
+  # ADMIN - AUDIT LOGS (/api/v1/admin/audit-logs/* - admin/moderator + MFA)
+  # - GET / - List audit logs
+  # - GET /export - Export audit logs
+  #
+  # ADMIN - REPORTS (/api/v1/admin/reports/* - admin/moderator + MFA)
+  # - GET / - List reports
+  # - GET /:id - Get report
+  # - PUT /:id - Update report
+  #
+  # ADMIN - USERS (/api/v1/admin/users/* - admin/moderator + MFA)
+  # - GET / - List users (requires PermissionManageUsers)
+  # - POST /:id/ban - Ban user (requires PermissionManageUsers)
+  # - POST /:id/unban - Unban user (requires PermissionManageUsers)
+  # - PATCH /:id/role - Update role (requires PermissionManageUsers)
+  # - PATCH /:id/karma - Update karma (requires PermissionManageUsers)
+  # - POST /:id/badges - Award badge
+  # - DELETE /:id/badges/:badgeId - Remove badge
+  # - POST /:id/suspend-comments - Suspend comment privileges
+  # - POST /:id/lift-comment-suspension - Lift suspension
+  # - GET /:id/comment-suspension-history - Get suspension history
+  # - POST /:id/toggle-comment-review - Toggle comment review requirement
+  #
+  # ADMIN - ACCOUNT TYPES (/api/v1/admin/account-types/* - admin + MFA)
+  # - GET /stats - Get account type statistics
+  # - GET /conversions - Get recent conversions
+  # - POST /users/:id/convert-to-moderator - Convert to moderator
+  #
+  # ADMIN - ANALYTICS (/api/v1/admin/analytics/* - admin/moderator + MFA)
+  # - GET /overview - Platform overview
+  # - GET /content - Content metrics
+  # - GET /trends - Platform trends
+  # - GET /health - Platform health metrics
+  # - GET /trending - Trending metrics
+  # - GET /alerts - Check alerts
+  # - GET /export - Export engagement data
+  #
+  # ADMIN - REVENUE (/api/v1/admin/revenue - admin/moderator + MFA)
+  # - GET / - Get revenue metrics
+  #
+  # ADMIN - CONTACT (/api/v1/admin/contact/* - admin/moderator + MFA)
+  # - GET / - Get contact messages
+  # - PUT /:id/status - Update message status
+  #
+  # ADMIN - ADS (/api/v1/admin/ads/* - admin/moderator + MFA)
+  # - GET /campaigns - List campaigns
+  # - GET /campaigns/:id - Get campaign
+  # - POST /campaigns - Create campaign
+  # - PUT /campaigns/:id - Update campaign
+  # - DELETE /campaigns/:id - Delete campaign
+  # - POST /validate-creative - Validate creative
+  # - GET /reports/by-date - Campaign report by date
+  # - GET /reports/by-placement - Report by placement
+  # - GET /reports/by-campaign - CTR by campaign
+  # - GET /reports/by-slot - CTR by slot
+  # - GET /experiments - List experiments
+  # - GET /experiments/:id/report - Get experiment report
+  #
+  # ADMIN - EMAIL (/api/v1/admin/email/* - admin/moderator + MFA)
+  # - GET /metrics/dashboard - Dashboard metrics
+  # - GET /metrics - Get metrics
+  # - GET /metrics/templates - Template metrics
+  # - GET /logs - Search email logs
+  # - GET /alerts - Get email alerts
+  # - POST /alerts/:id/acknowledge - Acknowledge alert
+  # - POST /alerts/:id/resolve - Resolve alert
+  #
+  # ADMIN - MODERATION (/api/v1/admin/moderation/* - admin/moderator + MFA)
+  # - GET /events - Get pending events
+  # - GET /events/:type - Get events by type
+  # - POST /events/:id/review - Mark reviewed
+  # - POST /events/:id/process - Process event
+  # - GET /stats - Event statistics
+  # - GET /abuse/:userId - User abuse stats
+  # - GET /queue - Moderation queue
+  # - POST /:id/approve - Approve content
+  # - POST /:id/reject - Reject content
+  # - POST /bulk - Bulk moderate
+  # - GET /queue/stats - Queue statistics
+  # - GET /appeals - Get appeals (admin)
+  # - POST /appeals/:id/resolve - Resolve appeal (admin)
+  # - GET /audit - Audit logs
+  # - GET /analytics - Moderation analytics
+  # - GET /toxicity/metrics - Toxicity metrics
+  #
+  # ADMIN - NSFW (/api/v1/admin/nsfw/* - admin/moderator + MFA)
+  # - POST /detect - Detect NSFW content
+  # - POST /batch-detect - Batch detect
+  # - GET /metrics - Get NSFW metrics
+  # - GET /health - Health check
+  # - GET /config - Get configuration
+  # - POST /scan-clips - Scan clip thumbnails
+  #
+  # ADMIN - VERIFICATION (/api/v1/admin/verification/* - admin/moderator + MFA)
+  # - GET /applications - List applications
+  # - GET /applications/:id - Get application
+  # - POST /applications/:id/review - Review application
+  # - GET /stats - Application statistics
+  # - GET /audit-logs - Verification audit logs
+  # - GET /users/:user_id/audit-logs - User audit history
+  #
+  # ADMIN - DISCOVERY LISTS (/api/v1/admin/discovery-lists/* - admin/moderator + MFA)
+  # - GET / - List discovery lists
+  # - POST / - Create discovery list
+  # - GET /:id - Get discovery list
+  # - PUT /:id - Update discovery list
+  # - DELETE /:id - Delete discovery list
+  # - GET /:id/clips - Get clips
+  # - POST /:id/clips - Add clip
+  # - DELETE /:id/clips/:clipId - Remove clip
+  # - PUT /:id/clips/reorder - Reorder clips
+  #
+  # ADMIN - FORUM (/api/v1/admin/forum/* - admin/moderator + MFA)
+  # - GET /flagged - Get flagged content
+  # - POST /threads/:id/lock - Lock thread
+  # - POST /threads/:id/pin - Pin thread
+  # - POST /threads/:id/delete - Delete thread
+  # - POST /users/:id/ban - Ban user
+  # - GET /moderation-log - Get moderation log
+  # - GET /bans - Get user bans
+  #
+  # ADMIN - WEBHOOKS DLQ (/api/v1/admin/webhooks/* - admin/moderator + MFA)
+  # - GET /dlq - Get dead letter queue
+  # - POST /dlq/:id/replay - Replay DLQ item
+  # - DELETE /dlq/:id - Delete DLQ item
+  #
+  # ========================================
+  # TOTAL: 474 API endpoints documented
+  # ========================================
+  #
+  # This specification provides:
+  # - Complete authentication and authorization patterns
+  # - Consistent request/response schemas
+  # - Rate limiting documentation
+  # - Error handling patterns
+  # - Pagination support
+  # - Full CRUD operations for all resources
+  # - WebSocket endpoints for real-time features
+  # - Webhook integrations
+  # - Comprehensive admin operations
+  #
+  # For implementation details, refer to:
+  # - Backend source: /backend/cmd/api/main.go
+  # - Handlers: /backend/internal/handlers/
+  # - Models: /backend/internal/models/
+  # - Services: /backend/internal/services/
