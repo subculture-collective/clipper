@@ -1,0 +1,66 @@
+# Prometheus Configuration for Clipper
+# Place this file in /opt/clipper/monitoring/prometheus.yml
+
+global:
+    scrape_interval: 15s
+    evaluation_interval: 15s
+    external_labels:
+        cluster: 'clipper-production'
+        environment: 'production'
+
+# Alertmanager configuration
+alerting:
+    alertmanagers:
+        - static_configs:
+              - targets:
+                    - alertmanager:9093
+
+# Load rules once and periodically evaluate them
+rule_files:
+    - 'alerts.yml'
+
+# Scrape configurations
+scrape_configs:
+    # Prometheus self-monitoring
+    - job_name: 'prometheus'
+      static_configs:
+          - targets: ['localhost:9090']
+      metrics_path: '/prometheus/metrics'
+
+    # Clipper Backend
+    - job_name: 'clipper-backend'
+      static_configs:
+          - targets: ['backend:8080']
+      metrics_path: '/debug/metrics'
+      scrape_interval: 10s
+
+    # Node Exporter (system metrics)
+    - job_name: 'node'
+      static_configs:
+          - targets: ['node-exporter:9100']
+
+    # PostgreSQL Exporter
+    - job_name: 'postgres'
+      static_configs:
+          - targets: ['postgres-exporter:9187']
+
+    # Redis Exporter
+    - job_name: 'redis'
+      static_configs:
+          - targets: ['redis-exporter:9121']
+
+    # Nginx Exporter
+    - job_name: 'nginx'
+      static_configs:
+          - targets: ['nginx-exporter:9113']
+
+    # Docker metrics
+    - job_name: 'docker'
+      static_configs:
+          - targets: ['cadvisor:8080']
+
+    # PgBouncer Connection Pool
+    - job_name: 'pgbouncer'
+      static_configs:
+          - targets: ['pgbouncer:9127']
+      scrape_interval: 10s

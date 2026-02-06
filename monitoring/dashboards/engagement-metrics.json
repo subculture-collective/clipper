@@ -1,0 +1,363 @@
+{
+  "dashboard": {
+    "title": "Engagement Metrics",
+    "tags": ["engagement", "platform-health", "analytics"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 1,
+    "refresh": "5m",
+    "panels": [
+      {
+        "id": 1,
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+        "type": "graph",
+        "title": "Active Users (DAU/WAU/MAU)",
+        "targets": [
+          {
+            "expr": "clipper_dau",
+            "legendFormat": "Daily Active Users (DAU)",
+            "refId": "A"
+          },
+          {
+            "expr": "clipper_wau",
+            "legendFormat": "Weekly Active Users (WAU)",
+            "refId": "B"
+          },
+          {
+            "expr": "clipper_mau",
+            "legendFormat": "Monthly Active Users (MAU)",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          {
+            "label": "Users",
+            "format": "short"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+        "type": "gauge",
+        "title": "Platform Stickiness (DAU/MAU)",
+        "targets": [
+          {
+            "expr": "clipper_stickiness_ratio",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "showThresholdLabels": false,
+          "showThresholdMarkers": true
+        },
+        "fieldConfig": {
+          "defaults": {
+            "min": 0,
+            "max": 1,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": 0, "color": "red" },
+                { "value": 0.15, "color": "yellow" },
+                { "value": 0.30, "color": "green" }
+              ]
+            },
+            "unit": "percentunit"
+          }
+        }
+      },
+      {
+        "id": 3,
+        "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
+        "type": "stat",
+        "title": "Day 1 Retention",
+        "targets": [
+          {
+            "expr": "clipper_retention_day1",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": 0, "color": "red" },
+                { "value": 30, "color": "yellow" },
+                { "value": 40, "color": "green" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
+        "type": "stat",
+        "title": "Day 7 Retention",
+        "targets": [
+          {
+            "expr": "clipper_retention_day7",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": 0, "color": "red" },
+                { "value": 15, "color": "yellow" },
+                { "value": 20, "color": "green" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 5,
+        "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
+        "type": "stat",
+        "title": "Day 30 Retention",
+        "targets": [
+          {
+            "expr": "clipper_retention_day30",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": 0, "color": "red" },
+                { "value": 8, "color": "yellow" },
+                { "value": 10, "color": "green" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 6,
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+        "type": "graph",
+        "title": "Churn Rate",
+        "targets": [
+          {
+            "expr": "clipper_churn_rate_monthly",
+            "legendFormat": "Monthly Churn Rate",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {
+            "label": "Churn Rate (%)",
+            "format": "percent"
+          }
+        ],
+        "alert": {
+          "name": "High Churn Rate",
+          "conditions": [
+            {
+              "evaluator": {
+                "params": [7],
+                "type": "gt"
+              },
+              "operator": {
+                "type": "and"
+              },
+              "query": {
+                "params": ["A", "5m", "now"]
+              },
+              "reducer": {
+                "params": [],
+                "type": "avg"
+              },
+              "type": "query"
+            }
+          ],
+          "frequency": "5m",
+          "handler": 1,
+          "message": "Monthly churn rate has exceeded 7%",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      },
+      {
+        "id": 7,
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+        "type": "graph",
+        "title": "User Engagement Score Distribution",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(clipper_user_engagement_score_bucket[5m]))",
+            "legendFormat": "Median (P50)",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.90, rate(clipper_user_engagement_score_bucket[5m]))",
+            "legendFormat": "P90",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(clipper_user_engagement_score_bucket[5m]))",
+            "legendFormat": "P95",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          {
+            "label": "Engagement Score",
+            "format": "short",
+            "min": 0,
+            "max": 100
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+        "type": "graph",
+        "title": "Week-over-Week Changes",
+        "targets": [
+          {
+            "expr": "clipper_dau_change_wow",
+            "legendFormat": "DAU Change (WoW)",
+            "refId": "A"
+          },
+          {
+            "expr": "clipper_mau_change_mom",
+            "legendFormat": "MAU Change (MoM)",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {
+            "label": "Percentage Change",
+            "format": "percent"
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+        "type": "graph",
+        "title": "Content Engagement Scores",
+        "targets": [
+          {
+            "expr": "avg(clipper_content_engagement_score)",
+            "legendFormat": "Average Content Score",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.90, rate(clipper_content_engagement_score_bucket[5m]))",
+            "legendFormat": "P90 Content Score",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {
+            "label": "Engagement Score",
+            "format": "short",
+            "min": 0,
+            "max": 100
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "gridPos": { "h": 8, "w": 24, "x": 0, "y": 32 },
+        "type": "table",
+        "title": "Active Engagement Alerts",
+        "targets": [
+          {
+            "expr": "clipper_engagement_alerts",
+            "format": "table",
+            "refId": "A"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {},
+              "indexByName": {},
+              "renameByName": {
+                "alert_type": "Alert Type",
+                "severity": "Severity",
+                "metric": "Metric",
+                "current_value": "Current Value",
+                "threshold_value": "Threshold",
+                "message": "Message"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 40 },
+        "type": "heatmap",
+        "title": "User Activity Heatmap",
+        "targets": [
+          {
+            "expr": "sum(rate(clipper_user_activity_total[1h])) by (hour_of_day)",
+            "legendFormat": "{{hour_of_day}}",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "calculate": true,
+          "cellGap": 2,
+          "cellRadius": 0,
+          "color": {
+            "mode": "scheme",
+            "scheme": "Spectral"
+          }
+        }
+      },
+      {
+        "id": 12,
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 40 },
+        "type": "bargauge",
+        "title": "Engagement Tier Distribution",
+        "targets": [
+          {
+            "expr": "count(clipper_user_engagement_score >= 91)",
+            "legendFormat": "Very High (91-100)",
+            "refId": "A"
+          },
+          {
+            "expr": "count((clipper_user_engagement_score >= 76) * (clipper_user_engagement_score < 91))",
+            "legendFormat": "High (76-90)",
+            "refId": "B"
+          },
+          {
+            "expr": "count((clipper_user_engagement_score >= 51) * (clipper_user_engagement_score < 76))",
+            "legendFormat": "Moderate (51-75)",
+            "refId": "C"
+          },
+          {
+            "expr": "count((clipper_user_engagement_score >= 26) * (clipper_user_engagement_score < 51))",
+            "legendFormat": "Low (26-50)",
+            "refId": "D"
+          },
+          {
+            "expr": "count(clipper_user_engagement_score < 26)",
+            "legendFormat": "Inactive (0-25)",
+            "refId": "E"
+          }
+        ],
+        "options": {
+          "orientation": "horizontal",
+          "displayMode": "gradient"
+        }
+      }
+    ]
+  }
+}
