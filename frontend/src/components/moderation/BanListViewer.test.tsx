@@ -198,7 +198,9 @@ describe('BanListViewer', () => {
             await userEvent.type(userFilter, 'nonexistent');
 
             await waitFor(() => {
-                expect(screen.getByText('No bans found')).toBeInTheDocument();
+                expect(
+                    screen.getByText('No bans available')
+                ).toBeInTheDocument();
             });
         });
     });
@@ -400,11 +402,12 @@ describe('BanListViewer', () => {
             });
             await userEvent.click(confirmButton);
 
-            // Verify error is displayed and modal is closed
+            // Verify error is displayed (may appear in multiple alert elements) and modal is closed
             await waitFor(() => {
-                expect(
-                    screen.getByText('Failed to revoke ban')
-                ).toBeInTheDocument();
+                const errorElements = screen.getAllByText(
+                    'Failed to revoke ban'
+                );
+                expect(errorElements.length).toBeGreaterThan(0);
                 expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
             });
         });
@@ -500,7 +503,9 @@ describe('BanListViewer', () => {
             render(<BanListViewer channelId={mockChannelId} />);
 
             await waitFor(() => {
-                expect(screen.getByText('No bans found')).toBeInTheDocument();
+                expect(
+                    screen.getByText('No bans available')
+                ).toBeInTheDocument();
             });
 
             const exportButton = screen.getByLabelText('Export bans to CSV');
@@ -531,7 +536,9 @@ describe('BanListViewer', () => {
             render(<BanListViewer channelId={mockChannelId} />);
 
             await waitFor(() => {
-                expect(screen.getByText('No bans found')).toBeInTheDocument();
+                expect(
+                    screen.getByText('No bans available')
+                ).toBeInTheDocument();
             });
         });
     });

@@ -1,14 +1,12 @@
 ---
-
-title: "Scraped Clips Feature Documentation"
-summary: "The Scraped Clips feature provides a separate UI section for discovering clips that have been automa"
+title: 'Scraped Clips Feature Documentation'
+summary: 'The Scraped Clips feature provides a separate UI section for discovering clips that have been automa'
 tags: ['product']
-area: "product"
-status: "stable"
-owner: "team-core"
-version: "1.0"
+area: 'product'
+status: 'stable'
+owner: 'team-core'
+version: '1.0'
 last_reviewed: 2025-12-11
-
 ---
 
 # Scraped Clips Feature Documentation
@@ -60,22 +58,22 @@ Users can:
 - Main page component for scraped clips discovery
 - Located at route: `/discover/scraped`
 - Features:
-  - Page header with description
-  - Info banner explaining the "From Twitch" nature
-  - Tabbed interface (Trending, Latest, Top Views)
-  - Top 10k streamers toggle
-  - Integration with ScrapedClipFeed component
+    - Page header with description
+    - Info banner explaining the "From Twitch" nature
+    - Tabbed interface (Trending, Latest, Top Views)
+    - Top 10k streamers toggle
+    - Integration with ScrapedClipFeed component
 
 #### 2. ScrapedClipFeed (`/frontend/src/components/clip/ScrapedClipFeed.tsx`)
 
 - Feed component for displaying scraped clips
 - Reuses existing ClipCard component
 - Features:
-  - Infinite scroll pagination
-  - Pull-to-refresh (mobile)
-  - Filter and sort controls
-  - Loading/error/empty states
-  - Responsive design
+    - Infinite scroll pagination
+    - Pull-to-refresh (mobile)
+    - Filter and sort controls
+    - Loading/error/empty states
+    - Responsive design
 
 #### 3. ClipCard Component
 

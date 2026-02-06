@@ -4,7 +4,7 @@ import { useAutoSave, useDraftStorage } from './useAutoSave';
 
 describe('useAutoSave', () => {
   beforeEach(() => {
-    vi.useFakeTimers();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
   });
 
   afterEach(() => {

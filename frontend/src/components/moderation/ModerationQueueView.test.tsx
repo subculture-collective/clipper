@@ -29,20 +29,24 @@ describe('ModerationQueueView', () => {
             id: 'item-1',
             content_type: 'clip',
             content_id: 'clip-1',
-            title: 'Test Clip 1',
             status: 'pending',
-            flagged_at: '2024-01-01T00:00:00Z',
-            flagged_by: 'user-123',
+            created_at: '2024-01-01T00:00:00Z',
+            reported_by: ['user-123'],
+            report_count: 1,
+            auto_flagged: false,
+            priority: 50,
             reason: 'Inappropriate content',
         },
         {
             id: 'item-2',
             content_type: 'clip',
             content_id: 'clip-2',
-            title: 'Test Clip 2',
             status: 'pending',
-            flagged_at: '2024-01-02T00:00:00Z',
-            flagged_by: 'user-456',
+            created_at: '2024-01-02T00:00:00Z',
+            reported_by: ['user-456'],
+            report_count: 1,
+            auto_flagged: false,
+            priority: 30,
             reason: 'Spam',
         },
     ];
@@ -51,8 +55,12 @@ describe('ModerationQueueView', () => {
         total_pending: 10,
         total_approved: 50,
         total_rejected: 20,
-        pending_clips: 5,
-        pending_comments: 5,
+        total_escalated: 2,
+        by_content_type: { clip: 5, comment: 5 },
+        by_reason: {},
+        auto_flagged_count: 3,
+        user_reported_count: 7,
+        high_priority_count: 2,
     };
 
     beforeEach(() => {
@@ -60,6 +68,7 @@ describe('ModerationQueueView', () => {
         vi.mocked(moderationApi.getModerationQueue).mockResolvedValue({
             success: true,
             data: mockItems,
+            meta: { count: 2, limit: 50, status: 'pending' },
         });
         vi.mocked(moderationApi.getModerationStats).mockResolvedValue({
             success: true,
@@ -107,10 +116,10 @@ describe('ModerationQueueView', () => {
             );
 
             await waitFor(() => {
-                expect(screen.getByText('Test Clip 1')).toBeInTheDocument();
+                expect(screen.getByText('clip-1')).toBeInTheDocument();
             });
 
-            expect(screen.getByText('Test Clip 2')).toBeInTheDocument();
+            expect(screen.getByText('clip-2')).toBeInTheDocument();
         });
 
         it('loads stats on mount', async () => {
@@ -158,14 +167,12 @@ describe('ModerationQueueView', () => {
             );
 
             await waitFor(() => {
-                expect(screen.getByText('Test Clip 1')).toBeInTheDocument();
+                expect(screen.getByText('clip-1')).toBeInTheDocument();
             });
 
-            // Find and click the approved filter button
-            const approvedButton = screen.getByRole('button', {
-                name: /approved/i,
-            });
-            await user.click(approvedButton);
+            // The component uses a <select> dropdown for status filtering
+            const statusSelect = screen.getByRole('combobox');
+            await user.selectOptions(statusSelect, 'approved');
 
             await waitFor(() => {
                 expect(moderationApi.getModerationQueue).toHaveBeenCalledWith(
@@ -194,7 +201,7 @@ describe('ModerationQueueView', () => {
             );
 
             await waitFor(() => {
-                expect(screen.getByText('Test Clip 1')).toBeInTheDocument();
+                expect(screen.getByText('clip-1')).toBeInTheDocument();
             });
 
             const approveButtons = screen.getAllByRole('button', {
@@ -225,11 +232,11 @@ describe('ModerationQueueView', () => {
             );
 
             await waitFor(() => {
-                expect(screen.getByText('Test Clip 1')).toBeInTheDocument();
+                expect(screen.getByText('clip-1')).toBeInTheDocument();
             });
 
             const rejectButtons = screen.getAllByRole('button', {
-                name: /reject/i,
+                name: /^reject$/i,
             });
             await user.click(rejectButtons[0]);
 
@@ -239,12 +246,14 @@ describe('ModerationQueueView', () => {
             });
 
             // Enter rejection reason
-            const reasonInput = screen.getByPlaceholderText(/reason/i);
+            const reasonInput = screen.getByPlaceholderText(
+                /reason for rejection/i,
+            );
             await user.type(reasonInput, 'This violates our policy');
 
-            // Submit rejection
+            // Submit rejection - the button says "Reject Clip"
             const confirmButton = screen.getByRole('button', {
-                name: /confirm/i,
+                name: /reject clip/i,
             });
             await user.click(confirmButton);
 
@@ -269,15 +278,16 @@ describe('ModerationQueueView', () => {
             );
 
             await waitFor(() => {
-                expect(screen.getByText('Test Clip 1')).toBeInTheDocument();
+                expect(screen.getByText('clip-1')).toBeInTheDocument();
             });
 
             const checkboxes = screen.getAllByRole('checkbox');
-            await user.click(checkboxes[0]);
+            // checkboxes[0] is "Select All", checkboxes[1] and [2] are the individual items
             await user.click(checkboxes[1]);
+            await user.click(checkboxes[2]);
 
-            expect(checkboxes[0]).toBeChecked();
             expect(checkboxes[1]).toBeChecked();
+            expect(checkboxes[2]).toBeChecked();
         });
 
         it('bulk approves selected items', async () => {
@@ -297,17 +307,17 @@ describe('ModerationQueueView', () => {
             );
 
             await waitFor(() => {
-                expect(screen.getByText('Test Clip 1')).toBeInTheDocument();
+                expect(screen.getByText('clip-1')).toBeInTheDocument();
             });
 
-            // Select items
+            // Select items (skip "Select All" at index 0)
             const checkboxes = screen.getAllByRole('checkbox');
-            await user.click(checkboxes[0]);
             await user.click(checkboxes[1]);
+            await user.click(checkboxes[2]);
 
-            // Click bulk approve button
+            // Click bulk approve button - the component uses "Approve All (A)"
             const bulkApproveButton = screen.getByRole('button', {
-                name: /approve selected/i,
+                name: /approve all/i,
             });
             await user.click(bulkApproveButton);
 
@@ -336,17 +346,17 @@ describe('ModerationQueueView', () => {
             );
 
             await waitFor(() => {
-                expect(screen.getByText('Test Clip 1')).toBeInTheDocument();
+                expect(screen.getByText('clip-1')).toBeInTheDocument();
             });
 
-            // Select items
+            // Select items (skip "Select All" at index 0)
             const checkboxes = screen.getAllByRole('checkbox');
-            await user.click(checkboxes[0]);
             await user.click(checkboxes[1]);
+            await user.click(checkboxes[2]);
 
-            // Click bulk reject button
+            // Click bulk reject button - the component uses "Reject All (R)"
             const bulkRejectButton = screen.getByRole('button', {
-                name: /reject selected/i,
+                name: /reject all/i,
             });
             await user.click(bulkRejectButton);
 
@@ -393,7 +403,7 @@ describe('ModerationQueueView', () => {
             );
 
             await waitFor(() => {
-                expect(screen.getByText('Test Clip 1')).toBeInTheDocument();
+                expect(screen.getByText('clip-1')).toBeInTheDocument();
             });
 
             const approveButtons = screen.getAllByRole('button', {
@@ -426,7 +436,7 @@ describe('ModerationQueueView', () => {
             );
 
             await waitFor(() => {
-                expect(screen.getByText('Test Clip 1')).toBeInTheDocument();
+                expect(screen.getByText('clip-1')).toBeInTheDocument();
             });
 
             const approveButtons = screen.getAllByRole('button', {
@@ -447,6 +457,7 @@ describe('ModerationQueueView', () => {
             vi.mocked(moderationApi.getModerationQueue).mockResolvedValue({
                 success: true,
                 data: [],
+                meta: { count: 0, limit: 50, status: 'pending' },
             });
 
             renderWithRouter(

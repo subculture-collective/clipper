@@ -196,13 +196,11 @@ curl "http://localhost:8080/api/v1/scraped-clips?sort=new"
 ## Future Considerations
 
 1. **Metrics to Track:**
-
     - Ratio of user-submitted to scraped clips in discovery
     - Conversion rate: discovery views → clip submissions
     - User engagement on main feeds vs. discovery
 
 2. **Potential Enhancements:**
-
     - Allow users to opt-in to see scraped content in main feeds
     - Add "recommended for you" section with scraped clips
     - Personalized discovery based on user preferences

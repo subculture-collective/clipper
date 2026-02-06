@@ -27,8 +27,8 @@ describe('ClipFeed default filters', () => {
         const call = vi.mocked(clipApi.fetchClips).mock.calls[0][0];
         // Ensure filters exist and do not include language by default
         expect(call.filters).toBeDefined();
-        expect(call.filters?.sort).toBe('hot');
-        expect(call.filters?.timeframe).toBeUndefined();
+        expect(call.filters?.sort).toBe('trending');
+        expect(call.filters?.timeframe).toBe('day');
         // @ts-expect-error dynamic check
         expect(call.filters?.language).toBeUndefined();
     });

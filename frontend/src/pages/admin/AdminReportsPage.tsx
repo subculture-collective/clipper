@@ -29,9 +29,9 @@ export function AdminReportsPage() {
       setIsLoading(true);
       setError(null);
       const response = await listReports(page, 20, statusFilter, typeFilter);
-      setReports(response.data);
-      setTotalPages(response.meta.total_pages);
-      setTotal(response.meta.total);
+      setReports(response.data ?? []);
+      setTotalPages(response.meta?.total_pages ?? 1);
+      setTotal(response.meta?.total ?? 0);
     } catch (err: unknown) {
       const error = err as { response?: { data?: { error?: string } } };
       setError(error.response?.data?.error || 'Failed to load reports');
@@ -63,7 +63,7 @@ export function AdminReportsPage() {
     try {
       const status = actionType === 'dismiss' ? 'dismissed' : 'actioned';
       const action = actionType === 'dismiss' ? 'mark_false' : actionType;
-      
+
       await updateReport(selectedReport.id, {
         status,
         action: action as UpdateReportRequest['action'],

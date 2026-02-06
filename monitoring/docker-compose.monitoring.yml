@@ -207,15 +207,14 @@ services:
         volumes:
             - jaeger_data:/badger
         ports:
-            - '16686:16686'  # Jaeger UI
-            - '14268:14268'  # Jaeger collector HTTP
-            - '4317:4317'    # OTLP gRPC
-            - '4318:4318'    # OTLP HTTP
+            - '16686:16686' # Jaeger UI
+            - '14268:14268' # Jaeger collector HTTP
+            - '4317:4317' # OTLP gRPC
+            - '4318:4318' # OTLP HTTP
         networks:
             - clipper-network
             - monitoring
             - web
-
     # Vault Agent to render secrets for monitoring (e.g., postgres exporter)
     vault-agent-monitoring:
         image: hashicorp/vault:1.17.5

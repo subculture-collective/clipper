@@ -107,6 +107,11 @@ describe('ReplyComposer', () => {
 
     expect(screen.getByText('Posting...')).toBeInTheDocument();
     expect(submitButton).toBeDisabled();
+
+    // Wait for the async operation to complete to prevent unmount during state update
+    await waitFor(() => {
+      expect(screen.getByText('Post Reply')).toBeInTheDocument();
+    });
   });
 
   it('uses custom placeholder when provided', () => {

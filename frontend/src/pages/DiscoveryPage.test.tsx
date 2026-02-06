@@ -108,9 +108,9 @@ describe('DiscoveryPage', () => {
             </MemoryRouter>
         );
 
-        expect(screen.getByText('Top')).toBeInTheDocument();
-        expect(screen.getByText('New')).toBeInTheDocument();
-        expect(screen.getByText('Discussed')).toBeInTheDocument();
+        expect(screen.getByText('Trending')).toBeInTheDocument();
+        expect(screen.getByText('Latest')).toBeInTheDocument();
+        expect(screen.getByText('Top Views')).toBeInTheDocument();
     });
 
     it('renders the Top 10k Streamers toggle', () => {

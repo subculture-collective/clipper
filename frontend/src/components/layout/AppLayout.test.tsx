@@ -13,6 +13,26 @@ vi.mock('./Footer', () => ({
     Footer: () => <footer data-testid='footer'>Footer</footer>,
 }));
 
+vi.mock('./CategoriesNav', () => ({
+    CategoriesNav: () => <nav data-testid='categories-nav'>Categories</nav>,
+}));
+
+vi.mock('../OfflineIndicator', () => ({
+    OfflineIndicator: () => null,
+}));
+
+vi.mock('../queue/QueueWidget', () => ({
+    QueueWidget: () => null,
+}));
+
+vi.mock('@/hooks/useOfflineCache', () => ({
+    useOfflineCacheInit: () => {},
+}));
+
+vi.mock('@/hooks/useSyncManager', () => ({
+    useSyncManager: () => {},
+}));
+
 // Helper component to programmatically navigate
 function NavigateButton({
     to,

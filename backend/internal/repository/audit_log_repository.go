@@ -418,7 +418,7 @@ func (r *AuditLogRepository) GetByEntityID(ctx context.Context, entityID uuid.UU
 	}
 
 	query := fmt.Sprintf(`
-		SELECT id, action, entity_type, entity_id, moderator_id, reason, metadata, 
+		SELECT id, action, entity_type, entity_id, moderator_id, reason, metadata,
 		       ip_address, user_agent, channel_id, created_at
 		FROM moderation_audit_logs
 		%s

@@ -169,14 +169,14 @@ describe('useTheatreMode', () => {
   describe('localStorage Error Handling', () => {
     it('should handle localStorage.getItem errors gracefully', () => {
       // Mock localStorage.getItem to throw an error
-      const getItemSpy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      const getItemSpy = vi.spyOn(localStorage, 'getItem').mockImplementation(() => {
         throw new Error('localStorage is disabled');
       });
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       // Hook should still work and default to false
       const { result } = renderHook(() => useTheatreMode());
-      
+
       expect(result.current.isTheatreMode).toBe(false);
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         'Failed to read theatre mode preference from localStorage:',
@@ -190,18 +190,18 @@ describe('useTheatreMode', () => {
 
     it('should handle localStorage.setItem errors gracefully', () => {
       // Mock localStorage.setItem to throw an error
-      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      const setItemSpy = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
         throw new Error('Quota exceeded');
       });
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       const { result } = renderHook(() => useTheatreMode());
-      
+
       // Toggle should work even if persistence fails
       act(() => {
         result.current.toggleTheatreMode();
       });
-      
+
       expect(result.current.isTheatreMode).toBe(true);
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         'Failed to save theatre mode preference to localStorage:',
@@ -216,17 +216,18 @@ describe('useTheatreMode', () => {
     it('should continue working after localStorage failures', () => {
       // Simulate localStorage failure on first call, then succeed on second
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+      const originalSetItem = localStorage.setItem.bind(localStorage);
+      const setItemSpy = vi.spyOn(localStorage, 'setItem')
         .mockImplementationOnce(() => {
           throw new Error('First call fails');
         })
         .mockImplementationOnce((key: string, value: string) => {
           // Second call succeeds - use real implementation
-          return setItemSpy.wrappedMethod.call(localStorage, key, value);
+          return originalSetItem(key, value);
         });
 
       const { result } = renderHook(() => useTheatreMode());
-      
+
       // First toggle - localStorage fails but state updates
       act(() => {
         result.current.toggleTheatreMode();
@@ -240,7 +241,7 @@ describe('useTheatreMode', () => {
         result.current.toggleTheatreMode();
       });
       expect(result.current.isTheatreMode).toBe(false);
-      
+
       // Restore
       vi.restoreAllMocks();
     });

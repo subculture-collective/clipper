@@ -400,6 +400,43 @@ func (r *CommunityRepository) ListBans(ctx context.Context, communityID uuid.UUI
 	return bans, total, rows.Err()
 }
 
+// ListAllBans retrieves all bans across all communities with pagination (admin only)
+func (r *CommunityRepository) ListAllBans(ctx context.Context, limit, offset int) ([]*models.CommunityBan, int, error) {
+	// Count total
+	countQuery := `SELECT COUNT(*) FROM community_bans`
+	var total int
+	err := r.pool.QueryRow(ctx, countQuery).Scan(&total)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Query bans
+	query := `
+		SELECT id, community_id, banned_user_id, banned_by_user_id, reason, banned_at
+		FROM community_bans
+		ORDER BY banned_at DESC
+		LIMIT $1 OFFSET $2
+	`
+	rows, err := r.pool.Query(ctx, query, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	bans := []*models.CommunityBan{}
+	for rows.Next() {
+		ban := &models.CommunityBan{}
+		err := rows.Scan(
+			&ban.ID, &ban.CommunityID, &ban.BannedUserID, &ban.BannedByUserID, &ban.Reason, &ban.BannedAt,
+		)
+		if err != nil {
+			return nil, 0, err
+		}
+		bans = append(bans, ban)
+	}
+	return bans, total, rows.Err()
+}
+
 // AddClipToCommunity adds a clip to a community feed
 func (r *CommunityRepository) AddClipToCommunity(ctx context.Context, communityClip *models.CommunityClip) error {
 	query := `
@@ -443,7 +480,7 @@ func (r *CommunityRepository) GetCommunityClips(ctx context.Context, communityID
 
 	// Query clips with JOIN to get full clip data
 	query := fmt.Sprintf(`
-		SELECT 
+		SELECT
 			cc.id, cc.community_id, cc.clip_id, cc.added_by_user_id, cc.added_at,
 			c.id, c.twitch_clip_id, c.twitch_clip_url, c.embed_url, c.title,
 			c.creator_name, c.creator_id, c.broadcaster_name, c.broadcaster_id,

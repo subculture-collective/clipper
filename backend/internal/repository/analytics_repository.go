@@ -320,6 +320,10 @@ func (r *AnalyticsRepository) GetPlatformOverviewMetrics(ctx context.Context) (*
 	)
 
 	if err != nil {
+		if err == pgx.ErrNoRows {
+			// Return zero-value metrics when no analytics data exists yet
+			return &models.PlatformOverviewMetrics{}, nil
+		}
 		return nil, err
 	}
 
@@ -1046,7 +1050,7 @@ func (r *AnalyticsRepository) GetClipShareCount(ctx context.Context, clipID uuid
 // GetClipVoteCounts returns the separate upvote and downvote counts for a clip
 func (r *AnalyticsRepository) GetClipVoteCounts(ctx context.Context, clipID uuid.UUID) (upvotes int64, downvotes int64, err error) {
 	query := `
-		SELECT 
+		SELECT
 			COUNT(*) FILTER (WHERE vote_type = 1) as upvotes,
 			COUNT(*) FILTER (WHERE vote_type = -1) as downvotes
 		FROM votes
@@ -1098,7 +1102,7 @@ func (r *AnalyticsRepository) GetWatchPartyAnalytics(ctx context.Context, partyI
 	// For now, we skip the refresh and use the existing materialized view data.
 
 	query := `
-		SELECT 
+		SELECT
 			party_id,
 			unique_viewers,
 			peak_concurrent_viewers,
@@ -1144,7 +1148,7 @@ func (r *AnalyticsRepository) GetHostStats(ctx context.Context, userID uuid.UUID
 	// via a background job rather than synchronously in the request path.
 
 	query := `
-		SELECT 
+		SELECT
 			COUNT(DISTINCT wpa.party_id) as total_parties_hosted,
 			COALESCE(SUM(wpa.unique_viewers), 0) as total_viewers,
 			COALESCE(AVG(wpa.unique_viewers), 0) as avg_viewers_per_party,
@@ -1173,7 +1177,7 @@ func (r *AnalyticsRepository) GetHostStats(ctx context.Context, userID uuid.UUID
 // GetRealtimeViewerCount gets the current viewer count for a party
 func (r *AnalyticsRepository) GetRealtimeViewerCount(ctx context.Context, partyID uuid.UUID) (int, error) {
 	query := `
-		SELECT COUNT(*) 
+		SELECT COUNT(*)
 		FROM watch_party_participants
 		WHERE party_id = $1 AND left_at IS NULL
 	`

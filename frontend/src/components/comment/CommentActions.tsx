@@ -53,7 +53,7 @@ export const CommentActions: React.FC<CommentActionsProps> = ({
 
     // Track whether the comment is still within the editable window
     const [isWithinEditWindow, setIsWithinEditWindow] = React.useState(() =>
-        computeWithinEditWindow()
+        computeWithinEditWindow(),
     );
 
     React.useEffect(() => {
@@ -94,10 +94,10 @@ export const CommentActions: React.FC<CommentActionsProps> = ({
                     setShowReportDialog(false);
                     setReportDescription('');
                     toast.success(
-                        'Comment reported. Thank you for helping keep our community safe.'
+                        'Comment reported. Thank you for helping keep our community safe.',
                     );
                 },
-            }
+            },
         );
     };
 

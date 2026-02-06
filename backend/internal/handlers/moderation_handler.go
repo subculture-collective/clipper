@@ -1397,7 +1397,7 @@ func (h *ModerationHandler) GetModerationAnalytics(c *gin.Context) {
 
 	// Most banned users (users with most bans in the date range)
 	rows, err = h.db.Query(ctx, `
-		SELECT 
+		SELECT
 			ub.user_id,
 			COALESCE(u.username, 'Unknown') as username,
 			COUNT(*) as ban_count,
@@ -1424,7 +1424,7 @@ func (h *ModerationHandler) GetModerationAnalytics(c *gin.Context) {
 	// Appeals statistics
 	appealStats := &models.AppealStats{}
 	err = h.db.QueryRow(ctx, `
-		SELECT 
+		SELECT
 			COUNT(*) as total,
 			COUNT(*) FILTER (WHERE status = 'pending') as pending,
 			COUNT(*) FILTER (WHERE status = 'approved') as approved,
@@ -1643,23 +1643,6 @@ func (h *ModerationHandler) GetBans(c *gin.Context) {
 	}
 	moderatorID := moderatorIDVal.(uuid.UUID)
 
-	// Parse query parameters
-	channelIDStr := c.Query("channelId")
-	if channelIDStr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "channelId query parameter is required",
-		})
-		return
-	}
-
-	channelID, err := uuid.Parse(channelIDStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid channelId format",
-		})
-		return
-	}
-
 	// Check if moderation service is available before parsing pagination
 	if h.moderationService == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
@@ -1690,6 +1673,41 @@ func (h *ModerationHandler) GetBans(c *gin.Context) {
 
 	// Convert offset to page number (GetBans expects page, not offset)
 	page := (offset / limit) + 1
+
+	// Parse optional channelId - if absent, list all bans (admin only)
+	channelIDStr := c.Query("channelId")
+	if channelIDStr == "" {
+		// List all bans across all communities (admin/site mod only)
+		bans, total, err := h.moderationService.GetAllBans(ctx, moderatorID, page, limit)
+		if err != nil {
+			if errors.Is(err, services.ErrModerationPermissionDenied) || errors.Is(err, services.ErrModerationNotAuthorized) {
+				c.JSON(http.StatusForbidden, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Failed to retrieve bans",
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"bans":   bans,
+			"total":  total,
+			"limit":  limit,
+			"offset": offset,
+		})
+		return
+	}
+
+	channelID, err := uuid.Parse(channelIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid channelId format",
+		})
+		return
+	}
 
 	// Get bans from moderation service
 	bans, total, err := h.moderationService.GetBans(ctx, channelID, moderatorID, page, limit)

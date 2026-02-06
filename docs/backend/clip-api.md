@@ -1,14 +1,12 @@
 ---
-
-title: "Clip Management API Documentation"
-summary: "The Clip Management API provides comprehensive endpoints for managing clips with CRUD operations, fi"
+title: 'Clip Management API Documentation'
+summary: 'The Clip Management API provides comprehensive endpoints for managing clips with CRUD operations, fi'
 tags: ['backend', 'api']
-area: "backend"
-status: "stable"
-owner: "team-core"
-version: "1.0"
+area: 'backend'
+status: 'stable'
+owner: 'team-core'
+version: '1.0'
 last_reviewed: 2025-12-11
-
 ---
 
 # Clip Management API Documentation

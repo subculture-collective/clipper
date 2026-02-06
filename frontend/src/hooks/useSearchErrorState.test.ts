@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook, waitFor, act } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { useSearchErrorState } from './useSearchErrorState';
 import { AxiosError, InternalAxiosRequestConfig } from 'axios';
@@ -12,7 +12,7 @@ vi.mock('@/lib/telemetry', () => ({
 describe('useSearchErrorState', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
   });
 
   afterEach(() => {
@@ -118,8 +118,9 @@ describe('useSearchErrorState', () => {
 
     it('should detect network errors', async () => {
       const { result } = renderHook(() => useSearchErrorState());
-      
+
       const error: Partial<AxiosError> = {
+        response: undefined,
         code: 'ERR_NETWORK',
         message: 'Network Error',
       };
@@ -315,8 +316,12 @@ describe('useSearchErrorState', () => {
         expect(result.current.errorState.type).toBe('error');
       });
       
-      result.current.handleSearchSuccess();
-      expect(result.current.errorState.type).toBe('none');
+      act(() => {
+        result.current.handleSearchSuccess();
+      });
+      await waitFor(() => {
+        expect(result.current.errorState.type).toBe('none');
+      });
     });
 
     it('should dismiss error', async () => {
@@ -338,8 +343,12 @@ describe('useSearchErrorState', () => {
         expect(result.current.errorState.type).toBe('error');
       });
       
-      result.current.dismissError();
-      expect(result.current.errorState.type).toBe('none');
+      act(() => {
+        result.current.dismissError();
+      });
+      await waitFor(() => {
+        expect(result.current.errorState.type).toBe('none');
+      });
     });
 
     it('should track dismiss analytics event', async () => {
@@ -361,12 +370,16 @@ describe('useSearchErrorState', () => {
       });
       
       vi.clearAllMocks();
-      
-      result.current.dismissError();
-      
-      expect(telemetry.trackEvent).toHaveBeenCalledWith('search_error_dismissed', expect.objectContaining({
-        error_type: 'error',
-      }));
+
+      act(() => {
+        result.current.dismissError();
+      });
+
+      await waitFor(() => {
+        expect(telemetry.trackEvent).toHaveBeenCalledWith('search_error_dismissed', expect.objectContaining({
+          error_type: 'error',
+        }));
+      });
     });
   });
 
@@ -389,15 +402,19 @@ describe('useSearchErrorState', () => {
         expect(result.current.errorState.type).toBe('error');
       });
       
-      result.current.handleSearchSuccess();
-      
-      expect(result.current.errorState).toEqual({
-        type: 'none',
-        message: undefined,
-        retryCount: 0,
-        maxRetries: 3,
-        isRetrying: false,
-        isCircuitOpen: false,
+      act(() => {
+        result.current.handleSearchSuccess();
+      });
+
+      await waitFor(() => {
+        expect(result.current.errorState).toEqual({
+          type: 'none',
+          message: undefined,
+          retryCount: 0,
+          maxRetries: 3,
+          isRetrying: false,
+          isCircuitOpen: false,
+        });
       });
     });
 
@@ -430,24 +447,32 @@ describe('useSearchErrorState', () => {
       });
       
       // Cancel retry
-      result.current.cancelRetry();
-      
-      expect(result.current.errorState.isRetrying).toBe(false);
-      expect(result.current.errorState.message).toContain('cancelled');
+      act(() => {
+        result.current.cancelRetry();
+      });
+
+      await waitFor(() => {
+        expect(result.current.errorState.isRetrying).toBe(false);
+        expect(result.current.errorState.message).toContain('cancelled');
+      });
     });
 
-    it('should track cancel analytics event', () => {
+    it('should track cancel analytics event', async () => {
       const { result } = renderHook(() => useSearchErrorState());
       const searchFn = vi.fn().mockResolvedValue(undefined);
       
       result.current.retry(searchFn);
       vi.clearAllMocks();
-      
-      result.current.cancelRetry();
-      
-      expect(telemetry.trackEvent).toHaveBeenCalledWith('search_retry_cancelled', expect.objectContaining({
-        retry_count: expect.any(Number),
-      }));
+
+      act(() => {
+        result.current.cancelRetry();
+      });
+
+      await waitFor(() => {
+        expect(telemetry.trackEvent).toHaveBeenCalledWith('search_retry_cancelled', expect.objectContaining({
+          retry_count: expect.any(Number),
+        }));
+      });
     });
   });
 
@@ -526,10 +551,14 @@ describe('useSearchErrorState', () => {
       });
       
       // Fast-forward 30 seconds
-      vi.advanceTimersByTime(30000);
-      await vi.runOnlyPendingTimersAsync();
-      
-      expect(result.current.errorState.isCircuitOpen).toBe(false);
+      await act(async () => {
+        vi.advanceTimersByTime(30000);
+        await vi.runOnlyPendingTimersAsync();
+      });
+
+      await waitFor(() => {
+        expect(result.current.errorState.isCircuitOpen).toBe(false);
+      });
     });
 
     it('should reset consecutive failures on success', () => {

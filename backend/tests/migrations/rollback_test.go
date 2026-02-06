@@ -316,11 +316,11 @@ func TestNoOrphanedObjects(t *testing.T) {
 		// Query for indexes that don't have a corresponding table or materialized view
 		var count int
 		err := mh.pool.QueryRow(ctx, `
-			SELECT COUNT(*) 
+			SELECT COUNT(*)
 			FROM pg_indexes i
 			WHERE i.schemaname = 'public'
 			AND NOT EXISTS (
-				SELECT 1 FROM pg_tables t 
+				SELECT 1 FROM pg_tables t
 				WHERE t.tablename = i.tablename AND t.schemaname = i.schemaname
 			)
 			AND NOT EXISTS (
@@ -351,8 +351,8 @@ func TestNoOrphanedObjects(t *testing.T) {
 		err := mh.pool.QueryRow(ctx, `
 			SELECT COUNT(*)
 			FROM information_schema.table_constraints tc
-			LEFT JOIN information_schema.tables t 
-				ON tc.table_name = t.table_name 
+			LEFT JOIN information_schema.tables t
+				ON tc.table_name = t.table_name
 				AND tc.table_schema = t.table_schema
 			WHERE tc.table_schema = 'public'
 			AND t.table_name IS NULL
