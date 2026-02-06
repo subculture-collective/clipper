@@ -74,11 +74,11 @@ describe('AuditLogViewer', () => {
     });
 
     describe('Rendering', () => {
-        it('renders the component with title', async () => {
+        it('renders the component with filters section', async () => {
             render(<AuditLogViewer />);
 
             await waitFor(() => {
-                expect(screen.getByText('Audit Logs')).toBeInTheDocument();
+                expect(screen.getByText('Filters')).toBeInTheDocument();
             });
         });
 

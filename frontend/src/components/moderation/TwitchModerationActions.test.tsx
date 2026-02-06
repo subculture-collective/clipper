@@ -10,6 +10,7 @@ vi.mock('../../lib/moderation-api');
 vi.mock('../../context/AuthContext');
 
 import { ToastProvider } from '../../context/ToastContext';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const mockUser = {
     id: 'user-123',
@@ -23,14 +24,23 @@ const mockUser = {
 };
 
 
-// Wrapper component that provides ToastContext
+// Wrapper component that provides ToastContext and QueryClient
 function TestWrapper({ children }: { children: React.ReactNode }) {
-    return <ToastProvider>{children}</ToastProvider>;
+    const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+    });
+    return (
+        <QueryClientProvider client={queryClient}>
+            <ToastProvider>{children}</ToastProvider>
+        </QueryClientProvider>
+    );
 }
 
 describe('TwitchModerationActions', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        // Default mock for getBanReasonTemplates to avoid "Cannot read properties of undefined"
+        vi.mocked(moderationApi.getBanReasonTemplates).mockResolvedValue({ templates: [] });
     });
 
     describe('Permission Gating', () => {
@@ -497,7 +507,7 @@ describe('TwitchModerationActions', () => {
             await user.click(within(modal).getByRole('button', { name: /ban user/i }));
 
             await waitFor(() => {
-                expect(screen.getByRole('alert')).toHaveTextContent(/site moderators cannot perform twitch actions/i);
+                expect(screen.getByTestId('twitch-action-error-alert')).toHaveTextContent(/site moderators cannot perform twitch actions/i);
             });
         });
 
@@ -529,7 +539,7 @@ describe('TwitchModerationActions', () => {
             await user.click(within(modal).getByRole('button', { name: /ban user/i }));
 
             await waitFor(() => {
-                expect(screen.getByRole('alert')).toHaveTextContent(/do not have the required twitch permissions/i);
+                expect(screen.getByTestId('twitch-action-error-alert')).toHaveTextContent(/do not have the required twitch permissions/i);
             });
         });
 
@@ -561,7 +571,7 @@ describe('TwitchModerationActions', () => {
             await user.click(within(modal).getByRole('button', { name: /ban user/i }));
 
             await waitFor(() => {
-                expect(screen.getByRole('alert')).toHaveTextContent(/rate limit exceeded/i);
+                expect(screen.getByTestId('twitch-action-error-alert')).toHaveTextContent(/rate limit exceeded/i);
             });
         });
 
@@ -585,7 +595,7 @@ describe('TwitchModerationActions', () => {
             await user.click(within(modal).getByRole('button', { name: /ban user/i }));
 
             await waitFor(() => {
-                expect(screen.getByRole('alert')).toHaveTextContent(/network error/i);
+                expect(screen.getByTestId('twitch-action-error-alert')).toHaveTextContent(/network error/i);
             });
         });
     });
