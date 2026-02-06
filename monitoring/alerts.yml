@@ -1949,6 +1949,7 @@ groups:
           runbook: "https://github.com/subculture-collective/clipper/blob/main/docs/operations/runbooks/moderation-system.md#critical-permission-issues"
       
       # Slow Moderation Queries
+      # NOTE: This alert will not fire until moderation_slow_queries_total metric is instrumented
       - alert: ModerationSlowQueries
         expr: |
           rate(moderation_slow_queries_total[5m]) > 1
@@ -1962,6 +1963,7 @@ groups:
           runbook: "https://github.com/subculture-collective/clipper/blob/main/docs/operations/runbooks/moderation-system.md#slow-queries"
       
       # Critical Slow Query Rate
+      # NOTE: This alert will not fire until moderation_slow_queries_total metric is instrumented
       - alert: ModerationSlowQueriesCritical
         expr: |
           rate(moderation_slow_queries_total[5m]) > 5
@@ -1975,6 +1977,7 @@ groups:
           runbook: "https://github.com/subculture-collective/clipper/blob/main/docs/operations/runbooks/moderation-system.md#critical-slow-queries"
       
       # High API Error Rate for Moderation Endpoints
+      # NOTE: This alert will not fire until moderation_api_errors_total metric is instrumented
       - alert: ModerationAPIHighErrorRate
         expr: |
           (
@@ -1991,6 +1994,7 @@ groups:
           runbook: "https://github.com/subculture-collective/clipper/blob/main/docs/operations/runbooks/moderation-system.md#api-errors"
       
       # Critical API Error Rate
+      # NOTE: This alert will not fire until moderation_api_errors_total metric is instrumented
       - alert: ModerationAPICriticalErrorRate
         expr: |
           (

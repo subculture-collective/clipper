@@ -332,6 +332,13 @@ Links to [Moderation System Runbook](../../docs/operations/runbooks/moderation-s
 - Monitor audit log completeness
 - Optimize database queries
 
+**Note:** Some dashboard panels may show "no data" until the following metrics are instrumented:
+- `moderation_api_errors_total` - API error tracking
+- `moderation_database_query_duration_seconds` - DB query performance
+- `moderation_slow_queries_total` - Slow query detection
+- `moderation_active_bans` - Active ban gauge
+- `moderation_audit_log_volume` - Audit log volume tracking
+
 **Related Documentation:**
 - [Moderation System Runbook](../../docs/operations/runbooks/moderation-system.md)
 - [Ban Sync Troubleshooting](../../docs/operations/runbooks/ban-sync-troubleshooting.md)
