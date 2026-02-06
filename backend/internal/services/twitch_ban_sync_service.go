@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
-	"github.com/subculture-collective/clipper/pkg/metrics"
 	"github.com/subculture-collective/clipper/pkg/twitch"
 	"github.com/subculture-collective/clipper/pkg/utils"
 )
@@ -63,45 +62,12 @@ func NewTwitchBanSyncService(
 // userID: the ID of the user requesting the sync (must own the channel)
 // channelID: the Twitch channel ID to sync bans for
 func (s *TwitchBanSyncService) SyncChannelBans(ctx context.Context, userID, channelID string) error {
-	start := time.Now()
 	logger := utils.GetLogger()
-	var syncErr error
-	var errorType string
-	
-	// Defer metrics recording
-	defer func() {
-		duration := time.Since(start).Seconds()
-		metrics.ModerationSyncOperationDuration.WithLabelValues("full").Observe(duration)
-		
-		if syncErr == nil {
-			metrics.ModerationSyncOperationsTotal.WithLabelValues("success", "").Inc()
-		} else {
-			// Determine error type
-			var authErr *AuthenticationError
-			var authzErr *AuthorizationError
-			var apiErr *BanSyncTwitchAPIError
-			var dbErr *DatabaseError
-			
-			if errors.As(syncErr, &authErr) {
-				errorType = "auth_error"
-			} else if errors.As(syncErr, &authzErr) {
-				errorType = "authz_error"
-			} else if errors.As(syncErr, &apiErr) {
-				errorType = "api_error"
-			} else if errors.As(syncErr, &dbErr) {
-				errorType = "database_error"
-			} else {
-				errorType = "unknown_error"
-			}
-			metrics.ModerationSyncOperationsTotal.WithLabelValues("failed", errorType).Inc()
-		}
-	}()
 
 	// Parse UUIDs
 	userUUID, err := uuid.Parse(userID)
 	if err != nil {
-		syncErr = fmt.Errorf("invalid user ID: %w", err)
-		return syncErr
+		return fmt.Errorf("invalid user ID: %w", err)
 	}
 
 	// Get user's Twitch auth credentials
@@ -110,13 +76,11 @@ func (s *TwitchBanSyncService) SyncChannelBans(ctx context.Context, userID, chan
 		logger.Error("Failed to get Twitch auth", err, map[string]interface{}{
 			"user_id": userID,
 		})
-		syncErr = &AuthenticationError{Message: "user not authenticated with Twitch"}
-		return syncErr
+		return &AuthenticationError{Message: "user not authenticated with Twitch"}
 	}
 
 	if auth == nil {
-		syncErr = &AuthenticationError{Message: "user not authenticated with Twitch"}
-		return syncErr
+		return &AuthenticationError{Message: "user not authenticated with Twitch"}
 	}
 
 	// Check if token is expired and refresh if needed
@@ -127,8 +91,7 @@ func (s *TwitchBanSyncService) SyncChannelBans(ctx context.Context, userID, chan
 
 		// Refresh token logic would go here
 		// For now, return an error if token is expired
-		syncErr = &AuthenticationError{Message: "Twitch token expired, please re-authenticate"}
-		return syncErr
+		return &AuthenticationError{Message: "Twitch token expired, please re-authenticate"}
 	}
 
 	// Validate user owns the channel by checking if their Twitch user ID matches the channel ID
@@ -138,8 +101,7 @@ func (s *TwitchBanSyncService) SyncChannelBans(ctx context.Context, userID, chan
 			"user_twitch_id":    auth.TwitchUserID,
 			"requested_channel": channelID,
 		})
-		syncErr = &AuthorizationError{Message: "user does not own the specified channel"}
-		return syncErr
+		return &AuthorizationError{Message: "user does not own the specified channel"}
 	}
 
 	logger.Info("Starting ban sync", map[string]interface{}{
@@ -169,8 +131,7 @@ func (s *TwitchBanSyncService) SyncChannelBans(ctx context.Context, userID, chan
 				"channel_id": channelID,
 				"page":       pageCount,
 			})
-			syncErr = &BanSyncTwitchAPIError{Message: "failed to fetch banned users from Twitch", Err: err}
-			return syncErr
+			return &BanSyncTwitchAPIError{Message: "failed to fetch banned users from Twitch", Err: err}
 		}
 
 		logger.Debug("Fetched page of banned users", map[string]interface{}{
@@ -195,17 +156,13 @@ func (s *TwitchBanSyncService) SyncChannelBans(ctx context.Context, userID, chan
 		"pages":      pageCount,
 	})
 
-	// Record bans processed
-	metrics.ModerationSyncBansProcessed.WithLabelValues("fetched").Add(float64(len(allBans)))
-
 	// Convert channel ID string to UUID
 	channelUUID, err := s.getOrCreateChannelUUID(ctx, channelID)
 	if err != nil {
 		logger.Error("Failed to get/create channel UUID", err, map[string]interface{}{
 			"channel_id": channelID,
 		})
-		syncErr = &DatabaseError{Message: "failed to process channel", Err: err}
-		return syncErr
+		return &DatabaseError{Message: "failed to process channel", Err: err}
 	}
 
 	// Transform Twitch bans to database records
@@ -262,11 +219,8 @@ func (s *TwitchBanSyncService) SyncChannelBans(ctx context.Context, userID, chan
 				"channel_id": channelID,
 				"ban_count":  len(dbBans),
 			})
-			syncErr = &DatabaseError{Message: "failed to store bans in database", Err: err}
-			return syncErr
+			return &DatabaseError{Message: "failed to store bans in database", Err: err}
 		}
-		// Record successfully processed bans
-		metrics.ModerationSyncBansProcessed.WithLabelValues("stored").Add(float64(len(dbBans)))
 	}
 
 	logger.Info("Ban sync completed successfully", map[string]interface{}{
