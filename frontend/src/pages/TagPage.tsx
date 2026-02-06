@@ -1,19 +1,36 @@
 import { useParams } from 'react-router-dom';
-import { Container } from '../components';
+import { Container, SEO } from '../components';
+import { ClipFeed } from '../components/clip';
 
 export function TagPage() {
   const { tagSlug } = useParams<{ tagSlug: string }>();
 
+  if (!tagSlug) {
+    return (
+      <Container className="py-8">
+        <div className="text-center text-muted-foreground">
+          <p>No tag specified</p>
+        </div>
+      </Container>
+    );
+  }
+
   return (
-    <Container className="py-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">Tag: #{tagSlug}</h1>
-        <p className="text-muted-foreground">Viewing clips with tag: {tagSlug}</p>
-      </div>
-      <div className="text-center text-muted-foreground py-12">
-        <p className="text-lg">Tagged clips coming soon...</p>
-        <p className="text-sm mt-2">This is a placeholder for tag-filtered clips.</p>
-      </div>
-    </Container>
+    <>
+      <SEO
+        title={`#${tagSlug}`}
+        description={`Explore Twitch clips tagged with ${tagSlug}. Watch, vote, and discover the best ${tagSlug} moments from the community.`}
+        canonicalUrl={`/tag/${tagSlug}`}
+      />
+      <Container className="py-8">
+        <ClipFeed
+          title={`#${tagSlug}`}
+          description={`Clips tagged with ${tagSlug}`}
+          filters={{ tags: [tagSlug] }}
+          showSearch={false}
+          useSortTitle={false}
+        />
+      </Container>
+    </>
   );
 }

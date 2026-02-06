@@ -515,7 +515,7 @@ test.describe('Moderation Workflow E2E', () => {
       expect(approveLog?.actor_id).toBe('admin-1');
     });
 
-    test.skip('should reject submission with reason and create audit log', async ({ page }) => {
+    test('should reject submission with reason and create audit log', async ({ page }) => {
       const mocks = await setupModerationMocks(page);
 
       // Set admin user
@@ -608,7 +608,7 @@ test.describe('Moderation Workflow E2E', () => {
   });
 
   test.describe('Bulk Actions', () => {
-    test.skip('should bulk approve multiple submissions and create audit logs', async ({ page }) => {
+    test('should bulk approve multiple submissions and create audit logs', async ({ page }) => {
       const mocks = await setupModerationMocks(page);
 
       // Set admin user
@@ -653,7 +653,7 @@ test.describe('Moderation Workflow E2E', () => {
       expect(bulkApproveLogs.length).toBe(3);
     });
 
-    test.skip('should bulk reject multiple submissions with reason and create audit logs', async ({ page }) => {
+    test('should bulk reject multiple submissions with reason and create audit logs', async ({ page }) => {
       const mocks = await setupModerationMocks(page);
 
       // Set admin user
@@ -702,7 +702,7 @@ test.describe('Moderation Workflow E2E', () => {
   });
 
   test.describe('Performance Baseline', () => {
-    test.skip('should measure p95 page load time for moderation queue', async ({ page }) => {
+    test('should measure p95 page load time for moderation queue', async ({ page }) => {
       const mocks = await setupModerationMocks(page);
 
       // Set admin user
@@ -760,7 +760,7 @@ test.describe('Moderation Workflow E2E', () => {
   });
 
   test.describe('Audit Logging', () => {
-    test.skip('should create audit logs for all moderation actions', async ({ page }) => {
+    test('should create audit logs for all moderation actions', async ({ page }) => {
       const mocks = await setupModerationMocks(page);
 
       // Set admin user
@@ -802,7 +802,7 @@ test.describe('Moderation Workflow E2E', () => {
       expect(rejectLog?.details?.rejection_reason).toBe('Test rejection');
     });
 
-    test.skip('should retrieve audit logs via API with filters', async ({ page }) => {
+    test('should retrieve audit logs via API with filters', async ({ page }) => {
       const mocks = await setupModerationMocks(page);
 
       // Set admin user

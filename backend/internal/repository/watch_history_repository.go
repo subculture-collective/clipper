@@ -151,6 +151,48 @@ func (r *WatchHistoryRepository) ClearWatchHistory(ctx context.Context, userID u
 	return err
 }
 
+// GetResumePositions gets the resume positions for multiple clips in batch
+func (r *WatchHistoryRepository) GetResumePositions(ctx context.Context, userID uuid.UUID, clipIDs []uuid.UUID) (map[uuid.UUID]*models.ResumePositionResponse, error) {
+	if len(clipIDs) == 0 {
+		return make(map[uuid.UUID]*models.ResumePositionResponse), nil
+	}
+
+	query := `
+		SELECT clip_id, progress_seconds, completed
+		FROM watch_history
+		WHERE user_id = $1 AND clip_id = ANY($2)
+	`
+
+	rows, err := r.pool.Query(ctx, query, userID, clipIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := make(map[uuid.UUID]*models.ResumePositionResponse)
+	for rows.Next() {
+		var clipID uuid.UUID
+		var progressSeconds int
+		var completed bool
+
+		if err := rows.Scan(&clipID, &progressSeconds, &completed); err != nil {
+			return nil, err
+		}
+
+		result[clipID] = &models.ResumePositionResponse{
+			HasProgress:     true,
+			ProgressSeconds: progressSeconds,
+			Completed:       completed,
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
 // IsWatchHistoryEnabled checks if watch history tracking is enabled for a user
 func (r *WatchHistoryRepository) IsWatchHistoryEnabled(ctx context.Context, userID uuid.UUID) (bool, error) {
 	var enabled bool

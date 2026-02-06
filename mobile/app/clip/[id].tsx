@@ -14,6 +14,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { getClip } from '../../services/clips';
 import EnhancedVideoPlayer from '../../components/EnhancedVideoPlayer';
+import { useEffect } from 'react';
+import { trackEvent, SubmissionEvents } from '../../lib/analytics';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const VIDEO_HEIGHT = SCREEN_WIDTH * (9 / 16);
@@ -27,6 +29,19 @@ export default function ClipDetailScreen() {
         queryFn: () => getClip(String(id)),
         enabled: !!id,
     });
+
+    // Track submission viewed when clip loads
+    useEffect(() => {
+        if (clip) {
+            trackEvent(SubmissionEvents.SUBMISSION_VIEWED, {
+                submission_id: clip.id,
+                submission_type: 'clip',
+                broadcaster_name: clip.broadcaster_name,
+                view_count: clip.view_count,
+                vote_score: clip.vote_score,
+            });
+        }
+    }, [clip]);
 
     if (isLoading) {
         return (
@@ -99,14 +114,8 @@ export default function ClipDetailScreen() {
                     </TouchableOpacity>
                 </View>
 
-                {/* Description */}
-                {false && (
-                    <View className='mb-4'>
-                        <Text className='text-base text-gray-700 leading-6'>
-                            {/* TODO: add description if available */}
-                        </Text>
-                    </View>
-                )}
+                {/* Description - not available in current clip model */}
+                {/* Future enhancement: Add description field to Clip model in backend */}
 
                 {/* Comments Section */}
                 <View className='border-t border-gray-200 pt-4'>

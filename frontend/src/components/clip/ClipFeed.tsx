@@ -36,7 +36,11 @@ const MemoizedClipCard = memo(ClipCard, (prevProps, nextProps) => {
         prevProps.clip.user_vote === nextProps.clip.user_vote &&
         prevProps.clip.is_favorited === nextProps.clip.is_favorited &&
         prevProps.clip.comment_count === nextProps.clip.comment_count &&
-        prevProps.clip.favorite_count === nextProps.clip.favorite_count
+        prevProps.clip.favorite_count === nextProps.clip.favorite_count &&
+        prevProps.clip.watch_progress?.progress_percent === nextProps.clip.watch_progress?.progress_percent &&
+        prevProps.clip.watch_progress?.completed === nextProps.clip.watch_progress?.completed &&
+        // Detect when watch_progress changes from undefined to defined or vice versa
+        (prevProps.clip.watch_progress === undefined) === (nextProps.clip.watch_progress === undefined)
     );
 });
 

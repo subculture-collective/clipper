@@ -9,7 +9,7 @@ import {
     TouchableOpacity,
     ActivityIndicator,
 } from 'react-native';
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,6 +21,7 @@ import { FilterSheet } from '@/components/FilterSheet';
 import { useSearchFilters } from '@/hooks/useSearchFilters';
 import { useRecentSearches } from '@/hooks/useRecentSearches';
 import { useDebounce } from '@/hooks/useDebounce';
+import { trackEvent, EngagementEvents } from '@/lib/analytics';
 
 export default function SearchScreen() {
     const router = useRouter();
@@ -84,6 +85,18 @@ export default function SearchScreen() {
         enabled: shouldSearch,
     });
 
+    // Track search performed when results are loaded
+    useEffect(() => {
+        if (data && shouldSearch && debouncedQuery) {
+            trackEvent(EngagementEvents.SEARCH_PERFORMED, {
+                query: debouncedQuery,
+                results_count: data.data.length,
+                has_filters: hasActiveFilters(),
+                filters: JSON.stringify(filters),
+            });
+        }
+    }, [data, shouldSearch, debouncedQuery, filters]);
+
     // Batch fetch media URLs for search results
     const clipIds = useMemo(() => data?.data.map(clip => clip.id) ?? [], [data?.data]);
     
@@ -116,10 +129,18 @@ export default function SearchScreen() {
     );
 
     const handleClipPress = useCallback(
-        (id: string) => {
+        (id: string, index?: number) => {
+            // Track search result clicked
+            if (shouldSearch && debouncedQuery) {
+                trackEvent(EngagementEvents.SEARCH_RESULT_CLICKED, {
+                    query: debouncedQuery,
+                    result_position: index ?? 0,
+                    result_id: id,
+                });
+            }
             router.push(`/clip/${id}`);
         },
-        [router]
+        [router, shouldSearch, debouncedQuery]
     );
 
     const removeFilterChip = useCallback(
@@ -267,14 +288,14 @@ export default function SearchScreen() {
                     <FlashList
                         data={data.data}
                         estimatedItemSize={300}
-                        renderItem={({ item }) => {
+                        renderItem={({ item, index }) => {
                             const media = mediaMap.get(item.id);
                             return (
                                 <ClipListItemCard
                                     clip={item}
                                     videoUrl={media?.embed_url}
                                     thumbnailUrl={media?.thumbnail_url}
-                                    onPress={() => handleClipPress(item.id)}
+                                    onPress={() => handleClipPress(item.id, index)}
                                 />
                             );
                         }}

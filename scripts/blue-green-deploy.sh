@@ -195,15 +195,15 @@ run_migrations() {
         
         # Run migrations using golang-migrate in a temporary container
         # Pin to specific image digest for supply chain security
-        # Current digest is for v4.17.0 - update when upgrading versions
+        # Current digest is for v4.17.0 (sha256:4d017c6fb5997127093648cab09e63d377997125c3d3dcca18e5d1c847da49fa)
         log_info "Executing database migrations..."
         if docker run --rm \
             --network clipper-network \
             -v "$DEPLOY_DIR/backend/migrations:/migrations:ro" \
             -e DATABASE_URL="$DB_URL" \
-            migrate/migrate:v4.17.0 \
+            migrate/migrate@sha256:4d017c6fb5997127093648cab09e63d377997125c3d3dcca18e5d1c847da49fa \
             -path /migrations \
-            -database "$DATABASE_URL" \
+            -database "$DB_URL" \
             up; then
             log_success "Migrations executed successfully"
         else
@@ -217,9 +217,9 @@ run_migrations() {
         MIGRATION_OUTPUT=$(docker run --rm \
             --network clipper-network \
             -e DATABASE_URL="$DB_URL" \
-            migrate/migrate:v4.17.0 \
+            migrate/migrate@sha256:4d017c6fb5997127093648cab09e63d377997125c3d3dcca18e5d1c847da49fa \
             -path /migrations \
-            -database "$DATABASE_URL" \
+            -database "$DB_URL" \
             version 2>&1)
         MIGRATION_STATUS=$?
         MIGRATION_VERSION=$(printf '%s\n' "$MIGRATION_OUTPUT" | tail -1)

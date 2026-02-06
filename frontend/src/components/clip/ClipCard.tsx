@@ -252,6 +252,48 @@ export function ClipCard({ clip }: ClipCardProps) {
                                 <Badge variant='default'>Featured</Badge>
                             </div>
                         )}
+
+                        {/* Watch progress indicator */}
+                        {clip.watch_progress && (
+                            <>
+                                <div
+                                    className='bottom-0 left-0 right-0 absolute h-1 bg-gray-700'
+                                    role='progressbar'
+                                    aria-valuenow={Math.round(
+                                        Math.min(100, Math.max(0, clip.watch_progress.progress_percent)),
+                                    )}
+                                    aria-valuemin={0}
+                                    aria-valuemax={100}
+                                    aria-label={`${Math.round(
+                                        Math.min(100, Math.max(0, clip.watch_progress.progress_percent)),
+                                    )}% watched`}
+                                >
+                                    <div
+                                        className='h-full bg-purple-600'
+                                        style={{
+                                            width: `${Math.min(100, Math.max(0, clip.watch_progress.progress_percent))}%`,
+                                        }}
+                                    />
+                                </div>
+                                {clip.watch_progress.completed && (
+                                    <div className='bottom-2 left-2 absolute px-2 py-1 text-xs font-medium text-white bg-green-600 bg-opacity-90 rounded flex items-center gap-1'>
+                                        <svg
+                                            className='w-3 h-3'
+                                            fill='currentColor'
+                                            viewBox='0 0 20 20'
+                                            aria-hidden='true'
+                                        >
+                                            <path
+                                                fillRule='evenodd'
+                                                d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z'
+                                                clipRule='evenodd'
+                                            />
+                                        </svg>
+                                        Watched
+                                    </div>
+                                )}
+                            </>
+                        )}
                     </div>
 
                     {/* Tags */}

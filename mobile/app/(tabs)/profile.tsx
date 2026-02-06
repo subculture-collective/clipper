@@ -14,6 +14,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { logoutUser } from '../../services/auth';
+import { trackEvent, AuthEvents } from '../../lib/analytics';
 
 export default function ProfileScreen() {
     const router = useRouter();
@@ -31,10 +32,19 @@ export default function ProfileScreen() {
                     try {
                         await logoutUser();
                         await logout();
+                        
+                        trackEvent(AuthEvents.LOGOUT, {
+                            source: 'profile_screen',
+                        });
                     } catch (error) {
                         console.error('Logout error:', error);
                         // Still clear local auth even if server call fails
                         await logout();
+                        
+                        trackEvent(AuthEvents.LOGOUT, {
+                            source: 'profile_screen',
+                            error: true,
+                        });
                     } finally {
                         setIsLoggingOut(false);
                     }

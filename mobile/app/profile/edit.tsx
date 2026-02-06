@@ -18,6 +18,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { updateProfile } from '@/services/users';
 import { getCurrentUser } from '@/services/auth';
+import { trackEvent, SettingsEvents } from '@/lib/analytics';
 
 export default function EditProfileScreen() {
     const router = useRouter();
@@ -47,6 +48,11 @@ export default function EditProfileScreen() {
             await updateProfile({
                 display_name: displayName.trim(),
                 bio: bio.trim() || undefined,
+            });
+
+            trackEvent(SettingsEvents.PROFILE_EDITED, {
+                has_bio: !!bio.trim(),
+                display_name_changed: displayName.trim() !== user?.display_name,
             });
 
             // Refresh user data

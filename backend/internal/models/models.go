@@ -169,6 +169,18 @@ type Clip struct {
 	IsMirrored       bool       `json:"is_mirrored" db:"is_mirrored"`
 	MirrorCount      int        `json:"mirror_count" db:"mirror_count"`
 	LastMirrorSyncAt *time.Time `json:"last_mirror_sync_at,omitempty" db:"last_mirror_sync_at"`
+	// Watch progress (populated from watch history, not in database)
+	WatchProgress *WatchProgressInfo `json:"watch_progress,omitempty" db:"-"`
+}
+
+// WatchProgressInfo represents watch progress for a clip (used in API responses)
+// Note: WatchedAt is optional and may be empty for performance reasons in list views
+type WatchProgressInfo struct {
+	ProgressSeconds int     `json:"progress_seconds"`
+	DurationSeconds int     `json:"duration_seconds"`
+	ProgressPercent float64 `json:"progress_percent"`
+	Completed       bool    `json:"completed"`
+	WatchedAt       string  `json:"watched_at,omitempty"` // Optional: May be omitted for performance
 }
 
 // Vote represents a user's vote on a clip

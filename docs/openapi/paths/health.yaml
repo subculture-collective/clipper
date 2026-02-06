@@ -1,0 +1,91 @@
+live:
+  get:
+    tags:
+      - Health
+    summary: Liveness check
+    description: Simple liveness probe for Kubernetes/container orchestration
+    operationId: healthLive
+    responses:
+      '200':
+        description: Service is alive
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  example: ok
+
+ready:
+  get:
+    tags:
+      - Health
+    summary: Readiness check
+    description: |
+      Comprehensive readiness check that verifies all dependencies:
+      - PostgreSQL database connection
+      - Redis cache connection
+      - OpenSearch connection (if enabled)
+    operationId: healthReady
+    responses:
+      '200':
+        description: Service is ready to accept traffic
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  example: ok
+                checks:
+                  type: object
+                  properties:
+                    database:
+                      type: string
+                      enum: [ok, error]
+                    redis:
+                      type: string
+                      enum: [ok, error]
+                    opensearch:
+                      type: string
+                      enum: [ok, error, disabled]
+      '503':
+        description: Service is not ready
+
+health:
+  get:
+    tags:
+      - Health
+    summary: Health check
+    operationId: health
+    responses:
+      '200':
+        description: Service is healthy
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  example: ok
+
+ping:
+  get:
+    tags:
+      - Health
+    summary: Ping
+    operationId: ping
+    responses:
+      '200':
+        description: Pong
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  example: pong

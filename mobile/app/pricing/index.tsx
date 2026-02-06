@@ -19,22 +19,26 @@ import {
   calculateYearlyMonthlyPrice,
   calculateSavingsPercent,
 } from '../../lib/constants/pricing';
+import { trackEvent, trackScreenView, PremiumEvents } from '../../lib/analytics';
 
 export default function PricingScreen() {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
 
   // Track page view
   useEffect(() => {
-    // TODO: Add analytics tracking
-    console.log('[Paywall Analytics] Pricing page viewed');
+    trackScreenView('Pricing', { source: 'mobile_app' });
+    trackEvent(PremiumEvents.PRICING_PAGE_VIEWED, { source: 'mobile_app' });
   }, []);
 
   const handleSubscribe = async (period: 'monthly' | 'yearly') => {
-    // TODO: Add analytics tracking
-    console.log('[Paywall Analytics] Subscribe clicked', { period });
+    trackEvent(PremiumEvents.CHECKOUT_STARTED, { 
+      billing_period: period,
+      source: 'pricing_page',
+    });
 
     // For mobile, redirect to web checkout
-    // TODO: In future, integrate with in-app purchases (RevenueCat, Stripe mobile SDK)
+    // Future enhancement: Native in-app purchases (RevenueCat/Stripe mobile SDK)
+    // requires app store developer accounts and additional SDK integration
     const webCheckoutUrl = `https://clipper.tv/pricing?plan=${period}`;
     
     try {
@@ -51,8 +55,10 @@ export default function PricingScreen() {
   };
 
   const handleBillingPeriodChange = (period: 'monthly' | 'yearly') => {
-    // TODO: Add analytics tracking
-    console.log('[Paywall Analytics] Billing period changed', { period });
+    trackEvent(PremiumEvents.PRICING_TIER_CLICKED, { 
+      billing_period: period,
+      source: 'pricing_page',
+    });
     setBillingPeriod(period);
   };
 

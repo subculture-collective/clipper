@@ -15,29 +15,9 @@ import { useQuery } from '@tanstack/react-query';
 import { TouchableOpacity } from 'react-native';
 import { Colors } from '../../constants/theme';
 import { useColorScheme } from '../../hooks/use-color-scheme';
-
-// TODO: Import actual user API service
-// import { getUser } from '@/services/users';
-
-interface User {
-    id: string;
-    username: string;
-    display_name: string;
-    profile_image_url?: string;
-    reputation_score?: number;
-    bio?: string;
-}
-
-// Placeholder function - replace with actual API call
-async function getUser(id: string): Promise<User> {
-    // This should be replaced with actual API call
-    return {
-        id,
-        username: `user_${id}`,
-        display_name: `User ${id}`,
-        reputation_score: 100,
-    };
-}
+import { getUser } from '../../services/users';
+import { useEffect } from 'react';
+import { trackEvent, SettingsEvents } from '../../lib/analytics';
 
 export default function UserProfileScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -50,6 +30,17 @@ export default function UserProfileScreen() {
         queryFn: () => getUser(String(id)),
         enabled: !!id,
     });
+
+    // Track profile view when user data loads
+    useEffect(() => {
+        if (user) {
+            trackEvent(SettingsEvents.PROFILE_VIEWED, {
+                viewed_user_id: user.id,
+                viewed_username: user.username,
+                has_bio: !!user.bio,
+            });
+        }
+    }, [user]);
 
     if (isLoading) {
         return (
@@ -75,9 +66,9 @@ export default function UserProfileScreen() {
     return (
         <ScrollView className='flex-1 bg-white'>
             <View className='items-center p-6 border-b border-gray-200'>
-                {user.profile_image_url ? (
+                {user.avatar_url ? (
                     <Image
-                        source={{ uri: user.profile_image_url }}
+                        source={{ uri: user.avatar_url }}
                         className='w-24 h-24 rounded-full mb-3'
                     />
                 ) : (
@@ -93,10 +84,10 @@ export default function UserProfileScreen() {
                 <Text className='text-base text-gray-500 mb-2'>
                     @{user.username}
                 </Text>
-                {user.reputation_score && user.reputation_score > 0 && (
+                {user.karma_points && user.karma_points > 0 && (
                     <View className='bg-primary-50 px-3 py-1 rounded-full'>
                         <Text className='text-sm text-primary-700 font-semibold'>
-                            ⭐ {user.reputation_score} reputation
+                            ⭐ {user.karma_points} karma
                         </Text>
                     </View>
                 )}

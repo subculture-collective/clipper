@@ -45,6 +45,11 @@ const BroadcasterPage = lazy(() =>
         default: m.BroadcasterPage,
     })),
 );
+const CreatorPage = lazy(() =>
+    import('./pages/CreatorPage').then(m => ({
+        default: m.CreatorPage,
+    })),
+);
 const UserProfilePage = lazy(() =>
     import('./pages/UserProfilePage').then(m => ({
         default: m.UserProfilePage,
@@ -216,6 +221,11 @@ const AdminDiscoveryListFormPage = lazy(() =>
 const ServiceStatusPage = lazy(() =>
     import('./pages/admin/ServiceStatusPage').then(m => ({
         default: m.ServiceStatusPage,
+    })),
+);
+const AdminAPIDocsPage = lazy(() =>
+    import('./pages/admin/AdminAPIDocsPage').then(m => ({
+        default: m.AdminAPIDocsPage,
     })),
 );
 const PricingPage = lazy(() => import('./pages/PricingPage'));
@@ -404,6 +414,10 @@ function App() {
                                         <Route
                                             path='/broadcaster/:broadcasterId'
                                             element={<BroadcasterPage />}
+                                        />
+                                        <Route
+                                            path='/creator/:creatorId'
+                                            element={<CreatorPage />}
                                         />
                                         <Route
                                             path='/stream/:streamer'
@@ -865,6 +879,14 @@ function App() {
                                             element={
                                                 <AdminRoute>
                                                     <ServiceStatusPage />
+                                                </AdminRoute>
+                                            }
+                                        />
+                                        <Route
+                                            path='/admin/api-docs'
+                                            element={
+                                                <AdminRoute>
+                                                    <AdminAPIDocsPage />
                                                 </AdminRoute>
                                             }
                                         />

@@ -18,6 +18,7 @@ import {
     type UserSettings,
 } from '@/services/users';
 import { getMFAStatus, type MFAStatus } from '@/services/mfa';
+import { trackEvent, SettingsEvents } from '@/lib/analytics';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -27,6 +28,13 @@ export default function SettingsScreen() {
   const [notifications, setNotifications] = useState(isNotificationsEnabled);
   const [darkMode, setDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Track settings page view
+  useEffect(() => {
+    trackEvent(SettingsEvents.SETTINGS_VIEWED, {
+      is_authenticated: isAuthenticated,
+    });
+  }, [isAuthenticated]);
 
   // Fetch user settings
   const { data: userSettings, refetch: refetchSettings } = useQuery<UserSettings>({
@@ -105,13 +113,33 @@ export default function SettingsScreen() {
 
   const handlePrivacySettingChange = (value: 'public' | 'private' | 'followers') => {
     if (!updateSettingsMutation.isPending) {
-      updateSettingsMutation.mutate({ profile_visibility: value });
+      updateSettingsMutation.mutate(
+        { profile_visibility: value },
+        {
+          onSuccess: () => {
+            trackEvent(SettingsEvents.PRIVACY_SETTINGS_CHANGED, {
+              setting: 'profile_visibility',
+              value,
+            });
+          },
+        }
+      );
     }
   };
 
   const handleKarmaVisibilityToggle = (value: boolean) => {
     if (!updateSettingsMutation.isPending) {
-      updateSettingsMutation.mutate({ show_karma_publicly: value });
+      updateSettingsMutation.mutate(
+        { show_karma_publicly: value },
+        {
+          onSuccess: () => {
+            trackEvent(SettingsEvents.PRIVACY_SETTINGS_CHANGED, {
+              setting: 'show_karma_publicly',
+              value,
+            });
+          },
+        }
+      );
     }
   };
 
@@ -139,6 +167,11 @@ export default function SettingsScreen() {
               setIsLoading(true);
               const result = await requestAccountDeletion();
               await refetchDeletionStatus();
+              
+              trackEvent(SettingsEvents.ACCOUNT_DELETED, {
+                scheduled_for: result.scheduled_for || 'unknown',
+              });
+              
               if (result.scheduled_for) {
                 const deletionDate = new Date(result.scheduled_for);
                 const dateStr = !isNaN(deletionDate.getTime())

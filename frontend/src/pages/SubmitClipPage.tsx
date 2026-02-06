@@ -670,7 +670,7 @@ export function SubmitClipPage() {
 
     return (
         <Container className='py-4 xs:py-6 md:py-8'>
-            <div className='max-w-3xl mx-auto'>
+            <div data-testid='submit-clip-main-content' className='max-w-3xl mx-auto'>
                 <div className='mb-4 xs:mb-6'>
                     <h1 className='text-2xl xs:text-3xl font-bold mb-2'>
                         Submit a Clip

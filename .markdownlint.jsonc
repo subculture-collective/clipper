@@ -77,5 +77,8 @@
     "MD056": false,
     
     // MD058: Allow tables without blank lines around them
-    "MD058": false
+    "MD058": false,
+    
+    // MD060: Allow flexible table pipe styles (compact vs padded)
+    "MD060": false
 }
