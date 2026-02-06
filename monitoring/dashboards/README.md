@@ -271,6 +271,74 @@ Comprehensive webhook delivery monitoring with anomaly detection and per-subscri
 - [Webhook Integration Guide](../../docs/backend/webhooks.md)
 - [Webhook Retry System](../../docs/backend/webhook-retry.md)
 
+### 14. Moderation System Monitoring (`moderation-system.json`) 🆕
+
+**Related Issue:** [#1021 - Set Up Monitoring & Alerts](https://github.com/subculture-collective/clipper/issues/1021)
+
+Comprehensive monitoring for the moderation system including ban operations, sync operations, permission checks, and audit logs.
+
+**Panels:**
+
+- **Ban Operations Rate** - Ban/unban throughput by operation type (success/failed)
+- **Ban Operation Failure Rate** - Gauge showing percentage of failed ban operations (thresholds: 5%/10%)
+- **Sync Failure Rate** - Gauge showing percentage of failed sync operations (thresholds: 5%/10%)
+- **Ban Operation Latency (P50/P95/P99)** - Latency percentiles for ban/unban operations
+- **Sync Operation Latency** - P50 and P95 latency for sync operations (threshold: 30s)
+- **Bans Processed During Sync** - Volume of bans processed (new/updated/unchanged)
+- **Permission Checks Rate** - Permission check throughput by type and result (allowed/denied)
+- **Permission Denials by Reason** - Breakdown of denial reasons (insufficient_permissions, not_authorized, etc.)
+- **Permission Check Latency (P95)** - Permission check performance (threshold: 100ms)
+- **Audit Log Operations Rate** - Audit log operation throughput by action and status
+- **Audit Log Operation Latency (P95)** - Audit log performance (threshold: 500ms)
+- **API Error Rate by Endpoint** - Error counts by moderation endpoint and error code
+- **Slow Queries Rate (>1s)** - Database slow query tracking by query type
+- **Database Query Latency (P95)** - Database query performance (thresholds: 100ms/500ms/1s)
+- **Active Bans by Type** - Current active ban counts (channel/site)
+
+**Metrics:**
+
+All metrics prefixed with `moderation_`:
+- `ban_operations_total{operation,status,error_type}` - Ban operation counter
+- `ban_operation_duration_seconds{operation}` - Ban operation latency histogram
+- `sync_operations_total{status,error_type}` - Sync operation counter
+- `sync_operation_duration_seconds{sync_type}` - Sync latency histogram
+- `sync_bans_processed_total{status}` - Bans processed counter
+- `permission_checks_total{permission_type,result}` - Permission check counter
+- `permission_check_duration_seconds{permission_type}` - Permission check latency
+- `permission_denials_total{permission_type,reason}` - Permission denial counter
+- `audit_log_operations_total{action,status}` - Audit log operation counter
+- `audit_log_operation_duration_seconds{action}` - Audit log latency
+- `api_errors_total{endpoint,error_code}` - API error counter
+- `database_query_duration_seconds{query_type}` - Database query latency
+- `slow_queries_total{query_type}` - Slow query counter
+- `active_bans{community_type}` - Active ban gauge
+
+**Alert Integration:**
+
+Links to [Moderation System Runbook](../../docs/operations/runbooks/moderation-system.md) for:
+- ModerationBanHighFailureRate (>10%)
+- ModerationBanCriticalFailureRate (>50%)
+- ModerationSyncFailures (>0.1/sec)
+- ModerationPermissionDenialSpike (>10/sec)
+- ModerationSlowQueries (>1/sec)
+- ModerationAPIHighErrorRate (>5%)
+- ModerationAuditLogFailures (>1/sec)
+
+**Use Cases:**
+- Monitor moderation system health
+- Track ban operation performance
+- Identify sync issues
+- Detect permission configuration problems
+- Monitor audit log completeness
+- Optimize database queries
+
+**Related Documentation:**
+- [Moderation System Runbook](../../docs/operations/runbooks/moderation-system.md)
+- [Ban Sync Troubleshooting](../../docs/operations/runbooks/ban-sync-troubleshooting.md)
+- [Moderation Operations](../../docs/operations/runbooks/moderation-operations.md)
+- [Permission Escalation](../../docs/operations/runbooks/permission-escalation.md)
+- [Audit Log Operations](../../docs/operations/runbooks/audit-log-operations.md)
+
 ## Importing Dashboards
 
 ### Via Grafana UI
