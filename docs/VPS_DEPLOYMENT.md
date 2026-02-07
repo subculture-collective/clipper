@@ -348,7 +348,10 @@ docker inspect vault | grep -A 10 Networks
 docker network connect web vault
 
 # Option 2: Connect Vault to clipper-network
-docker network connect clipper_clipper-network vault
+# Find your actual clipper network name first
+docker network ls | grep clipper
+# Then connect (replace <clipper-network> with actual name)
+docker network connect <clipper-network> vault
 ```
 
 ### Secrets Not Rendering
@@ -541,4 +544,4 @@ For issues or questions:
 - Check container logs: `docker logs -f clipper-backend`
 - Review Vault agent logs: `docker logs -f clipper-vault-agent`
 - Inspect network: `docker network inspect web`
-- Test connectivity: `docker exec clipper-backend ping postgres`
+- Test connectivity: `docker exec clipper-backend getent hosts postgres`

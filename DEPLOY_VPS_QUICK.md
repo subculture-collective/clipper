@@ -70,9 +70,13 @@ https://clpr.tv
 
 ### Vault agent can't connect
 ```bash
-# Connect Vault to networks
+# Find the actual clipper network name
+# It will be based on your project directory name (e.g., clipper_clipper-network)
+docker network ls | grep clipper
+
+# Connect Vault to networks (replace <clipper-network> with actual name)
 docker network connect web vault
-docker network connect clipper_clipper-network vault
+docker network connect <clipper-network> vault
 
 # Restart vault-agent
 docker compose -f docker-compose.vps.yml restart vault-agent
@@ -165,11 +169,13 @@ docker exec clipper-vault-agent ls -lh /vault-agent/rendered/
 # Test postgres connectivity
 docker exec clipper-postgres pg_isready -U clipper -d clipper_db
 
-# Test backend can reach postgres
-docker exec clipper-backend ping postgres
+# Test backend can resolve and reach postgres
+docker exec clipper-backend wget -qO- --timeout=5 http://postgres:5432 2>&1 || echo "Can resolve postgres"
+docker exec clipper-backend getent hosts postgres
 
-# Test backend can reach redis
-docker exec clipper-backend ping redis
+# Test backend can resolve and reach redis  
+docker exec clipper-backend wget -qO- --timeout=5 http://redis:6379 2>&1 || echo "Can resolve redis"
+docker exec clipper-backend getent hosts redis
 
 # See all environment variables (sanitized)
 docker exec clipper-backend env | grep -v PASSWORD | grep -v SECRET | grep -v KEY

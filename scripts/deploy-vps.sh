@@ -9,6 +9,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_ROOT"
 
+# Project name for Docker Compose (consistent with Makefile)
+PROJECT_NAME="${COMPOSE_PROJECT_NAME:-$(basename "$PROJECT_ROOT")}"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -152,7 +155,7 @@ fi
 # =============================================================================
 
 log "Stage 4: Building images"
-docker compose -f "$COMPOSE_FILE" build --pull backend frontend postgres
+docker compose -p "$PROJECT_NAME" -f "$COMPOSE_FILE" build --pull backend frontend postgres
 success "Images built"
 
 # =============================================================================
@@ -163,10 +166,10 @@ log "Stage 5: Starting database and secrets infrastructure"
 
 # Stop existing services gracefully
 log "Stopping existing services..."
-docker compose -f "$COMPOSE_FILE" down --remove-orphans || true
+docker compose -p "$PROJECT_NAME" -f "$COMPOSE_FILE" down --remove-orphans || true
 
 # Start vault-agent, postgres, and redis
-docker compose -f "$COMPOSE_FILE" up -d vault-agent postgres redis
+docker compose -p "$PROJECT_NAME" -f "$COMPOSE_FILE" up -d vault-agent postgres redis
 
 # Wait for vault-agent to render secrets
 log "Waiting for Vault agent to render secrets..."
@@ -196,7 +199,7 @@ fi
 log "Waiting for PostgreSQL to be healthy..."
 retry=0
 while [ $retry -lt $max_retries ]; do
-    if docker compose -f "$COMPOSE_FILE" ps postgres | grep -q "healthy"; then
+    if docker compose -p "$PROJECT_NAME" -f "$COMPOSE_FILE" ps postgres | grep -q "healthy"; then
         success "PostgreSQL is healthy"
         break
     fi
@@ -239,7 +242,7 @@ fi
 # =============================================================================
 
 log "Stage 7: Starting application services"
-docker compose -f "$COMPOSE_FILE" up -d backend frontend
+docker compose -p "$PROJECT_NAME" -f "$COMPOSE_FILE" up -d backend frontend
 success "Services started"
 
 # =============================================================================
@@ -255,10 +258,10 @@ backend_healthy=false
 frontend_healthy=false
 
 while [ $retry -lt $max_retries ]; do
-    if docker compose -f "$COMPOSE_FILE" ps backend | grep -q "healthy"; then
+    if docker compose -p "$PROJECT_NAME" -f "$COMPOSE_FILE" ps backend | grep -q "healthy"; then
         backend_healthy=true
     fi
-    if docker compose -f "$COMPOSE_FILE" ps frontend | grep -q "healthy"; then
+    if docker compose -p "$PROJECT_NAME" -f "$COMPOSE_FILE" ps frontend | grep -q "healthy"; then
         frontend_healthy=true
     fi
     
@@ -320,7 +323,7 @@ log "Stage 10: Deployment Status"
 
 # Print container status
 log "Container status:"
-docker compose -f "$COMPOSE_FILE" ps
+docker compose -p "$PROJECT_NAME" -f "$COMPOSE_FILE" ps
 
 # Print network connections
 log "Network connections (web):"

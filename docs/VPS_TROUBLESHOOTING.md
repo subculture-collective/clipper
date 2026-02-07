@@ -339,7 +339,7 @@ docker compose -f docker-compose.vps.yml restart backend
 **Database connection issues:**
 ```bash
 # Check if backend can reach postgres
-docker exec clipper-backend ping postgres
+docker exec clipper-backend getent hosts postgres
 
 # Check if postgres is ready
 docker exec clipper-postgres pg_isready -U clipper -d clipper_db
@@ -489,10 +489,10 @@ docker network ls
 # Inspect web network
 docker network inspect web
 
-# Check what containers can reach each other
-docker exec clipper-backend ping postgres
-docker exec clipper-backend ping redis
-docker exec clipper-backend ping vault
+# Check what containers can reach each other (using getent for compatibility)
+docker exec clipper-backend getent hosts postgres
+docker exec clipper-backend getent hosts redis
+docker exec clipper-backend getent hosts vault
 ```
 
 ### Reset Everything (Nuclear Option)

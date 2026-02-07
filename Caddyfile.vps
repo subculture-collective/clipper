@@ -27,12 +27,9 @@ clpr.tv {
         -Server
     }
     
-    # Access log
+    # Access log (stdout for Docker compatibility)
     log {
-        output file /var/log/caddy/access.log {
-            roll_size 100mb
-            roll_keep 10
-        }
+        output stdout
     }
     
     # API routes -> backend
@@ -40,7 +37,6 @@ clpr.tv {
         reverse_proxy clipper-backend:8080 {
             header_up Host {host}
             header_up X-Real-IP {remote_host}
-            header_up X-Forwarded-For {remote_host}
             header_up X-Forwarded-Proto {scheme}
             
             health_uri /api/v1/health
@@ -52,6 +48,7 @@ clpr.tv {
     
     # Health check endpoint (bypasses caching)
     handle /health {
+        uri path /api/v1/health
         reverse_proxy clipper-backend:8080
     }
     

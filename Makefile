@@ -890,14 +890,14 @@ deploy-vps: ## Deploy to VPS (production) with Vault + Caddy
 
 deploy-vps-status: ## Check VPS deployment status
 	@echo "Checking VPS deployment status..."
-	@docker compose -f docker-compose.vps.yml ps
+	@docker compose -p $(PROJECT_NAME) -f docker-compose.vps.yml ps
 	@echo ""
 	@echo "Network connectivity (web):"
 	@docker network inspect web --format '{{range .Containers}}{{.Name}} {{end}}' || echo "Network 'web' not found"
 
 deploy-vps-logs: ## View VPS deployment logs
-	@docker compose -f docker-compose.vps.yml logs -f
+	@docker compose -p $(PROJECT_NAME) -f docker-compose.vps.yml logs -f
 
 deploy-vps-down: ## Stop VPS deployment
 	@echo "Stopping VPS deployment..."
-	@docker compose -f docker-compose.vps.yml down
+	@docker compose -p $(PROJECT_NAME) -f docker-compose.vps.yml down
