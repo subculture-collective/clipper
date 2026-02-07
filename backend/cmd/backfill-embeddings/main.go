@@ -7,6 +7,7 @@ import (
 	"log"
 	"time"
 
+	pgvector "github.com/pgvector/pgvector-go"
 	"github.com/subculture-collective/clipper/config"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/services"
@@ -67,6 +68,7 @@ func main() {
 	// Initialize embedding service
 	embeddingService := services.NewEmbeddingService(&services.EmbeddingConfig{
 		APIKey:            cfg.Embedding.OpenAIAPIKey,
+		APIBaseURL:        cfg.Embedding.APIBaseURL,
 		Model:             cfg.Embedding.Model,
 		RedisClient:       redisClient.GetClient(),
 		RequestsPerMinute: cfg.Embedding.RequestsPerMinute,
@@ -218,7 +220,7 @@ func backfillEmbeddings(
 				WHERE id = $4
 			`
 
-			_, err = db.Pool.Exec(ctx, updateQuery, embedding, now, model, clip.ID)
+			_, err = db.Pool.Exec(ctx, updateQuery, pgvector.NewVector(embedding), now, model, clip.ID)
 			if err != nil {
 				log.Printf("WARNING: Failed to save embedding for clip %s: %v", clip.ID, err)
 				stats.FailedClips++

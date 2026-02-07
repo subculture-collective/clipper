@@ -34,6 +34,7 @@ const (
 // EmbeddingService handles generating and caching text embeddings
 type EmbeddingService struct {
 	apiKey      string
+	apiBaseURL  string
 	model       string
 	redisClient *redis.Client
 	httpClient  *http.Client
@@ -65,6 +66,7 @@ type EmbeddingResponse struct {
 // EmbeddingConfig holds configuration for the embedding service
 type EmbeddingConfig struct {
 	APIKey            string
+	APIBaseURL        string
 	Model             string
 	RedisClient       *redis.Client
 	RequestsPerMinute int // Rate limiting
@@ -83,12 +85,18 @@ func NewEmbeddingService(config *EmbeddingConfig) *EmbeddingService {
 	}
 
 	// Validate API key
-	if config.APIKey == "" {
-		log.Println("WARNING: OpenAI API key is empty - embedding service will fail at runtime")
+	apiBaseURL := config.APIBaseURL
+	if apiBaseURL == "" {
+		apiBaseURL = "https://api.openai.com/v1/embeddings"
+	}
+
+	if config.APIKey == "" && apiBaseURL == "https://api.openai.com/v1/embeddings" {
+		log.Println("WARNING: Embedding API key is empty - embedding service will fail at runtime")
 	}
 
 	return &EmbeddingService{
 		apiKey:      config.APIKey,
+		apiBaseURL:  apiBaseURL,
 		model:       model,
 		redisClient: config.RedisClient,
 		httpClient: &http.Client{
@@ -346,13 +354,15 @@ func (s *EmbeddingService) executeAPIRequest(ctx context.Context, reqBody Embedd
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.openai.com/v1/embeddings", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, "POST", s.apiBaseURL, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+s.apiKey)
+	if s.apiKey != "" {
+		req.Header.Set("Authorization", "Bearer "+s.apiKey)
+	}
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {

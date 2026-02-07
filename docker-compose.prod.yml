@@ -118,7 +118,7 @@ services:
                 echo "[clipper-postgres] Starting PostgreSQL..."
                 exec docker-entrypoint.sh postgres
         ports:
-            - '5436:5432' # Expose Postgres externally on 5436; internal port remains 5432
+            - '127.0.0.1:5436:5432' # Expose Postgres only on localhost
         volumes:
             - postgres_data:/var/lib/postgresql/data
         volumes_from:

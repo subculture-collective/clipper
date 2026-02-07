@@ -1,5 +1,3 @@
--- Add a placeholder embedding column so embedding-aware queries do not fail
--- Use BYTEA to avoid requiring pgvector locally while keeping nullability semantics
-ALTER TABLE clips ADD COLUMN IF NOT EXISTS embedding BYTEA;
-
-COMMENT ON COLUMN clips.embedding IS 'Placeholder for clip embedding; nullable until vector support is enabled.';
+-- No-op: embedding column is now created as vector(768) in migration 000019.
+-- This migration previously added a BYTEA placeholder but pgvector is now enabled.
+SELECT 1;
