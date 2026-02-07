@@ -42,10 +42,8 @@ func NormalizeEmbeddingURL(baseURL string) string {
 		return DefaultEmbeddingEndpoint
 	}
 	
-	// Remove trailing slashes by repeatedly trimming
-	for strings.HasSuffix(baseURL, "/") {
-		baseURL = strings.TrimSuffix(baseURL, "/")
-	}
+	// Remove trailing slashes
+	baseURL = strings.TrimRight(baseURL, "/")
 	
 	// If the URL doesn't end with "/embeddings", append it
 	if !strings.HasSuffix(baseURL, "/embeddings") {
@@ -64,19 +62,11 @@ func IsOpenAIEndpoint(urlStr string) bool {
 		return false
 	}
 	
-	// Check if the hostname is exactly api.openai.com or a subdomain of openai.com
+	// Check if the hostname is exactly api.openai.com or a valid subdomain of openai.com
+	// Note: Hostname() returns only the domain part, so "evil.api.openai.com.attacker.com"
+	// would not match ".openai.com" suffix check
 	hostname := parsedURL.Hostname()
-	if hostname == "api.openai.com" {
-		return true
-	}
-	
-	// For subdomains, check that it ends with .openai.com (not .openai.com.something)
-	if strings.HasSuffix(hostname, ".openai.com") {
-		// Ensure there are no dots after openai.com (prevent evil.api.openai.com.attacker.com)
-		return true
-	}
-	
-	return false
+	return hostname == "api.openai.com" || strings.HasSuffix(hostname, ".openai.com")
 }
 
 // EmbeddingService handles generating and caching text embeddings
