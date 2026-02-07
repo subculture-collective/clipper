@@ -29,7 +29,25 @@ const (
 	MaxRetries = 3
 	// RetryDelay between retries
 	RetryDelay = 2 * time.Second
+	// DefaultEmbeddingEndpoint is the default OpenAI embeddings endpoint
+	DefaultEmbeddingEndpoint = "https://api.openai.com/v1/embeddings"
 )
+
+// NormalizeEmbeddingURL normalizes an API base URL to a full embeddings endpoint URL.
+// If the URL is empty, returns the default OpenAI endpoint.
+// If the URL doesn't contain "/embeddings", appends it automatically.
+func NormalizeEmbeddingURL(baseURL string) string {
+	if baseURL == "" {
+		return DefaultEmbeddingEndpoint
+	}
+	
+	// If the provided URL doesn't include "/embeddings", append it
+	if !strings.Contains(baseURL, "/embeddings") {
+		return strings.TrimRight(baseURL, "/") + "/embeddings"
+	}
+	
+	return baseURL
+}
 
 // EmbeddingService handles generating and caching text embeddings
 type EmbeddingService struct {
@@ -85,15 +103,7 @@ func NewEmbeddingService(config *EmbeddingConfig) *EmbeddingService {
 	}
 
 	// Normalize the API base URL to a full embeddings endpoint URL
-	apiBaseURL := config.APIBaseURL
-	if apiBaseURL == "" {
-		apiBaseURL = "https://api.openai.com/v1/embeddings"
-	} else {
-		// If the provided URL doesn't include "/embeddings", append it
-		if !strings.Contains(apiBaseURL, "/embeddings") {
-			apiBaseURL = strings.TrimRight(apiBaseURL, "/") + "/embeddings"
-		}
-	}
+	apiBaseURL := NormalizeEmbeddingURL(config.APIBaseURL)
 
 	// Warn if API key is empty and we're using the default OpenAI endpoint
 	if config.APIKey == "" && strings.Contains(apiBaseURL, "api.openai.com") {

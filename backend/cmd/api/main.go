@@ -369,18 +369,11 @@ func main() {
 
 	// Initialize embedding service if enabled and configured
 	if cfg.Embedding.Enabled {
-		// Determine the endpoint URL to provide better warning messages
-		endpointURL := cfg.Embedding.APIBaseURL
-		if endpointURL == "" {
-			endpointURL = "https://api.openai.com/v1/embeddings"
-		} else if !strings.Contains(endpointURL, "/embeddings") {
-			endpointURL = strings.TrimRight(endpointURL, "/") + "/embeddings"
-		}
+		// Normalize the endpoint URL using the helper function
+		endpointURL := services.NormalizeEmbeddingURL(cfg.Embedding.APIBaseURL)
 
-		// Check if API key is required (OpenAI and most providers require it)
-		requiresAuth := strings.Contains(endpointURL, "api.openai.com") || cfg.Embedding.OpenAIAPIKey != ""
-		
-		if cfg.Embedding.OpenAIAPIKey == "" && requiresAuth {
+		// Warn if API key is missing for endpoints that likely require it
+		if cfg.Embedding.OpenAIAPIKey == "" && strings.Contains(endpointURL, "api.openai.com") {
 			log.Printf("WARNING: Embedding is enabled but OPENAI_API_KEY is not set for endpoint %s; this will likely cause 401 errors at runtime", endpointURL)
 		}
 		
