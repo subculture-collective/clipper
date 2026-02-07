@@ -373,7 +373,7 @@ func main() {
 		endpointURL := services.NormalizeEmbeddingURL(cfg.Embedding.APIBaseURL)
 
 		// Warn if API key is missing for endpoints that likely require it
-		if cfg.Embedding.OpenAIAPIKey == "" && strings.Contains(endpointURL, "api.openai.com") {
+		if cfg.Embedding.OpenAIAPIKey == "" && services.IsOpenAIEndpoint(endpointURL) {
 			log.Printf("WARNING: Embedding is enabled but OPENAI_API_KEY is not set for endpoint %s; this will likely cause 401 errors at runtime", endpointURL)
 		}
 		

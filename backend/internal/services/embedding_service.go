@@ -41,12 +41,20 @@ func NormalizeEmbeddingURL(baseURL string) string {
 		return DefaultEmbeddingEndpoint
 	}
 	
-	// If the provided URL doesn't include "/embeddings", append it
-	if !strings.Contains(baseURL, "/embeddings") {
-		return strings.TrimRight(baseURL, "/") + "/embeddings"
+	// Trim trailing slashes for consistent checking
+	baseURL = strings.TrimRight(baseURL, "/")
+	
+	// If the URL doesn't end with "/embeddings", append it
+	if !strings.HasSuffix(baseURL, "/embeddings") {
+		return baseURL + "/embeddings"
 	}
 	
 	return baseURL
+}
+
+// IsOpenAIEndpoint returns true if the URL appears to be an OpenAI endpoint
+func IsOpenAIEndpoint(url string) bool {
+	return strings.Contains(url, "api.openai.com")
 }
 
 // EmbeddingService handles generating and caching text embeddings
@@ -106,7 +114,7 @@ func NewEmbeddingService(config *EmbeddingConfig) *EmbeddingService {
 	apiBaseURL := NormalizeEmbeddingURL(config.APIBaseURL)
 
 	// Warn if API key is empty and we're using the default OpenAI endpoint
-	if config.APIKey == "" && strings.Contains(apiBaseURL, "api.openai.com") {
+	if config.APIKey == "" && IsOpenAIEndpoint(apiBaseURL) {
 		log.Printf("WARNING: Embedding API key is empty but endpoint appears to be OpenAI (%s) - embedding service will fail at runtime", apiBaseURL)
 	}
 
