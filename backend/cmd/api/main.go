@@ -376,7 +376,7 @@ func main() {
 		if cfg.Embedding.OpenAIAPIKey == "" && services.IsOpenAIEndpoint(endpointURL) {
 			log.Printf("WARNING: Embedding is enabled but OPENAI_API_KEY is not set for endpoint %s; this will likely cause 401 errors at runtime", endpointURL)
 		}
-		
+
 		embeddingService = services.NewEmbeddingService(&services.EmbeddingConfig{
 			APIKey:            cfg.Embedding.OpenAIAPIKey,
 			APIBaseURL:        cfg.Embedding.APIBaseURL,

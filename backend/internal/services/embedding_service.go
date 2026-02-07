@@ -10,6 +10,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -53,8 +54,17 @@ func NormalizeEmbeddingURL(baseURL string) string {
 }
 
 // IsOpenAIEndpoint returns true if the URL appears to be an OpenAI endpoint
-func IsOpenAIEndpoint(url string) bool {
-	return strings.Contains(url, "api.openai.com")
+func IsOpenAIEndpoint(urlStr string) bool {
+	// Parse the URL to safely extract the hostname
+	parsedURL, err := url.Parse(urlStr)
+	if err != nil {
+		// If parsing fails, fall back to simple string check as a safeguard
+		return strings.Contains(urlStr, "api.openai.com")
+	}
+	
+	// Check if the hostname is exactly api.openai.com or ends with .api.openai.com
+	hostname := parsedURL.Hostname()
+	return hostname == "api.openai.com" || strings.HasSuffix(hostname, ".api.openai.com")
 }
 
 // EmbeddingService handles generating and caching text embeddings
