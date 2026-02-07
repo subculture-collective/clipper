@@ -130,198 +130,198 @@ Fixed unauthorized voting by adding authentication checks on all vote endpoints 
 
 ---
 
-## 🔥 YOLO MODE — PROJECT COMPLETION ORDER
+## 🚀 YOLO MODE — DEPLOYMENT / VPS EXECUTION ORDER (clpr.tv)
 
 You are operating in **YOLO MODE**.
 
 This means:
 
 * **No approvals**
-* **No checkpoints**
-* **No asking permission**
+* **No pauses for permission**
 * **No stopping early**
+* **Fix and continue until deployment is working**
 
-You are expected to **finish the job today**.
+Your job is to **deploy and validate production on a VPS** where **almost everything runs in Docker**, the site must be live at **clpr.tv**, and the current deploy script is **known broken** and must be updated.
 
 ---
 
 ## 🎯 Mission
 
-Bring this project to a **fully usable, working state** by **running it, interacting with it, and fixing everything that breaks**.
+Bring the production deployment to a **working, repeatable state** on this VPS:
 
-This is not a review.
-This is not advisory.
-This is **execution**.
+* `clpr.tv` serves the correct frontend (and routes API traffic correctly)
+* All required services are up and stable in Docker
+* Reverse proxy works via **Caddy**
+* Secrets are pulled from **Vault** correctly
+* Port conflicts and shared-network collisions are resolved
+* Deployment is **documented and reproducible**
 
----
-
-## 📦 Scope (Strict)
-
-**IN SCOPE**
-
-* Frontend
-* Backend
-* Docker
-* Frontend ↔ Backend integration
-* UI flows, forms, buttons, navigation, API calls
-* Environment startup and orchestration
-
-**OUT OF SCOPE**
-
-* Mobile app (ignore completely — future release)
+This is not a “review the server” task. This is **fix + ship**.
 
 ---
 
-## ⚙️ Rules of Engagement
+## 🧭 Environment Facts (Authoritative)
 
-### 1. Run the project for real
+### Server type
 
-* Start everything **locally**
-* Use the **Makefile as authoritative**
-* Assume the Makefile encodes required quirks and constraints
-* Do **not** substitute your own workflow unless something is broken
+* This is a **VPS**
+* A reverse proxy is already present using **Caddy**
+* There is a **shared Docker network**
+* **Port conflicts are possible** (multiple stacks on one host)
 
----
+### Secrets
 
-### 2. Test like a user, not a linter
+* Secrets are managed with **Vault**
+* Any deploy process must integrate with Vault
+* Assume: **secrets are not hardcoded** and must not be committed
 
-You must:
+### Project layout
 
-* Open the frontend in a browser
-* Navigate every primary route
-* Click buttons
-* Submit forms
-* Trigger edge cases
-* Watch:
+Everything lives under:
 
-  * Browser console
-  * Network tab
-  * Backend logs
-  * Docker logs
+* `~/projects/`
 
-If a UI element exists, **interact with it**.
+Inside `~/projects/`, these directories exist and are relevant:
 
----
+* `caddy/`
+* `clipper/`
+* `dozzle/`
+* `pgadmin/`
+* `reddit-cluster-map/`
+* `systemd/`
+* `vault/`
 
-### 3. Fix everything immediately
+Also present in `~/projects/`:
 
-When you find:
+* `.tmux.conf`
+* `keys.txt`
 
-* Broken UI
-* Failed requests
-* Bad state handling
-* Missing env vars
-* Mismatched API contracts
-* Docker or startup issues
+Treat these as **real**, and use them to infer intended workflows.
 
-👉 **Fix it immediately and continue**
-👉 Do **not** stop to report
-👉 Do **not** wait for confirmation
+### Domain
 
-Assume forward progress is always preferred over perfection.
+* The site must be served at: **clpr.tv**
+* Assume TLS is required and Caddy should handle certificates
 
----
+### Runtime model
 
-## 🔄 Repository Awareness (MANDATORY)
-
-### Periodic sync
-
-* **Regularly check** whether new commits have been merged into `origin/main`
-* If new changes exist:
-
-  * Rebase or merge as appropriate
-  * Re-run the app
-  * Re-test affected UI flows
-* Treat upstream changes as **authoritative**
+* “Pretty much everything” runs in **Docker containers**
+* Prefer Docker-first solutions unless something is explicitly systemd-managed
 
 ---
 
-### GitHub Issues Discipline
+## ⚙️ Working Rules
 
-You must actively use GitHub issues as part of execution.
+### 1) Do not trust the existing deploy script
 
-#### Review existing issues
+* The deploy script **will not work without changes**
+* You must:
 
-* Scan current open issues
-* If an issue is:
-
-  * Still valid → address it if feasible
-  * Already fixed → close it with a short note
-  * Out of scope or too large → leave it open but update context if needed
-
-#### Create new issues when required
-
-If you encounter:
-
-* Non-trivial bugs
-* Missing features
-* Architectural problems
-* Refactors that are clearly needed but unsafe to rush
-
-👉 **Create a GitHub issue immediately** with:
-
-* Clear reproduction steps
-* Observed vs expected behavior
-* Scope estimate or risk note
-
-Do **not** block on these.
-Log them and **continue execution**.
+  * Inspect it
+  * Identify why it fails in this VPS environment
+  * Update it to match current reality (Vault + Caddy + shared network + current ports)
+* Do not try to “run it until it works” without understanding conflicts.
 
 ---
 
-## 🧠 Assumptions Policy
+### 2) Start with a deployment map
 
-* If something is ambiguous, **choose the most reasonable interpretation**
-* If configuration is missing, **infer or repair it**
-* If docs are wrong, **trust the code and runtime behavior**
+Before changing anything big:
 
-If blocked:
+* Inventory what is running now:
 
-* Work around it
-* Patch it
-* Stub it
-* Move forward
+  * Docker containers, networks, volumes
+  * Ports bound on the host
+  * Caddy config + active routes
+  * Any systemd units in `~/projects/systemd`
+* Identify:
+
+  * What should serve `clpr.tv`
+  * What container(s) expose backend/API
+  * Which ports must be internal-only vs public
+
+Then proceed to fixes.
 
 ---
 
-## ✅ Definition of Done (Non-Negotiable)
+### 3) Respect the shared network & avoid port collisions
+
+* Prefer internal Docker networking + Caddy reverse proxying by container name
+* Avoid binding new services directly to common ports unless necessary
+* If there is a conflict:
+
+  * Fix by adjusting compose/service ports or Caddy upstreams
+  * Do not “just stop” other services unless they are confirmed obsolete
+
+---
+
+### 4) Vault integration is mandatory
+
+* Locate how Vault is currently used (`~/projects/vault` and any env templates)
+* Update deployment so secrets are sourced from Vault in a clean way:
+
+  * Environment injection at deploy time
+  * Templates / env files generated securely
+  * No plaintext secrets committed into repos
+* Ensure containers receive required secrets and boot cleanly
+
+---
+
+### 5) Caddy must correctly serve clpr.tv
+
+* Confirm Caddy is the reverse proxy in front
+* Update Caddy config if required so that:
+
+  * `clpr.tv` serves the correct frontend
+  * API routes proxy to backend container(s)
+  * TLS works
+  * No accidental exposure of admin tools (pgAdmin, Vault UI, Dozzle) unless explicitly intended
+
+---
+
+## ✅ Definition of Done (Deployment)
 
 You are finished **only when all are true**:
 
-* The project starts cleanly using the Makefile / Docker
-* Frontend loads without errors
-* Backend responds correctly
-* UI interactions work end-to-end
-* Forms submit and return expected results
-* No obvious broken flows remain
-* GitHub issues accurately reflect any remaining work
-* A real user could use the app without hitting immediate failures
+* `clpr.tv` is live and serving the intended app over HTTPS
+* Frontend loads without obvious runtime errors
+* Core UI flows can be exercised against the live backend
+* Backend/API is reachable through the proxy and functions correctly
+* Docker services are stable and restart-safe
+* No accidental port conflicts remain
+* Secrets are sourced from Vault and not leaked into git or logs
+* Updated deploy steps are reproducible:
+
+  * A single command (or short sequence) can redeploy cleanly
+* Any remaining work is logged as issues (non-blocking only)
 
 ---
 
-## 📝 Reporting (Minimal)
+## 📝 Output Expectations (Minimal)
 
-When fully complete, provide:
+As you work:
 
-* A short summary of what you tested
-* A concise list of fixes made
-* A list of GitHub issues created or updated
+* Make necessary edits in-place (compose files, Caddy config, deploy scripts, env templates)
+* After completion, provide:
 
-No commentary. No analysis. No hedging.
+  * What changed
+  * How to deploy now (exact commands)
+  * What to check if it fails (common failure points)
+  * Any issues you logged for later
+
+No hedging. No “should”. Only what is true.
 
 ---
 
 ## 🚫 Forbidden Behaviors
 
-* Asking for permission
-* Stopping after partial success
-* Suggesting future work instead of finishing
-* Deferring bugs without logging them
-* Saying “this should be tested later”
+* Stopping after “Caddy is up” but app is broken
+* Ignoring Vault and hardcoding secrets
+* Binding random ports without checking conflicts
+* Exposing admin tools publicly by accident
+* Declaring success without verifying `clpr.tv` end-to-end
 
 ---
 
-**YOLO MODE IS ACTIVE.**
-**Proceed until the job is done.**
+**YOLO MODE IS ACTIVE. DEPLOY UNTIL DONE.**
 
----
