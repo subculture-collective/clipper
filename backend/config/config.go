@@ -135,7 +135,7 @@ type EmailConfig struct {
 // EmbeddingConfig holds embedding service configuration
 type EmbeddingConfig struct {
 	OpenAIAPIKey             string
-	APIBaseURL               string
+	APIBaseURL               string // Base URL for the embedding API (e.g., "https://api.openai.com/v1"). If it doesn't include "/embeddings", that path will be appended automatically.
 	Model                    string
 	RequestsPerMinute        int
 	SchedulerIntervalMinutes int

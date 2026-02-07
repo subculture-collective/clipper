@@ -369,18 +369,29 @@ func main() {
 
 	// Initialize embedding service if enabled and configured
 	if cfg.Embedding.Enabled {
-		if cfg.Embedding.OpenAIAPIKey == "" && cfg.Embedding.APIBaseURL == "" {
-			log.Println("WARNING: Embedding is enabled but OPENAI_API_KEY is not set; disabling embeddings")
-		} else {
-			embeddingService = services.NewEmbeddingService(&services.EmbeddingConfig{
-				APIKey:            cfg.Embedding.OpenAIAPIKey,
-				APIBaseURL:        cfg.Embedding.APIBaseURL,
-				Model:             cfg.Embedding.Model,
-				RedisClient:       redisClient.GetClient(),
-				RequestsPerMinute: cfg.Embedding.RequestsPerMinute,
-			})
-			log.Printf("Embedding service initialized (model: %s)", cfg.Embedding.Model)
+		// Determine the endpoint URL to provide better warning messages
+		endpointURL := cfg.Embedding.APIBaseURL
+		if endpointURL == "" {
+			endpointURL = "https://api.openai.com/v1/embeddings"
+		} else if !strings.Contains(endpointURL, "/embeddings") {
+			endpointURL = strings.TrimRight(endpointURL, "/") + "/embeddings"
 		}
+
+		// Check if API key is required (OpenAI and most providers require it)
+		requiresAuth := strings.Contains(endpointURL, "api.openai.com") || cfg.Embedding.OpenAIAPIKey != ""
+		
+		if cfg.Embedding.OpenAIAPIKey == "" && requiresAuth {
+			log.Printf("WARNING: Embedding is enabled but OPENAI_API_KEY is not set for endpoint %s; this will likely cause 401 errors at runtime", endpointURL)
+		}
+		
+		embeddingService = services.NewEmbeddingService(&services.EmbeddingConfig{
+			APIKey:            cfg.Embedding.OpenAIAPIKey,
+			APIBaseURL:        cfg.Embedding.APIBaseURL,
+			Model:             cfg.Embedding.Model,
+			RedisClient:       redisClient.GetClient(),
+			RequestsPerMinute: cfg.Embedding.RequestsPerMinute,
+		})
+		log.Printf("Embedding service initialized (model: %s, endpoint: %s)", cfg.Embedding.Model, endpointURL)
 	}
 	if osClient != nil {
 		searchIndexerService = services.NewSearchIndexerService(osClient)

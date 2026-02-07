@@ -84,14 +84,20 @@ func NewEmbeddingService(config *EmbeddingConfig) *EmbeddingService {
 		rpm = 500 // Default: 500 requests per minute for tier 1
 	}
 
-	// Validate API key
+	// Normalize the API base URL to a full embeddings endpoint URL
 	apiBaseURL := config.APIBaseURL
 	if apiBaseURL == "" {
 		apiBaseURL = "https://api.openai.com/v1/embeddings"
+	} else {
+		// If the provided URL doesn't include "/embeddings", append it
+		if !strings.Contains(apiBaseURL, "/embeddings") {
+			apiBaseURL = strings.TrimRight(apiBaseURL, "/") + "/embeddings"
+		}
 	}
 
-	if config.APIKey == "" && apiBaseURL == "https://api.openai.com/v1/embeddings" {
-		log.Println("WARNING: Embedding API key is empty - embedding service will fail at runtime")
+	// Warn if API key is empty and we're using the default OpenAI endpoint
+	if config.APIKey == "" && strings.Contains(apiBaseURL, "api.openai.com") {
+		log.Printf("WARNING: Embedding API key is empty but endpoint appears to be OpenAI (%s) - embedding service will fail at runtime", apiBaseURL)
 	}
 
 	return &EmbeddingService{
