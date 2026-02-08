@@ -1,20 +1,12 @@
-import { useParams, Link } from 'react-router-dom';
-import { Container, SEO } from '../components';
-import { ClipCard } from '../components/clip';
-import { Button } from '../components/ui';
-import {
-  useDiscoveryList,
-  useDiscoveryListClips,
-  useFollowDiscoveryList,
-  useUnfollowDiscoveryList,
-  useBookmarkDiscoveryList,
-  useUnbookmarkDiscoveryList,
-} from '../hooks/useDiscoveryLists';
-import { useIsAuthenticated, useToast } from '../hooks';
-import { Users, ChevronLeft, Bookmark, Bell, BellOff } from 'lucide-react';
-import { useState } from 'react';
+import { useParams, Navigate } from 'react-router-dom';
 
+// Discovery lists are now playlists - redirect to playlist detail page
 export function DiscoveryListDetailPage() {
+  const { id } = useParams<{ id: string }>();
+
+  // Redirect to playlist detail page
+  return <Navigate to={`/playlists/${id}`} replace />;
+}
   const { id } = useParams<{ id: string }>();
   const isAuthenticated = useIsAuthenticated();
   const toast = useToast();

@@ -11,6 +11,12 @@ export interface Playlist {
     view_count: number;
     share_count: number;
     like_count: number;
+    follower_count: number;
+    bookmark_count: number;
+    is_curated: boolean;
+    is_featured: boolean;
+    display_order: number;
+    slug?: string;
     created_at: string;
     updated_at: string;
     deleted_at?: string;
@@ -38,7 +44,10 @@ export interface PlaylistCreator {
 export interface PlaylistWithClips extends Playlist {
     clip_count: number;
     clips?: PlaylistClipRef[];
+    preview_clips?: Clip[];
     is_liked: boolean;
+    is_followed: boolean;
+    is_bookmarked: boolean;
     creator?: PlaylistCreator;
 }
 

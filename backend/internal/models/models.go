@@ -2100,6 +2100,10 @@ type Category struct {
 	Description *string   `json:"description,omitempty" db:"description"`
 	Icon        *string   `json:"icon,omitempty" db:"icon"`
 	Position    int       `json:"position" db:"position"`
+	CategoryType string   `json:"category_type" db:"category_type"`
+	IsFeatured   bool     `json:"is_featured" db:"is_featured"`
+	IsCustom     bool     `json:"is_custom" db:"is_custom"`
+	CreatedByUserID *uuid.UUID `json:"created_by_user_id,omitempty" db:"created_by_user_id"`
 	CreatedAt   time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
 }
@@ -3433,19 +3437,25 @@ const (
 
 // Playlist represents a user-created collection of clips
 type Playlist struct {
-	ID          uuid.UUID  `json:"id" db:"id"`
-	UserID      uuid.UUID  `json:"user_id" db:"user_id"`
-	Title       string     `json:"title" db:"title"`
-	Description *string    `json:"description,omitempty" db:"description"`
-	CoverURL    *string    `json:"cover_url,omitempty" db:"cover_url"`
-	Visibility  string     `json:"visibility" db:"visibility"` // private, public, unlisted
-	ShareToken  *string    `json:"share_token,omitempty" db:"share_token"`
-	ViewCount   int        `json:"view_count" db:"view_count"`
-	ShareCount  int        `json:"share_count" db:"share_count"`
-	LikeCount   int        `json:"like_count" db:"like_count"`
-	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at" db:"updated_at"`
-	DeletedAt   *time.Time `json:"deleted_at,omitempty" db:"deleted_at"`
+	ID             uuid.UUID  `json:"id" db:"id"`
+	UserID         uuid.UUID  `json:"user_id" db:"user_id"`
+	Title          string     `json:"title" db:"title"`
+	Description    *string    `json:"description,omitempty" db:"description"`
+	CoverURL       *string    `json:"cover_url,omitempty" db:"cover_url"`
+	Visibility     string     `json:"visibility" db:"visibility"` // private, public, unlisted
+	ShareToken     *string    `json:"share_token,omitempty" db:"share_token"`
+	ViewCount      int        `json:"view_count" db:"view_count"`
+	ShareCount     int        `json:"share_count" db:"share_count"`
+	LikeCount      int        `json:"like_count" db:"like_count"`
+	FollowerCount  int        `json:"follower_count" db:"follower_count"`
+	BookmarkCount  int        `json:"bookmark_count" db:"bookmark_count"`
+	IsCurated      bool       `json:"is_curated" db:"is_curated"`
+	IsFeatured     bool       `json:"is_featured" db:"is_featured"`
+	DisplayOrder   int        `json:"display_order" db:"display_order"`
+	Slug           *string    `json:"slug,omitempty" db:"slug"`
+	CreatedAt      time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at" db:"updated_at"`
+	DeletedAt      *time.Time `json:"deleted_at,omitempty" db:"deleted_at"`
 }
 
 // PlaylistItem represents a clip in a playlist
@@ -3465,6 +3475,23 @@ type PlaylistLike struct {
 	CreatedAt  time.Time `json:"created_at" db:"created_at"`
 }
 
+// PlaylistFollow represents a user following a playlist
+type PlaylistFollow struct {
+	ID         uuid.UUID `json:"id" db:"id"`
+	UserID     uuid.UUID `json:"user_id" db:"user_id"`
+	PlaylistID uuid.UUID `json:"playlist_id" db:"playlist_id"`
+	FollowedAt time.Time `json:"followed_at" db:"followed_at"`
+}
+
+// PlaylistBookmark represents a user bookmarking a playlist
+type PlaylistBookmark struct {
+	ID           uuid.UUID `json:"id" db:"id"`
+	UserID       uuid.UUID `json:"user_id" db:"user_id"`
+	PlaylistID   uuid.UUID `json:"playlist_id" db:"playlist_id"`
+	BookmarkedAt time.Time `json:"bookmarked_at" db:"bookmarked_at"`
+}
+
+// PlaylistListItem represents a playlist in list views with clip count
 // PlaylistListItem represents a playlist in list views with clip count
 type PlaylistListItem struct {
 	Playlist
@@ -3474,10 +3501,13 @@ type PlaylistListItem struct {
 // PlaylistWithClips represents a playlist with its clips
 type PlaylistWithClips struct {
 	Playlist
-	ClipCount int               `json:"clip_count" db:"clip_count"`
-	Clips     []PlaylistClipRef `json:"clips,omitempty"`
-	IsLiked   bool              `json:"is_liked"`
-	Creator   *User             `json:"creator,omitempty"`
+	ClipCount    int               `json:"clip_count" db:"clip_count"`
+	Clips        []PlaylistClipRef `json:"clips,omitempty"`
+	PreviewClips []Clip            `json:"preview_clips,omitempty"`
+	IsLiked      bool              `json:"is_liked"`
+	IsFollowed   bool              `json:"is_followed"`
+	IsBookmarked bool              `json:"is_bookmarked"`
+	Creator      *User             `json:"creator,omitempty"`
 }
 
 // PlaylistClipRef represents a clip reference in a playlist with ordering

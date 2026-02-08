@@ -29,7 +29,24 @@ func NewCategoryHandler(
 
 // ListCategories handles GET /api/v1/categories
 func (h *CategoryHandler) ListCategories(c *gin.Context) {
-	categories, err := h.categoryRepo.List(c.Request.Context())
+	var categoryType *string
+	if typeParam := c.Query("type"); typeParam != "" {
+		categoryType = &typeParam
+	}
+
+	var featured *bool
+	if featuredParam := c.Query("featured"); featuredParam != "" {
+		parsed, err := strconv.ParseBool(featuredParam)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Invalid featured parameter",
+			})
+			return
+		}
+		featured = &parsed
+	}
+
+	categories, err := h.categoryRepo.List(c.Request.Context(), categoryType, featured)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to fetch categories",

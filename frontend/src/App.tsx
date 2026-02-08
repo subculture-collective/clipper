@@ -387,14 +387,15 @@ function App() {
                                             path='/discover/scraped'
                                             element={<ScrapedClipsPage />}
                                         />
-                                        <Route
+                                        {/* Live Feed - Hidden until after launch */}
+                                        {/* <Route
                                             path='/discover/live'
                                             element={
                                                 <ProtectedRoute>
                                                     <LiveFeedPage />
                                                 </ProtectedRoute>
                                             }
-                                        />
+                                        /> */}
                                         <Route
                                             path='/clip/:id'
                                             element={<ClipDetailPage />}
@@ -691,8 +692,8 @@ function App() {
                                             }
                                         />
 
-                                        {/* Watch Party Routes */}
-                                        <Route
+                                        {/* Watch Party Routes - Hidden until after launch */}
+                                        {/* <Route
                                             path='/watch-parties/browse'
                                             element={<WatchPartyBrowsePage />}
                                         />
@@ -719,7 +720,7 @@ function App() {
                                                     <WatchPartySettingsPage />
                                                 </ProtectedRoute>
                                             }
-                                        />
+                                        /> */}
 
                                         {/* Admin Routes (require admin role) */}
                                         <Route
