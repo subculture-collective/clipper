@@ -56,11 +56,12 @@ services:
         image: prom/alertmanager:latest
         container_name: clipper-alertmanager
         restart: unless-stopped
-        command:
-            - '--config.file=/etc/alertmanager/alertmanager.yml'
-            - '--storage.path=/alertmanager'
+        entrypoint: /alertmanager-startup.sh
+        env_file:
+            - ./.env
         volumes:
-            - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml
+            - ./alertmanager-startup.sh:/alertmanager-startup.sh:ro
+            - ./alertmanager.local.yml:/etc/alertmanager/alertmanager.template.yml:ro
             - alertmanager_data:/alertmanager
         ports:
             - '127.0.0.1:19093:9093'
@@ -88,7 +89,7 @@ services:
 
     # cAdvisor - Container metrics
     cadvisor:
-        image: gcr.io/cadvisor/cadvisor:latest
+        image: gcr.io/cadvisor/cadvisor:v0.51.0
         container_name: clipper-cadvisor
         restart: unless-stopped
         privileged: true
@@ -155,12 +156,11 @@ services:
         # NOTE: The /nginx_status endpoint must be enabled in your Nginx configuration
         # for this exporter to work. See monitoring/README.md for instructions.
         command:
-            - '-nginx.scrape-uri=http://host.docker.internal:80/nginx_status'
+            - '-nginx.scrape-uri=http://clipper-frontend/nginx_status'
         ports:
             - '127.0.0.1:19113:9113'
-        extra_hosts:
-            - 'host.docker.internal:host-gateway'
         networks:
+            - clipper-network
             - monitoring
 
     # Loki - Log aggregation with 90-day retention
@@ -186,6 +186,7 @@ services:
             - /var/log:/var/log:ro
             - /var/lib/docker/containers:/var/lib/docker/containers:ro
             - ./promtail-config.yml:/etc/promtail/config.yml
+            - promtail_positions:/var/lib/promtail
         command: -config.file=/etc/promtail/config.yml
         depends_on:
             - loki
@@ -250,13 +251,15 @@ services:
         image: metabase/metabase:latest
         container_name: clipper-metabase
         restart: unless-stopped
+        env_file:
+            - ./.env
         environment:
             - MB_DB_TYPE=postgres
             - MB_DB_DBNAME=${METABASE_DB_NAME:-metabase}
             - MB_DB_PORT=5432
             - MB_DB_USER=${METABASE_DB_USER:-metabase}
             - MB_DB_PASS=${METABASE_DB_PASSWORD:-changeme}
-            - MB_DB_HOST=postgres
+            - MB_DB_HOST=clipper-postgres
             - MB_JETTY_HOST=0.0.0.0
             - MB_JETTY_PORT=3000
             - JAVA_TIMEZONE=UTC
@@ -276,6 +279,8 @@ volumes:
     alertmanager_data:
         driver: local
     loki_data:
+        driver: local
+    promtail_positions:
         driver: local
     vault_agent_data:
         driver: local
