@@ -10,6 +10,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -29,7 +30,44 @@ const (
 	MaxRetries = 3
 	// RetryDelay between retries
 	RetryDelay = 2 * time.Second
+	// DefaultEmbeddingEndpoint is the default OpenAI embeddings endpoint
+	DefaultEmbeddingEndpoint = "https://api.openai.com/v1/embeddings"
 )
+
+// NormalizeEmbeddingURL normalizes an API base URL to a full embeddings endpoint URL.
+// If the URL is empty, returns the default OpenAI endpoint.
+// If the URL doesn't end with "/embeddings", appends it automatically.
+func NormalizeEmbeddingURL(baseURL string) string {
+	if baseURL == "" {
+		return DefaultEmbeddingEndpoint
+	}
+	
+	// Remove trailing slashes
+	baseURL = strings.TrimRight(baseURL, "/")
+	
+	// If the URL doesn't end with "/embeddings", append it
+	if !strings.HasSuffix(baseURL, "/embeddings") {
+		return baseURL + "/embeddings"
+	}
+	
+	return baseURL
+}
+
+// IsOpenAIEndpoint returns true if the URL appears to be an OpenAI endpoint
+func IsOpenAIEndpoint(urlStr string) bool {
+	// Parse the URL to safely extract the hostname
+	parsedURL, err := url.Parse(urlStr)
+	if err != nil {
+		// If parsing fails, return false to be safe
+		return false
+	}
+	
+	// Check if the hostname is exactly api.openai.com or a valid subdomain of openai.com
+	// Note: Hostname() returns only the domain part, so "evil.api.openai.com.attacker.com"
+	// would not match ".openai.com" suffix check
+	hostname := parsedURL.Hostname()
+	return hostname == "api.openai.com" || strings.HasSuffix(hostname, ".openai.com")
+}
 
 // EmbeddingService handles generating and caching text embeddings
 type EmbeddingService struct {
@@ -84,14 +122,12 @@ func NewEmbeddingService(config *EmbeddingConfig) *EmbeddingService {
 		rpm = 500 // Default: 500 requests per minute for tier 1
 	}
 
-	// Validate API key
-	apiBaseURL := config.APIBaseURL
-	if apiBaseURL == "" {
-		apiBaseURL = "https://api.openai.com/v1/embeddings"
-	}
+	// Normalize the API base URL to a full embeddings endpoint URL
+	apiBaseURL := NormalizeEmbeddingURL(config.APIBaseURL)
 
-	if config.APIKey == "" && apiBaseURL == "https://api.openai.com/v1/embeddings" {
-		log.Println("WARNING: Embedding API key is empty - embedding service will fail at runtime")
+	// Warn if API key is empty and we're using the default OpenAI endpoint
+	if config.APIKey == "" && IsOpenAIEndpoint(apiBaseURL) {
+		log.Printf("WARNING: Embedding API key is empty but endpoint appears to be OpenAI (%s) - embedding service will fail at runtime", apiBaseURL)
 	}
 
 	return &EmbeddingService{

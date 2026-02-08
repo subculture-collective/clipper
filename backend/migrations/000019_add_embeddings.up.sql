@@ -3,14 +3,14 @@ CREATE EXTENSION IF NOT EXISTS vector;
 
 -- Add embedding column to clips table
 -- Using 768 dimensions compatible with nomic-embed-text:v1.5 and text-embedding-3-small
-ALTER TABLE clips ADD COLUMN embedding vector(768);
+ALTER TABLE clips ADD COLUMN IF NOT EXISTS embedding vector(768);
 
 -- Add metadata columns for embedding tracking
-ALTER TABLE clips ADD COLUMN embedding_generated_at TIMESTAMP;
-ALTER TABLE clips ADD COLUMN embedding_model VARCHAR(100);
+ALTER TABLE clips ADD COLUMN IF NOT EXISTS embedding_generated_at TIMESTAMP;
+ALTER TABLE clips ADD COLUMN IF NOT EXISTS embedding_model VARCHAR(100);
 
 -- Create HNSW index for fast approximate nearest neighbor search
-CREATE INDEX idx_clips_embedding_hnsw ON clips
+CREATE INDEX IF NOT EXISTS idx_clips_embedding_hnsw ON clips
 USING hnsw (embedding vector_cosine_ops)
 WITH (m = 16, ef_construction = 64);
 
