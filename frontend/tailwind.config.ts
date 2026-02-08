@@ -2,23 +2,20 @@ import type { Config } from 'tailwindcss';
 
 const config: Config = {
   darkMode: 'class',
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     // Mobile-first responsive breakpoints
     screens: {
-      'xs': '375px',
-      'sm': '640px',
-      'md': '768px',
-      'lg': '1024px',
-      'xl': '1280px',
+      xs: '375px',
+      sm: '640px',
+      md: '768px',
+      lg: '1024px',
+      xl: '1280px',
       '2xl': '1536px',
     },
     extend: {
       colors: {
-        // Primary: Twitch purple
+        // Primary: Twitch purple (UNCHANGED)
         primary: {
           50: '#f5f3ff',
           100: '#ede9fe',
@@ -32,21 +29,23 @@ const config: Config = {
           900: '#4c1d95',
           950: '#2e1065',
         },
-        // Secondary colors
+
+        // Secondary (UPDATED): neon-magenta vibe
         secondary: {
-          50: '#fdf4ff',
-          100: '#fae8ff',
-          200: '#f5d0fe',
-          300: '#f0abfc',
-          400: '#e879f9',
-          500: '#d946ef',
-          600: '#c026d3',
-          700: '#a21caf',
-          800: '#86198f',
-          900: '#701a75',
-          950: '#4a044e',
+          50: '#fff0fb',
+          100: '#ffe0f7',
+          200: '#ffc2ef',
+          300: '#ff94e2',
+          400: '#ff5ed3',
+          500: '#ff2bc2',
+          600: '#e600a8',
+          700: '#b80085',
+          800: '#8f0067',
+          900: '#6f0052',
+          950: '#3f002e',
         },
-        // Success state
+
+        // Success state (UNCHANGED)
         success: {
           50: '#f0fdf4',
           100: '#dcfce7',
@@ -60,7 +59,8 @@ const config: Config = {
           900: '#14532d',
           950: '#052e16',
         },
-        // Warning state
+
+        // Warning state (UNCHANGED)
         warning: {
           50: '#fffbeb',
           100: '#fef3c7',
@@ -74,7 +74,8 @@ const config: Config = {
           900: '#78350f',
           950: '#451a03',
         },
-        // Error state
+
+        // Error state (UNCHANGED)
         error: {
           50: '#fef2f2',
           100: '#fee2e2',
@@ -88,35 +89,39 @@ const config: Config = {
           900: '#7f1d1d',
           950: '#450a0a',
         },
-        // Info state
+
+        // Info state (UPDATED): cyan-forward to match neon vibe
         info: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
-          950: '#172554',
+          50: '#ecfeff',
+          100: '#cffafe',
+          200: '#a5f3fc',
+          300: '#67e8f9',
+          400: '#22d3ee',
+          500: '#06b6d4',
+          600: '#0891b2',
+          700: '#0e7490',
+          800: '#155e75',
+          900: '#164e63',
+          950: '#083344',
         },
-        // Neutral grays
+
+        // Neutral grays (UPDATED): purple-black neutrals for dark UI
+        // (keeps the same `neutral-*` utilities you already use)
         neutral: {
-          50: '#fafafa',
-          100: '#f5f5f5',
-          200: '#e5e5e5',
-          300: '#d4d4d4',
-          400: '#a3a3a3',
-          500: '#737373',
-          600: '#525252',
-          700: '#404040',
-          800: '#262626',
-          900: '#171717',
-          950: '#0a0a0a',
+          50: '#f7f6fb',
+          100: '#edeaf6',
+          200: '#d6d0ea',
+          300: '#b7aed6',
+          400: '#9487bd',
+          500: '#786aa3',
+          600: '#5f5482',
+          700: '#483f62',
+          800: '#332b47',
+          900: '#1f172d',
+          950: '#0c0714',
         },
       },
+
       fontFamily: {
         sans: [
           'system-ui',
@@ -137,15 +142,17 @@ const config: Config = {
           'monospace',
         ],
       },
+
       zIndex: {
-        'dropdown': '1000',
-        'sticky': '1020',
-        'fixed': '1030',
+        dropdown: '1000',
+        sticky: '1020',
+        fixed: '1030',
         'modal-backdrop': '1040',
-        'modal': '1050',
-        'popover': '1060',
-        'tooltip': '1070',
+        modal: '1050',
+        popover: '1060',
+        tooltip: '1070',
       },
+
       keyframes: {
         'fade-in': {
           '0%': { opacity: '0' },
@@ -171,11 +178,12 @@ const config: Config = {
           '0%': { transform: 'translateY(-100%)' },
           '100%': { transform: 'translateY(0)' },
         },
-        'shimmer': {
+        shimmer: {
           '0%': { transform: 'translateX(-100%)' },
           '100%': { transform: 'translateX(100%)' },
         },
       },
+
       animation: {
         'fade-in': 'fade-in 0.2s ease-in-out',
         'fade-out': 'fade-out 0.2s ease-in-out',
@@ -183,10 +191,11 @@ const config: Config = {
         'slide-in-left': 'slide-in-left 0.3s ease-out',
         'slide-in-up': 'slide-in-up 0.3s ease-out',
         'slide-in-down': 'slide-in-down 0.3s ease-out',
-        'shimmer': 'shimmer 2s infinite',
+        shimmer: 'shimmer 2s infinite',
       },
     },
   },
+
   safelist: [
     // Primary button colors
     'bg-primary-500',
@@ -197,6 +206,7 @@ const config: Config = {
     'active:bg-primary-700',
     'dark:bg-primary-600',
     'dark:hover:bg-primary-700',
+
     // Secondary button colors
     'bg-secondary-500',
     'bg-secondary-600',
@@ -204,6 +214,7 @@ const config: Config = {
     'hover:bg-secondary-600',
     'hover:bg-secondary-700',
     'active:bg-secondary-700',
+
     // Error/danger colors
     'bg-error-500',
     'bg-error-600',
@@ -211,19 +222,23 @@ const config: Config = {
     'hover:bg-error-600',
     'hover:bg-error-700',
     'active:bg-error-700',
+
     // Neutral colors for ghost variant
     'hover:bg-neutral-800',
     'active:bg-neutral-700',
     'dark:hover:bg-neutral-800',
     'dark:active:bg-neutral-700',
+
     // Text colors
     'text-white',
     'text-primary-500',
     'text-foreground',
+
     // Border colors
     'border-primary-500',
     'border-2',
   ],
+
   plugins: [],
 };
 

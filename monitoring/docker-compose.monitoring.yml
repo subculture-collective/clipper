@@ -22,7 +22,7 @@ services:
             - ./alerts.yml:/etc/prometheus/alerts.yml
             - prometheus_data:/prometheus
         ports:
-            - '19090:9090'
+            - '127.0.0.1:19090:9090'
         networks:
             - clipper-network
             - monitoring
@@ -44,7 +44,7 @@ services:
             - ./dashboards:/etc/grafana/provisioning/dashboards
             - ./datasources:/etc/grafana/provisioning/datasources
         ports:
-            - '33000:3000'
+            - '127.0.0.1:33000:3000'
         depends_on:
             - prometheus
         networks:
@@ -63,7 +63,7 @@ services:
             - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml
             - alertmanager_data:/alertmanager
         ports:
-            - '19093:9093'
+            - '127.0.0.1:19093:9093'
         networks:
             - monitoring
 
@@ -82,7 +82,7 @@ services:
             - /sys:/host/sys:ro
             - /:/host:ro
         ports:
-            - '19100:9100'
+            - '127.0.0.1:19100:9100'
         networks:
             - monitoring
 
@@ -99,7 +99,7 @@ services:
             - /var/lib/docker/:/var/lib/docker:ro
             - /dev/disk/:/dev/disk:ro
         ports:
-            - '18081:8080'
+            - '127.0.0.1:18081:8080'
         networks:
             - monitoring
             - web
@@ -126,7 +126,7 @@ services:
                 set +a
                 exec /bin/postgres_exporter
         ports:
-            - '19187:9187'
+            - '127.0.0.1:19187:9187'
         networks:
             - clipper-network
             - monitoring
@@ -142,7 +142,7 @@ services:
             - REDIS_ADDR=redis://clipper-redis:6379
             - REDIS_PASSWORD=${REDIS_PASSWORD:-}
         ports:
-            - '19121:9121'
+            - '127.0.0.1:19121:9121'
         networks:
             - clipper-network
             - monitoring
@@ -157,7 +157,7 @@ services:
         command:
             - '-nginx.scrape-uri=http://host.docker.internal:80/nginx_status'
         ports:
-            - '19113:9113'
+            - '127.0.0.1:19113:9113'
         extra_hosts:
             - 'host.docker.internal:host-gateway'
         networks:
@@ -173,7 +173,7 @@ services:
             - loki_data:/loki
             - ./loki-config.yml:/etc/loki/config.yml
         ports:
-            - '13100:3100'
+            - '127.0.0.1:13100:3100'
         networks:
             - monitoring
 
@@ -194,9 +194,10 @@ services:
 
     # Jaeger - Distributed Tracing
     jaeger:
-        image: jaegertracing/all-in-one:1.62
+        image: jaegertracing/all-in-one:latest
         container_name: clipper-jaeger
         restart: unless-stopped
+        user: 'root'
         environment:
             - COLLECTOR_OTLP_ENABLED=true
             - SPAN_STORAGE_TYPE=badger
@@ -207,10 +208,10 @@ services:
         volumes:
             - jaeger_data:/badger
         ports:
-            - '16686:16686' # Jaeger UI
-            - '14268:14268' # Jaeger collector HTTP
-            - '4317:4317' # OTLP gRPC
-            - '4318:4318' # OTLP HTTP
+            - '127.0.0.1:16686:16686' # Jaeger UI
+            - '127.0.0.1:14268:14268' # Jaeger collector HTTP
+            - '127.0.0.1:4317:4317' # OTLP gRPC
+            - '127.0.0.1:4318:4318' # OTLP HTTP
         networks:
             - clipper-network
             - monitoring
@@ -262,7 +263,7 @@ services:
         volumes:
             - metabase_data:/metabase-data
         ports:
-            - '13000:3000'
+            - '127.0.0.1:13000:3000'
         networks:
             - clipper-network
             - web

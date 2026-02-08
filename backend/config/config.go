@@ -135,6 +135,7 @@ type EmailConfig struct {
 // EmbeddingConfig holds embedding service configuration
 type EmbeddingConfig struct {
 	OpenAIAPIKey             string
+	APIBaseURL               string
 	Model                    string
 	RequestsPerMinute        int
 	SchedulerIntervalMinutes int
@@ -424,6 +425,7 @@ func Load() (*Config, error) {
 		},
 		Embedding: EmbeddingConfig{
 			OpenAIAPIKey:             getEnv("OPENAI_API_KEY", ""),
+			APIBaseURL:               getEnv("EMBEDDING_API_BASE_URL", ""),
 			Model:                    getEnv("EMBEDDING_MODEL", "text-embedding-3-small"),
 			RequestsPerMinute:        getEnvInt("EMBEDDING_REQUESTS_PER_MINUTE", 500),
 			SchedulerIntervalMinutes: getEnvInt("EMBEDDING_SCHEDULER_INTERVAL_MINUTES", 360),

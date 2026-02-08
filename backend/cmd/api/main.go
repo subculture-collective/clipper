@@ -369,11 +369,12 @@ func main() {
 
 	// Initialize embedding service if enabled and configured
 	if cfg.Embedding.Enabled {
-		if cfg.Embedding.OpenAIAPIKey == "" {
+		if cfg.Embedding.OpenAIAPIKey == "" && cfg.Embedding.APIBaseURL == "" {
 			log.Println("WARNING: Embedding is enabled but OPENAI_API_KEY is not set; disabling embeddings")
 		} else {
 			embeddingService = services.NewEmbeddingService(&services.EmbeddingConfig{
 				APIKey:            cfg.Embedding.OpenAIAPIKey,
+				APIBaseURL:        cfg.Embedding.APIBaseURL,
 				Model:             cfg.Embedding.Model,
 				RedisClient:       redisClient.GetClient(),
 				RequestsPerMinute: cfg.Embedding.RequestsPerMinute,

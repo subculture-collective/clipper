@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	pgvector "github.com/pgvector/pgvector-go"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/pkg/database"
 	"github.com/subculture-collective/clipper/pkg/metrics"
@@ -190,7 +191,7 @@ func (s *EmbeddingScheduler) runEmbedding(ctx context.Context) {
 			WHERE id = $4
 		`
 
-		_, err = s.db.Pool.Exec(ctx, updateQuery, embedding, now, s.model, clip.ID)
+		_, err = s.db.Pool.Exec(ctx, updateQuery, pgvector.NewVector(embedding), now, s.model, clip.ID)
 		if err != nil {
 			utils.Error("Failed to save embedding for clip", err, map[string]interface{}{
 				"scheduler": embeddingSchedulerName,
