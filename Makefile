@@ -1,4 +1,4 @@
-.PHONY: help install dev build test test-help test-setup test-teardown test-unit test-integration clean docker-up docker-down backend-dev frontend-dev migrate-up migrate-down migrate-create migrate-seed migrate-status test-security test-idor k8s-provision k8s-setup k8s-verify k8s-deploy-prod k8s-deploy-staging openapi-validate openapi-serve openapi-build
+.PHONY: help install dev build test test-help test-setup test-teardown test-unit test-integration clean docker-up docker-down backend-dev frontend-dev migrate-up migrate-down migrate-create migrate-seed migrate-status test-security test-idor k8s-provision k8s-setup k8s-verify k8s-deploy-prod k8s-deploy-staging openapi-validate openapi-serve openapi-build deploy-vps deploy-vps-status deploy-vps-logs deploy-vps-down
 
 # Compose project + network names stay in sync across targets
 PROJECT_NAME := $(if $(COMPOSE_PROJECT_NAME),$(COMPOSE_PROJECT_NAME),$(notdir $(CURDIR)))
@@ -879,3 +879,25 @@ openapi-preview: ## Preview OpenAPI docs with live reload
 openapi-stats: ## Show OpenAPI spec statistics
 	@echo "Analyzing OpenAPI specification..."
 	npm run openapi:stats
+
+# =============================================================================
+# VPS Deployment Targets
+# =============================================================================
+
+deploy-vps: ## Deploy to VPS (production) with Vault + Caddy
+	@echo "Starting VPS deployment..."
+	./scripts/deploy-vps.sh
+
+deploy-vps-status: ## Check VPS deployment status
+	@echo "Checking VPS deployment status..."
+	@docker compose -p $(PROJECT_NAME) -f docker-compose.vps.yml ps
+	@echo ""
+	@echo "Network connectivity (web):"
+	@docker network inspect web --format '{{range .Containers}}{{.Name}} {{end}}' || echo "Network 'web' not found"
+
+deploy-vps-logs: ## View VPS deployment logs
+	@docker compose -p $(PROJECT_NAME) -f docker-compose.vps.yml logs -f
+
+deploy-vps-down: ## Stop VPS deployment
+	@echo "Stopping VPS deployment..."
+	@docker compose -p $(PROJECT_NAME) -f docker-compose.vps.yml down

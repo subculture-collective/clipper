@@ -1,308 +1,302 @@
 # Alertmanager Configuration for Clipper
-# 
+#
 # Secret Files Setup:
 # This configuration uses file-based secrets for sensitive credentials.
-# 
+#
 # Docker Swarm:
 #   docker secret create slack_webhook_default /path/to/webhook_url.txt
 #   docker service update --secret-add slack_webhook_default alertmanager
-# 
+#
 # Kubernetes:
 #   kubectl create secret generic alertmanager-secrets \
 #     --from-file=slack_webhook_default=/path/to/webhook_url.txt \
 #     --from-file=pagerduty_key_critical=/path/to/pd_key.txt
 #   Mount secrets to /run/secrets in the alertmanager pod
-# 
+#
 # Docker Compose:
 #   Create files in ./secrets/ directory and mount as volumes:
 #   volumes:
 #     - ./secrets:/run/secrets:ro
-# 
+#
 # Alternative: Use environment variables in receivers if file-based secrets aren't available.
 # See ALERTMANAGER_SETUP.md for detailed instructions.
 #
 global:
-  resolve_timeout: 5m
-  # SMTP configuration for email alerts
-  # Configure via environment variables in production:
-  # SMTP_SMARTHOST, SMTP_FROM, SMTP_AUTH_USERNAME, SMTP_AUTH_PASSWORD
-  # smtp_smarthost: '${SMTP_SMARTHOST}'
-  # smtp_from: '${SMTP_FROM}'
-  # smtp_auth_username: '${SMTP_AUTH_USERNAME}'
-  # smtp_auth_password: '${SMTP_AUTH_PASSWORD}'
-  # smtp_require_tls: true
+    resolve_timeout: 5m
+    # SMTP configuration for email alerts
+    # Configure via environment variables in production:
+    # SMTP_SMARTHOST, SMTP_FROM, SMTP_AUTH_USERNAME, SMTP_AUTH_PASSWORD
+    # smtp_smarthost: '${SMTP_SMARTHOST}'
+    # smtp_from: '${SMTP_FROM}'
+    # smtp_auth_username: '${SMTP_AUTH_USERNAME}'
+    # smtp_auth_password: '${SMTP_AUTH_PASSWORD}'
+    # smtp_require_tls: true
 
 # Template files for custom alert formatting
 templates:
-  - '/etc/alertmanager/templates/*.tmpl'
+    - '/etc/alertmanager/templates/*.tmpl'
 
 # Main routing tree
 route:
-  receiver: 'default'
-  group_by: ['alertname', 'cluster', 'service']
-  group_wait: 10s      # Wait for other alerts in group
-  group_interval: 5m   # Time between group notifications
-  repeat_interval: 4h  # Time before re-sending notification
+    receiver: 'default'
+    group_by: ['alertname', 'cluster', 'service']
+    group_wait: 10s # Wait for other alerts in group
+    group_interval: 5m # Time between group notifications
+    repeat_interval: 4h # Time before re-sending notification
 
-  # Route tree for different alert types
-  routes:
-    # Critical (P1) alerts - immediate response required
-    - match:
-        severity: critical
-      receiver: 'pagerduty-critical'
-      group_wait: 10s
-      group_interval: 5m
-      repeat_interval: 15m
-      continue: true  # Also send to other receivers
+    # Route tree for different alert types
+    routes:
+        # Critical (P1) alerts - immediate response required
+        - match:
+              severity: critical
+          receiver: 'pagerduty-critical'
+          group_wait: 10s
+          group_interval: 5m
+          repeat_interval: 15m
+          continue: true # Also send to other receivers
 
-    - match:
-        severity: critical
-      receiver: 'slack-incidents'
-      group_wait: 10s
-      group_interval: 5m
-      repeat_interval: 1h
+        - match:
+              severity: critical
+          receiver: 'slack-incidents'
+          group_wait: 10s
+          group_interval: 5m
+          repeat_interval: 1h
 
-    # SLO breach alerts - high priority
-    - match_re:
-        alertname: '^SLO.*Breach$'
-      receiver: 'pagerduty-slo'
-      group_wait: 10s
-      group_interval: 5m
-      repeat_interval: 30m
-      continue: true
+        # SLO breach alerts - high priority
+        - match_re:
+              alertname: '^SLO.*Breach$'
+          receiver: 'pagerduty-slo'
+          group_wait: 10s
+          group_interval: 5m
+          repeat_interval: 30m
+          continue: true
 
-    - match_re:
-        alertname: '^SLO.*Breach$'
-      receiver: 'slack-incidents'
-      group_wait: 10s
-      repeat_interval: 1h
+        - match_re:
+              alertname: '^SLO.*Breach$'
+          receiver: 'slack-incidents'
+          group_wait: 10s
+          repeat_interval: 1h
 
-    # Security alerts - immediate attention
-    - match:
-        security: 'true'
-      receiver: 'pagerduty-security'
-      group_wait: 5s
-      group_interval: 5m
-      repeat_interval: 15m
-      continue: true
+        # Security alerts - immediate attention
+        - match:
+              security: 'true'
+          receiver: 'pagerduty-security'
+          group_wait: 5s
+          group_interval: 5m
+          repeat_interval: 15m
+          continue: true
 
-    - match:
-        security: 'true'
-      receiver: 'slack-security'
-      group_wait: 5s
-      repeat_interval: 30m
+        - match:
+              security: 'true'
+          receiver: 'slack-security'
+          group_wait: 5s
+          repeat_interval: 30m
 
-    # Error budget alerts
-    - match_re:
-        alertname: '^ErrorBudget.*Burn$'
-      receiver: 'slack-incidents'
-      group_wait: 30s
-      repeat_interval: 1h
+        # Error budget alerts
+        - match_re:
+              alertname: '^ErrorBudget.*Burn$'
+          receiver: 'slack-incidents'
+          group_wait: 30s
+          repeat_interval: 1h
 
-    # Warning (P2) alerts - less urgent
-    - match:
-        severity: warning
-      receiver: 'slack-alerts'
-      group_wait: 5m
-      group_interval: 10m
-      repeat_interval: 4h
+        # Warning (P2) alerts - less urgent
+        - match:
+              severity: warning
+          receiver: 'slack-alerts'
+          group_wait: 5m
+          group_interval: 10m
+          repeat_interval: 4h
 
-    # Info (P3) alerts - informational only
-    - match:
-        severity: info
-      receiver: 'slack-monitoring'
-      group_wait: 10m
-      group_interval: 30m
-      repeat_interval: 12h
+        # Info (P3) alerts - informational only
+        - match:
+              severity: info
+          receiver: 'slack-monitoring'
+          group_wait: 10m
+          group_interval: 30m
+          repeat_interval: 12h
 
 # Alert receivers (notification destinations)
 receivers:
-  # Default fallback receiver
-  - name: 'default'
-    slack_configs:
-      # Configure via environment variable: SLACK_WEBHOOK_URL_DEFAULT
-      - api_url_file: '/run/secrets/slack_webhook_default'
-        channel: '#alerts'
-        title: '{{ .GroupLabels.alertname }}'
-        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+    # Default fallback receiver
+    - name: 'default'
+      slack_configs:
+          # Configure via environment variable: SLACK_WEBHOOK_URL_DEFAULT
+          - api_url_file: '/run/secrets/slack_webhook_default'
+            channel: '#alerts'
+            title: '{{ .GroupLabels.alertname }}'
+            text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
 
-  # PagerDuty for critical alerts
-  - name: 'pagerduty-critical'
-    pagerduty_configs:
-      # Configure via environment variable: PAGERDUTY_SERVICE_KEY_CRITICAL
-      - service_key_file: '/run/secrets/pagerduty_key_critical'
-        description: '{{ .GroupLabels.alertname }}: {{ .CommonAnnotations.summary }}'
-        severity: '{{ .CommonLabels.severity }}'
-        details:
-          firing: '{{ .Alerts.Firing | len }}'
-          resolved: '{{ .Alerts.Resolved | len }}'
-          description: '{{ .CommonAnnotations.description }}'
-          runbook: '{{ .CommonAnnotations.runbook }}'
+    # PagerDuty for critical alerts
+    - name: 'pagerduty-critical'
+      pagerduty_configs:
+          # Configure via environment variable: PAGERDUTY_SERVICE_KEY_CRITICAL
+          - service_key_file: '/run/secrets/pagerduty_key_critical'
+            description: '{{ .GroupLabels.alertname }}: {{ .CommonAnnotations.summary }}'
+            severity: '{{ .CommonLabels.severity }}'
+            details:
+                firing: '{{ .Alerts.Firing | len }}'
+                resolved: '{{ .Alerts.Resolved | len }}'
+                description: '{{ .CommonAnnotations.description }}'
+                runbook: '{{ .CommonAnnotations.runbook }}'
 
-  # PagerDuty for SLO breaches
-  - name: 'pagerduty-slo'
-    pagerduty_configs:
-      # Configure via environment variable: PAGERDUTY_SERVICE_KEY_SLO
-      - service_key_file: '/run/secrets/pagerduty_key_slo'
-        description: 'SLO Breach: {{ .GroupLabels.alertname }}'
-        severity: 'critical'
-        details:
-          slo_type: '{{ .CommonLabels.slo }}'
-          description: '{{ .CommonAnnotations.description }}'
-          runbook: 'docs/operations/playbooks/slo-breach-response.md'
+    # PagerDuty for SLO breaches
+    - name: 'pagerduty-slo'
+      pagerduty_configs:
+          # Configure via environment variable: PAGERDUTY_SERVICE_KEY_SLO
+          - service_key_file: '/run/secrets/pagerduty_key_slo'
+            description: 'SLO Breach: {{ .GroupLabels.alertname }}'
+            severity: 'critical'
+            details:
+                slo_type: '{{ .CommonLabels.slo }}'
+                description: '{{ .CommonAnnotations.description }}'
+                runbook: 'docs/operations/playbooks/slo-breach-response.md'
 
-  # PagerDuty for security alerts
-  - name: 'pagerduty-security'
-    pagerduty_configs:
-      # Configure via environment variable: PAGERDUTY_SERVICE_KEY_SECURITY
-      - service_key_file: '/run/secrets/pagerduty_key_security'
-        description: 'Security Alert: {{ .GroupLabels.alertname }}'
-        severity: 'critical'
-        details:
-          description: '{{ .CommonAnnotations.description }}'
-          runbook: '{{ .CommonAnnotations.runbook }}'
+    # PagerDuty for security alerts
+    - name: 'pagerduty-security'
+      pagerduty_configs:
+          # Configure via environment variable: PAGERDUTY_SERVICE_KEY_SECURITY
+          - service_key_file: '/run/secrets/pagerduty_key_security'
+            description: 'Security Alert: {{ .GroupLabels.alertname }}'
+            severity: 'critical'
+            details:
+                description: '{{ .CommonAnnotations.description }}'
+                runbook: '{{ .CommonAnnotations.runbook }}'
 
-  # Slack for critical incidents
-  - name: 'slack-incidents'
-    slack_configs:
-      # Configure via environment variable: SLACK_WEBHOOK_URL_INCIDENTS
-      - api_url_file: '/run/secrets/slack_webhook_incidents'
-        channel: '#incidents'
-        username: 'Alertmanager'
-        icon_emoji: ':fire:'
-        title: '🚨 {{ .CommonLabels.severity | toUpper }}: {{ .GroupLabels.alertname }}'
-        text: |-
-          {{ range .Alerts }}
-          *Alert:* {{ .Labels.alertname }}
-          *Severity:* {{ .Labels.severity }}
-          *Summary:* {{ .Annotations.summary }}
-          *Description:* {{ .Annotations.description }}
-          {{ if .Annotations.runbook }}*Runbook:* {{ .Annotations.runbook }}{{ end }}
-          *Source:* {{ .GeneratorURL }}
-          {{ end }}
-        send_resolved: true
-        actions:
-          - type: button
-            text: 'View in Grafana'
-            url: '{{ if (index .Alerts 0).Labels.grafana_url }}{{ (index .Alerts 0).Labels.grafana_url }}/d/slo-dashboard{{ else }}https://grafana.clipper.app/d/slo-dashboard{{ end }}'
-          - type: button
-            text: 'View in Prometheus'
-            url: '{{ (index .Alerts 0).GeneratorURL }}'
+    # Slack for critical incidents
+    - name: 'slack-incidents'
+      slack_configs:
+          # Configure via environment variable: SLACK_WEBHOOK_URL_INCIDENTS
+          - api_url_file: '/run/secrets/slack_webhook_incidents'
+            channel: '#incidents'
+            username: 'Alertmanager'
+            icon_emoji: ':fire:'
+            title: '🚨 {{ .CommonLabels.severity | toUpper }}: {{ .GroupLabels.alertname }}'
+            text: |-
+                {{ range .Alerts }}
+                *Alert:* {{ .Labels.alertname }}
+                *Severity:* {{ .Labels.severity }}
+                *Summary:* {{ .Annotations.summary }}
+                *Description:* {{ .Annotations.description }}
+                {{ if .Annotations.runbook }}*Runbook:* {{ .Annotations.runbook }}{{ end }}
+                *Source:* {{ .GeneratorURL }}
+                {{ end }}
+            send_resolved: true
+            actions:
+                - type: button
+                  text: 'View in Grafana'
+                  url: '{{ if (index .Alerts 0).Labels.grafana_url }}{{ (index .Alerts 0).Labels.grafana_url }}/d/slo-dashboard{{ else }}https://grafana.clipper.app/d/slo-dashboard{{ end }}'
+                - type: button
+                  text: 'View in Prometheus'
+                  url: '{{ (index .Alerts 0).GeneratorURL }}'
 
-  # Slack for security alerts
-  - name: 'slack-security'
-    slack_configs:
-      # Configure via environment variable: SLACK_WEBHOOK_URL_SECURITY
-      - api_url_file: '/run/secrets/slack_webhook_security'
-        channel: '#security'
-        username: 'Security Alertmanager'
-        icon_emoji: ':shield:'
-        title: '🛡️ Security Alert: {{ .GroupLabels.alertname }}'
-        text: |-
-          {{ range .Alerts }}
-          *Alert:* {{ .Labels.alertname }}
-          *Summary:* {{ .Annotations.summary }}
-          *Description:* {{ .Annotations.description }}
-          {{ if .Annotations.runbook }}*Runbook:* {{ .Annotations.runbook }}{{ end }}
-          {{ end }}
-        send_resolved: true
+    # Slack for security alerts
+    - name: 'slack-security'
+      slack_configs:
+          # Configure via environment variable: SLACK_WEBHOOK_URL_SECURITY
+          - api_url_file: '/run/secrets/slack_webhook_security'
+            channel: '#security'
+            username: 'Security Alertmanager'
+            icon_emoji: ':shield:'
+            title: '🛡️ Security Alert: {{ .GroupLabels.alertname }}'
+            text: |-
+                {{ range .Alerts }}
+                *Alert:* {{ .Labels.alertname }}
+                *Summary:* {{ .Annotations.summary }}
+                *Description:* {{ .Annotations.description }}
+                {{ if .Annotations.runbook }}*Runbook:* {{ .Annotations.runbook }}{{ end }}
+                {{ end }}
+            send_resolved: true
 
-  # Slack for warning alerts
-  - name: 'slack-alerts'
-    slack_configs:
-      # Configure via environment variable: SLACK_WEBHOOK_URL_ALERTS
-      - api_url_file: '/run/secrets/slack_webhook_alerts'
-        channel: '#alerts'
-        username: 'Alertmanager'
-        icon_emoji: ':warning:'
-        title: '⚠️ {{ .GroupLabels.alertname }}'
-        text: |-
-          {{ range .Alerts }}
-          *Summary:* {{ .Annotations.summary }}
-          *Description:* {{ .Annotations.description }}
-          {{ end }}
-        send_resolved: true
+    # Slack for warning alerts
+    - name: 'slack-alerts'
+      slack_configs:
+          # Configure via environment variable: SLACK_WEBHOOK_URL_ALERTS
+          - api_url_file: '/run/secrets/slack_webhook_alerts'
+            channel: '#alerts'
+            username: 'Alertmanager'
+            icon_emoji: ':warning:'
+            title: '⚠️ {{ .GroupLabels.alertname }}'
+            text: |-
+                {{ range .Alerts }}
+                *Summary:* {{ .Annotations.summary }}
+                *Description:* {{ .Annotations.description }}
+                {{ end }}
+            send_resolved: true
 
-  # Slack for informational alerts
-  - name: 'slack-monitoring'
-    slack_configs:
-      # Configure via environment variable: SLACK_WEBHOOK_URL_MONITORING
-      - api_url_file: '/run/secrets/slack_webhook_monitoring'
-        channel: '#monitoring'
-        username: 'Monitoring Bot'
-        icon_emoji: ':chart_with_upwards_trend:'
-        title: 'ℹ️ {{ .GroupLabels.alertname }}'
-        text: '{{ .CommonAnnotations.description }}'
-        send_resolved: false
+    # Slack for informational alerts
+    - name: 'slack-monitoring'
+      slack_configs:
+          # Configure via environment variable: SLACK_WEBHOOK_URL_MONITORING
+          - api_url_file: '/run/secrets/slack_webhook_monitoring'
+            channel: '#monitoring'
+            username: 'Monitoring Bot'
+            icon_emoji: ':chart_with_upwards_trend:'
+            title: 'ℹ️ {{ .GroupLabels.alertname }}'
+            text: '{{ .CommonAnnotations.description }}'
+            send_resolved: false
 
-  # Email for critical alerts (backup)
-  # ⚠️ WARNING: SMTP credentials in global config should be stored securely
-  # Use environment variables or secret management system for production
-  - name: 'email-oncall'
-    email_configs:
-      # Email address can be configured via environment variable if needed
-      - to: '{{ if (index (split (env "EMAIL_ONCALL") ",") 0) }}{{ env "EMAIL_ONCALL" }}{{ else }}oncall@clipper.app{{ end }}'
-        # SMTP configured via global settings above
-        subject: '[{{ .CommonLabels.severity | toUpper }}] {{ .GroupLabels.alertname }}'
-        html: |
-          <h2>{{ .CommonLabels.severity | toUpper }}: {{ .GroupLabels.alertname }}</h2>
-          {{ range .Alerts }}
-          <p><strong>Summary:</strong> {{ .Annotations.summary }}</p>
-          <p><strong>Description:</strong> {{ .Annotations.description }}</p>
-          {{ if .Annotations.runbook }}<p><strong>Runbook:</strong> {{ .Annotations.runbook }}</p>{{ end }}
-          <p><strong>Source:</strong> <a href="{{ .GeneratorURL }}">View in Prometheus</a></p>
-          {{ end }}
+    # Email for critical alerts (backup)
+    # DISABLED: SMTP not configured. Uncomment and configure SMTP in global section to enable.
+    # - name: 'email-oncall'
+    #   email_configs:
+    #     - to: 'oncall@clipper.app'
+    #       html: |
+    #         <h2>{{ .CommonLabels.severity | toUpper }}: {{ .GroupLabels.alertname }}</h2>
+    - name: 'email-oncall'
+      webhook_configs:
+          - url: 'http://127.0.0.1:9999/email-placeholder'
+            send_resolved: false
 
-  # Discord webhook (optional)
-  - name: 'discord-alerts'
-    webhook_configs:
-      # Configure via environment variable: DISCORD_WEBHOOK_URL
-      - url_file: '/run/secrets/discord_webhook'
-        send_resolved: true
+    # Discord webhook (optional)
+    - name: 'discord-alerts'
+      webhook_configs:
+          # Configure via environment variable: DISCORD_WEBHOOK_URL
+          - url_file: '/run/secrets/discord_webhook'
+            send_resolved: true
 
 # Inhibition rules - prevent alert spam
 inhibit_rules:
-  # If a critical alert is firing, suppress warnings for same alert
-  - source_matchers:
-      - severity = critical
-    target_matchers:
-      - severity =~ warning|info
-    equal:
-      - alertname
-      - cluster
-      - service
+    # If a critical alert is firing, suppress warnings for same alert
+    - source_matchers:
+          - severity = critical
+      target_matchers:
+          - severity =~ warning|info
+      equal:
+          - alertname
+          - cluster
+          - service
 
-  # If service is down, suppress other alerts from that service
-  - source_matchers:
-      - alertname = ServiceDown
-    target_matchers:
-      - severity =~ warning|info
-    equal:
-      - job
-      - instance
+    # If service is down, suppress other alerts from that service
+    - source_matchers:
+          - alertname = ServiceDown
+      target_matchers:
+          - severity =~ warning|info
+      equal:
+          - job
+          - instance
 
-  # If SLO breach, suppress individual error rate alerts
-  - source_matchers:
-      - alertname = SLOErrorRateBreach
-    target_matchers:
-      - alertname = HighErrorRate
-    equal:
-      - job
+    # If SLO breach, suppress individual error rate alerts
+    - source_matchers:
+          - alertname = SLOErrorRateBreach
+      target_matchers:
+          - alertname = HighErrorRate
+      equal:
+          - job
 
-  # If database is down, suppress connection alerts
-  - source_matchers:
-      - alertname = DatabaseDown
-    target_matchers:
-      - alertname = DatabaseConnectionIssues
-    equal:
-      - job
-      - instance
+    # If database is down, suppress connection alerts
+    - source_matchers:
+          - alertname = DatabaseDown
+      target_matchers:
+          - alertname = DatabaseConnectionIssues
+      equal:
+          - job
+          - instance
 
-  # If Redis is down, suppress memory alerts
-  - source_matchers:
-      - alertname = RedisDown
-    target_matchers:
-      - alertname =~ Redis.*
-    equal:
-      - job
-      - instance
+    # If Redis is down, suppress memory alerts
+    - source_matchers:
+          - alertname = RedisDown
+      target_matchers:
+          - alertname =~ Redis.*
+      equal:
+          - job
+          - instance

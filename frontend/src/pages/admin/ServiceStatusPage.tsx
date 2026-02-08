@@ -1,302 +1,233 @@
-import { useEffect, useState } from 'react';
-import { Container, Card, CardHeader, CardBody, Grid, Badge } from '../../components';
+import { useQuery } from '@tanstack/react-query';
+import { Container, Card, CardHeader, CardBody } from '../../components';
+import { CheckCircle, XCircle, AlertTriangle, RefreshCw, Activity, Database, Server, HardDrive } from 'lucide-react';
+import axios from 'axios';
 
-interface ServiceStatus {
-    id: string;
-    service_name: string;
-    status: 'healthy' | 'degraded' | 'unhealthy';
-    status_message?: string;
-    last_check_at: string;
-    response_time_ms?: number;
-    error_rate?: number;
+interface HealthReady {
+  status: string;
+  checks: {
+    database: string;
+    redis: string;
+    opensearch?: string;
+  };
 }
 
-interface StatusIncident {
-    id: string;
-    service_name: string;
-    title: string;
-    description?: string;
-    severity: 'critical' | 'major' | 'minor' | 'maintenance';
-    status: 'investigating' | 'identified' | 'monitoring' | 'resolved';
-    started_at: string;
-    resolved_at?: string;
+interface HealthStats {
+  database: {
+    acquired_conns: number;
+    idle_conns: number;
+    total_conns: number;
+    max_conns: number;
+    acquire_count: number;
+    acquire_duration_ms: number;
+  };
 }
 
-const StatusBadge = ({ status }: { status: string }) => {
-    const colors = {
-        healthy: 'bg-green-500',
-        degraded: 'bg-yellow-500',
-        unhealthy: 'bg-red-500',
-    };
-    
-    const color = colors[status as keyof typeof colors] || 'bg-gray-500';
-    
-    return (
-        <div className="flex items-center gap-2">
-            <div className={`w-3 h-3 rounded-full ${color}`}></div>
-            <span className="capitalize">{status}</span>
-        </div>
-    );
-};
+interface CacheHealth {
+  [key: string]: unknown;
+}
 
-const SeverityBadge = ({ severity }: { severity: string }) => {
-    const getVariant = (sev: string): 'error' | 'warning' | 'secondary' | 'default' => {
-        switch (sev) {
-            case 'critical':
-                return 'error';
-            case 'major':
-                return 'warning';
-            case 'minor':
-                return 'secondary';
-            case 'maintenance':
-                return 'default';
-            default:
-                return 'secondary';
-        }
-    };
-    
+interface WebhookStats {
+  [key: string]: unknown;
+}
+
+function StatusBadge({ status }: { status: string }) {
+  if (status === 'ok' || status === 'ready' || status === 'alive' || status === 'healthy') {
     return (
-        <Badge variant={getVariant(severity)}>
-            {severity}
-        </Badge>
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20">
+        <CheckCircle className="w-3.5 h-3.5" />
+        {status}
+      </span>
     );
-};
+  }
+  if (status === 'degraded') {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
+        <AlertTriangle className="w-3.5 h-3.5" />
+        {status}
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
+      <XCircle className="w-3.5 h-3.5" />
+      {status}
+    </span>
+  );
+}
 
 export function ServiceStatusPage() {
-    const [services, setServices] = useState<ServiceStatus[]>([]);
-    const [incidents, setIncidents] = useState<StatusIncident[]>([]);
-    const [overallStatus, setOverallStatus] = useState<string>('healthy');
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+  const {
+    data: readiness,
+    isLoading: readyLoading,
+    error: readyError,
+    refetch: refetchReady,
+  } = useQuery<HealthReady>({
+    queryKey: ['health-ready'],
+    queryFn: async () => {
+      const res = await axios.get('/health/ready');
+      return res.data;
+    },
+    refetchInterval: 15000,
+  });
 
-    useEffect(() => {
-        const controller = new AbortController();
-        const { signal } = controller;
+  const { data: liveness } = useQuery<{ status: string }>({
+    queryKey: ['health-live'],
+    queryFn: async () => {
+      const res = await axios.get('/health/live');
+      return res.data;
+    },
+    refetchInterval: 15000,
+  });
 
-        const loadData = async () => {
-            setLoading(true);
-            try {
-                await Promise.allSettled([
-                    fetchServiceStatus(signal),
-                    fetchActiveIncidents(signal),
-                    fetchOverallStatus(signal)
-                ]);
-            } finally {
-                setLoading(false);
-            }
-        };
+  const { data: stats } = useQuery<HealthStats>({
+    queryKey: ['health-stats'],
+    queryFn: async () => {
+      const res = await axios.get('/health/stats');
+      return res.data;
+    },
+    refetchInterval: 15000,
+  });
 
-        loadData();
-        
-        // Poll for updates every 30 seconds
-        const interval = setInterval(() => {
-            loadData();
-        }, 30000);
-        
-        return () => {
-            clearInterval(interval);
-            controller.abort();
-        };
-    }, []);
+  const { data: cacheHealth } = useQuery<CacheHealth>({
+    queryKey: ['health-cache'],
+    queryFn: async () => {
+      const res = await axios.get('/health/cache/check');
+      return res.data;
+    },
+    refetchInterval: 30000,
+  });
 
-    const fetchServiceStatus = async (signal?: AbortSignal) => {
-        try {
-            const response = await fetch('/api/v1/status/services', { signal });
-            if (!response.ok) throw new Error('Failed to fetch service status');
-            const data = await response.json();
-            setServices(data.data || []);
-            setError(null);
-        } catch (err) {
-            if (err instanceof DOMException && err.name === 'AbortError') {
-                return;
-            }
-            const errorMsg = err instanceof Error ? err.message : 'Unknown error';
-            setError(errorMsg);
-            console.error('Failed to fetch service status:', err);
-        }
-    };
+  const { data: webhookStats } = useQuery<WebhookStats>({
+    queryKey: ['health-webhooks'],
+    queryFn: async () => {
+      const res = await axios.get('/health/webhooks');
+      return res.data;
+    },
+    refetchInterval: 30000,
+  });
 
-    const fetchActiveIncidents = async (signal?: AbortSignal) => {
-        try {
-            const response = await fetch('/api/v1/status/incidents/active', { signal });
-            if (!response.ok) throw new Error('Failed to fetch incidents');
-            const data = await response.json();
-            setIncidents(data.data || []);
-        } catch (err) {
-            if (err instanceof DOMException && err.name === 'AbortError') {
-                return;
-            }
-            console.error('Failed to fetch incidents:', err);
-            // Don't set global error for incidents, just log it
-        }
-    };
+  const handleRefresh = () => {
+    refetchReady();
+  };
 
-    const fetchOverallStatus = async (signal?: AbortSignal) => {
-        try {
-            const response = await fetch('/api/v1/status/overall', { signal });
-            if (!response.ok) throw new Error('Failed to fetch overall status');
-            const data = await response.json();
-            setOverallStatus(data.data?.status || 'unknown');
-        } catch (err) {
-            if (err instanceof DOMException && err.name === 'AbortError') {
-                return;
-            }
-            console.error('Failed to fetch overall status:', err);
-            // Don't set global error for overall status, just log it
-        }
-    };
+  return (
+    <Container className="py-8 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Service Status</h1>
+          <p className="text-sm text-gray-400 mt-1">Real-time health monitoring for all backend services</p>
+        </div>
+        <button
+          onClick={handleRefresh}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm transition-colors"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Refresh
+        </button>
+      </div>
 
-    const formatTime = (dateStr: string) => {
-        const date = new Date(dateStr);
-        return date.toLocaleString();
-    };
+      {/* Overall Status */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Activity className="w-5 h-5 text-purple-400" />
+            <h2 className="text-lg font-semibold text-white">Overall Status</h2>
+          </div>
+        </CardHeader>
+        <CardBody>
+          {readyLoading ? (
+            <p className="text-gray-400">Checking services...</p>
+          ) : readyError ? (
+            <div className="flex items-center gap-2 text-red-400">
+              <XCircle className="w-5 h-5" />
+              <span>Failed to reach backend</span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-gray-500 uppercase tracking-wide">API</span>
+                <StatusBadge status={liveness?.status ?? 'unknown'} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-gray-500 uppercase tracking-wide">Database</span>
+                <StatusBadge status={readiness?.checks?.database ?? 'unknown'} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-gray-500 uppercase tracking-wide">Redis</span>
+                <StatusBadge status={readiness?.checks?.redis ?? 'unknown'} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-gray-500 uppercase tracking-wide">OpenSearch</span>
+                <StatusBadge status={readiness?.checks?.opensearch ?? 'not configured'} />
+              </div>
+            </div>
+          )}
+        </CardBody>
+      </Card>
 
-    const getTimeAgo = (dateStr: string) => {
-        const date = new Date(dateStr);
-        const now = new Date();
-        const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-        
-        if (seconds < 60) return `${seconds}s ago`;
-        if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-        if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-        return `${Math.floor(seconds / 86400)}d ago`;
-    };
-
-    if (loading) {
-        return (
-            <Container className="py-8">
-                <div className="text-center">Loading service status...</div>
-            </Container>
-        );
-    }
-
-    if (error) {
-        return (
-            <Container className="py-8">
-                <Card>
-                    <CardBody>
-                        <p className="text-destructive">Error: {error}</p>
-                    </CardBody>
-                </Card>
-            </Container>
-        );
-    }
-
-    return (
-        <Container className="py-8">
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold mb-2">Service Status Dashboard</h1>
-                <div className="flex items-center gap-4">
-                    <span className="text-muted-foreground">Overall Status:</span>
-                    <StatusBadge status={overallStatus} />
+      {/* Database Pool Stats */}
+      {stats?.database && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Database className="w-5 h-5 text-blue-400" />
+              <h2 className="text-lg font-semibold text-white">Database Pool</h2>
+            </div>
+          </CardHeader>
+          <CardBody>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {[
+                { label: 'Active Connections', value: stats.database.acquired_conns },
+                { label: 'Idle Connections', value: stats.database.idle_conns },
+                { label: 'Total Connections', value: stats.database.total_conns },
+                { label: 'Max Connections', value: stats.database.max_conns },
+                { label: 'Total Acquires', value: stats.database.acquire_count },
+                { label: 'Avg Acquire (ms)', value: stats.database.acquire_duration_ms },
+              ].map(item => (
+                <div key={item.label} className="bg-gray-800/50 rounded-lg p-3">
+                  <p className="text-xs text-gray-500 uppercase tracking-wide">{item.label}</p>
+                  <p className="text-xl font-semibold text-white mt-1">{item.value}</p>
                 </div>
+              ))}
             </div>
+          </CardBody>
+        </Card>
+      )}
 
-            {/* Active Incidents */}
-            {incidents.length > 0 && (
-                <Card className="mb-8 border-yellow-500">
-                    <CardHeader>
-                        <h2 className="text-xl font-semibold">
-                            ⚠️ Active Incidents ({incidents.length})
-                        </h2>
-                    </CardHeader>
-                    <CardBody>
-                        <div className="space-y-4">
-                            {incidents.map((incident) => (
-                                <div
-                                    key={incident.id}
-                                    className="p-4 border border-border rounded-lg"
-                                >
-                                    <div className="flex items-start justify-between mb-2">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <h3 className="font-semibold">
-                                                    {incident.title}
-                                                </h3>
-                                                <SeverityBadge severity={incident.severity} />
-                                            </div>
-                                            {incident.description && (
-                                                <p className="text-sm text-muted-foreground mb-2">
-                                                    {incident.description}
-                                                </p>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                                        <span>Service: {incident.service_name}</span>
-                                        <span>Status: {incident.status}</span>
-                                        <span>Started: {formatTime(incident.started_at)}</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </CardBody>
-                </Card>
-            )}
-
-            {/* Service Status Grid */}
-            <Card>
-                <CardHeader>
-                    <h2 className="text-xl font-semibold">Service Health</h2>
-                </CardHeader>
-                <CardBody>
-                    <Grid cols={1} gap={4} responsive={{ md: 2, lg: 3 }}>
-                        {services.map((service) => (
-                            <div
-                                key={service.id}
-                                className="p-4 border border-border rounded-lg"
-                            >
-                                <div className="flex items-center justify-between mb-3">
-                                    <h3 className="font-semibold capitalize">
-                                        {service.service_name}
-                                    </h3>
-                                    <StatusBadge status={service.status} />
-                                </div>
-                                
-                                {service.status_message && (
-                                    <p className="text-sm text-muted-foreground mb-3">
-                                        {service.status_message}
-                                    </p>
-                                )}
-                                
-                                <div className="space-y-1 text-xs text-muted-foreground">
-                                    {service.response_time_ms !== undefined && (
-                                        <div className="flex justify-between">
-                                            <span>Response Time:</span>
-                                            <span>{service.response_time_ms}ms</span>
-                                        </div>
-                                    )}
-                                    {service.error_rate !== undefined && (
-                                        <div className="flex justify-between">
-                                            <span>Error Rate:</span>
-                                            <span>{(service.error_rate * 100).toFixed(2)}%</span>
-                                        </div>
-                                    )}
-                                    <div className="flex justify-between">
-                                        <span>Last Check:</span>
-                                        <span>{getTimeAgo(service.last_check_at)}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </Grid>
-                </CardBody>
-            </Card>
-
-            {/* Info Footer */}
-            <div className="mt-8 text-center text-sm text-muted-foreground">
-                <p>Status updates automatically every 30 seconds</p>
-                <p className="mt-2">
-                    For detailed history, visit{' '}
-                    <a href="/api/v1/status/history?timeframe=24h" className="text-primary hover:underline">
-                        24h history
-                    </a>{' '}
-                    or{' '}
-                    <a href="/api/v1/status/history?timeframe=168h" className="text-primary hover:underline">
-                        7d history
-                    </a>
-                </p>
+      {/* Cache Health */}
+      {cacheHealth && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <HardDrive className="w-5 h-5 text-emerald-400" />
+              <h2 className="text-lg font-semibold text-white">Cache Health</h2>
             </div>
-        </Container>
-    );
+          </CardHeader>
+          <CardBody>
+            <pre className="text-sm text-gray-300 bg-gray-800/50 rounded-lg p-4 overflow-auto max-h-64">
+              {JSON.stringify(cacheHealth, null, 2)}
+            </pre>
+          </CardBody>
+        </Card>
+      )}
+
+      {/* Webhook Stats */}
+      {webhookStats && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Server className="w-5 h-5 text-orange-400" />
+              <h2 className="text-lg font-semibold text-white">Webhook Stats</h2>
+            </div>
+          </CardHeader>
+          <CardBody>
+            <pre className="text-sm text-gray-300 bg-gray-800/50 rounded-lg p-4 overflow-auto max-h-64">
+              {JSON.stringify(webhookStats, null, 2)}
+            </pre>
+          </CardBody>
+        </Card>
+      )}
+    </Container>
+  );
 }

@@ -1,5 +1,9 @@
-# Production docker-compose configuration
-# Copy this file to your server as docker-compose.yml
+# VPS Production docker-compose configuration
+# Designed for deployment where Vault and Caddy run externally
+# Key differences from docker-compose.prod.yml:
+# - Connects to external 'web' network (shared with Caddy)
+# - Vault runs separately (not defined here)
+# - Uses container names that work with external Caddy reverse proxy
 
 services:
     backend:
@@ -88,8 +92,13 @@ services:
             retries: 3
             start_period: 5s
         networks:
-            - clipper-network
-            - web
+            clipper-network:
+                aliases:
+                    - frontend
+                    - clipper-frontend
+            web:
+                aliases:
+                    - clipper-frontend
 
     postgres:
         build:
@@ -118,7 +127,7 @@ services:
                 echo "[clipper-postgres] Starting PostgreSQL..."
                 exec docker-entrypoint.sh postgres
         ports:
-            - '127.0.0.1:5436:5432' # Expose Postgres only on localhost
+            - '5436:5432' # Expose Postgres externally on 5436 to avoid conflicts with other projects
         volumes:
             - postgres_data:/var/lib/postgresql/data
         volumes_from:
@@ -169,6 +178,8 @@ services:
                 # Run vault agent as user 1000 (who owns the secrets)
                 exec su-exec 1000:1000 vault agent -config=/vault-agent/config.hcl
         environment:
+            # Connect to external Vault server via Docker network
+            # Assumes Vault container is named 'vault' or similar
             VAULT_ADDR: http://vault:8200
             SKIP_SETCAP: 'true' # Skip setcap since we're using cap_add
         volumes:
@@ -180,6 +191,7 @@ services:
             - clipper_backend_secret_id
         networks:
             - clipper-network
+            # Also connect to web network to potentially reach external Vault
             - web
 
 volumes:
@@ -191,8 +203,10 @@ volumes:
         driver: local
 
 networks:
+    # Internal network for clipper services
     clipper-network:
         driver: bridge
+    # External network shared with Caddy reverse proxy
     web:
         external: true
 

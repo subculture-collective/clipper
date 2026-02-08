@@ -293,11 +293,6 @@ func main() {
 	// Initialize cache service
 	cacheService := services.NewCacheService(redisClient)
 
-	// Initialize service status tracking services
-	serviceStatusService := services.NewServiceStatusService(db)
-	incidentService := services.NewIncidentService(db)
-	statusSubscriptionService := services.NewStatusSubscriptionService(db)
-
 	// Initialize feed service
 	feedService := services.NewFeedService(feedRepo, clipRepo, userRepo, broadcasterRepo, voteRepo, favoriteRepo)
 
@@ -374,11 +369,12 @@ func main() {
 
 	// Initialize embedding service if enabled and configured
 	if cfg.Embedding.Enabled {
-		if cfg.Embedding.OpenAIAPIKey == "" {
+		if cfg.Embedding.OpenAIAPIKey == "" && cfg.Embedding.APIBaseURL == "" {
 			log.Println("WARNING: Embedding is enabled but OPENAI_API_KEY is not set; disabling embeddings")
 		} else {
 			embeddingService = services.NewEmbeddingService(&services.EmbeddingConfig{
 				APIKey:            cfg.Embedding.OpenAIAPIKey,
+				APIBaseURL:        cfg.Embedding.APIBaseURL,
 				Model:             cfg.Embedding.Model,
 				RedisClient:       redisClient.GetClient(),
 				RequestsPerMinute: cfg.Embedding.RequestsPerMinute,
@@ -477,7 +473,6 @@ func main() {
 	chatHandler := handlers.NewChatHandler(db.Pool)
 	applicationLogHandler := handlers.NewApplicationLogHandler(applicationLogRepo)
 	banReasonTemplateHandler := handlers.NewBanReasonTemplateHandler(banReasonTemplateService, logger)
-	serviceStatusHandler := handlers.NewServiceStatusHandler(serviceStatusService, incidentService, statusSubscriptionService, authService)
 
 	// Initialize WebSocket server
 	wsServer := websocket.NewServer(db.Pool, redisClient.GetClient(), &cfg.WebSocket)
@@ -590,59 +585,32 @@ func main() {
 
 	// Health check endpoints (additional checks requiring middleware)
 
-	// Helper function to update service status
-	updateServiceStatus := func(serviceName, status string, message *string, responseTimeMs *int, errorRate *float64) {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-
-		metadata := make(map[string]interface{})
-		if err := serviceStatusService.UpdateServiceStatus(ctx, serviceName, status, message, responseTimeMs, errorRate, metadata); err != nil {
-			utils.GetLogger().Error("Failed to update service status", err, map[string]interface{}{
-				"service": serviceName,
-			})
-		}
-	}
-
 	// Readiness check - indicates if the service is ready to serve traffic
 	r.GET("/health/ready", func(c *gin.Context) {
-		overallStart := time.Now()
-
 		// Check database connection
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
 
-		dbStart := time.Now()
 		dbErr := db.HealthCheck(ctx)
-		dbLatency := int(time.Since(dbStart).Milliseconds())
-
+		
 		if dbErr != nil {
-			msg := "database unavailable"
-			updateServiceStatus("database", models.ServiceStatusUnhealthy, &msg, &dbLatency, nil)
 			c.JSON(http.StatusServiceUnavailable, gin.H{
 				"status": "not ready",
-				"error":  msg,
+				"error":  "database unavailable",
 			})
 			return
 		}
-		msg := "PostgreSQL connection pool healthy"
-		updateServiceStatus("database", models.ServiceStatusHealthy, &msg, &dbLatency, nil)
 
 		// Check Redis connection
-		redisStart := time.Now()
 		redisErr := redisClient.HealthCheck(ctx)
-		redisLatency := int(time.Since(redisStart).Milliseconds())
-
+		
 		if redisErr != nil {
-			msg := "redis unavailable"
-			updateServiceStatus("redis", models.ServiceStatusUnhealthy, &msg, &redisLatency, nil)
 			c.JSON(http.StatusServiceUnavailable, gin.H{
 				"status": "not ready",
-				"error":  msg,
+				"error":  "redis unavailable",
 			})
 			return
 		}
-		msg = "Redis cache operational"
-		updateServiceStatus("redis", models.ServiceStatusHealthy, &msg, &redisLatency, nil)
 
 		checks := gin.H{
 			"database": "ok",
@@ -651,26 +619,15 @@ func main() {
 
 		// Check OpenSearch connection (optional)
 		if osClient != nil {
-			osStart := time.Now()
 			osErr := osClient.Ping(ctx)
-			osLatency := int(time.Since(osStart).Milliseconds())
-
+			
 			if osErr != nil {
 				checks["opensearch"] = "degraded"
-				msg := "OpenSearch connection degraded"
-				updateServiceStatus("opensearch", models.ServiceStatusDegraded, &msg, &osLatency, nil)
 				log.Printf("OpenSearch health check failed (%T): %v", osErr, osErr)
 			} else {
 				checks["opensearch"] = "ok"
-				msg := "OpenSearch cluster operational"
-				updateServiceStatus("opensearch", models.ServiceStatusHealthy, &msg, &osLatency, nil)
 			}
 		}
-
-		// Update API service status with actual response time
-		apiMsg := "API server responding normally"
-		apiLatency := int(time.Since(overallStart).Milliseconds())
-		updateServiceStatus("api", models.ServiceStatusHealthy, &apiMsg, &apiLatency, nil)
 
 		c.JSON(http.StatusOK, gin.H{
 			"status": "ready",
@@ -1591,38 +1548,6 @@ func main() {
 		// User watch party stats route (needs to be outside watchParties group to avoid conflict)
 		v1.GET("/users/:id/watch-party-stats", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Hour), watchPartyHandler.GetUserWatchPartyStats)
 
-		// Service status routes
-		status := v1.Group("/status")
-		{
-			// Public status endpoints
-			status.GET("/services", serviceStatusHandler.GetAllServiceStatus)
-			status.GET("/services/:name", serviceStatusHandler.GetServiceStatus)
-			status.GET("/services/:name/history", serviceStatusHandler.GetStatusHistory)
-			status.GET("/history", serviceStatusHandler.GetAllStatusHistory)
-			status.GET("/overall", serviceStatusHandler.GetOverallStatus)
-
-			// Incident endpoints (require authentication for listing, public for active/details)
-			status.GET("/incidents/active", serviceStatusHandler.GetActiveIncidents)
-			status.GET("/incidents/:id", serviceStatusHandler.GetIncident)
-			status.GET("/incidents/:id/updates", serviceStatusHandler.GetIncidentUpdates)
-			status.GET("/incidents", middleware.OptionalAuthMiddleware(authService), serviceStatusHandler.ListIncidents)
-
-			// Protected subscription endpoints (require authentication)
-			status.POST("/subscriptions", middleware.AuthMiddleware(authService), serviceStatusHandler.CreateSubscription)
-			status.GET("/subscriptions", middleware.AuthMiddleware(authService), serviceStatusHandler.GetUserSubscriptions)
-			status.DELETE("/subscriptions/:id", middleware.AuthMiddleware(authService), serviceStatusHandler.DeleteSubscription)
-
-			// Admin-only incident management (require admin role)
-			status.POST("/incidents",
-				middleware.AuthMiddleware(authService),
-				middleware.RequireRole("admin"),
-				serviceStatusHandler.CreateIncident)
-			status.POST("/incidents/:id/updates",
-				middleware.AuthMiddleware(authService),
-				middleware.RequireRole("admin"),
-				serviceStatusHandler.UpdateIncident)
-		}
-
 		// Admin routes
 		admin := v1.Group("/admin")
 		admin.Use(middleware.AuthMiddleware(authService))
@@ -1909,10 +1834,6 @@ func main() {
 		go liveStatusScheduler.Start(context.Background())
 	}
 
-	// Start service status history cleanup scheduler (runs daily, retains 30 days of history)
-	serviceStatusScheduler := scheduler.NewServiceStatusScheduler(serviceStatusService, 24, 30)
-	go serviceStatusScheduler.Start(context.Background())
-
 	// Create HTTP server
 	srv := &http.Server{
 		Addr:              ":" + cfg.Server.Port,
@@ -1957,7 +1878,6 @@ func main() {
 	if liveStatusScheduler != nil {
 		liveStatusScheduler.Stop()
 	}
-	serviceStatusScheduler.Stop()
 
 	// Close embedding service if running
 	if embeddingService != nil {

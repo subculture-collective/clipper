@@ -49,3 +49,4 @@ playwright/.cache/
 .cache
 .temp
 *.tmp
+.env.production

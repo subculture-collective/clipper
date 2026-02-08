@@ -1,33 +1,24 @@
 -- Enable pgvector extension for vector similarity search
--- Temporarily disabled due to segfault with postgres:17
--- CREATE EXTENSION IF NOT EXISTS vector;
+CREATE EXTENSION IF NOT EXISTS vector;
 
 -- Add embedding column to clips table
--- Using 768 dimensions which is the default for text-embedding-3-small
--- and compatible with text-embedding-ada-002
--- Temporarily disabled - vector extension not working
--- ALTER TABLE clips ADD COLUMN embedding vector(768);
+-- Using 768 dimensions compatible with nomic-embed-text:v1.5 and text-embedding-3-small
+ALTER TABLE clips ADD COLUMN embedding vector(768);
 
 -- Add metadata columns for embedding tracking
 ALTER TABLE clips ADD COLUMN embedding_generated_at TIMESTAMP;
 ALTER TABLE clips ADD COLUMN embedding_model VARCHAR(100);
 
 -- Create HNSW index for fast approximate nearest neighbor search
--- m=16: number of connections per node (16 is a good default)
--- ef_construction=64: size of dynamic candidate list during index construction
--- Higher values = better recall but slower index building
--- Temporarily disabled - vector extension not working
--- CREATE INDEX idx_clips_embedding_hnsw ON clips
--- USING hnsw (embedding vector_cosine_ops)
--- WITH (m = 16, ef_construction = 64);
+CREATE INDEX idx_clips_embedding_hnsw ON clips
+USING hnsw (embedding vector_cosine_ops)
+WITH (m = 16, ef_construction = 64);
 
--- Add comment explaining the index
--- COMMENT ON INDEX idx_clips_embedding_hnsw IS
--- 'HNSW index for fast vector similarity search using cosine distance. Used for semantic search re-ranking.';
+COMMENT ON INDEX idx_clips_embedding_hnsw IS
+'HNSW index for fast vector similarity search using cosine distance. Used for semantic search re-ranking.';
 
--- Add comments for the new columns
--- COMMENT ON COLUMN clips.embedding IS
--- 'Vector embedding of clip content (title + tags + metadata) for semantic search. 768 dimensions.';
+COMMENT ON COLUMN clips.embedding IS
+'Vector embedding of clip content (title + tags + metadata) for semantic search. 768 dimensions.';
 
 COMMENT ON COLUMN clips.embedding_generated_at IS
 'Timestamp when the embedding was last generated. Used for tracking and incremental updates.';
