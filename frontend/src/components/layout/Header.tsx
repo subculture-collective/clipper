@@ -129,15 +129,17 @@ export function Header() {
                                     >
                                         🎵 Playlists
                                     </Link>
-                                    <Link
+                                    {/* Watch Parties - Hidden until after launch */}
+                                    {/* <Link
                                         to='/watch-parties/browse'
                                         className='block px-4 py-2 text-sm hover:bg-muted transition-colors'
                                         onClick={() => setMoreMenuOpen(false)}
                                         role='menuitem'
                                     >
                                         👥 Watch Parties
-                                    </Link>
-                                    {isAuthenticated && (
+                                    </Link> */}
+                                    {/* Live Feed - Hidden until after launch */}
+                                    {/* {isAuthenticated && (
                                         <Link
                                             to='/discover/live'
                                             className='block px-4 py-2 text-sm hover:bg-muted transition-colors'
@@ -148,7 +150,7 @@ export function Header() {
                                         >
                                             🔴 Live
                                         </Link>
-                                    )}
+                                    )} */}
                                 </div>
                             )}
                         </div>
@@ -259,7 +261,8 @@ export function Header() {
                                     🎵 Playlists
                                 </Button>
                             </Link>
-                            <Link
+                            {/* Watch Parties - Hidden until after launch */}
+                            {/* <Link
                                 to='/watch-parties/browse'
                                 onClick={() => setMobileMenuOpen(false)}
                             >
@@ -270,8 +273,9 @@ export function Header() {
                                 >
                                     👥 Watch Parties
                                 </Button>
-                            </Link>
-                            {isAuthenticated && (
+                            </Link> */}
+                            {/* Live Feed - Hidden until after launch */}
+                            {/* {isAuthenticated && (
                                 <Link
                                     to='/discover/live'
                                     onClick={() => setMobileMenuOpen(false)}
@@ -284,7 +288,7 @@ export function Header() {
                                         🔴 Live
                                     </Button>
                                 </Link>
-                            )}
+                            )} */}
                         </nav>
 
                         {isAuthenticated ?

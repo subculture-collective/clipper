@@ -53,6 +53,63 @@ func (s *PlaylistService) CreatePlaylist(ctx context.Context, userID uuid.UUID, 
 	return playlist, nil
 }
 
+// CopyPlaylist duplicates an existing playlist and its clips
+func (s *PlaylistService) CopyPlaylist(ctx context.Context, playlistID, userID uuid.UUID, req *models.CopyPlaylistRequest) (*models.Playlist, error) {
+	// Get source playlist
+	source, err := s.playlistRepo.GetByID(ctx, playlistID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get playlist: %w", err)
+	}
+	if source == nil {
+		return nil, fmt.Errorf("playlist not found")
+	}
+
+	// Check view permissions if playlist is private
+	if source.Visibility == models.PlaylistVisibilityPrivate && source.UserID != userID {
+		permission, err := s.playlistRepo.GetCollaboratorPermission(ctx, playlistID, userID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check permissions: %w", err)
+		}
+		if permission == "" {
+			return nil, fmt.Errorf("unauthorized: user does not have permission to copy this playlist")
+		}
+	}
+
+	// Build new playlist fields
+	newTitle := fmt.Sprintf("Copy of %s", source.Title)
+	if req != nil && req.Title != nil {
+		newTitle = *req.Title
+	}
+	newDescription := source.Description
+	if req != nil && req.Description != nil {
+		newDescription = req.Description
+	}
+	newCoverURL := source.CoverURL
+	if req != nil && req.CoverURL != nil {
+		newCoverURL = req.CoverURL
+	}
+
+	visibility := models.PlaylistVisibilityPrivate
+	if req != nil && req.Visibility != nil {
+		visibility = *req.Visibility
+	}
+
+	playlist := &models.Playlist{
+		ID:          uuid.New(),
+		UserID:      userID,
+		Title:       newTitle,
+		Description: newDescription,
+		CoverURL:    newCoverURL,
+		Visibility:  visibility,
+	}
+
+	if err := s.playlistRepo.CreateWithItemsCopy(ctx, playlist, playlistID); err != nil {
+		return nil, fmt.Errorf("failed to copy playlist: %w", err)
+	}
+
+	return playlist, nil
+}
+
 // GetPlaylist retrieves a playlist by ID with clips and additional data
 func (s *PlaylistService) GetPlaylist(ctx context.Context, playlistID uuid.UUID, userID *uuid.UUID, page, limit int) (*models.PlaylistWithClips, error) {
 	// Get the playlist
@@ -65,8 +122,22 @@ func (s *PlaylistService) GetPlaylist(ctx context.Context, playlistID uuid.UUID,
 	}
 
 	// Check visibility permissions
+	var currentPermission *string
+	if userID != nil && *userID != playlist.UserID {
+		permission, err := s.playlistRepo.GetCollaboratorPermission(ctx, playlistID, *userID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check permissions: %w", err)
+		}
+		if permission != "" {
+			currentPermission = &permission
+		}
+	}
+
 	if playlist.Visibility == models.PlaylistVisibilityPrivate {
-		if userID == nil || *userID != playlist.UserID {
+		if userID == nil {
+			return nil, fmt.Errorf("unauthorized: playlist is private")
+		}
+		if *userID != playlist.UserID && currentPermission == nil {
 			return nil, fmt.Errorf("unauthorized: playlist is private")
 		}
 	}
@@ -106,6 +177,69 @@ func (s *PlaylistService) GetPlaylist(ctx context.Context, playlistID uuid.UUID,
 		IsLiked:   isLiked,
 		Creator:   creator,
 	}
+	result.CurrentUserPermission = currentPermission
+
+	return result, nil
+}
+
+// GetPlaylistByShareToken retrieves a playlist by share token (public or private link access)
+func (s *PlaylistService) GetPlaylistByShareToken(ctx context.Context, shareToken string, userID *uuid.UUID, page, limit int) (*models.PlaylistWithClips, error) {
+	playlist, err := s.playlistRepo.GetByShareToken(ctx, shareToken)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get playlist: %w", err)
+	}
+	if playlist == nil {
+		return nil, fmt.Errorf("playlist not found")
+	}
+
+	// Determine current user permission if available
+	var currentPermission *string
+	if userID != nil && *userID != playlist.UserID {
+		permission, err := s.playlistRepo.GetCollaboratorPermission(ctx, playlist.ID, *userID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check permissions: %w", err)
+		}
+		if permission != "" {
+			currentPermission = &permission
+		}
+	}
+
+	// Get clip count
+	clipCount, err := s.playlistRepo.GetClipCount(ctx, playlist.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get clip count: %w", err)
+	}
+
+	// Get clips with pagination
+	offset := (page - 1) * limit
+	clips, _, err := s.playlistRepo.GetClips(ctx, playlist.ID, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get clips: %w", err)
+	}
+
+	// Get creator information
+	creator, err := s.playlistRepo.GetCreator(ctx, playlist.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get creator: %w", err)
+	}
+
+	// Check if user has liked the playlist
+	isLiked := false
+	if userID != nil {
+		isLiked, err = s.playlistRepo.IsLiked(ctx, *userID, playlist.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check if liked: %w", err)
+		}
+	}
+
+	result := &models.PlaylistWithClips{
+		Playlist:  *playlist,
+		ClipCount: clipCount,
+		Clips:     clips,
+		IsLiked:   isLiked,
+		Creator:   creator,
+	}
+	result.CurrentUserPermission = currentPermission
 
 	return result, nil
 }
@@ -227,9 +361,13 @@ func (s *PlaylistService) AddClipsToPlaylist(ctx context.Context, playlistID, us
 		return fmt.Errorf("playlist not found")
 	}
 
-	// Verify ownership
-	if playlist.UserID != userID {
-		return fmt.Errorf("unauthorized: user does not own this playlist")
+	// Verify edit permission (owner or edit/admin collaborator)
+	hasPermission, err := s.CheckEditPermission(ctx, playlistID, userID)
+	if err != nil {
+		return err
+	}
+	if !hasPermission {
+		return fmt.Errorf("unauthorized: user does not have permission to edit this playlist")
 	}
 
 	// Get current clip count
@@ -288,9 +426,13 @@ func (s *PlaylistService) RemoveClipFromPlaylist(ctx context.Context, playlistID
 		return fmt.Errorf("playlist not found")
 	}
 
-	// Verify ownership
-	if playlist.UserID != userID {
-		return fmt.Errorf("unauthorized: user does not own this playlist")
+	// Verify edit permission (owner or edit/admin collaborator)
+	hasPermission, err := s.CheckEditPermission(ctx, playlistID, userID)
+	if err != nil {
+		return err
+	}
+	if !hasPermission {
+		return fmt.Errorf("unauthorized: user does not have permission to edit this playlist")
 	}
 
 	err = s.playlistRepo.RemoveClip(ctx, playlistID, clipID)
@@ -312,9 +454,13 @@ func (s *PlaylistService) ReorderPlaylistClips(ctx context.Context, playlistID, 
 		return fmt.Errorf("playlist not found")
 	}
 
-	// Verify ownership
-	if playlist.UserID != userID {
-		return fmt.Errorf("unauthorized: user does not own this playlist")
+	// Verify edit permission (owner or edit/admin collaborator)
+	hasPermission, err := s.CheckEditPermission(ctx, playlistID, userID)
+	if err != nil {
+		return err
+	}
+	if !hasPermission {
+		return fmt.Errorf("unauthorized: user does not have permission to edit this playlist")
 	}
 
 	// Verify all clips exist in the playlist

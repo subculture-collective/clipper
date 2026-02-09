@@ -218,6 +218,11 @@ const AdminDiscoveryListFormPage = lazy(() =>
         default: m.AdminDiscoveryListFormPage,
     })),
 );
+const AdminPlaylistScriptsPage = lazy(() =>
+    import('./pages/admin/AdminPlaylistScriptsPage').then(m => ({
+        default: m.AdminPlaylistScriptsPage,
+    })),
+);
 const AdminAPIDocsPage = lazy(() =>
     import('./pages/admin/AdminAPIDocsPage').then(m => ({
         default: m.AdminAPIDocsPage,
@@ -253,9 +258,19 @@ const VerificationApplicationPage = lazy(() =>
 const PlaylistsPage = lazy(() =>
     import('./pages/PlaylistsPage').then(m => ({ default: m.PlaylistsPage })),
 );
+const PlaylistCreatePage = lazy(() =>
+    import('./pages/PlaylistCreatePage').then(m => ({
+        default: m.PlaylistCreatePage,
+    })),
+);
 const PlaylistDetailPage = lazy(() =>
     import('./pages/PlaylistDetailPage').then(m => ({
         default: m.PlaylistDetailPage,
+    })),
+);
+const PlaylistTheatrePage = lazy(() =>
+    import('./pages/PlaylistTheatrePage').then(m => ({
+        default: m.PlaylistTheatrePage,
     })),
 );
 const PublicPlaylistsPage = lazy(() =>
@@ -270,6 +285,11 @@ const WatchHistoryPage = lazy(() =>
 );
 const QueuePage = lazy(() =>
     import('./pages/QueuePage').then(m => ({ default: m.QueuePage })),
+);
+const QueueTheatrePage = lazy(() =>
+    import('./pages/QueueTheatrePage').then(m => ({
+        default: m.QueueTheatrePage,
+    })),
 );
 const StreamPage = lazy(() =>
     import('./pages/StreamPage').then(m => ({ default: m.StreamPage })),
@@ -387,14 +407,15 @@ function App() {
                                             path='/discover/scraped'
                                             element={<ScrapedClipsPage />}
                                         />
-                                        <Route
+                                        {/* Live Feed - Hidden until after launch */}
+                                        {/* <Route
                                             path='/discover/live'
                                             element={
                                                 <ProtectedRoute>
                                                     <LiveFeedPage />
                                                 </ProtectedRoute>
                                             }
-                                        />
+                                        /> */}
                                         <Route
                                             path='/clip/:id'
                                             element={<ClipDetailPage />}
@@ -571,10 +592,26 @@ function App() {
                                             }
                                         />
                                         <Route
+                                            path='/queue/theatre'
+                                            element={
+                                                <ProtectedRoute>
+                                                    <QueueTheatrePage />
+                                                </ProtectedRoute>
+                                            }
+                                        />
+                                        <Route
                                             path='/playlists'
                                             element={
                                                 <ProtectedRoute>
                                                     <PlaylistsPage />
+                                                </ProtectedRoute>
+                                            }
+                                        />
+                                        <Route
+                                            path='/playlists/new'
+                                            element={
+                                                <ProtectedRoute>
+                                                    <PlaylistCreatePage />
                                                 </ProtectedRoute>
                                             }
                                         />
@@ -585,6 +622,10 @@ function App() {
                                         <Route
                                             path='/playlists/:id'
                                             element={<PlaylistDetailPage />}
+                                        />
+                                        <Route
+                                            path='/playlists/:id/theatre'
+                                            element={<PlaylistTheatrePage />}
                                         />
                                         <Route
                                             path='/profile'
@@ -691,8 +732,8 @@ function App() {
                                             }
                                         />
 
-                                        {/* Watch Party Routes */}
-                                        <Route
+                                        {/* Watch Party Routes - Hidden until after launch */}
+                                        {/* <Route
                                             path='/watch-parties/browse'
                                             element={<WatchPartyBrowsePage />}
                                         />
@@ -719,7 +760,7 @@ function App() {
                                                     <WatchPartySettingsPage />
                                                 </ProtectedRoute>
                                             }
-                                        />
+                                        /> */}
 
                                         {/* Admin Routes (require admin role) */}
                                         <Route
@@ -863,6 +904,14 @@ function App() {
                                             element={
                                                 <AdminRoute>
                                                     <AdminDiscoveryListsPage />
+                                                </AdminRoute>
+                                            }
+                                        />
+                                        <Route
+                                            path='/admin/playlist-scripts'
+                                            element={
+                                                <AdminRoute>
+                                                    <AdminPlaylistScriptsPage />
                                                 </AdminRoute>
                                             }
                                         />

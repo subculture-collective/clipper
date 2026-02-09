@@ -116,7 +116,8 @@ func (r *ClipRepository) GetByTwitchClipID(ctx context.Context, twitchClipID str
 			game_id, game_name, language, thumbnail_url, duration,
 			view_count, created_at, imported_at, vote_score, comment_count,
 			favorite_count, is_featured, is_nsfw, is_removed, removed_reason, is_hidden,
-			submitted_by_user_id, submitted_at
+			submitted_by_user_id, submitted_at,
+			stream_source, status, video_url, processed_at, quality, start_time, end_time
 		FROM clips
 		WHERE twitch_clip_id = $1
 	`
@@ -130,6 +131,7 @@ func (r *ClipRepository) GetByTwitchClipID(ctx context.Context, twitchClipID str
 		&clip.ImportedAt, &clip.VoteScore, &clip.CommentCount, &clip.FavoriteCount,
 		&clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason, &clip.IsHidden,
 		&clip.SubmittedByUserID, &clip.SubmittedAt,
+		&clip.StreamSource, &clip.Status, &clip.VideoURL, &clip.ProcessedAt, &clip.Quality, &clip.StartTime, &clip.EndTime,
 	)
 
 	if err != nil {
@@ -238,7 +240,8 @@ func (r *ClipRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Cli
 			game_id, game_name, language, thumbnail_url, duration,
 			view_count, created_at, imported_at, vote_score, comment_count,
 			favorite_count, is_featured, is_nsfw, is_removed, removed_reason, is_hidden,
-			submitted_by_user_id, submitted_at
+			submitted_by_user_id, submitted_at,
+			stream_source, status, video_url, processed_at, quality, start_time, end_time
 		FROM clips
 		WHERE id = $1 AND is_removed = false
 	`
@@ -252,6 +255,7 @@ func (r *ClipRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Cli
 		&clip.ImportedAt, &clip.VoteScore, &clip.CommentCount, &clip.FavoriteCount,
 		&clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason, &clip.IsHidden,
 		&clip.SubmittedByUserID, &clip.SubmittedAt,
+		&clip.StreamSource, &clip.Status, &clip.VideoURL, &clip.ProcessedAt, &clip.Quality, &clip.StartTime, &clip.EndTime,
 	)
 
 	if err != nil {

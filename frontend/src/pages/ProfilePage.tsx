@@ -2,7 +2,17 @@ import { formatTimestamp } from '../lib/utils';
 import { useCallback, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
-import { Card, CardBody, Container, Stack, Button, Skeleton, ProfileSkeleton, EmptyStateWithAction, UserRoleBadge } from '../components';
+import {
+    Card,
+    CardBody,
+    Container,
+    Stack,
+    Button,
+    Skeleton,
+    ProfileSkeleton,
+    EmptyStateWithAction,
+    UserRoleBadge,
+} from '../components';
 import { VerifiedBadge } from '../components/user';
 import { ClipCard } from '../components/clip/ClipCard';
 import { ClipCardSkeleton } from '../components/clip/ClipCardSkeleton';
@@ -25,14 +35,20 @@ import {
     reauthorizeTwitch,
 } from '../lib/user-api';
 
-type TabType = 'overview' | 'badges' | 'karma' | 'comments' | 'upvoted' | 'downvoted';
+type TabType =
+    | 'overview'
+    | 'badges'
+    | 'karma'
+    | 'comments'
+    | 'upvoted'
+    | 'downvoted';
 
 export function ProfilePage() {
     const { user, isAdmin } = useAuth();
     const toast = useToast();
     const [reputation, setReputation] = useState<UserReputation | null>(null);
     const [karmaBreakdown, setKarmaBreakdown] = useState<KarmaBreakdown | null>(
-        null
+        null,
     );
     const [loadingReputation, setLoadingReputation] = useState(true);
     const [reputationError, setReputationError] = useState(false);
@@ -71,7 +87,7 @@ export function ProfilePage() {
         if (!user) return;
         try {
             const response = await fetch(
-                `/api/v1/users/${user.id}/karma?limit=10`
+                `/api/v1/users/${user.id}/karma?limit=10`,
             );
             if (response.ok) {
                 const data = await response.json();
@@ -82,39 +98,53 @@ export function ProfilePage() {
         }
     }, [user]);
 
-    const fetchTabData = useCallback(async (tab: TabType, page: number = 1, append: boolean = false) => {
-        if (!user) return;
+    const fetchTabData = useCallback(
+        async (tab: TabType, page: number = 1, append: boolean = false) => {
+            if (!user) return;
 
-        setLoadingTabData(true);
-        try {
-            switch (tab) {
-                case 'comments': {
-                    const data = await fetchUserComments(user.id, page);
-                    setComments(prev => append ? [...prev, ...data.comments] : data.comments);
-                    setHasMore(data.has_more);
-                    break;
+            setLoadingTabData(true);
+            try {
+                switch (tab) {
+                    case 'comments': {
+                        const data = await fetchUserComments(user.id, page);
+                        setComments(prev =>
+                            append ?
+                                [...prev, ...data.comments]
+                            :   data.comments,
+                        );
+                        setHasMore(data.has_more);
+                        break;
+                    }
+                    case 'upvoted': {
+                        const data = await fetchUserUpvotedClips(user.id, page);
+                        setUpvotedClips(prev =>
+                            append ? [...prev, ...data.clips] : data.clips,
+                        );
+                        setHasMore(data.has_more);
+                        break;
+                    }
+                    case 'downvoted': {
+                        const data = await fetchUserDownvotedClips(
+                            user.id,
+                            page,
+                        );
+                        setDownvotedClips(prev =>
+                            append ? [...prev, ...data.clips] : data.clips,
+                        );
+                        setHasMore(data.has_more);
+                        break;
+                    }
                 }
-                case 'upvoted': {
-                    const data = await fetchUserUpvotedClips(user.id, page);
-                    setUpvotedClips(prev => append ? [...prev, ...data.clips] : data.clips);
-                    setHasMore(data.has_more);
-                    break;
-                }
-                case 'downvoted': {
-                    const data = await fetchUserDownvotedClips(user.id, page);
-                    setDownvotedClips(prev => append ? [...prev, ...data.clips] : data.clips);
-                    setHasMore(data.has_more);
-                    break;
-                }
+                setCurrentPage(page);
+            } catch (error) {
+                console.error(`Failed to fetch ${tab} data:`, error);
+                toast.error(`Failed to load ${tab}`);
+            } finally {
+                setLoadingTabData(false);
             }
-            setCurrentPage(page);
-        } catch (error) {
-            console.error(`Failed to fetch ${tab} data:`, error);
-            toast.error(`Failed to load ${tab}`);
-        } finally {
-            setLoadingTabData(false);
-        }
-    }, [user, toast]);
+        },
+        [user, toast],
+    );
 
     const handleTabChange = (tab: TabType) => {
         setActiveTab(tab);
@@ -185,8 +215,10 @@ export function ProfilePage() {
                                         Account Restricted
                                     </h3>
                                     <p className='mt-1 text-sm xs:text-base text-red-800 dark:text-red-200'>
-                                        Your account has been restricted from interacting with certain content.
-                                        Please contact support if you believe this is an error.
+                                        Your account has been restricted from
+                                        interacting with certain content. Please
+                                        contact support if you believe this is
+                                        an error.
                                     </p>
                                 </div>
                             </div>
@@ -200,17 +232,16 @@ export function ProfilePage() {
                         <div className='flex flex-col xs:flex-row items-start gap-4 xs:gap-6'>
                             {/* Avatar */}
                             <div className='shrink-0 mx-auto xs:mx-0'>
-                                {user.avatar_url ? (
+                                {user.avatar_url ?
                                     <img
                                         src={user.avatar_url}
                                         alt={user.username}
                                         className='border-border w-20 h-20 xs:w-24 xs:h-24 border-2 rounded-full'
                                     />
-                                ) : (
-                                    <div className='bg-primary-100 dark:bg-primary-900 text-primary-600 flex items-center justify-center w-20 h-20 xs:w-24 xs:h-24 text-2xl xs:text-3xl font-bold rounded-full'>
+                                :   <div className='bg-primary-100 dark:bg-primary-900 text-primary-600 flex items-center justify-center w-20 h-20 xs:w-24 xs:h-24 text-2xl xs:text-3xl font-bold rounded-full'>
                                         {user.username.charAt(0).toUpperCase()}
                                     </div>
-                                )}
+                                }
                             </div>
 
                             {/* User Info */}
@@ -222,15 +253,15 @@ export function ProfilePage() {
                                                 {user.display_name}
                                             </h1>
                                             {user.is_verified && (
-                                                <VerifiedBadge size="lg" />
+                                                <VerifiedBadge size='lg' />
                                             )}
                                         </div>
                                         <p className='text-sm xs:text-base text-muted-foreground mb-2'>
                                             @{user.username}
                                         </p>
                                         {!user.is_verified && (
-                                            <Link 
-                                                to="/verification/apply"
+                                            <Link
+                                                to='/verification/apply'
                                                 className='inline-block text-xs xs:text-sm text-blue-600 dark:text-blue-400 hover:underline'
                                             >
                                                 Apply for verification →
@@ -244,7 +275,9 @@ export function ProfilePage() {
                                         size='sm'
                                         className='w-full xs:w-auto'
                                     >
-                                        {reauthorizing ? 'Redirecting...' : 'Reauthorize with Twitch'}
+                                        {reauthorizing ?
+                                            'Redirecting...'
+                                        :   'Reauthorize with Twitch'}
                                     </Button>
                                 </div>
 
@@ -267,15 +300,29 @@ export function ProfilePage() {
                                         <span className='text-muted-foreground'>
                                             Role:
                                         </span>
-                                        <UserRoleBadge role={user.role as UserRole} size="sm" />
+                                        <UserRoleBadge
+                                            role={user.role as UserRole}
+                                            size='sm'
+                                        />
                                     </div>
                                     {user.created_at && (
                                         <div className='flex items-center gap-2'>
                                             <span className='text-muted-foreground'>
                                                 Joined:
                                             </span>
-                                            <span className='font-semibold' title={formatTimestamp(user.created_at).title}>
-                                                {formatTimestamp(user.created_at).display}
+                                            <span
+                                                className='font-semibold'
+                                                title={
+                                                    formatTimestamp(
+                                                        user.created_at,
+                                                    ).title
+                                                }
+                                            >
+                                                {
+                                                    formatTimestamp(
+                                                        user.created_at,
+                                                    ).display
+                                                }
                                             </span>
                                         </div>
                                     )}
@@ -317,21 +364,20 @@ export function ProfilePage() {
                 {/* Tabs Section */}
                 <Card>
                     <CardBody>
-                        <Stack
-                            direction='vertical'
-                            gap={4}
-                        >
+                        <Stack direction='vertical' gap={4}>
                             <div className='border-border border-b'>
                                 <nav
                                     className='flex gap-4 overflow-x-auto'
                                     role='tablist'
                                 >
                                     <button
-                                        onClick={() => handleTabChange('overview')}
+                                        onClick={() =>
+                                            handleTabChange('overview')
+                                        }
                                         className={`px-4 py-2 border-b-2 font-semibold whitespace-nowrap ${
-                                            activeTab === 'overview'
-                                                ? 'border-primary-500 text-primary-600'
-                                                : 'border-transparent text-muted-foreground hover:text-foreground'
+                                            activeTab === 'overview' ?
+                                                'border-primary-500 text-primary-600'
+                                            :   'border-transparent text-muted-foreground hover:text-foreground'
                                         }`}
                                         role='tab'
                                         aria-selected={activeTab === 'overview'}
@@ -339,11 +385,13 @@ export function ProfilePage() {
                                         Overview
                                     </button>
                                     <button
-                                        onClick={() => handleTabChange('badges')}
+                                        onClick={() =>
+                                            handleTabChange('badges')
+                                        }
                                         className={`px-4 py-2 border-b-2 font-semibold whitespace-nowrap ${
-                                            activeTab === 'badges'
-                                                ? 'border-primary-500 text-primary-600'
-                                                : 'border-transparent text-muted-foreground hover:text-foreground'
+                                            activeTab === 'badges' ?
+                                                'border-primary-500 text-primary-600'
+                                            :   'border-transparent text-muted-foreground hover:text-foreground'
                                         }`}
                                         role='tab'
                                         aria-selected={activeTab === 'badges'}
@@ -353,9 +401,9 @@ export function ProfilePage() {
                                     <button
                                         onClick={() => handleTabChange('karma')}
                                         className={`px-4 py-2 border-b-2 font-semibold whitespace-nowrap ${
-                                            activeTab === 'karma'
-                                                ? 'border-primary-500 text-primary-600'
-                                                : 'border-transparent text-muted-foreground hover:text-foreground'
+                                            activeTab === 'karma' ?
+                                                'border-primary-500 text-primary-600'
+                                            :   'border-transparent text-muted-foreground hover:text-foreground'
                                         }`}
                                         role='tab'
                                         aria-selected={activeTab === 'karma'}
@@ -363,11 +411,13 @@ export function ProfilePage() {
                                         Karma
                                     </button>
                                     <button
-                                        onClick={() => handleTabChange('comments')}
+                                        onClick={() =>
+                                            handleTabChange('comments')
+                                        }
                                         className={`px-4 py-2 border-b-2 font-semibold whitespace-nowrap ${
-                                            activeTab === 'comments'
-                                                ? 'border-primary-500 text-primary-600'
-                                                : 'border-transparent text-muted-foreground hover:text-foreground'
+                                            activeTab === 'comments' ?
+                                                'border-primary-500 text-primary-600'
+                                            :   'border-transparent text-muted-foreground hover:text-foreground'
                                         }`}
                                         role='tab'
                                         aria-selected={activeTab === 'comments'}
@@ -375,11 +425,13 @@ export function ProfilePage() {
                                         Comments
                                     </button>
                                     <button
-                                        onClick={() => handleTabChange('upvoted')}
+                                        onClick={() =>
+                                            handleTabChange('upvoted')
+                                        }
                                         className={`px-4 py-2 border-b-2 font-semibold whitespace-nowrap ${
-                                            activeTab === 'upvoted'
-                                                ? 'border-primary-500 text-primary-600'
-                                                : 'border-transparent text-muted-foreground hover:text-foreground'
+                                            activeTab === 'upvoted' ?
+                                                'border-primary-500 text-primary-600'
+                                            :   'border-transparent text-muted-foreground hover:text-foreground'
                                         }`}
                                         role='tab'
                                         aria-selected={activeTab === 'upvoted'}
@@ -387,14 +439,18 @@ export function ProfilePage() {
                                         Upvoted
                                     </button>
                                     <button
-                                        onClick={() => handleTabChange('downvoted')}
+                                        onClick={() =>
+                                            handleTabChange('downvoted')
+                                        }
                                         className={`px-4 py-2 border-b-2 font-semibold whitespace-nowrap ${
-                                            activeTab === 'downvoted'
-                                                ? 'border-primary-500 text-primary-600'
-                                                : 'border-transparent text-muted-foreground hover:text-foreground'
+                                            activeTab === 'downvoted' ?
+                                                'border-primary-500 text-primary-600'
+                                            :   'border-transparent text-muted-foreground hover:text-foreground'
                                         }`}
                                         role='tab'
-                                        aria-selected={activeTab === 'downvoted'}
+                                        aria-selected={
+                                            activeTab === 'downvoted'
+                                        }
                                     >
                                         Downvoted
                                     </button>
@@ -404,88 +460,101 @@ export function ProfilePage() {
                             {/* Tab Content */}
                             {activeTab === 'overview' && (
                                 <div>
-                                    {loadingReputation ? (
+                                    {loadingReputation ?
                                         <ProfileSkeleton />
-                                    ) : reputationError ? (
+                                    : reputationError ?
                                         <EmptyStateWithAction
                                             icon={
-                                                <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                <svg
+                                                    className='w-16 h-16'
+                                                    fill='none'
+                                                    stroke='currentColor'
+                                                    viewBox='0 0 24 24'
+                                                >
+                                                    <path
+                                                        strokeLinecap='round'
+                                                        strokeLinejoin='round'
+                                                        strokeWidth={2}
+                                                        d='M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
+                                                    />
                                                 </svg>
                                             }
-                                            title="Failed to load reputation"
+                                            title='Failed to load reputation'
                                             description="We couldn't load your reputation data. Please try again."
                                             primaryAction={{
-                                                label: "Retry",
-                                                onClick: fetchReputation
+                                                label: 'Retry',
+                                                onClick: fetchReputation,
                                             }}
                                         />
-                                    ) : reputation ? (
+                                    : reputation ?
                                         <ReputationDisplay
                                             reputation={reputation}
                                         />
-                                    ) : (
-                                        <EmptyStateWithAction
-                                            title="No reputation data"
-                                            description="Your reputation data is not available at this time."
+                                    :   <EmptyStateWithAction
+                                            title='No reputation data'
+                                            description='Your reputation data is not available at this time.'
                                             primaryAction={{
-                                                label: "Refresh",
-                                                onClick: fetchReputation
+                                                label: 'Refresh',
+                                                onClick: fetchReputation,
                                             }}
                                         />
-                                    )}
+                                    }
                                 </div>
                             )}
 
                             {activeTab === 'badges' && (
                                 <div>
-                                    {loadingReputation ? (
+                                    {loadingReputation ?
                                         <div className='grid grid-cols-3 gap-4'>
                                             {[...Array(6)].map((_, i) => (
-                                                <Skeleton key={i} variant='rectangular' height={120} />
+                                                <Skeleton
+                                                    key={i}
+                                                    variant='rectangular'
+                                                    height={120}
+                                                />
                                             ))}
                                         </div>
-                                    ) : reputation &&
-                                      reputation.badges &&
-                                      reputation.badges.length > 0 ? (
+                                    : (
+                                        reputation &&
+                                        reputation.badges &&
+                                        reputation.badges.length > 0
+                                    ) ?
                                         <BadgeGrid
                                             badges={reputation.badges}
                                             columns={3}
                                         />
-                                    ) : (
-                                        <div className='py-12 text-center'>
+                                    :   <div className='py-12 text-center'>
                                             <p className='text-muted-foreground'>
                                                 No badges earned yet. Keep
                                                 contributing to earn badges!
                                             </p>
                                         </div>
-                                    )}
+                                    }
                                 </div>
                             )}
 
                             {activeTab === 'karma' && (
                                 <div>
-                                    {karmaBreakdown ? (
+                                    {karmaBreakdown ?
                                         <KarmaBreakdownChart
                                             breakdown={karmaBreakdown}
                                         />
-                                    ) : (
-                                        <div className='py-12 text-center'>
+                                    :   <div className='py-12 text-center'>
                                             <p className='text-muted-foreground'>
                                                 Loading karma data...
                                             </p>
                                         </div>
-                                    )}
+                                    }
                                 </div>
                             )}
 
                             {activeTab === 'comments' && (
                                 <div>
-                                    {loadingTabData ? (
+                                    {loadingTabData ?
                                         <CommentSkeleton />
-                                    ) : comments.length > 0 ? (
+                                    : comments.length > 0 ?
                                         <div className='space-y-4'>
-                                            {comments.map((comment) => (
+                                            {comments.map(comment => (
                                                 <Card key={comment.id}>
                                                     <CardBody>
                                                         <Link
@@ -494,11 +563,24 @@ export function ProfilePage() {
                                                         >
                                                             View on clip
                                                         </Link>
-                                                        <p className='text-foreground'>{comment.content}</p>
+                                                        <p className='text-foreground'>
+                                                            {comment.content}
+                                                        </p>
                                                         <div className='mt-2 text-sm text-muted-foreground'>
-                                                            {comment.vote_score} points •{' '}
-                                                            <span title={formatTimestamp(comment.created_at).title}>
-                                                                {formatTimestamp(comment.created_at).display}
+                                                            {comment.vote_score}{' '}
+                                                            points •{' '}
+                                                            <span
+                                                                title={
+                                                                    formatTimestamp(
+                                                                        comment.created_at,
+                                                                    ).title
+                                                                }
+                                                            >
+                                                                {
+                                                                    formatTimestamp(
+                                                                        comment.created_at,
+                                                                    ).display
+                                                                }
                                                             </span>
                                                         </div>
                                                     </CardBody>
@@ -507,7 +589,13 @@ export function ProfilePage() {
                                             {hasMore && (
                                                 <div className='text-center pt-4'>
                                                     <Button
-                                                        onClick={() => fetchTabData('comments', currentPage + 1, true)}
+                                                        onClick={() =>
+                                                            fetchTabData(
+                                                                'comments',
+                                                                currentPage + 1,
+                                                                true,
+                                                            )
+                                                        }
                                                         variant='outline'
                                                     >
                                                         Load More
@@ -515,46 +603,64 @@ export function ProfilePage() {
                                                 </div>
                                             )}
                                         </div>
-                                    ) : (
-                                        <EmptyStateWithAction
+                                    :   <EmptyStateWithAction
                                             icon={
-                                                <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                                <svg
+                                                    className='w-16 h-16'
+                                                    fill='none'
+                                                    stroke='currentColor'
+                                                    viewBox='0 0 24 24'
+                                                >
+                                                    <path
+                                                        strokeLinecap='round'
+                                                        strokeLinejoin='round'
+                                                        strokeWidth={2}
+                                                        d='M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z'
+                                                    />
                                                 </svg>
                                             }
-                                            title="No comments yet"
-                                            description="Start engaging with the community by commenting on clips."
+                                            title='No comments yet'
+                                            description='Start engaging with the community by commenting on clips.'
                                             primaryAction={{
-                                                label: "Browse Clips",
-                                                href: "/"
+                                                label: 'Browse Clips',
+                                                href: '/',
                                             }}
                                             tips={[
-                                                "Share your thoughts on clips you enjoy",
-                                                "Engage in discussions with other users",
-                                                "Earn karma by posting quality comments"
+                                                'Share your thoughts on clips you enjoy',
+                                                'Engage in discussions with other users',
+                                                'Earn karma by posting quality comments',
                                             ]}
                                         />
-                                    )}
+                                    }
                                 </div>
                             )}
 
                             {activeTab === 'upvoted' && (
                                 <div>
-                                    {loadingTabData ? (
-                                        <div className='space-y-4'>
+                                    {loadingTabData ?
+                                        <div className='space-y-6'>
                                             {[...Array(5)].map((_, i) => (
                                                 <ClipCardSkeleton key={i} />
                                             ))}
                                         </div>
-                                    ) : upvotedClips.length > 0 ? (
-                                        <div className='space-y-4'>
-                                            {upvotedClips.map((clip) => (
-                                                <ClipCard key={clip.id} clip={clip} />
+                                    : upvotedClips.length > 0 ?
+                                        <div className='space-y-6'>
+                                            {upvotedClips.map(clip => (
+                                                <ClipCard
+                                                    key={clip.id}
+                                                    clip={clip}
+                                                />
                                             ))}
                                             {hasMore && (
                                                 <div className='text-center pt-4'>
                                                     <Button
-                                                        onClick={() => fetchTabData('upvoted', currentPage + 1, true)}
+                                                        onClick={() =>
+                                                            fetchTabData(
+                                                                'upvoted',
+                                                                currentPage + 1,
+                                                                true,
+                                                            )
+                                                        }
                                                         variant='outline'
                                                     >
                                                         Load More
@@ -562,45 +668,63 @@ export function ProfilePage() {
                                                 </div>
                                             )}
                                         </div>
-                                    ) : (
-                                        <EmptyStateWithAction
+                                    :   <EmptyStateWithAction
                                             icon={
-                                                <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+                                                <svg
+                                                    className='w-16 h-16'
+                                                    fill='none'
+                                                    stroke='currentColor'
+                                                    viewBox='0 0 24 24'
+                                                >
+                                                    <path
+                                                        strokeLinecap='round'
+                                                        strokeLinejoin='round'
+                                                        strokeWidth={2}
+                                                        d='M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5'
+                                                    />
                                                 </svg>
                                             }
-                                            title="No upvoted clips"
-                                            description="Start upvoting clips you enjoy to see them here."
+                                            title='No upvoted clips'
+                                            description='Start upvoting clips you enjoy to see them here.'
                                             primaryAction={{
-                                                label: "Discover Clips",
-                                                href: "/discover"
+                                                label: 'Discover Clips',
+                                                href: '/discover',
                                             }}
                                             secondaryAction={{
-                                                label: "Browse Top Clips",
-                                                href: "/top"
+                                                label: 'Browse Top Clips',
+                                                href: '/top',
                                             }}
                                         />
-                                    )}
+                                    }
                                 </div>
                             )}
 
                             {activeTab === 'downvoted' && (
                                 <div>
-                                    {loadingTabData ? (
-                                        <div className='space-y-4'>
+                                    {loadingTabData ?
+                                        <div className='space-y-6'>
                                             {[...Array(5)].map((_, i) => (
                                                 <ClipCardSkeleton key={i} />
                                             ))}
                                         </div>
-                                    ) : downvotedClips.length > 0 ? (
-                                        <div className='space-y-4'>
-                                            {downvotedClips.map((clip) => (
-                                                <ClipCard key={clip.id} clip={clip} />
+                                    : downvotedClips.length > 0 ?
+                                        <div className='space-y-6'>
+                                            {downvotedClips.map(clip => (
+                                                <ClipCard
+                                                    key={clip.id}
+                                                    clip={clip}
+                                                />
                                             ))}
                                             {hasMore && (
                                                 <div className='text-center pt-4'>
                                                     <Button
-                                                        onClick={() => fetchTabData('downvoted', currentPage + 1, true)}
+                                                        onClick={() =>
+                                                            fetchTabData(
+                                                                'downvoted',
+                                                                currentPage + 1,
+                                                                true,
+                                                            )
+                                                        }
                                                         variant='outline'
                                                     >
                                                         Load More
@@ -608,21 +732,30 @@ export function ProfilePage() {
                                                 </div>
                                             )}
                                         </div>
-                                    ) : (
-                                        <EmptyStateWithAction
+                                    :   <EmptyStateWithAction
                                             icon={
-                                                <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" />
+                                                <svg
+                                                    className='w-16 h-16'
+                                                    fill='none'
+                                                    stroke='currentColor'
+                                                    viewBox='0 0 24 24'
+                                                >
+                                                    <path
+                                                        strokeLinecap='round'
+                                                        strokeLinejoin='round'
+                                                        strokeWidth={2}
+                                                        d='M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5'
+                                                    />
                                                 </svg>
                                             }
-                                            title="No downvoted clips"
-                                            description="Downvoted clips will appear here."
+                                            title='No downvoted clips'
+                                            description='Downvoted clips will appear here.'
                                             primaryAction={{
-                                                label: "Browse Clips",
-                                                href: "/"
+                                                label: 'Browse Clips',
+                                                href: '/',
                                             }}
                                         />
-                                    )}
+                                    }
                                 </div>
                             )}
                         </Stack>

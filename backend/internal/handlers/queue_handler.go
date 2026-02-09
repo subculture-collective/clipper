@@ -406,3 +406,62 @@ func (h *QueueHandler) GetQueueCount(c *gin.Context) {
 		Data:    gin.H{"count": count},
 	})
 }
+
+// ConvertToPlaylist handles POST /api/queue/convert-to-playlist
+func (h *QueueHandler) ConvertToPlaylist(c *gin.Context) {
+	// Get user ID from context
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "UNAUTHORIZED",
+				Message: "Authentication required",
+			},
+		})
+		return
+	}
+
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Invalid user ID format",
+			},
+		})
+		return
+	}
+
+	// Parse request body
+	var req models.ConvertQueueToPlaylistRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INVALID_REQUEST",
+				Message: err.Error(),
+			},
+		})
+		return
+	}
+
+	// Convert queue to playlist
+	playlist, err := h.queueService.ConvertQueueToPlaylist(c.Request.Context(), userID, &req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "BAD_REQUEST",
+				Message: err.Error(),
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, StandardResponse{
+		Success: true,
+		Data:    playlist,
+	})
+}

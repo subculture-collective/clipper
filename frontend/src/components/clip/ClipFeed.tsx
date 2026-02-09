@@ -37,10 +37,13 @@ const MemoizedClipCard = memo(ClipCard, (prevProps, nextProps) => {
         prevProps.clip.is_favorited === nextProps.clip.is_favorited &&
         prevProps.clip.comment_count === nextProps.clip.comment_count &&
         prevProps.clip.favorite_count === nextProps.clip.favorite_count &&
-        prevProps.clip.watch_progress?.progress_percent === nextProps.clip.watch_progress?.progress_percent &&
-        prevProps.clip.watch_progress?.completed === nextProps.clip.watch_progress?.completed &&
+        prevProps.clip.watch_progress?.progress_percent ===
+            nextProps.clip.watch_progress?.progress_percent &&
+        prevProps.clip.watch_progress?.completed ===
+            nextProps.clip.watch_progress?.completed &&
         // Detect when watch_progress changes from undefined to defined or vice versa
-        (prevProps.clip.watch_progress === undefined) === (nextProps.clip.watch_progress === undefined)
+        (prevProps.clip.watch_progress === undefined) ===
+            (nextProps.clip.watch_progress === undefined)
     );
 });
 
@@ -207,7 +210,7 @@ export function ClipFeed({
         :   title;
 
     return (
-        <div className='max-w-4xl mx-auto'>
+        <div className='w-full'>
             {/* Hide FeedHeader in discover mode - DiscoveryPage has its own header/tabs */}
             {!discoverMode && (
                 <FeedHeader
@@ -261,7 +264,7 @@ export function ClipFeed({
 
             {/* Loading state */}
             {isLoading && (
-                <div className='space-y-4'>
+                <div className='space-y-6'>
                     {Array.from({ length: 5 }).map((_, i) => (
                         <ClipCardSkeleton key={i} />
                     ))}
@@ -322,7 +325,7 @@ export function ClipFeed({
                     onTouchMove={handleTouchMove}
                     onTouchEnd={handleTouchEnd}
                 >
-                    <div className='space-y-4'>
+                    <div className='space-y-6'>
                         {validClips.map(clip =>
                             discoverMode ?
                                 <MemoizedDiscoverClipCard

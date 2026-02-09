@@ -310,7 +310,7 @@ func (s *LiveStatusService) notifyStreamFollowers(ctx context.Context, streamerU
 	// Create link to stream page
 	var link string
 	if stream.UserLogin != "" {
-		link = fmt.Sprintf("/streams/%s", stream.UserLogin)
+		link = fmt.Sprintf("/stream/%s", stream.UserLogin)
 	}
 
 	// Send notification to each follower in parallel using a worker pool

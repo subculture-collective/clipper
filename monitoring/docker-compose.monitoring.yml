@@ -159,6 +159,8 @@ services:
             - '-nginx.scrape-uri=http://clipper-frontend/nginx_status'
         ports:
             - '127.0.0.1:19113:9113'
+        extra_hosts:
+            - 'host.docker.internal:host-gateway'
         networks:
             - clipper-network
             - monitoring

@@ -29,7 +29,8 @@ func (r *QueueRepository) GetUserQueue(ctx context.Context, userID uuid.UUID, li
 			qi.id, qi.user_id, qi.clip_id, qi.position, qi.added_at, qi.played_at, qi.created_at, qi.updated_at,
 			c.id, c.twitch_clip_id, c.twitch_clip_url, c.embed_url, c.title, c.creator_name,
 			c.broadcaster_name, c.game_name, c.thumbnail_url, c.duration, c.view_count,
-			c.vote_score, c.comment_count, c.favorite_count, c.is_nsfw, c.created_at
+			c.vote_score, c.comment_count, c.favorite_count, c.is_nsfw, c.created_at,
+			c.stream_source, c.status, c.video_url, c.processed_at, c.quality, c.start_time, c.end_time
 		FROM queue_items qi
 		LEFT JOIN clips c ON qi.clip_id = c.id
 		WHERE qi.user_id = $1 AND qi.played_at IS NULL
@@ -53,6 +54,7 @@ func (r *QueueRepository) GetUserQueue(ctx context.Context, userID uuid.UUID, li
 			&clip.ID, &clip.TwitchClipID, &clip.TwitchClipURL, &clip.EmbedURL, &clip.Title, &clip.CreatorName,
 			&clip.BroadcasterName, &clip.GameName, &clip.ThumbnailURL, &clip.Duration, &clip.ViewCount,
 			&clip.VoteScore, &clip.CommentCount, &clip.FavoriteCount, &clip.IsNSFW, &clip.CreatedAt,
+			&clip.StreamSource, &clip.Status, &clip.VideoURL, &clip.ProcessedAt, &clip.Quality, &clip.StartTime, &clip.EndTime,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan queue item: %w", err)

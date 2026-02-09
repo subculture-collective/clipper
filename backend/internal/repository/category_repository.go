@@ -22,15 +22,30 @@ func NewCategoryRepository(pool *pgxpool.Pool) *CategoryRepository {
 	}
 }
 
-// List retrieves all categories ordered by position
-func (r *CategoryRepository) List(ctx context.Context) ([]*models.Category, error) {
-	query := `
-		SELECT id, name, slug, description, icon, position, created_at, updated_at
+// List retrieves categories ordered by position with optional filters
+func (r *CategoryRepository) List(ctx context.Context, categoryType *string, featured *bool) ([]*models.Category, error) {
+	baseQuery := `
+		SELECT id, name, slug, description, icon, position,
+		       category_type, is_featured, is_custom, created_by_user_id,
+		       created_at, updated_at
 		FROM categories
-		ORDER BY position ASC, name ASC
 	`
 
-	rows, err := r.pool.Query(ctx, query)
+	whereClause := "WHERE 1=1"
+	args := []interface{}{}
+
+	if categoryType != nil && *categoryType != "" {
+		args = append(args, *categoryType)
+		whereClause += fmt.Sprintf(" AND category_type = $%d", len(args))
+	}
+	if featured != nil {
+		args = append(args, *featured)
+		whereClause += fmt.Sprintf(" AND is_featured = $%d", len(args))
+	}
+
+	query := fmt.Sprintf("%s %s ORDER BY position ASC, name ASC", baseQuery, whereClause)
+
+	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list categories: %w", err)
 	}
@@ -41,7 +56,9 @@ func (r *CategoryRepository) List(ctx context.Context) ([]*models.Category, erro
 		var category models.Category
 		err := rows.Scan(
 			&category.ID, &category.Name, &category.Slug, &category.Description,
-			&category.Icon, &category.Position, &category.CreatedAt, &category.UpdatedAt,
+			&category.Icon, &category.Position,
+			&category.CategoryType, &category.IsFeatured, &category.IsCustom, &category.CreatedByUserID,
+			&category.CreatedAt, &category.UpdatedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan category: %w", err)
@@ -59,7 +76,9 @@ func (r *CategoryRepository) List(ctx context.Context) ([]*models.Category, erro
 // GetByID retrieves a category by its ID
 func (r *CategoryRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Category, error) {
 	query := `
-		SELECT id, name, slug, description, icon, position, created_at, updated_at
+		SELECT id, name, slug, description, icon, position,
+		       category_type, is_featured, is_custom, created_by_user_id,
+		       created_at, updated_at
 		FROM categories
 		WHERE id = $1
 	`
@@ -67,7 +86,9 @@ func (r *CategoryRepository) GetByID(ctx context.Context, id uuid.UUID) (*models
 	var category models.Category
 	err := r.pool.QueryRow(ctx, query, id).Scan(
 		&category.ID, &category.Name, &category.Slug, &category.Description,
-		&category.Icon, &category.Position, &category.CreatedAt, &category.UpdatedAt,
+		&category.Icon, &category.Position,
+		&category.CategoryType, &category.IsFeatured, &category.IsCustom, &category.CreatedByUserID,
+		&category.CreatedAt, &category.UpdatedAt,
 	)
 
 	if err != nil {
@@ -83,7 +104,9 @@ func (r *CategoryRepository) GetByID(ctx context.Context, id uuid.UUID) (*models
 // GetBySlug retrieves a category by its slug
 func (r *CategoryRepository) GetBySlug(ctx context.Context, slug string) (*models.Category, error) {
 	query := `
-		SELECT id, name, slug, description, icon, position, created_at, updated_at
+		SELECT id, name, slug, description, icon, position,
+		       category_type, is_featured, is_custom, created_by_user_id,
+		       created_at, updated_at
 		FROM categories
 		WHERE slug = $1
 	`
@@ -91,7 +114,9 @@ func (r *CategoryRepository) GetBySlug(ctx context.Context, slug string) (*model
 	var category models.Category
 	err := r.pool.QueryRow(ctx, query, slug).Scan(
 		&category.ID, &category.Name, &category.Slug, &category.Description,
-		&category.Icon, &category.Position, &category.CreatedAt, &category.UpdatedAt,
+		&category.Icon, &category.Position,
+		&category.CategoryType, &category.IsFeatured, &category.IsCustom, &category.CreatedByUserID,
+		&category.CreatedAt, &category.UpdatedAt,
 	)
 
 	if err != nil {
@@ -107,8 +132,8 @@ func (r *CategoryRepository) GetBySlug(ctx context.Context, slug string) (*model
 // GetGamesInCategory retrieves games that belong to a specific category
 func (r *CategoryRepository) GetGamesInCategory(ctx context.Context, categoryID uuid.UUID, userID *uuid.UUID, limit, offset int) ([]*models.GameWithStats, error) {
 	query := `
-		SELECT 
-			g.id, g.twitch_game_id, g.name, g.box_art_url, g.igdb_id, 
+		SELECT
+			g.id, g.twitch_game_id, g.name, g.box_art_url, g.igdb_id,
 			g.created_at, g.updated_at,
 			COALESCE(COUNT(DISTINCT c.id), 0) as clip_count,
 			COALESCE(COUNT(DISTINCT gf.id), 0) as follower_count,

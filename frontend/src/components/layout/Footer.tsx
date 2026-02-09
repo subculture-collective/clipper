@@ -9,11 +9,11 @@ function ExternalLink({ href, children, className }: { href: string; children: R
   // Note: This substring check is for UX purposes only (dev environment detection), not security.
   // The href values are hardcoded constants defined in this component's usage, not user input.
   const isDocsOrStatus = href.includes('docs.clipper.com') || href.includes('status.clipper.com');
-  
+
   // In development, show placeholder notice for docs/status links
   if (isDev && isDocsOrStatus) {
     return (
-      <span 
+      <span
         className={`${className} cursor-not-allowed opacity-60`}
         title="Available in production. Documentation and status pages are external services."
       >
@@ -21,7 +21,7 @@ function ExternalLink({ href, children, className }: { href: string; children: R
       </span>
     );
   }
-  
+
   return (
     <a
       href={href}
@@ -111,7 +111,7 @@ export function Footer() {
               </li>
               <li>
                 <a
-                  href="https://discord.gg/clipper"
+                  href="https://discord.gg/BYrHNpH4"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-foreground transition-colors"
@@ -121,7 +121,7 @@ export function Footer() {
               </li>
               <li>
                 <a
-                  href="https://twitter.com/clipper"
+                  href="https://x.com/clpr_tv"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-foreground transition-colors"
@@ -136,14 +136,14 @@ export function Footer() {
           <div>
             <h3 className="font-semibold mb-4">Resources</h3>
             <ul className="space-y-2">
-              <li>
+              {/* <li>
                 <Link
                   to="/docs"
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Documentation
                 </Link>
-              </li>
+              </li> */}
               <li>
                 <ExternalLink
                   href="https://status.clipper.com"
@@ -166,7 +166,7 @@ export function Footer() {
 
         {/* Copyright */}
         <div className="mt-8 pt-8 border-t border-border text-center text-muted-foreground">
-          <p>© {currentYear} clpr. Built with React, TypeScript, and TailwindCSS 💜</p>
+          <p>© {currentYear} <Link to="http://subcult.tv">subcult.tv</Link> 💜</p>
         </div>
       </div>
     </footer>

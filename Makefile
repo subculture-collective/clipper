@@ -75,9 +75,6 @@ test-teardown: ## Tear down test environment (containers)
 	@echo "✓ Test environment teardown complete"
 
 test: ## Run all tests (unit by default; set INTEGRATION=1 and/or E2E=1 to expand)
-	@if [ "$(INTEGRATION)" = "1" ] || [ "$(E2E)" = "1" ]; then \
-		$(MAKE) test-setup; \
-	fi
 	@echo "Running backend tests with verbose output..."
 	@cd backend && INTEGRATION=$(INTEGRATION) E2E=$(E2E) bash run-tests-verbose.sh
 	@if [ "$(E2E)" = "1" ]; then \

@@ -17,13 +17,30 @@ clpr.tv {
     # SSL/TLS (automatic with Let's Encrypt)
     # Caddy will automatically obtain and renew certificates
 
-    # Security headers
+    # Global security headers
     header {
+        # HSTS
         Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+
+        # Site isolation headers (Spectre mitigation)
+        Cross-Origin-Opener-Policy "same-origin"
+        Cross-Origin-Resource-Policy "same-origin"
+        # Cross-Origin-Embedder-Policy "require-corp"  # Uncomment if you need stronger isolation
+
+        # XSS and content type protection
         X-Content-Type-Options "nosniff"
         X-Frame-Options "DENY"
         X-XSS-Protection "1; mode=block"
         Referrer-Policy "strict-origin-when-cross-origin"
+
+        # Content Security Policy - REPORT-ONLY mode for 24-48h monitoring
+        # Monitor browser console for violations before switching to enforced mode
+        Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https: wss:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; upgrade-insecure-requests"
+
+        # ENFORCED CSP - uncomment after 24-48h of monitoring report-only mode
+        # Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https: wss:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; upgrade-insecure-requests"
+
+        # Remove server identification
         -Server
     }
 
@@ -32,6 +49,43 @@ clpr.tv {
         output stdout
     }
 
+    # Matchers for different content types
+    @static {
+        path /assets/* *.js *.css *.jpg *.jpeg *.png *.gif *.ico *.svg *.woff *.woff2 *.ttf *.eot
+    }
+
+    @manifest {
+        path /manifest.json /site.webmanifest
+    }
+
+    @seo {
+        path /robots.txt /sitemap.xml /ads.txt
+    }
+
+    @html {
+        path / /*.html
+        not path /health.html
+    }
+
+    # Caching headers for hashed static assets (immutable)
+    header @static {
+        Cache-Control "public, max-age=31536000, immutable"
+    }
+
+    # Manifest files (cache for 1 hour)
+    header @manifest {
+        Cache-Control "public, max-age=3600"
+    }
+
+    # SEO files (cache for 1 day)
+    header @seo {
+        Cache-Control "public, max-age=86400"
+    }
+
+    # HTML files - no caching for SPA shell
+    header @html {
+        Cache-Control "no-store, must-revalidate"
+    }
     # API routes -> backend
     handle /api/* {
         reverse_proxy clipper-backend:8080 {
@@ -85,7 +139,6 @@ clpr.tv {
     handle /jaeger* {
         reverse_proxy clipper-jaeger:16686
     }
-
     # Frontend (SPA) - must come last to act as catch-all
     handle /* {
         reverse_proxy clipper-frontend:80 {
