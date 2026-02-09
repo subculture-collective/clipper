@@ -34,7 +34,7 @@ export function NotificationBell() {
             queryFn: () => getNotifications('all', 1, 5),
             enabled: isOpen && isAuthReady, // Only fetch when dropdown is open
             retry: false,
-        }
+        },
     );
 
     // Mark notification as read mutation
@@ -96,19 +96,16 @@ export function NotificationBell() {
     };
 
     return (
-        <div
-            className='relative'
-            ref={dropdownRef}
-        >
+        <div className='relative' ref={dropdownRef}>
             {/* Bell Icon Button */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className='hover:bg-gray-100 dark:hover:bg-gray-800 relative p-2 transition-colors rounded-lg cursor-pointer'
+                className='hover:bg-muted relative p-2 transition-colors rounded-lg cursor-pointer'
                 aria-label='Notifications'
             >
                 {/* Bell Icon */}
                 <svg
-                    className='dark:text-gray-400 w-6 h-6 text-gray-600'
+                    className='w-6 h-6'
                     fill='none'
                     stroke='currentColor'
                     viewBox='0 0 24 24'
@@ -131,16 +128,14 @@ export function NotificationBell() {
 
             {/* Dropdown */}
             {isOpen && (
-                <div className='w-80 dark:bg-gray-800 dark:border-gray-700 absolute right-0 z-50 mt-2 overflow-hidden bg-white border border-gray-200 rounded-lg shadow-lg'>
+                <div className='w-80 absolute right-0 z-50 mt-2 overflow-hidden bg-background border border-border rounded-md shadow-lg'>
                     {/* Header */}
-                    <div className='dark:border-gray-700 flex items-center justify-between p-4 border-b border-gray-200'>
-                        <h3 className='dark:text-white text-lg font-semibold text-gray-900'>
-                            Notifications
-                        </h3>
+                    <div className='flex items-center justify-between p-4 border-b border-border'>
+                        <h3 className='text-lg font-semibold'>Notifications</h3>
                         {unreadCount > 0 && (
                             <button
                                 onClick={handleMarkAllAsRead}
-                                className='text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 text-sm cursor-pointer'
+                                className='text-primary-600 hover:text-primary-700 text-sm cursor-pointer'
                             >
                                 Mark all as read
                             </button>
@@ -149,23 +144,24 @@ export function NotificationBell() {
 
                     {/* Notifications List */}
                     <div className='max-h-96 overflow-y-auto'>
-                        {notificationsData &&
-                        notificationsData?.notifications?.length > 0 ? (
+                        {(
+                            notificationsData &&
+                            notificationsData?.notifications?.length > 0
+                        ) ?
                             notificationsData.notifications.map(
-                                (notification) => (
+                                notification => (
                                     <NotificationItem
                                         key={notification.id}
                                         notification={notification}
                                         onClick={() =>
                                             handleNotificationClick(
-                                                notification
+                                                notification,
                                             )
                                         }
                                     />
-                                )
+                                ),
                             )
-                        ) : (
-                            <div className='dark:text-gray-400 p-8 text-center text-gray-500'>
+                        :   <div className='p-8 text-center text-muted-foreground'>
                                 <svg
                                     className='w-12 h-12 mx-auto mb-2 opacity-50'
                                     fill='none'
@@ -181,16 +177,16 @@ export function NotificationBell() {
                                 </svg>
                                 <p className='text-sm'>No notifications yet</p>
                             </div>
-                        )}
+                        }
                     </div>
 
                     {/* Footer */}
                     {notificationsData &&
                         notificationsData?.notifications?.length > 0 && (
-                            <div className='dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3 border-t border-gray-200'>
+                            <div className='bg-muted/50 p-3 border-t border-border'>
                                 <Link
                                     to='/notifications'
-                                    className='text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 block text-sm font-medium text-center cursor-pointer'
+                                    className='text-primary-600 hover:text-primary-700 block text-sm font-medium text-center cursor-pointer'
                                     onClick={() => setIsOpen(false)}
                                 >
                                     See all notifications

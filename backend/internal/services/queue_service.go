@@ -12,15 +12,17 @@ import (
 
 // QueueService handles business logic for queue operations
 type QueueService struct {
-	queueRepo *repository.QueueRepository
-	clipRepo  *repository.ClipRepository
+	queueRepo       *repository.QueueRepository
+	clipRepo        *repository.ClipRepository
+	playlistService *PlaylistService
 }
 
 // NewQueueService creates a new QueueService
-func NewQueueService(queueRepo *repository.QueueRepository, clipRepo *repository.ClipRepository) *QueueService {
+func NewQueueService(queueRepo *repository.QueueRepository, clipRepo *repository.ClipRepository, playlistService *PlaylistService) *QueueService {
 	return &QueueService{
-		queueRepo: queueRepo,
-		clipRepo:  clipRepo,
+		queueRepo:       queueRepo,
+		clipRepo:        clipRepo,
+		playlistService: playlistService,
 	}
 }
 
@@ -206,4 +208,70 @@ func (s *QueueService) GetQueueCount(ctx context.Context, userID uuid.UUID) (int
 	}
 
 	return count, nil
+}
+
+// ConvertQueueToPlaylist creates a new playlist from the user's queue
+func (s *QueueService) ConvertQueueToPlaylist(ctx context.Context, userID uuid.UUID, req *models.ConvertQueueToPlaylistRequest) (*models.Playlist, error) {
+	// Get all queue items
+	queueItems, err := s.queueRepo.GetUserQueue(ctx, userID, 1000) // Max 1000 items
+	if err != nil {
+		return nil, fmt.Errorf("failed to get queue items: %w", err)
+	}
+
+	if len(queueItems) == 0 {
+		return nil, fmt.Errorf("queue is empty, nothing to convert")
+	}
+
+	// Filter to only include unplayed items if requested
+	var itemsToConvert []models.QueueItemWithClip
+	if req.OnlyUnplayed {
+		for _, item := range queueItems {
+			if item.PlayedAt == nil {
+				itemsToConvert = append(itemsToConvert, item)
+			}
+		}
+	} else {
+		itemsToConvert = queueItems
+	}
+
+	if len(itemsToConvert) == 0 {
+		return nil, fmt.Errorf("no items to convert (all items have been played)")
+	}
+
+	// Create the playlist
+	visibility := models.PlaylistVisibilityPrivate
+	createReq := &models.CreatePlaylistRequest{
+		Title:       req.Title,
+		Description: req.Description,
+		Visibility:  &visibility,
+	}
+
+	playlist, err := s.playlistService.CreatePlaylist(ctx, userID, createReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create playlist: %w", err)
+	}
+
+	// Add clips to the playlist in queue order
+	clipIDs := make([]uuid.UUID, 0, len(itemsToConvert))
+	for _, item := range itemsToConvert {
+		clipIDs = append(clipIDs, item.ClipID)
+	}
+
+	err = s.playlistService.AddClipsToPlaylist(ctx, playlist.ID, userID, clipIDs)
+	if err != nil {
+		// If adding clips fails, we should ideally delete the playlist
+		// but for now just return the error
+		return nil, fmt.Errorf("failed to add clips to playlist: %w", err)
+	}
+
+	// Clear queue if requested
+	if req.ClearQueue {
+		err = s.queueRepo.ClearQueue(ctx, userID)
+		if err != nil {
+			// Log but don't fail - playlist was already created
+			fmt.Printf("Warning: failed to clear queue after conversion: %v\n", err)
+		}
+	}
+
+	return playlist, nil
 }

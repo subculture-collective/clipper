@@ -69,7 +69,7 @@ export function ClipCard({ clip }: ClipCardProps) {
             className='bg-card border-border rounded-xl hover:shadow-lg transition-shadow border lazy-render'
             data-testid='clip-card'
         >
-            <div className='flex flex-col xs:flex-row gap-3 xs:gap-4 p-3 xs:p-4'>
+            <div className='flex flex-col xs:flex-row gap-4 xs:gap-6 p-4 xs:p-5 md:p-6'>
                 {/* Vote sidebar - horizontal on mobile, vertical on larger screens */}
                 <div className='flex xs:flex-col items-center justify-center xs:justify-start xs:w-10 gap-3 xs:gap-2 order-2 xs:order-1 shrink-0'>
                     <button
@@ -260,12 +260,26 @@ export function ClipCard({ clip }: ClipCardProps) {
                                     className='bottom-0 left-0 right-0 absolute h-1 bg-gray-700'
                                     role='progressbar'
                                     aria-valuenow={Math.round(
-                                        Math.min(100, Math.max(0, clip.watch_progress.progress_percent)),
+                                        Math.min(
+                                            100,
+                                            Math.max(
+                                                0,
+                                                clip.watch_progress
+                                                    .progress_percent,
+                                            ),
+                                        ),
                                     )}
                                     aria-valuemin={0}
                                     aria-valuemax={100}
                                     aria-label={`${Math.round(
-                                        Math.min(100, Math.max(0, clip.watch_progress.progress_percent)),
+                                        Math.min(
+                                            100,
+                                            Math.max(
+                                                0,
+                                                clip.watch_progress
+                                                    .progress_percent,
+                                            ),
+                                        ),
                                     )}% watched`}
                                 >
                                     <div

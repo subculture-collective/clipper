@@ -16,10 +16,15 @@ export interface Playlist {
     is_curated: boolean;
     is_featured: boolean;
     display_order: number;
+    script_id?: string;
     slug?: string;
     created_at: string;
     updated_at: string;
     deleted_at?: string;
+    clip_count?: number;
+    has_processing_clips?: boolean;
+    preview_clips?: Clip[];
+    current_user_permission?: 'view' | 'edit' | 'admin';
 }
 
 export interface PlaylistItem {
@@ -59,6 +64,13 @@ export interface CreatePlaylistRequest {
 }
 
 export interface UpdatePlaylistRequest {
+    title?: string;
+    description?: string;
+    cover_url?: string;
+    visibility?: 'private' | 'public' | 'unlisted';
+}
+
+export interface CopyPlaylistRequest {
     title?: string;
     description?: string;
     cover_url?: string;

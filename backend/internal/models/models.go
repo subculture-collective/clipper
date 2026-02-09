@@ -3452,6 +3452,7 @@ type Playlist struct {
 	IsCurated      bool       `json:"is_curated" db:"is_curated"`
 	IsFeatured     bool       `json:"is_featured" db:"is_featured"`
 	DisplayOrder   int        `json:"display_order" db:"display_order"`
+	ScriptID       *uuid.UUID `json:"script_id,omitempty" db:"script_id"`
 	Slug           *string    `json:"slug,omitempty" db:"slug"`
 	CreatedAt      time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt      time.Time  `json:"updated_at" db:"updated_at"`
@@ -3491,11 +3492,38 @@ type PlaylistBookmark struct {
 	BookmarkedAt time.Time `json:"bookmarked_at" db:"bookmarked_at"`
 }
 
+// PlaylistScript represents an automated playlist definition
+type PlaylistScript struct {
+	ID                       uuid.UUID  `json:"id" db:"id"`
+	Name                     string     `json:"name" db:"name"`
+	Description              *string    `json:"description,omitempty" db:"description"`
+	Sort                     string     `json:"sort" db:"sort"`
+	Timeframe                *string    `json:"timeframe,omitempty" db:"timeframe"`
+	ClipLimit                int        `json:"clip_limit" db:"clip_limit"`
+	Visibility               string     `json:"visibility" db:"visibility"`
+	IsActive                 bool       `json:"is_active" db:"is_active"`
+	CreatedBy                *uuid.UUID `json:"created_by,omitempty" db:"created_by"`
+	CreatedAt                time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt                time.Time  `json:"updated_at" db:"updated_at"`
+	LastRunAt                *time.Time `json:"last_run_at,omitempty" db:"last_run_at"`
+	LastGeneratedPlaylistID  *uuid.UUID `json:"last_generated_playlist_id,omitempty" db:"last_generated_playlist_id"`
+}
+
+// GeneratedPlaylist represents a playlist generated from a script
+type GeneratedPlaylist struct {
+	ID          uuid.UUID `json:"id" db:"id"`
+	ScriptID    uuid.UUID `json:"script_id" db:"script_id"`
+	PlaylistID  uuid.UUID `json:"playlist_id" db:"playlist_id"`
+	GeneratedAt time.Time `json:"generated_at" db:"generated_at"`
+}
+
 // PlaylistListItem represents a playlist in list views with clip count
 // PlaylistListItem represents a playlist in list views with clip count
 type PlaylistListItem struct {
 	Playlist
-	ClipCount int `json:"clip_count" db:"clip_count"`
+	ClipCount           int    `json:"clip_count" db:"clip_count"`
+	HasProcessingClips  bool   `json:"has_processing_clips" db:"has_processing_clips"`
+	PreviewClips        []Clip `json:"preview_clips,omitempty"`
 }
 
 // PlaylistWithClips represents a playlist with its clips
@@ -3508,6 +3536,7 @@ type PlaylistWithClips struct {
 	IsFollowed   bool              `json:"is_followed"`
 	IsBookmarked bool              `json:"is_bookmarked"`
 	Creator      *User             `json:"creator,omitempty"`
+	CurrentUserPermission *string  `json:"current_user_permission,omitempty"`
 }
 
 // PlaylistClipRef represents a clip reference in a playlist with ordering
@@ -3530,6 +3559,36 @@ type UpdatePlaylistRequest struct {
 	Description *string `json:"description,omitempty" binding:"omitempty,max=500"`
 	CoverURL    *string `json:"cover_url,omitempty" binding:"omitempty,max=255,url"`
 	Visibility  *string `json:"visibility,omitempty" binding:"omitempty,oneof=private public unlisted"`
+}
+
+// CopyPlaylistRequest represents the request to copy a playlist
+type CopyPlaylistRequest struct {
+	Title       *string `json:"title,omitempty" binding:"omitempty,min=1,max=100"`
+	Description *string `json:"description,omitempty" binding:"omitempty,max=500"`
+	CoverURL    *string `json:"cover_url,omitempty" binding:"omitempty,max=255,url"`
+	Visibility  *string `json:"visibility,omitempty" binding:"omitempty,oneof=private public unlisted"`
+}
+
+// CreatePlaylistScriptRequest represents the request to create a playlist script
+type CreatePlaylistScriptRequest struct {
+	Name        string  `json:"name" binding:"required,min=1,max=100"`
+	Description *string `json:"description,omitempty" binding:"omitempty,max=500"`
+	Sort        string  `json:"sort" binding:"required,oneof=hot new top rising discussed trending popular"`
+	Timeframe   *string `json:"timeframe,omitempty" binding:"omitempty,oneof=hour day week month year"`
+	ClipLimit   int     `json:"clip_limit" binding:"required,min=1,max=100"`
+	Visibility  *string `json:"visibility,omitempty" binding:"omitempty,oneof=private public unlisted"`
+	IsActive    *bool   `json:"is_active,omitempty"`
+}
+
+// UpdatePlaylistScriptRequest represents the request to update a playlist script
+type UpdatePlaylistScriptRequest struct {
+	Name        *string `json:"name,omitempty" binding:"omitempty,min=1,max=100"`
+	Description *string `json:"description,omitempty" binding:"omitempty,max=500"`
+	Sort        *string `json:"sort,omitempty" binding:"omitempty,oneof=hot new top rising discussed trending popular"`
+	Timeframe   *string `json:"timeframe,omitempty" binding:"omitempty,oneof=hour day week month year"`
+	ClipLimit   *int    `json:"clip_limit,omitempty" binding:"omitempty,min=1,max=100"`
+	Visibility  *string `json:"visibility,omitempty" binding:"omitempty,oneof=private public unlisted"`
+	IsActive    *bool   `json:"is_active,omitempty"`
 }
 
 // AddClipsToPlaylistRequest represents the request to add clips to a playlist
@@ -3640,6 +3699,14 @@ type AddToQueueRequest struct {
 type ReorderQueueRequest struct {
 	ItemID      string `json:"item_id" binding:"required,uuid"`
 	NewPosition int    `json:"new_position" binding:"required,min=1"`
+}
+
+// ConvertQueueToPlaylistRequest represents a request to convert queue to playlist
+type ConvertQueueToPlaylistRequest struct {
+	Title        string  `json:"title" binding:"required,min=1,max=255"`
+	Description  *string `json:"description"`
+	OnlyUnplayed bool    `json:"only_unplayed"` // If true, only convert unplayed items
+	ClearQueue   bool    `json:"clear_queue"`   // If true, clear queue after conversion
 }
 
 // WatchHistoryEntry represents a watch history entry for a clip

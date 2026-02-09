@@ -34,31 +34,30 @@ func (r *DiscoveryListRepository) ListDiscoveryLists(ctx context.Context, featur
 	query := `
 		WITH list_stats AS (
 			SELECT
-				dl.id,
-				dl.name,
-				dl.slug,
-				dl.description,
-				dl.is_featured,
-				dl.is_active,
-				dl.display_order,
-				dl.created_by,
-				dl.created_at,
-				dl.updated_at,
-				COUNT(DISTINCT dlc.clip_id) as clip_count,
-				COUNT(DISTINCT dlf.user_id) as follower_count
-			FROM discovery_lists dl
-			LEFT JOIN discovery_list_clips dlc ON dl.id = dlc.list_id
-			LEFT JOIN discovery_list_follows dlf ON dl.id = dlf.list_id
-			WHERE dl.is_active = true
+				p.id,
+				p.title as name,
+				p.slug,
+				p.description,
+				p.is_featured,
+				p.visibility = 'public' as is_active,
+				p.display_order,
+				p.user_id as created_by,
+				p.created_at,
+				p.updated_at,
+				COUNT(DISTINCT pi.clip_id) as clip_count,
+				COALESCE(p.follower_count, 0) as follower_count
+			FROM playlists p
+			LEFT JOIN playlist_items pi ON p.id = pi.playlist_id
+			WHERE p.is_curated = true AND p.deleted_at IS NULL
 	`
 
 	if featuredOnly {
-		query += " AND dl.is_featured = true"
+		query += " AND p.is_featured = true"
 	}
 
 	query += `
-			GROUP BY dl.id
-			ORDER BY dl.display_order ASC, dl.created_at DESC
+			GROUP BY p.id
+			ORDER BY p.display_order ASC, p.created_at DESC
 			LIMIT $1 OFFSET $2
 		)
 		SELECT * FROM list_stats
@@ -98,8 +97,8 @@ func (r *DiscoveryListRepository) ListDiscoveryLists(ctx context.Context, featur
 
 		// Get follows
 		followQuery := `
-			SELECT list_id FROM discovery_list_follows
-			WHERE user_id = $1 AND list_id = ANY($2)
+			SELECT playlist_id FROM playlist_follows
+			WHERE user_id = $1 AND playlist_id = ANY($2)
 		`
 		followRows, err := r.db.Query(ctx, followQuery, userID, listIDs)
 		if err != nil {
@@ -122,8 +121,8 @@ func (r *DiscoveryListRepository) ListDiscoveryLists(ctx context.Context, featur
 
 		// Get bookmarks
 		bookmarkQuery := `
-			SELECT list_id FROM discovery_list_bookmarks
-			WHERE user_id = $1 AND list_id = ANY($2)
+			SELECT playlist_id FROM playlist_bookmarks
+			WHERE user_id = $1 AND playlist_id = ANY($2)
 		`
 		bookmarkRows, err := r.db.Query(ctx, bookmarkQuery, userID, listIDs)
 		if err != nil {
@@ -163,14 +162,14 @@ func (r *DiscoveryListRepository) ListDiscoveryLists(ctx context.Context, featur
 			WITH ranked_clips AS (
 				SELECT
 					c.*,
-					dlc.list_id,
-					ROW_NUMBER() OVER (PARTITION BY dlc.list_id ORDER BY dlc.display_order ASC, dlc.added_at DESC) as rn
-				FROM discovery_list_clips dlc
-				INNER JOIN clips c ON dlc.clip_id = c.id
-				WHERE dlc.list_id = ANY($1) AND c.is_removed = false
+					pi.playlist_id,
+					ROW_NUMBER() OVER (PARTITION BY pi.playlist_id ORDER BY pi.order_index ASC, pi.added_at DESC) as rn
+				FROM playlist_items pi
+				INNER JOIN clips c ON pi.clip_id = c.id
+				WHERE pi.playlist_id = ANY($1) AND c.is_removed = false
 			)
 			SELECT
-				list_id, rn,
+				playlist_id, rn,
 				id, twitch_clip_id, twitch_clip_url, embed_url, title,
 				creator_name, creator_id, broadcaster_name, broadcaster_id,
 				game_id, game_name, language, thumbnail_url, duration,
@@ -179,7 +178,7 @@ func (r *DiscoveryListRepository) ListDiscoveryLists(ctx context.Context, featur
 				submitted_by_user_id, submitted_at
 			FROM ranked_clips
 			WHERE rn <= 4
-			ORDER BY list_id, rn
+			ORDER BY playlist_id, rn
 		`
 
 		previewRows, err := r.db.Query(ctx, previewQuery, listIDs)
@@ -227,23 +226,22 @@ func (r *DiscoveryListRepository) ListDiscoveryLists(ctx context.Context, featur
 func (r *DiscoveryListRepository) GetDiscoveryList(ctx context.Context, idOrSlug string, userID *uuid.UUID) (*models.DiscoveryListWithStats, error) {
 	query := `
 		SELECT
-			dl.id,
-			dl.name,
-			dl.slug,
-			dl.description,
-			dl.is_featured,
-			dl.is_active,
-			dl.display_order,
-			dl.created_by,
-			dl.created_at,
-			dl.updated_at,
-			COUNT(DISTINCT dlc.clip_id) as clip_count,
-			COUNT(DISTINCT dlf.user_id) as follower_count
-		FROM discovery_lists dl
-		LEFT JOIN discovery_list_clips dlc ON dl.id = dlc.list_id
-		LEFT JOIN discovery_list_follows dlf ON dl.id = dlf.list_id
-		WHERE dl.is_active = true AND (dl.id::text = $1 OR dl.slug = $1)
-		GROUP BY dl.id
+			p.id,
+			p.title as name,
+			p.slug,
+			p.description,
+			p.is_featured,
+			p.visibility = 'public' as is_active,
+			p.display_order,
+			p.user_id as created_by,
+			p.created_at,
+			p.updated_at,
+			COUNT(DISTINCT pi.clip_id) as clip_count,
+			COALESCE(p.follower_count, 0) as follower_count
+		FROM playlists p
+		LEFT JOIN playlist_items pi ON p.id = pi.playlist_id
+		WHERE p.is_curated = true AND p.deleted_at IS NULL AND (p.id::text = $1 OR p.slug = $1)
+		GROUP BY p.id
 	`
 
 	var list models.DiscoveryListWithStats
@@ -265,7 +263,7 @@ func (r *DiscoveryListRepository) GetDiscoveryList(ctx context.Context, idOrSlug
 		// Check if following
 		var followCount int
 		err = r.db.QueryRow(ctx,
-			"SELECT COUNT(*) FROM discovery_list_follows WHERE user_id = $1 AND list_id = $2",
+			"SELECT COUNT(*) FROM playlist_follows WHERE user_id = $1 AND playlist_id = $2",
 			userID, list.ID).Scan(&followCount)
 		if err != nil {
 			return nil, fmt.Errorf("failed to check follow status: %w", err)
@@ -275,7 +273,7 @@ func (r *DiscoveryListRepository) GetDiscoveryList(ctx context.Context, idOrSlug
 		// Check if bookmarked
 		var bookmarkCount int
 		err = r.db.QueryRow(ctx,
-			"SELECT COUNT(*) FROM discovery_list_bookmarks WHERE user_id = $1 AND list_id = $2",
+			"SELECT COUNT(*) FROM playlist_bookmarks WHERE user_id = $1 AND playlist_id = $2",
 			userID, list.ID).Scan(&bookmarkCount)
 		if err != nil {
 			return nil, fmt.Errorf("failed to check bookmark status: %w", err)
@@ -292,9 +290,9 @@ func (r *DiscoveryListRepository) GetListClips(ctx context.Context, listID uuid.
 	var totalCount int
 	countQuery := `
 		SELECT COUNT(*)
-		FROM discovery_list_clips dlc
-		INNER JOIN clips c ON dlc.clip_id = c.id
-		WHERE dlc.list_id = $1 AND c.is_removed = false
+		FROM playlist_items pi
+		INNER JOIN clips c ON pi.clip_id = c.id
+		WHERE pi.playlist_id = $1 AND c.is_removed = false
 	`
 	err := r.db.QueryRow(ctx, countQuery, listID).Scan(&totalCount)
 	if err != nil {
@@ -311,11 +309,11 @@ func (r *DiscoveryListRepository) GetListClips(ctx context.Context, listID uuid.
 			c.favorite_count, c.is_featured, c.is_nsfw, c.is_removed, c.removed_reason, c.is_hidden,
 			c.submitted_by_user_id, c.submitted_at,
 			COALESCE(v.vote_type, 0) as user_vote
-		FROM discovery_list_clips dlc
-		INNER JOIN clips c ON dlc.clip_id = c.id
+		FROM playlist_items pi
+		INNER JOIN clips c ON pi.clip_id = c.id
 		LEFT JOIN votes v ON c.id = v.clip_id AND v.user_id = $2
-		WHERE dlc.list_id = $1 AND c.is_removed = false
-		ORDER BY dlc.display_order ASC, dlc.added_at DESC
+		WHERE pi.playlist_id = $1 AND c.is_removed = false
+		ORDER BY pi.order_index ASC, pi.added_at DESC
 		LIMIT $3 OFFSET $4
 	`
 
@@ -402,9 +400,9 @@ func (r *DiscoveryListRepository) GetListClips(ctx context.Context, listID uuid.
 func (r *DiscoveryListRepository) GetListClipCount(ctx context.Context, listID uuid.UUID) (int, error) {
 	query := `
 		SELECT COUNT(*)
-		FROM discovery_list_clips dlc
-		INNER JOIN clips c ON dlc.clip_id = c.id
-		WHERE dlc.list_id = $1 AND c.is_removed = false
+		FROM playlist_items pi
+		INNER JOIN clips c ON pi.clip_id = c.id
+		WHERE pi.playlist_id = $1 AND c.is_removed = false
 	`
 
 	var count int
@@ -426,10 +424,10 @@ func (r *DiscoveryListRepository) GetListClipsForExport(ctx context.Context, lis
 			c.view_count, c.created_at, c.imported_at, c.vote_score, c.comment_count,
 			c.favorite_count, c.is_featured, c.is_nsfw, c.is_removed, c.removed_reason, c.is_hidden,
 			c.submitted_by_user_id, c.submitted_at
-		FROM discovery_list_clips dlc
-		INNER JOIN clips c ON dlc.clip_id = c.id
-		WHERE dlc.list_id = $1 AND c.is_removed = false
-		ORDER BY dlc.display_order ASC, dlc.added_at DESC
+		FROM playlist_items pi
+		INNER JOIN clips c ON pi.clip_id = c.id
+		WHERE pi.playlist_id = $1 AND c.is_removed = false
+		ORDER BY pi.order_index ASC, pi.added_at DESC
 		LIMIT $2
 	`
 
@@ -467,9 +465,9 @@ func (r *DiscoveryListRepository) GetListClipsForExport(ctx context.Context, lis
 // FollowList creates a follow relationship for a user and list
 func (r *DiscoveryListRepository) FollowList(ctx context.Context, userID, listID uuid.UUID) error {
 	query := `
-		INSERT INTO discovery_list_follows (user_id, list_id)
+		INSERT INTO playlist_follows (user_id, playlist_id)
 		VALUES ($1, $2)
-		ON CONFLICT (user_id, list_id) DO NOTHING
+		ON CONFLICT (user_id, playlist_id) DO NOTHING
 	`
 
 	_, err := r.db.Exec(ctx, query, userID, listID)
@@ -483,8 +481,8 @@ func (r *DiscoveryListRepository) FollowList(ctx context.Context, userID, listID
 // UnfollowList removes a follow relationship
 func (r *DiscoveryListRepository) UnfollowList(ctx context.Context, userID, listID uuid.UUID) error {
 	query := `
-		DELETE FROM discovery_list_follows
-		WHERE user_id = $1 AND list_id = $2
+		DELETE FROM playlist_follows
+		WHERE user_id = $1 AND playlist_id = $2
 	`
 
 	result, err := r.db.Exec(ctx, query, userID, listID)
@@ -503,9 +501,9 @@ func (r *DiscoveryListRepository) UnfollowList(ctx context.Context, userID, list
 // BookmarkList creates a bookmark for a user and list
 func (r *DiscoveryListRepository) BookmarkList(ctx context.Context, userID, listID uuid.UUID) error {
 	query := `
-		INSERT INTO discovery_list_bookmarks (user_id, list_id)
+		INSERT INTO playlist_bookmarks (user_id, playlist_id)
 		VALUES ($1, $2)
-		ON CONFLICT (user_id, list_id) DO NOTHING
+		ON CONFLICT (user_id, playlist_id) DO NOTHING
 	`
 
 	_, err := r.db.Exec(ctx, query, userID, listID)
@@ -519,8 +517,8 @@ func (r *DiscoveryListRepository) BookmarkList(ctx context.Context, userID, list
 // UnbookmarkList removes a bookmark
 func (r *DiscoveryListRepository) UnbookmarkList(ctx context.Context, userID, listID uuid.UUID) error {
 	query := `
-		DELETE FROM discovery_list_bookmarks
-		WHERE user_id = $1 AND list_id = $2
+		DELETE FROM playlist_bookmarks
+		WHERE user_id = $1 AND playlist_id = $2
 	`
 
 	result, err := r.db.Exec(ctx, query, userID, listID)
@@ -540,27 +538,26 @@ func (r *DiscoveryListRepository) UnbookmarkList(ctx context.Context, userID, li
 func (r *DiscoveryListRepository) GetUserFollowedLists(ctx context.Context, userID uuid.UUID, limit, offset int) ([]models.DiscoveryListWithStats, error) {
 	query := `
 		SELECT
-			dl.id,
-			dl.name,
-			dl.slug,
-			dl.description,
-			dl.is_featured,
-			dl.is_active,
-			dl.display_order,
-			dl.created_by,
-			dl.created_at,
-			dl.updated_at,
-			COUNT(DISTINCT dlc.clip_id) as clip_count,
-			COUNT(DISTINCT dlf2.user_id) as follower_count,
+			p.id,
+			p.title as name,
+			p.slug,
+			p.description,
+			p.is_featured,
+			p.visibility = 'public' as is_active,
+			p.display_order,
+			p.user_id as created_by,
+			p.created_at,
+			p.updated_at,
+			COUNT(DISTINCT pi.clip_id) as clip_count,
+			COALESCE(p.follower_count, 0) as follower_count,
 			true as is_following,
-			EXISTS(SELECT 1 FROM discovery_list_bookmarks dlb WHERE dlb.user_id = $1 AND dlb.list_id = dl.id) as is_bookmarked
-		FROM discovery_list_follows dlf
-		INNER JOIN discovery_lists dl ON dlf.list_id = dl.id
-		LEFT JOIN discovery_list_clips dlc ON dl.id = dlc.list_id
-		LEFT JOIN discovery_list_follows dlf2 ON dl.id = dlf2.list_id
-		WHERE dlf.user_id = $1 AND dl.is_active = true
-		GROUP BY dl.id, dlf.followed_at
-		ORDER BY dlf.followed_at DESC
+			EXISTS(SELECT 1 FROM playlist_bookmarks pb WHERE pb.user_id = $1 AND pb.playlist_id = p.id) as is_bookmarked
+		FROM playlist_follows pf
+		INNER JOIN playlists p ON pf.playlist_id = p.id
+		LEFT JOIN playlist_items pi ON p.id = pi.playlist_id
+		WHERE pf.user_id = $1 AND p.is_curated = true AND p.deleted_at IS NULL
+		GROUP BY p.id, pf.followed_at
+		ORDER BY pf.followed_at DESC
 		LIMIT $2 OFFSET $3
 	`
 
@@ -607,14 +604,14 @@ func (r *DiscoveryListRepository) GetUserFollowedLists(ctx context.Context, user
 					c.view_count, c.created_at, c.imported_at, c.vote_score, c.comment_count,
 					c.favorite_count, c.is_featured, c.is_nsfw, c.is_removed, c.removed_reason, c.is_hidden,
 					c.submitted_by_user_id, c.submitted_at,
-					dlc.list_id,
-					ROW_NUMBER() OVER (PARTITION BY dlc.list_id ORDER BY dlc.display_order ASC, dlc.added_at DESC) as rn
-				FROM discovery_list_clips dlc
-				INNER JOIN clips c ON dlc.clip_id = c.id
-				WHERE dlc.list_id = ANY($1) AND c.is_removed = false
+					pi.playlist_id,
+					ROW_NUMBER() OVER (PARTITION BY pi.playlist_id ORDER BY pi.order_index ASC, pi.added_at DESC) as rn
+				FROM playlist_items pi
+				INNER JOIN clips c ON pi.clip_id = c.id
+				WHERE pi.playlist_id = ANY($1) AND c.is_removed = false
 			)
 			SELECT
-				list_id,
+				playlist_id,
 				id, twitch_clip_id, twitch_clip_url, embed_url, title,
 				creator_name, creator_id, broadcaster_name, broadcaster_id,
 				game_id, game_name, language, thumbnail_url, duration,
@@ -623,7 +620,7 @@ func (r *DiscoveryListRepository) GetUserFollowedLists(ctx context.Context, user
 				submitted_by_user_id, submitted_at
 			FROM ranked_clips
 			WHERE rn <= 4
-			ORDER BY list_id, rn
+			ORDER BY playlist_id, rn
 		`
 
 		previewRows, err := r.db.Query(ctx, previewQuery, listIDs)
@@ -669,20 +666,23 @@ func (r *DiscoveryListRepository) GetUserFollowedLists(ctx context.Context, user
 // CreateList creates a new discovery list
 func (r *DiscoveryListRepository) CreateList(ctx context.Context, name, slug, description string, isFeatured bool, createdBy uuid.UUID) (*models.DiscoveryList, error) {
 	query := `
-		INSERT INTO discovery_lists (name, slug, description, is_featured, created_by)
-		VALUES ($1, $2, $3, $4, $5)
-		RETURNING id, name, slug, description, is_featured, is_active, display_order, created_by, created_at, updated_at
+		INSERT INTO playlists (user_id, title, slug, description, is_featured, is_curated, visibility)
+		VALUES ($1, $2, $3, $4, $5, true, 'public')
+		RETURNING id, user_id as created_by, title as name, slug, description, is_featured, created_at, updated_at
 	`
 
 	var list models.DiscoveryList
-	err := r.db.QueryRow(ctx, query, name, slug, description, isFeatured, createdBy).Scan(
-		&list.ID, &list.Name, &list.Slug, &list.Description,
-		&list.IsFeatured, &list.IsActive, &list.DisplayOrder,
-		&list.CreatedBy, &list.CreatedAt, &list.UpdatedAt,
+	err := r.db.QueryRow(ctx, query, createdBy, name, slug, description, isFeatured).Scan(
+		&list.ID, &list.CreatedBy, &list.Name, &list.Slug, &list.Description,
+		&list.IsFeatured, &list.CreatedAt, &list.UpdatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create discovery list: %w", err)
 	}
+
+	// Set IsActive to true since we're creating public playlists
+	list.IsActive = true
+	list.DisplayOrder = 0
 
 	return &list, nil
 }
@@ -700,7 +700,7 @@ func (r *DiscoveryListRepository) UpdateList(ctx context.Context, listID uuid.UU
 	argIdx := 2
 
 	if name != nil {
-		setClauses = append(setClauses, fmt.Sprintf("name = $%d", argIdx))
+		setClauses = append(setClauses, fmt.Sprintf("title = $%d", argIdx))
 		args = append(args, *name)
 		argIdx++
 	}
@@ -716,17 +716,16 @@ func (r *DiscoveryListRepository) UpdateList(ctx context.Context, listID uuid.UU
 	}
 
 	// Join all SET clauses
-	query := "UPDATE discovery_lists SET " + setClauses[0]
+	query := "UPDATE playlists SET " + setClauses[0]
 	for i := 1; i < len(setClauses); i++ {
 		query += ", " + setClauses[i]
 	}
-	query += " WHERE id = $1 RETURNING id, name, slug, description, is_featured, is_active, display_order, created_by, created_at, updated_at"
+	query += " WHERE id = $1 AND is_curated = true RETURNING id, user_id as created_by, title as name, slug, description, is_featured, created_at, updated_at"
 
 	var list models.DiscoveryList
 	err := r.db.QueryRow(ctx, query, args...).Scan(
-		&list.ID, &list.Name, &list.Slug, &list.Description,
-		&list.IsFeatured, &list.IsActive, &list.DisplayOrder,
-		&list.CreatedBy, &list.CreatedAt, &list.UpdatedAt,
+		&list.ID, &list.CreatedBy, &list.Name, &list.Slug, &list.Description,
+		&list.IsFeatured, &list.CreatedAt, &list.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -735,12 +734,15 @@ func (r *DiscoveryListRepository) UpdateList(ctx context.Context, listID uuid.UU
 		return nil, fmt.Errorf("failed to update discovery list: %w", err)
 	}
 
+	list.IsActive = true
+	list.DisplayOrder = 0
+
 	return &list, nil
 }
 
 // DeleteList deletes a discovery list
 func (r *DiscoveryListRepository) DeleteList(ctx context.Context, listID uuid.UUID) error {
-	query := "DELETE FROM discovery_lists WHERE id = $1"
+	query := "UPDATE playlists SET deleted_at = NOW() WHERE id = $1 AND is_curated = true"
 
 	result, err := r.db.Exec(ctx, query, listID)
 	if err != nil {
@@ -760,16 +762,16 @@ func (r *DiscoveryListRepository) AddClipToList(ctx context.Context, listID, cli
 	// Get the current max display order
 	var maxOrder int
 	err := r.db.QueryRow(ctx,
-		"SELECT COALESCE(MAX(display_order), -1) FROM discovery_list_clips WHERE list_id = $1", listID).Scan(&maxOrder)
+		"SELECT COALESCE(MAX(order_index), -1) FROM playlist_items WHERE playlist_id = $1", listID).Scan(&maxOrder)
 	if err != nil {
 		return fmt.Errorf("failed to get max display order: %w", err)
 	}
 
 	// Insert the clip with the next display order
 	query := `
-		INSERT INTO discovery_list_clips (list_id, clip_id, display_order)
+		INSERT INTO playlist_items (playlist_id, clip_id, order_index)
 		VALUES ($1, $2, $3)
-		ON CONFLICT (list_id, clip_id) DO NOTHING
+		ON CONFLICT (playlist_id, clip_id) DO NOTHING
 	`
 
 	_, err = r.db.Exec(ctx, query, listID, clipID, maxOrder+1)
@@ -777,8 +779,8 @@ func (r *DiscoveryListRepository) AddClipToList(ctx context.Context, listID, cli
 		return fmt.Errorf("failed to add clip to list: %w", err)
 	}
 
-	// Update the list's updated_at timestamp
-	_, err = r.db.Exec(ctx, "UPDATE discovery_lists SET updated_at = NOW() WHERE id = $1", listID)
+	// Update the playlists updated_at timestamp
+	_, err = r.db.Exec(ctx, "UPDATE playlists SET updated_at = NOW() WHERE id = $1", listID)
 	if err != nil {
 		return fmt.Errorf("failed to update list timestamp: %w", err)
 	}
@@ -788,7 +790,7 @@ func (r *DiscoveryListRepository) AddClipToList(ctx context.Context, listID, cli
 
 // RemoveClipFromList removes a clip from a discovery list
 func (r *DiscoveryListRepository) RemoveClipFromList(ctx context.Context, listID, clipID uuid.UUID) error {
-	query := "DELETE FROM discovery_list_clips WHERE list_id = $1 AND clip_id = $2"
+	query := "DELETE FROM playlist_items WHERE playlist_id = $1 AND clip_id = $2"
 
 	result, err := r.db.Exec(ctx, query, listID, clipID)
 	if err != nil {
@@ -800,8 +802,8 @@ func (r *DiscoveryListRepository) RemoveClipFromList(ctx context.Context, listID
 		return ErrClipNotFoundInList
 	}
 
-	// Update the list's updated_at timestamp
-	_, err = r.db.Exec(ctx, "UPDATE discovery_lists SET updated_at = NOW() WHERE id = $1", listID)
+	// Update the playlists updated_at timestamp
+	_, err = r.db.Exec(ctx, "UPDATE playlists SET updated_at = NOW() WHERE id = $1", listID)
 	if err != nil {
 		return fmt.Errorf("failed to update list timestamp: %w", err)
 	}
@@ -820,15 +822,15 @@ func (r *DiscoveryListRepository) ReorderClips(ctx context.Context, listID uuid.
 
 	// Update display order for each clip
 	for i, clipID := range clipIDs {
-		query := "UPDATE discovery_list_clips SET display_order = $1 WHERE list_id = $2 AND clip_id = $3"
+		query := "UPDATE playlist_items SET order_index = $1 WHERE playlist_id = $2 AND clip_id = $3"
 		_, err := tx.Exec(ctx, query, i, listID, clipID)
 		if err != nil {
 			return fmt.Errorf("failed to update clip order: %w", err)
 		}
 	}
 
-	// Update the list's updated_at timestamp
-	_, err = tx.Exec(ctx, "UPDATE discovery_lists SET updated_at = NOW() WHERE id = $1", listID)
+	// Update the playlists updated_at timestamp
+	_, err = tx.Exec(ctx, "UPDATE playlists SET updated_at = NOW() WHERE id = $1", listID)
 	if err != nil {
 		return fmt.Errorf("failed to update list timestamp: %w", err)
 	}
@@ -850,23 +852,23 @@ func (r *DiscoveryListRepository) GetListClipsCount(ctx context.Context, listID 
 func (r *DiscoveryListRepository) ListAllDiscoveryLists(ctx context.Context, limit, offset int) ([]models.DiscoveryListWithStats, error) {
 	query := `
 		SELECT
-			dl.id,
-			dl.name,
-			dl.slug,
-			dl.description,
-			dl.is_featured,
-			dl.is_active,
-			dl.display_order,
-			dl.created_by,
-			dl.created_at,
-			dl.updated_at,
-			COUNT(DISTINCT dlc.clip_id) as clip_count,
-			COUNT(DISTINCT dlf.user_id) as follower_count
-		FROM discovery_lists dl
-		LEFT JOIN discovery_list_clips dlc ON dl.id = dlc.list_id
-		LEFT JOIN discovery_list_follows dlf ON dl.id = dlf.list_id
-		GROUP BY dl.id
-		ORDER BY dl.created_at DESC
+			p.id,
+			p.title as name,
+			p.slug,
+			p.description,
+			p.is_featured,
+			p.visibility = 'public' as is_active,
+			p.display_order,
+			p.user_id as created_by,
+			p.created_at,
+			p.updated_at,
+			COUNT(DISTINCT pi.clip_id) as clip_count,
+			COALESCE(p.follower_count, 0) as follower_count
+		FROM playlists p
+		LEFT JOIN playlist_items pi ON p.id = pi.playlist_id
+		WHERE p.is_curated = true AND p.deleted_at IS NULL
+		GROUP BY p.id
+		ORDER BY p.created_at DESC
 		LIMIT $1 OFFSET $2
 	`
 

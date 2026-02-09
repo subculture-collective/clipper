@@ -31,6 +31,13 @@ export interface ReorderQueueRequest {
     new_position: number;
 }
 
+export interface ConvertQueueToPlaylistRequest {
+    title: string;
+    description?: string;
+    only_unplayed?: boolean;
+    clear_queue?: boolean;
+}
+
 export interface QueueResponse {
     success: boolean;
     data: Queue;

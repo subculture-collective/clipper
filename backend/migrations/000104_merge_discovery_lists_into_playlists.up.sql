@@ -36,11 +36,21 @@ CREATE INDEX IF NOT EXISTS idx_playlist_follows_playlist_id ON playlist_follows(
 CREATE INDEX IF NOT EXISTS idx_playlist_bookmarks_user_id ON playlist_bookmarks(user_id);
 CREATE INDEX IF NOT EXISTS idx_playlist_bookmarks_playlist_id ON playlist_bookmarks(playlist_id);
 
+-- Ensure a fallback admin user exists for legacy discovery lists
+INSERT INTO users (twitch_id, username, display_name, role)
+SELECT 'migration-system-admin', 'migration-system-admin', 'Migration System Admin', 'admin'
+WHERE NOT EXISTS (SELECT 1 FROM users)
+    AND EXISTS (SELECT 1 FROM discovery_lists);
+
 -- Migrate existing discovery_lists to playlists
 INSERT INTO playlists (id, user_id, title, description, cover_url, visibility, is_curated, is_featured, display_order, slug, created_at, updated_at)
 SELECT
     dl.id,
-    COALESCE(dl.created_by, (SELECT id FROM users WHERE role = 'admin' LIMIT 1)),
+    COALESCE(
+        dl.created_by,
+        (SELECT id FROM users WHERE role = 'admin' ORDER BY created_at ASC LIMIT 1),
+        (SELECT id FROM users ORDER BY created_at ASC LIMIT 1)
+    ),
     dl.name,
     dl.description,
     NULL, -- no cover_url in discovery_lists

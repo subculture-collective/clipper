@@ -6,7 +6,9 @@ import type {
     QueueCountResponse,
     AddToQueueRequest,
     ReorderQueueRequest,
+    ConvertQueueToPlaylistRequest,
 } from '@/types/queue';
+import type { Playlist } from '@/types/playlist';
 
 // API functions using apiClient for proper CSRF token handling
 const fetchQueue = async (limit = 100): Promise<Queue> => {
@@ -39,6 +41,16 @@ const clearQueue = async (): Promise<void> => {
 
 const markAsPlayed = async (itemId: string): Promise<void> => {
     await apiClient.post(`/queue/${itemId}/played`);
+};
+
+const convertQueueToPlaylist = async (
+    data: ConvertQueueToPlaylistRequest,
+): Promise<Playlist> => {
+    const response = await apiClient.post<{ success: boolean; data: Playlist }>(
+        '/queue/convert-to-playlist',
+        data,
+    );
+    return response.data.data;
 };
 
 // React Query hooks
@@ -187,6 +199,20 @@ export const useMarkAsPlayed = () => {
         mutationFn: markAsPlayed,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['queue'] });
+        },
+    });
+};
+
+export const useConvertQueueToPlaylist = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: convertQueueToPlaylist,
+        onSuccess: () => {
+            // Invalidate queue queries to refresh the list
+            queryClient.invalidateQueries({ queryKey: ['queue'] });
+            // Invalidate playlist queries to show the new playlist
+            queryClient.invalidateQueries({ queryKey: ['playlists'] });
         },
     });
 };

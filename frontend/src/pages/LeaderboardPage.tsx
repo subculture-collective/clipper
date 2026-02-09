@@ -33,7 +33,7 @@ export default function LeaderboardPage() {
             // Handle non-OK responses
             if (!response.ok) {
                 let errorMessage = 'Failed to fetch leaderboard';
-                
+
                 // Try to parse JSON error response
                 try {
                     const errorData = await response.json();
@@ -42,7 +42,7 @@ export default function LeaderboardPage() {
                     // If JSON parsing fails, use status text
                     errorMessage = response.statusText || errorMessage;
                 }
-                
+
                 throw new Error(errorMessage);
             }
 
