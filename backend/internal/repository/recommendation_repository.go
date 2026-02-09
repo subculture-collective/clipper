@@ -2,11 +2,11 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/lib/pq"
 	"github.com/subculture-collective/clipper/internal/models"
@@ -27,8 +27,8 @@ func NewRecommendationRepository(pool *pgxpool.Pool) *RecommendationRepository {
 // GetUserPreferences retrieves user preferences
 func (r *RecommendationRepository) GetUserPreferences(ctx context.Context, userID uuid.UUID) (*models.UserPreference, error) {
 	query := `
-		SELECT user_id, favorite_games, followed_streamers, preferred_categories, 
-		       preferred_tags, onboarding_completed, onboarding_completed_at, 
+		SELECT user_id, favorite_games, followed_streamers, preferred_categories,
+		       preferred_tags, onboarding_completed, onboarding_completed_at,
 		       cold_start_source, updated_at, created_at
 		FROM user_preferences
 		WHERE user_id = $1
@@ -51,7 +51,7 @@ func (r *RecommendationRepository) GetUserPreferences(ctx context.Context, userI
 		&pref.CreatedAt,
 	)
 
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		// Return empty preferences for users without any
 		return &models.UserPreference{
 			UserID:              userID,
@@ -88,7 +88,7 @@ func (r *RecommendationRepository) GetUserPreferences(ctx context.Context, userI
 func (r *RecommendationRepository) UpdateUserPreferences(ctx context.Context, pref *models.UserPreference) error {
 	query := `
 		INSERT INTO user_preferences (
-			user_id, favorite_games, followed_streamers, 
+			user_id, favorite_games, followed_streamers,
 			preferred_categories, preferred_tags, updated_at, created_at
 		)
 		VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
@@ -206,7 +206,7 @@ func (r *RecommendationRepository) GetContentBasedRecommendations(
 			WHERE created_at > NOW() - INTERVAL '7 days'
 		),
 		clip_with_tags AS (
-			SELECT c.id, 
+			SELECT c.id,
 			       ARRAY_AGG(DISTINCT ct.tag_id) FILTER (WHERE ct.tag_id IS NOT NULL) AS clip_tags
 			FROM clips c
 			LEFT JOIN clip_tags ct ON c.id = ct.clip_id
@@ -218,22 +218,22 @@ func (r *RecommendationRepository) GetContentBasedRecommendations(
 			GROUP BY c.id
 		),
 		scored_clips AS (
-			SELECT 
+			SELECT
 				c.id as clip_id,
 				(
 					CASE WHEN c.game_id = ANY($2::text[]) THEN 0.35 ELSE 0 END +
 					CASE WHEN c.broadcaster_id = ANY($3::text[]) THEN 0.25 ELSE 0 END +
 					CASE WHEN c.game_name = ANY($4::text[]) THEN 0.15 ELSE 0 END +
-					CASE 
-						WHEN $5::uuid[] IS NOT NULL AND cwt.clip_tags && $5::uuid[] THEN 0.15 
-						ELSE 0 
+					CASE
+						WHEN $5::uuid[] IS NOT NULL AND cwt.clip_tags && $5::uuid[] THEN 0.15
+						ELSE 0
 					END +
 					(c.vote_score::float / NULLIF((SELECT max_vote_score FROM max_vote), 0)) * 0.1
 				) as similarity_score
 			FROM clips c
 			JOIN clip_with_tags cwt ON c.id = cwt.id
 		)
-		SELECT 
+		SELECT
 			clip_id,
 			similarity_score,
 			ROW_NUMBER() OVER (ORDER BY similarity_score DESC) as similarity_rank
@@ -281,7 +281,7 @@ func (r *RecommendationRepository) GetCollaborativeRecommendations(
 			WHERE user_id = $1 AND interaction_type = 'like'
 		),
 		similar_users AS (
-			SELECT 
+			SELECT
 				uci.user_id,
 				COUNT(*) as common_likes
 			FROM user_clip_interactions uci
@@ -296,7 +296,7 @@ func (r *RecommendationRepository) GetCollaborativeRecommendations(
 			SELECT clip_id FROM user_clip_interactions
 			WHERE user_id = $1
 		)
-		SELECT 
+		SELECT
 			c.id as clip_id,
 			COALESCE(COUNT(*) * 1.0 / NULLIF((SELECT COUNT(*) FROM similar_users), 0), 0) as similarity_score,
 			ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC) as similarity_rank
@@ -341,7 +341,7 @@ func (r *RecommendationRepository) GetTrendingClips(
 	limit int,
 ) ([]models.ClipScore, error) {
 	query := `
-		SELECT 
+		SELECT
 			id as clip_id,
 			trending_score as similarity_score,
 			ROW_NUMBER() OVER (ORDER BY trending_score DESC) as similarity_rank

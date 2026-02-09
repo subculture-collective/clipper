@@ -1,17 +1,33 @@
 import { Container, SEO } from '../components';
-import { DiscoveryListCard } from '../components/discovery';
-import { useDiscoveryLists } from '../hooks/useDiscoveryLists';
+import { PlaylistCard } from '../components/playlist/PlaylistCard';
+import { useQuery } from '@tanstack/react-query';
+import apiClient from '../lib/api';
 import { Button } from '../components/ui';
 import { useState } from 'react';
+import type { PlaylistWithClips } from '../types/playlist';
 
 export function DiscoveryListsPage() {
   const [offset, setOffset] = useState(0);
   const pageSize = 12;
 
-  const { data: lists, isLoading } = useDiscoveryLists({
-    limit: pageSize,
-    offset,
+  // Fetch featured/curated playlists (formerly discovery lists)
+  const { data: response, isLoading } = useQuery({
+    queryKey: ['playlists', 'curated', offset],
+    queryFn: async () => {
+      const res = await apiClient.get<{
+        success: boolean;
+        data: PlaylistWithClips[];
+        meta: {
+          total: number;
+          page: number;
+          limit: number;
+        };
+      }>(`/playlists?curated=true&featured=true&limit=${pageSize}&offset=${offset}`);
+      return res.data;
+    },
   });
+
+  const lists = response?.data || [];
 
   return (
     <>
@@ -46,7 +62,7 @@ export function DiscoveryListsPage() {
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {lists.map((list) => (
-                  <DiscoveryListCard key={list.id} list={list} />
+                  <PlaylistCard key={list.id} playlist={list} />
                 ))}
               </div>
 

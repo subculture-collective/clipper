@@ -13,8 +13,17 @@ export function CategoriesNav() {
     useEffect(() => {
         const fetchCategories = async () => {
             try {
-                const data = await categoryApi.listCategories();
-                setCategories(data.categories || []);
+                const featured = await categoryApi.listCategories({
+                    featured: true,
+                });
+                const featuredCategories = featured.categories || [];
+
+                if (featuredCategories.length === 0) {
+                    const all = await categoryApi.listCategories();
+                    setCategories(all.categories || []);
+                } else {
+                    setCategories(featuredCategories);
+                }
             } catch (err) {
                 console.error('Failed to fetch categories:', err);
             } finally {

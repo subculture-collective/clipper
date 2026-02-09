@@ -18,7 +18,7 @@ import {
     useWatchHistory,
 } from '../hooks';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export function ClipDetailPage() {
     const { id } = useParams<{ id: string }>();
@@ -34,7 +34,7 @@ export function ClipDetailPage() {
     const isBanned = user?.is_banned;
     const banReason = user?.ban_reason;
 
-    // Watch history integration - only enabled for authenticated users with HLS clips
+    // Watch history integration - full progress tracking for HLS clips only
     const {
         progress: resumePosition,
         hasProgress,
@@ -46,6 +46,28 @@ export function ClipDetailPage() {
         duration: clip?.duration || 0,
         enabled: isAuthenticated && !!clip?.video_url,
     });
+
+    // For iframe-only clips (no video_url), record a basic "viewed" entry
+    // since Twitch embeds don't expose playback events per TOS
+    const viewRecorded = useRef(false);
+    useEffect(() => {
+        if (!isAuthenticated || !clip || clip.video_url || viewRecorded.current)
+            return;
+        viewRecorded.current = true;
+        fetch('/api/v1/watch-history', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+                clip_id: clip.id,
+                progress_seconds: Math.floor(clip.duration || 0),
+                duration_seconds: Math.floor(clip.duration || 30),
+                session_id: `embed_${Date.now()}`,
+            }),
+        }).catch(() => {
+            /* ignore */
+        });
+    }, [isAuthenticated, clip]);
 
     const clipUrl = clip ? `${window.location.origin}/clip/${clip.id}` : '';
     const shareTitle = clip ? clip.title : 'Check out this clip';
@@ -329,10 +351,10 @@ export function ClipDetailPage() {
                     </div>
 
                     <div className='mb-4 xs:mb-6'>
-                        {/* Render TheatreMode for HLS clips, otherwise use VideoPlayer 
+                        {/* Render TheatreMode for HLS clips, otherwise use VideoPlayer
                             Note: Watch history tracking only works with HLS clips (TheatreMode).
                             Twitch iframe embeds (VideoPlayer) don't expose playback events per TOS. */}
-                        {clip.video_url ? (
+                        {clip.video_url ?
                             <TheatreMode
                                 title={clip.title}
                                 hlsUrl={clip.video_url}
@@ -343,13 +365,12 @@ export function ClipDetailPage() {
                                 onPause={recordProgressOnPause}
                                 onEnded={recordProgressOnPause}
                             />
-                        ) : (
-                            <VideoPlayer
+                        :   <VideoPlayer
                                 clipId={clip.id}
                                 title={clip.title}
                                 embedUrl={clip.embed_url}
                             />
-                        )}
+                        }
                     </div>
 
                     <div className='grid grid-cols-1 xs:grid-cols-3 gap-3 xs:gap-4 mb-4 xs:mb-6'>

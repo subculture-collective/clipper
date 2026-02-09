@@ -196,6 +196,7 @@ func main() {
 	verificationRepo := repository.NewVerificationRepository(db.Pool)
 	recommendationRepo := repository.NewRecommendationRepository(db.Pool)
 	playlistRepo := repository.NewPlaylistRepository(db.Pool)
+	playlistScriptRepo := repository.NewPlaylistScriptRepository(db.Pool)
 	queueRepo := repository.NewQueueRepository(db.Pool)
 	watchHistoryRepo := repository.NewWatchHistoryRepository(db.Pool)
 	streamRepo := repository.NewStreamRepository(db.Pool)
@@ -328,9 +329,10 @@ func main() {
 
 	// Initialize playlist service
 	playlistService := services.NewPlaylistService(playlistRepo, clipRepo, cfg.Server.BaseURL)
+	playlistScriptService := services.NewPlaylistScriptService(playlistScriptRepo, playlistRepo, clipRepo)
 
 	// Initialize queue service
-	queueService := services.NewQueueService(queueRepo, clipRepo)
+	queueService := services.NewQueueService(queueRepo, clipRepo, playlistService)
 
 	// Initialize clip extraction job service for FFmpeg processing
 	clipExtractionJobService := services.NewClipExtractionJobService(redisClient)
@@ -424,7 +426,11 @@ func main() {
 	monitoringHandler := handlers.NewMonitoringHandler(redisClient)
 	webhookMonitoringHandler := handlers.NewWebhookMonitoringHandler(webhookRetryService, outboundWebhookService)
 	commentHandler := handlers.NewCommentHandler(commentService)
-	clipHandler := handlers.NewClipHandler(clipService, authService)
+	clipHandler := handlers.NewClipHandler(
+		clipService,
+		authService,
+		handlers.WithClipExtractionJobService(clipExtractionJobService),
+	)
 	favoriteHandler := handlers.NewFavoriteHandler(favoriteRepo, voteRepo, clipService)
 	tagHandler := handlers.NewTagHandler(tagRepo, clipRepo, autoTagService)
 	searchHandler := handlers.NewSearchHandler(searchRepo, authService)
@@ -480,6 +486,7 @@ func main() {
 
 	recommendationHandler := handlers.NewRecommendationHandler(recommendationService, authService)
 	playlistHandler := handlers.NewPlaylistHandler(playlistService)
+	playlistScriptHandler := handlers.NewPlaylistScriptHandler(playlistScriptService)
 	queueHandler := handlers.NewQueueHandler(queueService)
 	watchHistoryHandler := handlers.NewWatchHistoryHandler(watchHistoryRepo)
 	watchPartyHandler := handlers.NewWatchPartyHandler(watchPartyService, watchPartyHubManager, watchPartyRepo, analyticsRepo, cfg)
@@ -592,7 +599,7 @@ func main() {
 		defer cancel()
 
 		dbErr := db.HealthCheck(ctx)
-		
+
 		if dbErr != nil {
 			c.JSON(http.StatusServiceUnavailable, gin.H{
 				"status": "not ready",
@@ -603,7 +610,7 @@ func main() {
 
 		// Check Redis connection
 		redisErr := redisClient.HealthCheck(ctx)
-		
+
 		if redisErr != nil {
 			c.JSON(http.StatusServiceUnavailable, gin.H{
 				"status": "not ready",
@@ -620,7 +627,7 @@ func main() {
 		// Check OpenSearch connection (optional)
 		if osClient != nil {
 			osErr := osClient.Ping(ctx)
-			
+
 			if osErr != nil {
 				checks["opensearch"] = "degraded"
 				log.Printf("OpenSearch health check failed (%T): %v", osErr, osErr)
@@ -771,6 +778,7 @@ func main() {
 			clips.GET("", clipHandler.ListClips)
 			clips.GET("/:id", clipHandler.GetClip)
 			clips.GET("/:id/related", clipHandler.GetRelatedClips)
+			clips.GET("/:id/processing-status", middleware.RateLimitMiddleware(redisClient, 60, time.Minute), clipHandler.GetClipProcessingStatus)
 
 			// Batch endpoint for media URLs (public, rate limited)
 			clips.POST("/batch-media", middleware.RateLimitMiddleware(redisClient, 60, time.Minute), clipHandler.BatchGetClipMedia)
@@ -798,6 +806,7 @@ func main() {
 			clips.POST("/:id/vote", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 20, time.Minute), clipHandler.VoteOnClip)
 			clips.POST("/:id/favorite", middleware.AuthMiddleware(authService), clipHandler.AddFavorite)
 			clips.DELETE("/:id/favorite", middleware.AuthMiddleware(authService), clipHandler.RemoveFavorite)
+			clips.POST("/:id/backfill", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Minute), clipHandler.RequestClipBackfill)
 
 			// Tag management for clips (authenticated, rate limited)
 			clips.POST("/:id/tags", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Minute), tagHandler.AddTagsToClip)
@@ -1415,6 +1424,7 @@ func main() {
 		{
 			// Public playlist endpoints
 			playlists.GET("/public", playlistHandler.ListPublicPlaylists)
+			playlists.GET("/share/:token", middleware.OptionalAuthMiddleware(authService), playlistHandler.GetPlaylistByShareToken)
 			playlists.GET("/:id", middleware.OptionalAuthMiddleware(authService), playlistHandler.GetPlaylist)
 
 			// Protected playlist endpoints (require authentication)
@@ -1427,6 +1437,7 @@ func main() {
 			playlists.POST("/:id/clips", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 60, time.Minute), playlistHandler.AddClipsToPlaylist)
 			playlists.DELETE("/:id/clips/:clip_id", middleware.AuthMiddleware(authService), playlistHandler.RemoveClipFromPlaylist)
 			playlists.PUT("/:id/clips/order", middleware.AuthMiddleware(authService), playlistHandler.ReorderPlaylistClips)
+			playlists.POST(":id/copy", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 10, time.Hour), playlistHandler.CopyPlaylist)
 
 			// Playlist likes (social engagement)
 			playlists.POST("/:id/like", middleware.AuthMiddleware(authService), middleware.RateLimitMiddleware(redisClient, 30, time.Minute), playlistHandler.LikePlaylist)
@@ -1474,6 +1485,7 @@ func main() {
 			queue.DELETE("/:id", queueHandler.RemoveFromQueue)
 			queue.PATCH("/reorder", queueHandler.ReorderQueue)
 			queue.POST("/:id/played", queueHandler.MarkAsPlayed)
+			queue.POST("/convert-to-playlist", middleware.RateLimitMiddleware(redisClient, 10, time.Minute), queueHandler.ConvertToPlaylist)
 		}
 
 		// Watch history routes
@@ -1757,6 +1769,16 @@ func main() {
 				adminDiscoveryLists.POST("/:id/clips", discoveryListHandler.AdminAddClipToList)
 				adminDiscoveryLists.DELETE("/:id/clips/:clipId", discoveryListHandler.AdminRemoveClipFromList)
 				adminDiscoveryLists.PUT("/:id/clips/reorder", discoveryListHandler.AdminReorderListClips)
+			}
+
+			// Playlist script management (admin/moderator only)
+			adminPlaylistScripts := admin.Group("/playlist-scripts")
+			{
+				adminPlaylistScripts.GET("", playlistScriptHandler.ListScripts)
+				adminPlaylistScripts.POST("", playlistScriptHandler.CreateScript)
+				adminPlaylistScripts.PUT("/:id", playlistScriptHandler.UpdateScript)
+				adminPlaylistScripts.DELETE("/:id", playlistScriptHandler.DeleteScript)
+				adminPlaylistScripts.POST("/:id/generate", playlistScriptHandler.GeneratePlaylist)
 			}
 
 			// Forum moderation management (admin/moderator only)

@@ -216,17 +216,16 @@ export function GamePage() {
             </div>
 
             {/* Clips Grid */}
-            {clipsLoading ? (
+            {clipsLoading ?
                 <div className='flex items-center justify-center min-h-[400px]'>
                     <Spinner size='lg' />
                 </div>
-            ) : clips.length === 0 ? (
+            : clips.length === 0 ?
                 <div className='text-center text-muted-foreground py-12'>
                     <p className='text-lg'>No clips found for this game</p>
                 </div>
-            ) : (
-                <>
-                    <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8'>
+            :   <>
+                    <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8'>
                         {clips.map(clip => (
                             <ClipCard key={clip.id} clip={clip} />
                         ))}
@@ -250,7 +249,7 @@ export function GamePage() {
                         </div>
                     )}
                 </>
-            )}
+            }
         </Container>
     );
 }

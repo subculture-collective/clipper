@@ -7,10 +7,19 @@ import {
     useReorderQueue,
 } from '@/hooks/useQueue';
 import { formatDuration, cn } from '@/lib/utils';
-import { X, Trash2, Play, GripVertical } from 'lucide-react';
+import {
+    X,
+    Trash2,
+    Play,
+    GripVertical,
+    ListPlus,
+    Maximize2,
+} from 'lucide-react';
 import { Button, Spinner } from '@/components/ui';
 import { SEO } from '@/components/SEO';
 import { useState } from 'react';
+import { ConvertToPlaylistDialog } from '@/components/queue/ConvertToPlaylistDialog';
+import { useNavigate } from 'react-router-dom';
 
 export function QueuePage() {
     const { data: queue, isLoading, isError } = useQueue(100);
@@ -20,6 +29,8 @@ export function QueuePage() {
     const reorderQueue = useReorderQueue();
     const [draggedId, setDraggedId] = useState<string | null>(null);
     const [dragOverId, setDragOverId] = useState<string | null>(null);
+    const [showConvertDialog, setShowConvertDialog] = useState(false);
+    const navigate = useNavigate();
 
     const handleRemove = (itemId: string) => {
         removeFromQueue.mutate(itemId);
@@ -53,7 +64,7 @@ export function QueuePage() {
 
     const handleDrop = (e: React.DragEvent, targetId: string) => {
         e.preventDefault();
-        
+
         if (!draggedId || draggedId === targetId) {
             setDraggedId(null);
             setDragOverId(null);
@@ -104,15 +115,33 @@ export function QueuePage() {
                         </p>
                     </div>
                     {total > 0 && (
-                        <Button
-                            variant='outline'
-                            size='sm'
-                            onClick={handleClearQueue}
-                            className='text-error-600 hover:text-error-700 hover:border-error-600'
-                        >
-                            <Trash2 className='h-4 w-4 mr-2' />
-                            Clear Queue
-                        </Button>
+                        <div className='flex gap-2'>
+                            <Button
+                                variant='primary'
+                                size='sm'
+                                onClick={() => navigate('/queue/theatre')}
+                            >
+                                <Maximize2 className='h-4 w-4 mr-2' />
+                                Theatre Mode
+                            </Button>
+                            <Button
+                                variant='primary'
+                                size='sm'
+                                onClick={() => setShowConvertDialog(true)}
+                            >
+                                <ListPlus className='h-4 w-4 mr-2' />
+                                Convert to Playlist
+                            </Button>
+                            <Button
+                                variant='outline'
+                                size='sm'
+                                onClick={handleClearQueue}
+                                className='text-error-600 hover:text-error-700 hover:border-error-600'
+                            >
+                                <Trash2 className='h-4 w-4 mr-2' />
+                                Clear Queue
+                            </Button>
+                        </div>
                     )}
                 </div>
 
@@ -162,14 +191,15 @@ export function QueuePage() {
                                 key={item.id}
                                 draggable
                                 onDragStart={() => handleDragStart(item.id)}
-                                onDragOver={(e) => handleDragOver(e, item.id)}
+                                onDragOver={e => handleDragOver(e, item.id)}
                                 onDragLeave={handleDragLeave}
-                                onDrop={(e) => handleDrop(e, item.id)}
+                                onDrop={e => handleDrop(e, item.id)}
                                 className={cn(
                                     'bg-card border border-border rounded-lg p-4 hover:shadow-md transition-shadow',
                                     item.played_at && 'opacity-60',
                                     draggedId === item.id && 'opacity-50',
-                                    dragOverId === item.id && 'border-t-2 border-primary',
+                                    dragOverId === item.id &&
+                                        'border-t-2 border-primary',
                                 )}
                             >
                                 <div className='flex gap-4'>
@@ -270,6 +300,13 @@ export function QueuePage() {
                         ))}
                     </div>
                 )}
+
+                {/* Convert to Playlist Dialog */}
+                <ConvertToPlaylistDialog
+                    isOpen={showConvertDialog}
+                    onClose={() => setShowConvertDialog(false)}
+                    queueItemCount={total}
+                />
             </div>
         </>
     );
