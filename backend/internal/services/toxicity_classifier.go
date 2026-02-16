@@ -16,7 +16,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/lib/pq"
 	"gopkg.in/yaml.v3"
 )
 
@@ -591,7 +590,7 @@ func (tc *ToxicityClassifier) RecordPrediction(ctx context.Context, commentID uu
 			categories = EXCLUDED.categories,
 			reason_codes = EXCLUDED.reason_codes,
 			updated_at = NOW()
-	`, commentID, score.Toxic, score.ConfidenceScore, categoriesJSON, pq.Array(score.ReasonCodes))
+	`, commentID, score.Toxic, score.ConfidenceScore, categoriesJSON, score.ReasonCodes)
 
 	return err
 }

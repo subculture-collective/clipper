@@ -1619,8 +1619,8 @@ func main() {
 				adminUsers.POST("/:id/unban", middleware.RequirePermission(models.PermissionManageUsers), adminUserHandler.UnbanUser)
 				adminUsers.PATCH("/:id/role", middleware.RequirePermission(models.PermissionManageUsers), adminUserHandler.UpdateUserRole)
 				adminUsers.PATCH("/:id/karma", middleware.RequirePermission(models.PermissionManageUsers), adminUserHandler.UpdateUserKarma)
-				adminUsers.POST("/:id/badges", reputationHandler.AwardBadge)
-				adminUsers.DELETE("/:id/badges/:badgeId", reputationHandler.RemoveBadge)
+				adminUsers.POST("/:id/badges", middleware.RequirePermission(models.PermissionManageUsers), reputationHandler.AwardBadge)
+				adminUsers.DELETE("/:id/badges/:badgeId", middleware.RequirePermission(models.PermissionManageUsers), reputationHandler.RemoveBadge)
 				// Comment privilege suspension routes
 				adminUsers.POST("/:id/suspend-comments", middleware.RequirePermission(models.PermissionManageUsers), adminUserHandler.SuspendCommentPrivileges)
 				adminUsers.POST("/:id/lift-comment-suspension", middleware.RequirePermission(models.PermissionManageUsers), adminUserHandler.LiftCommentSuspension)

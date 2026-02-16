@@ -80,8 +80,8 @@ export default defineConfig(({ mode }) => ({
             },
             treeshake: true,
         },
-        // Keep CSS in the same output for consistent load ordering
-        cssCodeSplit: false,
+        // Split CSS per lazy-loaded route for smaller initial payloads
+        cssCodeSplit: true,
         // Increase chunk size warning limit since we may have a larger single bundle
         chunkSizeWarningLimit: 1200,
         // Use esbuild minifier (default, faster than terser)

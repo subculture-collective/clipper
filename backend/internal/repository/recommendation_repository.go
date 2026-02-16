@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/lib/pq"
 	"github.com/subculture-collective/clipper/internal/models"
 )
 
@@ -35,7 +34,7 @@ func (r *RecommendationRepository) GetUserPreferences(ctx context.Context, userI
 	`
 
 	var pref models.UserPreference
-	var favoriteGames, followedStreamers, preferredCategories pq.StringArray
+	var favoriteGames, followedStreamers, preferredCategories []string
 	var preferredTags []string
 
 	err := r.pool.QueryRow(ctx, query, userID).Scan(
@@ -43,7 +42,7 @@ func (r *RecommendationRepository) GetUserPreferences(ctx context.Context, userI
 		&favoriteGames,
 		&followedStreamers,
 		&preferredCategories,
-		pq.Array(&preferredTags),
+		&preferredTags,
 		&pref.OnboardingCompleted,
 		&pref.OnboardingCompletedAt,
 		&pref.ColdStartSource,
@@ -109,10 +108,10 @@ func (r *RecommendationRepository) UpdateUserPreferences(ctx context.Context, pr
 
 	_, err := r.pool.Exec(ctx, query,
 		pref.UserID,
-		pq.StringArray(pref.FavoriteGames),
-		pq.StringArray(pref.FollowedStreamers),
-		pq.StringArray(pref.PreferredCategories),
-		pq.Array(tagStrings),
+		pref.FavoriteGames,
+		pref.FollowedStreamers,
+		pref.PreferredCategories,
+		tagStrings,
 	)
 
 	if err != nil {
@@ -138,10 +137,10 @@ func (r *RecommendationRepository) CompleteOnboarding(ctx context.Context, pref 
 		ctx,
 		query,
 		pref.UserID,
-		pq.StringArray(pref.FavoriteGames),
-		pq.StringArray(pref.FollowedStreamers),
-		pq.StringArray(pref.PreferredCategories),
-		pq.StringArray(tagStrings),
+		pref.FavoriteGames,
+		pref.FollowedStreamers,
+		pref.PreferredCategories,
+		tagStrings,
 	)
 
 	if err != nil {
@@ -244,10 +243,10 @@ func (r *RecommendationRepository) GetContentBasedRecommendations(
 
 	rows, err := r.pool.Query(ctx, query,
 		userID,
-		pq.StringArray(preferences.FavoriteGames),
-		pq.StringArray(preferences.FollowedStreamers),
-		pq.StringArray(preferences.PreferredCategories),
-		pq.Array(preferences.PreferredTags), // Pass UUIDs directly
+		preferences.FavoriteGames,
+		preferences.FollowedStreamers,
+		preferences.PreferredCategories,
+		preferences.PreferredTags,
 		excludeClipIDs,
 		limit,
 	)
