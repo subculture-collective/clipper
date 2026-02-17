@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { useClickOutside } from '@/hooks/useClickOutside';
 
 interface EmojiPickerProps {
   onEmojiSelect: (emoji: string) => void;
@@ -35,28 +36,16 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({ onEmojiSelect, onClose
   const [activeCategory, setActiveCategory] = React.useState<keyof typeof EMOJI_CATEGORIES>('smileys');
   const pickerRef = React.useRef<HTMLDivElement>(null);
 
-  // Memoize handlers to prevent unnecessary re-creation
-  const handleClickOutside = React.useCallback((event: MouseEvent) => {
-    if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
-      onClose();
-    }
-  }, [onClose]);
+  // Close picker when clicking outside
+  useClickOutside(pickerRef, onClose);
 
+  // Close on Escape key
   const handleEscape = React.useCallback((event: KeyboardEvent) => {
     if (event.key === 'Escape') {
       onClose();
     }
   }, [onClose]);
 
-  // Close picker when clicking outside
-  React.useEffect(() => {
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [handleClickOutside]);
-
-  // Close on Escape key
   React.useEffect(() => {
     document.addEventListener('keydown', handleEscape);
     return () => {

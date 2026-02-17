@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useClickOutside } from '../../hooks/useClickOutside';
 import {
     getNotifications,
     getUnreadCount,
@@ -56,24 +57,7 @@ export function NotificationBell() {
     });
 
     // Close dropdown when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (
-                dropdownRef.current &&
-                !dropdownRef.current.contains(event.target as Node)
-            ) {
-                setIsOpen(false);
-            }
-        };
-
-        if (isOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
-
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [isOpen]);
+    useClickOutside(dropdownRef, () => setIsOpen(false), isOpen);
 
     // Refresh notifications when dropdown opens
     useEffect(() => {

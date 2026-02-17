@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Helmet } from '@dr.pogodin/react-helmet';
 import { Link } from 'react-router-dom';
 import {
@@ -49,8 +49,21 @@ export function SettingsPage() {
     const queryClient = useQueryClient();
     const { consent, updateConsent, doNotTrack, resetConsent } = useConsent();
     
-    // Ref to store timeout ID for success messages
-    const successTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    // Refs to store timeout IDs for success messages (cleaned up on unmount)
+    const successTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const profileTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const settingsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const consentTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Cleanup all timeouts on unmount
+    useEffect(() => {
+        return () => {
+            if (successTimeoutRef.current) clearTimeout(successTimeoutRef.current);
+            if (profileTimeoutRef.current) clearTimeout(profileTimeoutRef.current);
+            if (settingsTimeoutRef.current) clearTimeout(settingsTimeoutRef.current);
+            if (consentTimeoutRef.current) clearTimeout(consentTimeoutRef.current);
+        };
+    }, []);
 
     // Profile state
     const [profileData, setProfileData] = useState<UpdateProfileRequest>({
@@ -138,7 +151,7 @@ export function SettingsPage() {
             await updateProfile(profileData);
             await refreshUser();
             setProfileSuccess(true);
-            setTimeout(() => setProfileSuccess(false), 3000);
+            profileTimeoutRef.current = setTimeout(() => setProfileSuccess(false), 3000);
         } catch {
             setProfileError('Failed to update profile. Please try again.');
         } finally {
@@ -157,7 +170,7 @@ export function SettingsPage() {
             await updateUserSettings(settingsData);
             queryClient.invalidateQueries({ queryKey: ['userSettings'] });
             setSettingsSuccess(true);
-            setTimeout(() => setSettingsSuccess(false), 3000);
+            settingsTimeoutRef.current = setTimeout(() => setSettingsSuccess(false), 3000);
         } catch {
             setSettingsError('Failed to update settings. Please try again.');
         } finally {
@@ -561,7 +574,7 @@ export function SettingsPage() {
                                     onChange={(e) => {
                                         updateConsent({ functional: e.target.checked });
                                         setConsentSuccess(true);
-                                        setTimeout(() => setConsentSuccess(false), 3000);
+                                        consentTimeoutRef.current = setTimeout(() => setConsentSuccess(false), 3000);
                                     }}
                                     disabled={doNotTrack}
                                 />
@@ -572,7 +585,7 @@ export function SettingsPage() {
                                     onChange={(e) => {
                                         updateConsent({ analytics: e.target.checked });
                                         setConsentSuccess(true);
-                                        setTimeout(() => setConsentSuccess(false), 3000);
+                                        consentTimeoutRef.current = setTimeout(() => setConsentSuccess(false), 3000);
                                     }}
                                     disabled={doNotTrack}
                                 />
@@ -583,7 +596,7 @@ export function SettingsPage() {
                                     onChange={(e) => {
                                         updateConsent({ advertising: e.target.checked });
                                         setConsentSuccess(true);
-                                        setTimeout(() => setConsentSuccess(false), 3000);
+                                        consentTimeoutRef.current = setTimeout(() => setConsentSuccess(false), 3000);
                                     }}
                                     disabled={doNotTrack}
                                 />

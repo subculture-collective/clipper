@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useClickOutside } from '../../hooks/useClickOutside';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { Button } from '../ui';
 import { NotificationBell } from './NotificationBell';
@@ -22,22 +23,7 @@ export function Header() {
     };
 
     // Close More menu when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (
-                moreMenuRef.current &&
-                !moreMenuRef.current.contains(event.target as Node)
-            ) {
-                setMoreMenuOpen(false);
-            }
-        };
-
-        if (moreMenuOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
-        return () =>
-            document.removeEventListener('mousedown', handleClickOutside);
-    }, [moreMenuOpen]);
+    useClickOutside(moreMenuRef, () => setMoreMenuOpen(false), moreMenuOpen);
 
     // Keyboard shortcuts
     useKeyboardShortcuts([

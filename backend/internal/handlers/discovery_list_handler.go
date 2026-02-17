@@ -10,7 +10,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
-	"github.com/subculture-collective/clipper/internal/utils"
 	pkgutils "github.com/subculture-collective/clipper/pkg/utils"
 )
 
@@ -570,7 +569,7 @@ func (h *DiscoveryListHandler) AdminCreateDiscoveryList(c *gin.Context) {
 	}
 
 	// Generate slug from name
-	slug := utils.GenerateSlug(req.Name)
+	slug := pkgutils.Slugify(req.Name)
 
 	// Set default for IsFeatured
 	isFeatured := false

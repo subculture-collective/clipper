@@ -45,6 +45,16 @@ export function useWatchPartyWebSocket({
   const connectRef = useRef<(() => void) | null>(null);
   const sendCommandRef = useRef<((command: Omit<WatchPartyCommand, 'party_id' | 'timestamp'>) => void) | null>(null);
 
+  // Store callbacks in refs to avoid reconnecting when they change
+  const onSyncEventRef = useRef(onSyncEvent);
+  const onChatMessageRef = useRef(onChatMessage);
+  const onReactionRef = useRef(onReaction);
+  const onTypingRef = useRef(onTyping);
+  onSyncEventRef.current = onSyncEvent;
+  onChatMessageRef.current = onChatMessage;
+  onReactionRef.current = onReaction;
+  onTypingRef.current = onTyping;
+
   const connect = useCallback(() => {
     if (!enabled) return;
 
@@ -88,23 +98,23 @@ export function useWatchPartyWebSocket({
           const syncEvent = JSON.parse(event.data) as WatchPartySyncEvent;
 
           // Call the general sync event handler
-          onSyncEvent?.(syncEvent);
+          onSyncEventRef.current?.(syncEvent);
 
           // Handle specific event types
           switch (syncEvent.type) {
             case 'chat_message':
               if (syncEvent.chat_message) {
-                onChatMessage?.(syncEvent.chat_message);
+                onChatMessageRef.current?.(syncEvent.chat_message);
               }
               break;
             case 'reaction':
               if (syncEvent.reaction) {
-                onReaction?.(syncEvent.reaction);
+                onReactionRef.current?.(syncEvent.reaction);
               }
               break;
             case 'typing':
               if (syncEvent.user_id) {
-                onTyping?.(syncEvent.user_id, syncEvent.is_typing || false);
+                onTypingRef.current?.(syncEvent.user_id, syncEvent.is_typing || false);
               }
               break;
           }
@@ -141,7 +151,7 @@ export function useWatchPartyWebSocket({
       setError('Failed to connect to watch party');
       console.error('WebSocket connection error:', err);
     }
-  }, [partyId, enabled, onSyncEvent, onChatMessage, onReaction, onTyping]);
+  }, [partyId, enabled]);
 
   const sendCommand = useCallback((command: Omit<WatchPartyCommand, 'party_id' | 'timestamp'>) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {

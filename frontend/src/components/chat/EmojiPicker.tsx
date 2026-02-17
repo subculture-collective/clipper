@@ -1,6 +1,7 @@
 import { Smile } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
+import { useClickOutside } from '@/hooks/useClickOutside';
 
 interface EmojiPickerProps {
   onSelect: (emoji: string) => void;
@@ -27,18 +28,7 @@ export function EmojiPicker({ onSelect }: EmojiPickerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Close picker when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [isOpen]);
+  useClickOutside(containerRef, () => setIsOpen(false), isOpen);
 
   const handleEmojiSelect = (emoji: string) => {
     onSelect(emoji);

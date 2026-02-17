@@ -58,7 +58,9 @@ const UserProfilePage = lazy(() =>
 const TagPage = lazy(() =>
     import('./pages/TagPage').then(m => ({ default: m.TagPage })),
 );
-import { SearchPage } from './pages/SearchPage';
+const SearchPage = lazy(() =>
+    import('./pages/SearchPage').then(m => ({ default: m.SearchPage })),
+);
 const AboutPage = lazy(() =>
     import('./pages/AboutPage').then(m => ({ default: m.AboutPage })),
 );
@@ -960,9 +962,9 @@ function App() {
                                         <Route
                                             path='/moderation/users'
                                             element={
-                                                <ProtectedRoute>
+                                                <AdminRoute>
                                                     <ModerationUsersPage />
-                                                </ProtectedRoute>
+                                                </AdminRoute>
                                             }
                                         />
 

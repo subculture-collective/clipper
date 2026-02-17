@@ -114,29 +114,38 @@ clpr.tv {
         }
     }
 
-    # Monitoring Services
     # Grafana - Dashboards and Visualization
     handle /grafana* {
+        @blocked not remote_ip 127.0.0.1 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
+        respond @blocked 403
         reverse_proxy clipper-grafana:3000
     }
 
     # Prometheus - Metrics and Queries
     handle /prometheus* {
+        @blocked not remote_ip 127.0.0.1 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
+        respond @blocked 403
         reverse_proxy clipper-prometheus:9090
     }
 
     # Alertmanager - Alert Management
     handle /alertmanager* {
+        @blocked not remote_ip 127.0.0.1 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
+        respond @blocked 403
         reverse_proxy clipper-alertmanager:9093
     }
 
     # Metabase - Business Intelligence
     handle /metabase* {
+        @blocked not remote_ip 127.0.0.1 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
+        respond @blocked 403
         reverse_proxy clipper-metabase:3000
     }
 
     # Jaeger - Distributed Tracing
     handle /jaeger* {
+        @blocked not remote_ip 127.0.0.1 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
+        respond @blocked 403
         reverse_proxy clipper-jaeger:16686
     }
     # Frontend (SPA) - must come last to act as catch-all

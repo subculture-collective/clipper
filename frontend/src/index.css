@@ -35,9 +35,6 @@
         min-height: 100vh;
         /* Prevent horizontal scroll on mobile */
         overflow-x: hidden;
-        /* Smooth font rendering */
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
     }
 
     h1,
@@ -185,37 +182,37 @@
     }
 
     .bg-secondary-50 {
-        background-color: #fdf4ff;
+        background-color: #fff0fb;
     }
     .bg-secondary-100 {
-        background-color: #fae8ff;
+        background-color: #ffe0f7;
     }
     .bg-secondary-200 {
-        background-color: #f5d0fe;
+        background-color: #ffc2ef;
     }
     .bg-secondary-300 {
-        background-color: #f0abfc;
+        background-color: #ff94e2;
     }
     .bg-secondary-400 {
-        background-color: #e879f9;
+        background-color: #ff5ed3;
     }
     .bg-secondary-500 {
-        background-color: #d946ef;
+        background-color: #ff2bc2;
     }
     .bg-secondary-600 {
-        background-color: #c026d3;
+        background-color: #e600a8;
     }
     .bg-secondary-700 {
-        background-color: #a21caf;
+        background-color: #b80085;
     }
     .bg-secondary-800 {
-        background-color: #86198f;
+        background-color: #8f0067;
     }
     .bg-secondary-900 {
-        background-color: #701a75;
+        background-color: #6f0052;
     }
     .bg-secondary-950 {
-        background-color: #4a044e;
+        background-color: #3f002e;
     }
 
     .bg-error-50 {

@@ -59,8 +59,8 @@ export default defineConfig(({ mode }) => ({
         },
     },
     build: {
-        // Generate source maps for production
-        sourcemap: true,
+        // Only generate source maps when Sentry will upload them (hidden = no sourceMappingURL comment in output)
+        sourcemap: !!process.env.SENTRY_AUTH_TOKEN ? 'hidden' : false,
         // Eliminate React init races by bundling entry as a single JS file
         // so React and ReactDOM initialize in the same execution unit.
         rollupOptions: {
@@ -78,7 +78,6 @@ export default defineConfig(({ mode }) => ({
                 chunkFileNames: 'assets/chunk-[hash].js',
                 assetFileNames: 'assets/[name]-[hash][extname]',
             },
-            treeshake: true,
         },
         // Split CSS per lazy-loaded route for smaller initial payloads
         cssCodeSplit: true,

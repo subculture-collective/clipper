@@ -1512,3 +1512,192 @@ AND is_removed = false
 
 	return clips, nil
 }
+
+// ListForSitemapBroadcasters returns broadcasters with 5+ clips for sitemap generation.
+func (r *ClipRepository) ListForSitemapBroadcasters(ctx context.Context) ([]models.BroadcasterWithClipCount, error) {
+	query := `
+		SELECT broadcaster_id, broadcaster_name, COUNT(*) as clip_count, COALESCE(SUM(view_count), 0) as total_views
+		FROM clips
+		WHERE is_removed = false AND broadcaster_id IS NOT NULL
+		GROUP BY broadcaster_id, broadcaster_name
+		HAVING COUNT(*) >= 5
+		ORDER BY clip_count DESC
+	`
+	rows, err := r.pool.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list sitemap broadcasters: %w", err)
+	}
+	defer rows.Close()
+
+	var broadcasters []models.BroadcasterWithClipCount
+	for rows.Next() {
+		var b models.BroadcasterWithClipCount
+		if err := rows.Scan(&b.BroadcasterID, &b.BroadcasterName, &b.ClipCount, &b.TotalViews); err != nil {
+			return nil, fmt.Errorf("failed to scan broadcaster: %w", err)
+		}
+		broadcasters = append(broadcasters, b)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating broadcasters: %w", err)
+	}
+	return broadcasters, nil
+}
+
+// ListClipsForBestOf returns top clips within a date range, ordered by vote_score.
+func (r *ClipRepository) ListClipsForBestOf(ctx context.Context, startDate, endDate time.Time, limit, offset int) ([]models.Clip, int, error) {
+	countQuery := `
+		SELECT COUNT(*)
+		FROM clips
+		WHERE is_removed = false AND created_at >= $1 AND created_at < $2
+	`
+	var total int
+	if err := r.pool.QueryRow(ctx, countQuery, startDate, endDate).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("failed to count best-of clips: %w", err)
+	}
+
+	query := `
+		SELECT
+			id, twitch_clip_id, twitch_clip_url, embed_url, title,
+			creator_name, creator_id, broadcaster_name, broadcaster_id,
+			game_id, game_name, language, thumbnail_url, duration,
+			view_count, created_at, imported_at, vote_score, comment_count,
+			favorite_count, is_featured, is_nsfw, is_removed, removed_reason, is_hidden,
+			submitted_by_user_id, submitted_at
+		FROM clips
+		WHERE is_removed = false AND created_at >= $1 AND created_at < $2
+		ORDER BY vote_score DESC, view_count DESC
+		LIMIT $3 OFFSET $4
+	`
+	rows, err := r.pool.Query(ctx, query, startDate, endDate, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to list best-of clips: %w", err)
+	}
+	defer rows.Close()
+
+	var clips []models.Clip
+	for rows.Next() {
+		var clip models.Clip
+		if err := rows.Scan(
+			&clip.ID, &clip.TwitchClipID, &clip.TwitchClipURL, &clip.EmbedURL,
+			&clip.Title, &clip.CreatorName, &clip.CreatorID, &clip.BroadcasterName,
+			&clip.BroadcasterID, &clip.GameID, &clip.GameName, &clip.Language,
+			&clip.ThumbnailURL, &clip.Duration, &clip.ViewCount, &clip.CreatedAt,
+			&clip.ImportedAt, &clip.VoteScore, &clip.CommentCount, &clip.FavoriteCount,
+			&clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason, &clip.IsHidden,
+			&clip.SubmittedByUserID, &clip.SubmittedAt,
+		); err != nil {
+			return nil, 0, fmt.Errorf("failed to scan clip: %w", err)
+		}
+		clips = append(clips, clip)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("error iterating clips: %w", err)
+	}
+	return clips, total, nil
+}
+
+// ListClipsByGame returns top clips for a game, ordered by vote_score.
+func (r *ClipRepository) ListClipsByGame(ctx context.Context, gameID string, limit, offset int) ([]models.Clip, int, error) {
+	countQuery := `
+		SELECT COUNT(*)
+		FROM clips
+		WHERE game_id = $1 AND is_removed = false
+	`
+	var total int
+	if err := r.pool.QueryRow(ctx, countQuery, gameID).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("failed to count game clips: %w", err)
+	}
+
+	query := `
+		SELECT
+			id, twitch_clip_id, twitch_clip_url, embed_url, title,
+			creator_name, creator_id, broadcaster_name, broadcaster_id,
+			game_id, game_name, language, thumbnail_url, duration,
+			view_count, created_at, imported_at, vote_score, comment_count,
+			favorite_count, is_featured, is_nsfw, is_removed, removed_reason, is_hidden,
+			submitted_by_user_id, submitted_at
+		FROM clips
+		WHERE game_id = $1 AND is_removed = false
+		ORDER BY vote_score DESC, view_count DESC
+		LIMIT $2 OFFSET $3
+	`
+	rows, err := r.pool.Query(ctx, query, gameID, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to list game clips: %w", err)
+	}
+	defer rows.Close()
+
+	var clips []models.Clip
+	for rows.Next() {
+		var clip models.Clip
+		if err := rows.Scan(
+			&clip.ID, &clip.TwitchClipID, &clip.TwitchClipURL, &clip.EmbedURL,
+			&clip.Title, &clip.CreatorName, &clip.CreatorID, &clip.BroadcasterName,
+			&clip.BroadcasterID, &clip.GameID, &clip.GameName, &clip.Language,
+			&clip.ThumbnailURL, &clip.Duration, &clip.ViewCount, &clip.CreatedAt,
+			&clip.ImportedAt, &clip.VoteScore, &clip.CommentCount, &clip.FavoriteCount,
+			&clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason, &clip.IsHidden,
+			&clip.SubmittedByUserID, &clip.SubmittedAt,
+		); err != nil {
+			return nil, 0, fmt.Errorf("failed to scan clip: %w", err)
+		}
+		clips = append(clips, clip)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("error iterating clips: %w", err)
+	}
+	return clips, total, nil
+}
+
+// ListClipsForStreamerGame returns top clips for a broadcaster+game combination.
+func (r *ClipRepository) ListClipsForStreamerGame(ctx context.Context, broadcasterID, gameID string, limit, offset int) ([]models.Clip, int, error) {
+	countQuery := `
+		SELECT COUNT(*)
+		FROM clips
+		WHERE broadcaster_id = $1 AND game_id = $2 AND is_removed = false
+	`
+	var total int
+	if err := r.pool.QueryRow(ctx, countQuery, broadcasterID, gameID).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("failed to count streamer+game clips: %w", err)
+	}
+
+	query := `
+		SELECT
+			id, twitch_clip_id, twitch_clip_url, embed_url, title,
+			creator_name, creator_id, broadcaster_name, broadcaster_id,
+			game_id, game_name, language, thumbnail_url, duration,
+			view_count, created_at, imported_at, vote_score, comment_count,
+			favorite_count, is_featured, is_nsfw, is_removed, removed_reason, is_hidden,
+			submitted_by_user_id, submitted_at
+		FROM clips
+		WHERE broadcaster_id = $1 AND game_id = $2 AND is_removed = false
+		ORDER BY vote_score DESC, view_count DESC
+		LIMIT $3 OFFSET $4
+	`
+	rows, err := r.pool.Query(ctx, query, broadcasterID, gameID, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to list streamer+game clips: %w", err)
+	}
+	defer rows.Close()
+
+	var clips []models.Clip
+	for rows.Next() {
+		var clip models.Clip
+		if err := rows.Scan(
+			&clip.ID, &clip.TwitchClipID, &clip.TwitchClipURL, &clip.EmbedURL,
+			&clip.Title, &clip.CreatorName, &clip.CreatorID, &clip.BroadcasterName,
+			&clip.BroadcasterID, &clip.GameID, &clip.GameName, &clip.Language,
+			&clip.ThumbnailURL, &clip.Duration, &clip.ViewCount, &clip.CreatedAt,
+			&clip.ImportedAt, &clip.VoteScore, &clip.CommentCount, &clip.FavoriteCount,
+			&clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason, &clip.IsHidden,
+			&clip.SubmittedByUserID, &clip.SubmittedAt,
+		); err != nil {
+			return nil, 0, fmt.Errorf("failed to scan clip: %w", err)
+		}
+		clips = append(clips, clip)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("error iterating clips: %w", err)
+	}
+	return clips, total, nil
+}

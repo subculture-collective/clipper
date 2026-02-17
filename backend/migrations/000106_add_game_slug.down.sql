@@ -1,0 +1,2 @@
+DROP INDEX IF EXISTS idx_games_slug;
+ALTER TABLE games DROP COLUMN IF EXISTS slug;

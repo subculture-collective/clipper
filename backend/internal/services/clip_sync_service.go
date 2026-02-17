@@ -765,7 +765,7 @@ func (s *ClipSyncService) applyStreamerTags(ctx context.Context, clip *models.Cl
 		if name == "" {
 			continue
 		}
-		slug := slugifyTag(name)
+		slug := utils.Slugify(name)
 		if slug == "" || seen[slug] {
 			continue
 		}
@@ -809,15 +809,6 @@ func languageMatches(clipLang, filter string) bool {
 	return clipLang == filter || strings.HasPrefix(clipLang, filter+"-")
 }
 
-func slugifyTag(s string) string {
-	s = strings.ToLower(s)
-	reg := regexp.MustCompile(`[^a-z0-9\s-]`)
-	s = reg.ReplaceAllString(s, "")
-	s = strings.TrimSpace(s)
-	s = regexp.MustCompile(`\s+`).ReplaceAllString(s, "-")
-	s = strings.Trim(s, "-")
-	return s
-}
 
 // ExtractClipID extracts the clip ID from a Twitch clip URL or returns the ID if already provided
 func ExtractClipID(clipURLOrID string) string {

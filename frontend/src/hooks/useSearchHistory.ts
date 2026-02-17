@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { searchApi } from '../lib/search-api';
+import { useAuth } from '../context/AuthContext';
 import type { SearchHistoryItem } from '../types/search';
 
 /**
@@ -10,13 +11,7 @@ export function useSearchHistory() {
   const [history, setHistory] = useState<SearchHistoryItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  // Check if user is authenticated
-  useEffect(() => {
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-    setIsAuthenticated(!!token);
-  }, []);
+  const { isAuthenticated } = useAuth();
 
   // Load history from backend or localStorage
   const loadHistory = useCallback(async () => {

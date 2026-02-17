@@ -9,6 +9,7 @@ import (
 
 	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/internal/repository"
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
 // AutoTagService handles automatic tag generation for clips
@@ -245,31 +246,13 @@ func (s *AutoTagService) ApplyAutoTags(ctx context.Context, clip *models.Clip) e
 	return nil
 }
 
-// slugify converts a string to a URL-friendly slug
+// slugify converts a string to a URL-friendly slug for tag creation.
+// Delegates to utils.Slugify and truncates to 50 chars for tag DB storage.
 func slugify(s string) string {
-	// Convert to lowercase
-	s = strings.ToLower(s)
-
-	// Remove special characters, keep alphanumeric and spaces
-	reg := regexp.MustCompile(`[^a-z0-9\s-]`)
-	s = reg.ReplaceAllString(s, "")
-
-	// Replace spaces with hyphens
-	s = strings.TrimSpace(s)
-	s = regexp.MustCompile(`\s+`).ReplaceAllString(s, "-")
-
-	// Remove multiple consecutive hyphens
-	s = regexp.MustCompile(`-+`).ReplaceAllString(s, "-")
-
-	// Trim hyphens from start and end
-	s = strings.Trim(s, "-")
-
-	// Limit length
+	s = utils.Slugify(s)
 	if len(s) > 50 {
-		s = s[:50]
-		s = strings.TrimRight(s, "-")
+		s = strings.TrimRight(s[:50], "-")
 	}
-
 	return s
 }
 

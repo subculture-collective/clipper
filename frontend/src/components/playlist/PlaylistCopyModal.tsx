@@ -1,5 +1,5 @@
 import { X } from 'lucide-react';
-import { PlaylistForm, PlaylistFormValues } from './PlaylistForm';
+import { PlaylistForm, type PlaylistFormValues } from './PlaylistForm';
 
 interface PlaylistCopyModalProps {
     initialValues: PlaylistFormValues;

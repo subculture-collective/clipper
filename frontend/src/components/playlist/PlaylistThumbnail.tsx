@@ -2,13 +2,11 @@ import type { PlaylistClipRef } from '@/types/playlist';
 
 interface PlaylistThumbnailProps {
     clips?: PlaylistClipRef[];
-    title?: string;
     className?: string;
 }
 
 export function PlaylistThumbnail({
     clips,
-    title,
     className = '',
 }: PlaylistThumbnailProps) {
     // Get first 4 clips for the grid

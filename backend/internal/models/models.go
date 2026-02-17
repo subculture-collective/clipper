@@ -2113,6 +2113,7 @@ type GameEntity struct {
 	ID           uuid.UUID `json:"id" db:"id"`
 	TwitchGameID string    `json:"twitch_game_id" db:"twitch_game_id"`
 	Name         string    `json:"name" db:"name"`
+	Slug         string    `json:"slug" db:"slug"`
 	BoxArtURL    *string   `json:"box_art_url,omitempty" db:"box_art_url"`
 	IGDBID       *string   `json:"igdb_id,omitempty" db:"igdb_id"`
 	CreatedAt    time.Time `json:"created_at" db:"created_at"`
