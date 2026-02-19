@@ -181,7 +181,9 @@ func initServices(cfg *config.Config, repos *Repositories, infra *Infrastructure
 
 	// Initialize playlist service
 	playlistService := services.NewPlaylistService(repos.Playlist, repos.Clip, cfg.Server.BaseURL)
-	playlistScriptService := services.NewPlaylistScriptService(repos.PlaylistScript, repos.Playlist, repos.Clip)
+	// Note: clipSyncService is initialized later (line ~268) and may be nil when Twitch is not configured.
+	// We set it on playlistScriptService after clipSyncService is created.
+	playlistScriptService := services.NewPlaylistScriptService(repos.PlaylistScript, repos.Playlist, repos.Clip, repos.PlaylistCuration, nil)
 
 	// Initialize queue service
 	queueService := services.NewQueueService(repos.Queue, repos.Clip, playlistService)
@@ -270,6 +272,8 @@ func initServices(cfg *config.Config, repos *Repositories, infra *Infrastructure
 		liveStatusService = services.NewLiveStatusService(repos.Broadcaster, repos.StreamFollow, infra.TwitchClient)
 		// Set notification service for live status notifications
 		liveStatusService.SetNotificationService(notificationService)
+		// Enable Twitch-powered playlist strategies
+		playlistScriptService.SetClipSyncService(clipSyncService)
 	}
 
 	// Initialize Twitch-related services

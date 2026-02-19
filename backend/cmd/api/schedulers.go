@@ -18,7 +18,8 @@ type SchedulerGroup struct {
 	Embedding       *scheduler.EmbeddingScheduler // may be nil
 	Export          *scheduler.ExportScheduler
 	EmailMetrics    *scheduler.EmailMetricsScheduler
-	LiveStatus      *scheduler.LiveStatusScheduler // may be nil
+	LiveStatus      *scheduler.LiveStatusScheduler       // may be nil
+	PlaylistScript  *scheduler.PlaylistScriptScheduler
 }
 
 func startSchedulers(svcs *Services, repos *Repositories, infra *Infrastructure) *SchedulerGroup {
@@ -74,6 +75,10 @@ func startSchedulers(svcs *Services, repos *Repositories, infra *Infrastructure)
 		sg.LiveStatus = scheduler.NewLiveStatusScheduler(svcs.LiveStatus, repos.Broadcaster, 30)
 		go sg.LiveStatus.Start(context.Background())
 	}
+
+	// Start playlist script scheduler (checks every 5 minutes for due scripts)
+	sg.PlaylistScript = scheduler.NewPlaylistScriptScheduler(svcs.PlaylistScript, 5)
+	go sg.PlaylistScript.Start(context.Background())
 
 	return sg
 }

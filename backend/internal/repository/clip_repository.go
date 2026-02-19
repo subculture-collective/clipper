@@ -141,6 +141,63 @@ func (r *ClipRepository) GetByTwitchClipID(ctx context.Context, twitchClipID str
 	return &clip, nil
 }
 
+// GetByTwitchClipIDs retrieves multiple clips by their Twitch clip IDs, preserving the input order.
+func (r *ClipRepository) GetByTwitchClipIDs(ctx context.Context, twitchClipIDs []string) ([]models.Clip, error) {
+	if len(twitchClipIDs) == 0 {
+		return nil, nil
+	}
+
+	query := `
+		SELECT
+			id, twitch_clip_id, twitch_clip_url, embed_url, title,
+			creator_name, creator_id, broadcaster_name, broadcaster_id,
+			game_id, game_name, language, thumbnail_url, duration,
+			view_count, created_at, imported_at, vote_score, comment_count,
+			favorite_count, is_featured, is_nsfw, is_removed, removed_reason, is_hidden,
+			submitted_by_user_id, submitted_at,
+			stream_source, status, video_url, processed_at, quality, start_time, end_time
+		FROM clips
+		WHERE twitch_clip_id = ANY($1)
+		  AND is_removed = false
+	`
+
+	rows, err := r.pool.Query(ctx, query, twitchClipIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get clips by twitch IDs: %w", err)
+	}
+	defer rows.Close()
+
+	// Build a map for order preservation
+	clipMap := make(map[string]models.Clip, len(twitchClipIDs))
+	for rows.Next() {
+		var clip models.Clip
+		err := rows.Scan(
+			&clip.ID, &clip.TwitchClipID, &clip.TwitchClipURL, &clip.EmbedURL,
+			&clip.Title, &clip.CreatorName, &clip.CreatorID, &clip.BroadcasterName,
+			&clip.BroadcasterID, &clip.GameID, &clip.GameName, &clip.Language,
+			&clip.ThumbnailURL, &clip.Duration, &clip.ViewCount, &clip.CreatedAt,
+			&clip.ImportedAt, &clip.VoteScore, &clip.CommentCount, &clip.FavoriteCount,
+			&clip.IsFeatured, &clip.IsNSFW, &clip.IsRemoved, &clip.RemovedReason, &clip.IsHidden,
+			&clip.SubmittedByUserID, &clip.SubmittedAt,
+			&clip.StreamSource, &clip.Status, &clip.VideoURL, &clip.ProcessedAt, &clip.Quality, &clip.StartTime, &clip.EndTime,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan clip: %w", err)
+		}
+		clipMap[clip.TwitchClipID] = clip
+	}
+
+	// Preserve input order (Twitch returns by view count desc)
+	clips := make([]models.Clip, 0, len(clipMap))
+	for _, tid := range twitchClipIDs {
+		if clip, ok := clipMap[tid]; ok {
+			clips = append(clips, clip)
+		}
+	}
+
+	return clips, nil
+}
+
 // UpdateViewCount updates the view count for a clip
 func (r *ClipRepository) UpdateViewCount(ctx context.Context, twitchClipID string, viewCount int) error {
 	query := `

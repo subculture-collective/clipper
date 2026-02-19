@@ -46,6 +46,7 @@ type Repositories struct {
 	Recommendation        *repository.RecommendationRepository
 	Playlist              *repository.PlaylistRepository
 	PlaylistScript        *repository.PlaylistScriptRepository
+	PlaylistCuration      *repository.PlaylistCurationRepository
 	Queue                 *repository.QueueRepository
 	WatchHistory          *repository.WatchHistoryRepository
 	Stream                *repository.StreamRepository
@@ -99,6 +100,7 @@ func initRepositories(pool *pgxpool.Pool) *Repositories {
 		Recommendation:        repository.NewRecommendationRepository(pool),
 		Playlist:              repository.NewPlaylistRepository(pool),
 		PlaylistScript:        repository.NewPlaylistScriptRepository(pool),
+		PlaylistCuration:      repository.NewPlaylistCurationRepository(pool),
 		Queue:                 repository.NewQueueRepository(pool),
 		WatchHistory:          repository.NewWatchHistoryRepository(pool),
 		Stream:                repository.NewStreamRepository(pool),

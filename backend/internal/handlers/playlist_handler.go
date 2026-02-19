@@ -1624,3 +1624,72 @@ func (h *PlaylistHandler) UpdateCollaboratorPermission(c *gin.Context) {
 		},
 	})
 }
+
+// ListFeaturedPlaylists handles GET /api/v1/playlists/featured
+func (h *PlaylistHandler) ListFeaturedPlaylists(c *gin.Context) {
+	page := 1
+	limit := 20
+
+	if p := c.Query("page"); p != "" {
+		if val, err := strconv.Atoi(p); err == nil && val > 0 {
+			page = val
+		}
+	}
+	if l := c.Query("limit"); l != "" {
+		if val, err := strconv.Atoi(l); err == nil && val > 0 && val <= 100 {
+			limit = val
+		}
+	}
+
+	playlists, total, err := h.playlistService.ListFeaturedPlaylists(c.Request.Context(), page, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Failed to list featured playlists",
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, StandardResponse{
+		Success: true,
+		Data:    playlists,
+		Meta: map[string]interface{}{
+			"page":  page,
+			"limit": limit,
+			"total": total,
+		},
+	})
+}
+
+// GetPlaylistOfTheDay handles GET /api/v1/playlists/today
+func (h *PlaylistHandler) GetPlaylistOfTheDay(c *gin.Context) {
+	playlist, err := h.playlistService.GetPlaylistOfTheDay(c.Request.Context())
+	if err != nil {
+		if strings.Contains(err.Error(), "no rows") {
+			c.JSON(http.StatusNotFound, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{
+					Code:    "NOT_FOUND",
+					Message: "No playlist of the day available",
+				},
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{
+				Code:    "INTERNAL_ERROR",
+				Message: "Failed to get playlist of the day",
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, StandardResponse{
+		Success: true,
+		Data:    playlist,
+	})
+}

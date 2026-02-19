@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/pprof"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -20,8 +21,19 @@ func registerPublicRoutes(r *gin.Engine, v1 *gin.RouterGroup, h *Handlers, svcs 
 	// Programmatic SEO pages (server-rendered HTML for crawlers)
 	r.GET("/clips/streamer/:broadcasterName", h.Pages.GetStreamerPage)
 	r.GET("/clips/game/:gameSlug", h.Pages.GetGamePage)
-	r.GET("/clips/best/:period", h.Pages.GetBestOfPage)
-	r.GET("/clips/best/:year/:month", h.Pages.GetBestOfMonthPage)
+	r.GET("/clips/best/*path", func(c *gin.Context) {
+		path := strings.TrimPrefix(c.Param("path"), "/")
+		parts := strings.SplitN(path, "/", 2)
+
+		if len(parts) == 2 {
+			c.Params = append(c.Params, gin.Param{Key: "year", Value: parts[0]}, gin.Param{Key: "month", Value: parts[1]})
+			h.Pages.GetBestOfMonthPage(c)
+			return
+		}
+
+		c.Params = append(c.Params, gin.Param{Key: "period", Value: path})
+		h.Pages.GetBestOfPage(c)
+	})
 	r.GET("/clips/streamer/:broadcasterName/:gameSlug", h.Pages.GetStreamerGamePage)
 
 	// Health check endpoints (additional checks requiring middleware)

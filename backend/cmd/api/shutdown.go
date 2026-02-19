@@ -40,6 +40,7 @@ func gracefulShutdown(srv *http.Server, svcs *Services, schedulers *SchedulerGro
 	if schedulers.LiveStatus != nil {
 		schedulers.LiveStatus.Stop()
 	}
+	schedulers.PlaylistScript.Stop()
 
 	// Close embedding service if running
 	if svcs.Embedding != nil {
