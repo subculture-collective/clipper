@@ -1793,6 +1793,13 @@ type BroadcasterProfile struct {
 	UpdatedAt       time.Time `json:"updated_at"`
 }
 
+// PopularBroadcaster represents a broadcaster with their clip count for the popular broadcasters listing
+type PopularBroadcaster struct {
+	BroadcasterID   string `json:"broadcaster_id"`
+	BroadcasterName string `json:"broadcaster_name"`
+	ClipCount       int    `json:"clip_count"`
+}
+
 // EmailLog represents a comprehensive email event log from SendGrid webhooks
 type EmailLog struct {
 	ID                uuid.UUID  `json:"id" db:"id"`

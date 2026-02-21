@@ -166,3 +166,25 @@ export async function fetchFollowedLiveBroadcasters(): Promise<FollowedLiveBroad
   );
   return response.data;
 }
+
+/**
+ * Popular broadcaster for navigation listing
+ */
+export interface PopularBroadcaster {
+  broadcaster_id: string;
+  broadcaster_name: string;
+  clip_count: number;
+}
+
+/**
+ * Fetch popular broadcasters ordered by clip count
+ */
+export async function fetchPopularBroadcasters(
+  limit: number = 20
+): Promise<PopularBroadcaster[]> {
+  const response = await apiClient.get<{ broadcasters: PopularBroadcaster[] }>(
+    `/broadcasters/popular`,
+    { params: { limit } }
+  );
+  return response.data.broadcasters;
+}

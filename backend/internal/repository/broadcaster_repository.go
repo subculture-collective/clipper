@@ -536,3 +536,34 @@ func (r *BroadcasterRepository) ListBroadcasterGames(ctx context.Context, broadc
 	}
 	return games, nil
 }
+
+// ListPopularBroadcasters returns broadcasters ordered by clip count
+func (r *BroadcasterRepository) ListPopularBroadcasters(ctx context.Context, limit int) ([]models.PopularBroadcaster, error) {
+	query := `
+		SELECT broadcaster_id, broadcaster_name, COUNT(*) as clip_count
+		FROM clips
+		WHERE is_removed = false AND broadcaster_id IS NOT NULL AND broadcaster_name IS NOT NULL
+		GROUP BY broadcaster_id, broadcaster_name
+		ORDER BY clip_count DESC
+		LIMIT $1
+	`
+
+	rows, err := r.pool.Query(ctx, query, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list popular broadcasters: %w", err)
+	}
+	defer rows.Close()
+
+	broadcasters := make([]models.PopularBroadcaster, 0)
+	for rows.Next() {
+		var b models.PopularBroadcaster
+		if err := rows.Scan(&b.BroadcasterID, &b.BroadcasterName, &b.ClipCount); err != nil {
+			return nil, fmt.Errorf("failed to scan popular broadcaster: %w", err)
+		}
+		broadcasters = append(broadcasters, b)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating popular broadcasters: %w", err)
+	}
+	return broadcasters, nil
+}

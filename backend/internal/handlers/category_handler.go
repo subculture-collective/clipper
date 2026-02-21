@@ -178,40 +178,51 @@ func (h *CategoryHandler) ListCategoryClips(c *gin.Context) {
 		return
 	}
 
-	// If no games in category, return empty result
-	if len(games) == 0 {
-		c.JSON(http.StatusOK, gin.H{
-			"clips":    []interface{}{},
-			"total":    0,
-			"page":     page,
-			"limit":    limit,
-			"has_more": false,
-		})
-		return
+	// Fetch clips from games in the category, or fall back to recent clips
+	allClips := make([]models.Clip, 0)
+
+	if len(games) > 0 {
+		for _, game := range games {
+			gameID := game.TwitchGameID
+			filters := repository.ClipFilters{
+				GameID:    &gameID,
+				Sort:      sort,
+				Timeframe: &timeframe,
+			}
+
+			clips, _, err := h.clipRepo.ListWithFilters(c.Request.Context(), filters, 200, 0)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "Failed to fetch clips",
+				})
+				return
+			}
+
+			allClips = append(allClips, clips...)
+		}
 	}
 
-	// Fetch clips from all games in the category
-	// We'll fetch more clips than needed and then paginate
-	allClips := []models.Clip{}
-
-	for _, game := range games {
-		gameID := game.TwitchGameID
+	// Fallback: if no clips found (no games or games have no clips), show recent clips
+	if len(allClips) == 0 {
 		filters := repository.ClipFilters{
-			GameID:    &gameID,
 			Sort:      sort,
 			Timeframe: &timeframe,
 		}
-
-		// Fetch a larger batch to account for filtering
-		clips, _, err := h.clipRepo.ListWithFilters(c.Request.Context(), filters, 1000, 0)
+		fallbackClips, _, err := h.clipRepo.ListWithFilters(c.Request.Context(), filters, limit, offset)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": "Failed to fetch clips",
 			})
 			return
 		}
-
-		allClips = append(allClips, clips...)
+		c.JSON(http.StatusOK, gin.H{
+			"clips":    fallbackClips,
+			"total":    len(fallbackClips),
+			"page":     page,
+			"limit":    limit,
+			"has_more": len(fallbackClips) >= limit,
+		})
+		return
 	}
 
 	// Calculate pagination
@@ -226,7 +237,7 @@ func (h *CategoryHandler) ListCategoryClips(c *gin.Context) {
 		end = total
 	}
 
-	paginatedClips := []models.Clip{}
+	paginatedClips := make([]models.Clip, 0)
 	if start < total {
 		paginatedClips = allClips[start:end]
 	}

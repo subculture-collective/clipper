@@ -206,6 +206,27 @@ func (h *BroadcasterHandler) UnfollowBroadcaster(c *gin.Context) {
 
 // ListBroadcasterClips returns all clips for a broadcaster
 // GET /api/v1/broadcasters/:id/clips
+// ListPopularBroadcasters handles GET /api/v1/broadcasters/popular
+func (h *BroadcasterHandler) ListPopularBroadcasters(c *gin.Context) {
+	limitStr := c.DefaultQuery("limit", "20")
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit < 1 || limit > 100 {
+		limit = 20
+	}
+
+	broadcasters, err := h.broadcasterRepo.ListPopularBroadcasters(c.Request.Context(), limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch popular broadcasters"})
+		return
+	}
+
+	if broadcasters == nil {
+		broadcasters = []models.PopularBroadcaster{}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"broadcasters": broadcasters})
+}
+
 func (h *BroadcasterHandler) ListBroadcasterClips(c *gin.Context) {
 	broadcasterID := c.Param("id")
 	if broadcasterID == "" {
