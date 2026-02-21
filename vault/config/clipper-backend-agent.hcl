@@ -39,3 +39,11 @@ template {
   left_delimiter  = "{{"
   right_delimiter = "}}"
 }
+
+template {
+  source      = "/vault-agent/templates/frontend.env.ctmpl"
+  destination = "/vault-agent/rendered/frontend.env"
+  perms       = "0640"
+  left_delimiter  = "{{"
+  right_delimiter = "}}"
+}

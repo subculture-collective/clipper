@@ -39,6 +39,9 @@ export const useCreateFilterPreset = () => {
                 queryKey: ['filterPresets', variables.userId],
             });
         },
+        onError: (error) => {
+            console.error('Failed to create filter preset:', error);
+        },
     });
 };
 
@@ -63,6 +66,9 @@ export const useUpdateFilterPreset = () => {
                 queryKey: ['filterPresets', variables.userId],
             });
         },
+        onError: (error) => {
+            console.error('Failed to update filter preset:', error);
+        },
     });
 };
 
@@ -84,6 +90,9 @@ export const useDeleteFilterPreset = () => {
             queryClient.invalidateQueries({
                 queryKey: ['filterPresets', variables.userId],
             });
+        },
+        onError: (error) => {
+            console.error('Failed to delete filter preset:', error);
         },
     });
 };

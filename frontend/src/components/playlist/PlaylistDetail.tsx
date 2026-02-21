@@ -139,6 +139,24 @@ export function PlaylistDetail() {
         queryClient.invalidateQueries({ queryKey: ['playlist', id] });
     }, [id, queryClient]);
 
+    const copyInitialValues = useMemo(
+        () =>
+            data?.data ?
+                {
+                    title: `Copy of ${data.data.title}`,
+                    description: data.data.description || '',
+                    cover_url: data.data.cover_url || '',
+                    visibility: 'private' as const,
+                }
+            :   {
+                    title: '',
+                    description: '',
+                    cover_url: '',
+                    visibility: 'private' as const,
+                },
+        [data?.data],
+    );
+
     const handleVisibilityChange = useCallback(
         async (nextVisibility: 'private' | 'public' | 'unlisted') => {
             if (!id) return;
@@ -193,16 +211,6 @@ export function PlaylistDetail() {
         currentPermission === 'edit' ||
         currentPermission === 'admin';
     const canCopy = !!user;
-
-    const copyInitialValues = useMemo(
-        () => ({
-            title: `Copy of ${playlist.title}`,
-            description: playlist.description || '',
-            cover_url: playlist.cover_url || '',
-            visibility: 'private' as const,
-        }),
-        [playlist],
-    );
 
     const getVisibilityIcon = () => {
         switch (playlist.visibility) {

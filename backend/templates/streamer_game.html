@@ -1,0 +1,20 @@
+{{define "content"}}
+<h1>{{.BroadcasterName}} playing {{.Game.Name}}</h1>
+<p class="meta">{{.Total}} clips</p>
+
+<p style="margin-bottom:1.5rem">
+  <a class="cta-btn" href="/clips/streamer/{{.BroadcasterName}}">All {{.BroadcasterName}} clips &rarr;</a>
+  &nbsp;
+  <a class="cta-btn" href="/clips/game/{{slugify .Game.Name}}">All {{.Game.Name}} clips &rarr;</a>
+</p>
+
+{{if .Clips}}
+<div class="clip-grid">
+  {{range .Clips}}
+  {{template "clip_card" .}}
+  {{end}}
+</div>
+{{else}}
+<p class="empty">No clips found for this combination.</p>
+{{end}}
+{{end}}

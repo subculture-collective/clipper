@@ -29,6 +29,9 @@ WORKDIR /root/
 # Copy binary from builder
 COPY --from=builder /app/bin/api .
 
+# Copy pSEO HTML templates
+COPY --from=builder /app/templates ./templates/
+
 # Expose port
 EXPOSE 8080
 

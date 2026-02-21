@@ -42,7 +42,6 @@ export interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-    console.log('[AuthProvider] Initializing...');
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const autoLoginAttemptedRef = useRef(false);
@@ -74,7 +73,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         autoLoginAttemptedRef.current = true;
         try {
-            console.log('[AuthContext] Attempting test auto-login for E2E...');
             const autoUser = await testLogin({
                 username: autoLoginUser,
                 user_id: autoLoginUserId,
@@ -90,13 +88,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Check for existing session on mount
     const checkAuth = useCallback(async () => {
         try {
-            console.log('[AuthContext] Starting checkAuth...');
             const currentUser = await getCurrentUser();
-            console.log('[AuthContext] Got current user:', currentUser);
             applyUserContext(currentUser);
-        } catch (error) {
+        } catch {
             // Not authenticated or session expired
-            console.log('[AuthContext] No auth or error:', error);
             try {
                 const { clearAuthStorage } =
                     await import('../lib/auth-storage');
@@ -114,7 +109,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 resetUser();
             }
         } finally {
-            console.log('[AuthContext] Setting isLoading to false');
             setIsLoading(false);
         }
     }, [applyUserContext, tryAutoLogin]);
@@ -154,12 +148,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [handleUnauthorized]);
 
     // Initiate OAuth login flow with PKCE
-    const login = async () => {
+    const login = useCallback(async () => {
         await initiateOAuth();
-    };
+    }, []);
 
     // Logout user
-    const logout = async () => {
+    const logout = useCallback(async () => {
         try {
             // Track logout event before resetting user
             const pagePath =
@@ -187,10 +181,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             clearSentryUser();
             resetUser();
         }
-    };
+    }, []);
 
     // Refresh user data
-    const refreshUser = async () => {
+    const refreshUser = useCallback(async () => {
         try {
             const currentUser = await getCurrentUser();
             applyUserContext(currentUser);
@@ -200,7 +194,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             clearSentryUser();
             resetUser();
         }
-    };
+    }, [applyUserContext]);
 
     const isAuthenticated = user !== null;
     const isAdmin = user?.role === 'admin';

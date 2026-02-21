@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/subculture-collective/clipper/internal/models"
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
 func TestAutoTagService_PatternMatching(t *testing.T) {
@@ -168,7 +169,7 @@ func TestAutoTagService_SlugGeneration(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := slugify(tt.input) // Call slugify function
+			result := utils.Slugify(tt.input)
 			if result != tt.expected {
 				t.Errorf("Expected slug '%s', got '%s'", tt.expected, result)
 			}
@@ -238,27 +239,3 @@ func contains(text, substr string) bool {
 	return strings.Contains(text, substr)
 }
 
-func slugify(s string) string {
-	// Simple slugify implementation for testing
-	result := ""
-	prevWasDash := false
-
-	for _, r := range toLower(s) {
-		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') {
-			result += string(r)
-			prevWasDash = false
-		} else if r == ' ' || r == '-' {
-			if !prevWasDash && result != "" {
-				result += "-"
-				prevWasDash = true
-			}
-		}
-	}
-
-	// Trim trailing dash
-	if result != "" && result[len(result)-1] == '-' {
-		result = result[:len(result)-1]
-	}
-
-	return result
-}

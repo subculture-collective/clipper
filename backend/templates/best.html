@@ -1,0 +1,18 @@
+{{define "content"}}
+<h1>Best Twitch Clips: {{.Period}}</h1>
+<p class="meta">{{.Total}} clips &middot; {{.StartDate.Format "Jan 2, 2006"}} &ndash; {{.EndDate.Format "Jan 2, 2006"}}</p>
+
+<p style="margin-bottom:1.5rem">
+  <a class="cta-btn" href="/top">Browse all top clips &rarr;</a>
+</p>
+
+{{if .TopClips}}
+<div class="clip-grid">
+  {{range .TopClips}}
+  {{template "clip_card" .}}
+  {{end}}
+</div>
+{{else}}
+<p class="empty">No clips found for this period.</p>
+{{end}}
+{{end}}

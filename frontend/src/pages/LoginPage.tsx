@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useLocation, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { Container, Card, CardHeader, CardBody, Button, Stack } from '../components';
 import { useAuth } from '../context/AuthContext';
 
@@ -59,7 +59,10 @@ export function LoginPage() {
             </Button>
 
             <div className="text-xs text-center text-muted-foreground">
-              By continuing, you agree to our Terms of Service and Privacy Policy
+              By continuing, you agree to our{' '}
+              <Link to="/terms" className="underline hover:text-foreground">Terms of Service</Link>
+              {' '}and{' '}
+              <Link to="/privacy" className="underline hover:text-foreground">Privacy Policy</Link>
             </div>
           </Stack>
         </CardBody>

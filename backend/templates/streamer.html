@@ -1,0 +1,28 @@
+{{define "content"}}
+<h1>{{.BroadcasterName}} Clips</h1>
+<p class="meta">{{.TotalClips}} clips &middot; {{formatViews .TotalViews}} total views &middot; {{.FollowerCount}} followers on clpr.tv</p>
+
+<p style="margin-bottom:1.5rem">
+  <a class="cta-btn" href="/broadcaster/{{.BroadcasterID}}">View interactive profile &rarr;</a>
+</p>
+
+{{if .GamesPlayed}}
+<h2>Games Played</h2>
+<div class="tag-list">
+  {{range .GamesPlayed}}
+  <a class="tag" href="/clips/streamer/{{$.BroadcasterName}}/{{slugify .Name}}">{{.Name}} ({{.ClipCount}})</a>
+  {{end}}
+</div>
+{{end}}
+
+{{if .TopClips}}
+<h2>Top Clips</h2>
+<div class="clip-grid">
+  {{range .TopClips}}
+  {{template "clip_card" .}}
+  {{end}}
+</div>
+{{else}}
+<p class="empty">No clips found for this streamer.</p>
+{{end}}
+{{end}}

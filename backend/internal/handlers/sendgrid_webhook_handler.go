@@ -483,14 +483,24 @@ func parseDERSignature(sigBytes []byte) (*big.Int, *big.Int, error) {
 	return r, s, nil
 }
 
-// parseECDSAPublicKey parses an ECDSA public key from PEM format
-func parseECDSAPublicKey(publicKeyPEM string) (*ecdsa.PublicKey, error) {
-	block, _ := pem.Decode([]byte(publicKeyPEM))
-	if block == nil {
-		return nil, fmt.Errorf("failed to parse PEM block")
+// parseECDSAPublicKey parses an ECDSA public key from PEM or raw base64 DER format.
+// SendGrid provides verification keys as raw base64-encoded DER, so both formats are supported.
+func parseECDSAPublicKey(publicKeyStr string) (*ecdsa.PublicKey, error) {
+	var derBytes []byte
+
+	block, _ := pem.Decode([]byte(publicKeyStr))
+	if block != nil {
+		derBytes = block.Bytes
+	} else {
+		// Try raw base64 DER (SendGrid format)
+		decoded, err := base64.StdEncoding.DecodeString(publicKeyStr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse as PEM or base64 DER: %w", err)
+		}
+		derBytes = decoded
 	}
 
-	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
+	pub, err := x509.ParsePKIXPublicKey(derBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse public key: %w", err)
 	}

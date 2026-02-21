@@ -1,6 +1,7 @@
 import { formatTimestamp } from '../lib/utils';
 import { useCallback, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { apiClient } from '../lib/api';
 
 import {
     Card,
@@ -68,13 +69,8 @@ export function ProfilePage() {
         try {
             setLoadingReputation(true);
             setReputationError(false);
-            const response = await fetch(`/api/v1/users/${user.id}/reputation`);
-            if (response.ok) {
-                const data = await response.json();
-                setReputation(data);
-            } else {
-                setReputationError(true);
-            }
+            const { data } = await apiClient.get(`/users/${user.id}/reputation`);
+            setReputation(data);
         } catch (error) {
             console.error('Failed to fetch reputation:', error);
             setReputationError(true);
@@ -86,13 +82,8 @@ export function ProfilePage() {
     const fetchKarmaBreakdown = useCallback(async () => {
         if (!user) return;
         try {
-            const response = await fetch(
-                `/api/v1/users/${user.id}/karma?limit=10`,
-            );
-            if (response.ok) {
-                const data = await response.json();
-                setKarmaBreakdown(data.breakdown);
-            }
+            const { data } = await apiClient.get(`/users/${user.id}/karma?limit=10`);
+            setKarmaBreakdown(data.breakdown);
         } catch (error) {
             console.error('Failed to fetch karma breakdown:', error);
         }

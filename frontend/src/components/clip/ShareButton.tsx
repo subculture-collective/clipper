@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useToast } from '@/hooks';
+import { useClickOutside } from '@/hooks/useClickOutside';
 
 interface ShareButtonProps {
     clipId: string;
@@ -77,22 +78,7 @@ export function ShareButton({ clipId, clipTitle }: ShareButtonProps) {
     };
 
     // Close dropdown when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (
-                dropdownRef.current &&
-                !dropdownRef.current.contains(event.target as Node)
-            ) {
-                setIsOpen(false);
-            }
-        };
-
-        if (isOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
-            return () =>
-                document.removeEventListener('mousedown', handleClickOutside);
-        }
-    }, [isOpen]);
+    useClickOutside(dropdownRef, () => setIsOpen(false), isOpen);
 
     return (
         <div className='relative' ref={dropdownRef}>

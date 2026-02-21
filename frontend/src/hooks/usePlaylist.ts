@@ -166,6 +166,9 @@ export const useCreatePlaylist = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['playlists'] });
         },
+        onError: (error) => {
+            console.error('Failed to create playlist:', error);
+        },
     });
 };
 
@@ -184,6 +187,9 @@ export const useUpdatePlaylist = () => {
             queryClient.invalidateQueries({ queryKey: ['playlist', id] });
             queryClient.invalidateQueries({ queryKey: ['playlists'] });
         },
+        onError: (error) => {
+            console.error('Failed to update playlist:', error);
+        },
     });
 };
 
@@ -196,6 +202,9 @@ export const useCopyPlaylist = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['playlists'] });
         },
+        onError: (error) => {
+            console.error('Failed to copy playlist:', error);
+        },
     });
 };
 
@@ -206,6 +215,9 @@ export const useDeletePlaylist = () => {
         mutationFn: deletePlaylist,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['playlists'] });
+        },
+        onError: (error) => {
+            console.error('Failed to delete playlist:', error);
         },
     });
 };
@@ -223,6 +235,9 @@ export const useAddClipsToPlaylist = () => {
         }) => addClipsToPlaylist(id, data),
         onSuccess: (_, { id }) => {
             queryClient.invalidateQueries({ queryKey: ['playlist', id] });
+        },
+        onError: (error) => {
+            console.error('Failed to add clips to playlist:', error);
         },
     });
 };
@@ -243,6 +258,9 @@ export const useRemoveClipFromPlaylist = () => {
                 queryKey: ['playlist', playlistId],
             });
         },
+        onError: (error) => {
+            console.error('Failed to remove clip from playlist:', error);
+        },
     });
 };
 
@@ -260,6 +278,9 @@ export const useReorderPlaylistClips = () => {
         onSuccess: (_, { id }) => {
             queryClient.invalidateQueries({ queryKey: ['playlist', id] });
         },
+        onError: (error) => {
+            console.error('Failed to reorder playlist clips:', error);
+        },
     });
 };
 
@@ -272,6 +293,9 @@ export const useLikePlaylist = () => {
             queryClient.invalidateQueries({ queryKey: ['playlist', id] });
             queryClient.invalidateQueries({ queryKey: ['playlists'] });
         },
+        onError: (error) => {
+            console.error('Failed to like playlist:', error);
+        },
     });
 };
 
@@ -283,6 +307,9 @@ export const useUnlikePlaylist = () => {
         onSuccess: (_, id) => {
             queryClient.invalidateQueries({ queryKey: ['playlist', id] });
             queryClient.invalidateQueries({ queryKey: ['playlists'] });
+        },
+        onError: (error) => {
+            console.error('Failed to unlike playlist:', error);
         },
     });
 };

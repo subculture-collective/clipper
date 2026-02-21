@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useClickOutside } from '../../hooks/useClickOutside';
 import { useMenuKeyboard } from '../../hooks/useMenuKeyboard';
 import { UserRoleBadge } from '../user';
 import type { UserRole } from '../../lib/roles';
@@ -22,24 +23,7 @@ export function UserMenu() {
     const prevIsOpenRef = useRef<boolean>(false);
 
     // Close menu when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (
-                containerRef.current &&
-                !containerRef.current.contains(event.target as Node)
-            ) {
-                setIsOpen(false);
-            }
-        };
-
-        if (isOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
-
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [isOpen]);
+    useClickOutside(containerRef, () => setIsOpen(false), isOpen);
 
     // Return focus to button when menu transitions from open to closed
     useEffect(() => {

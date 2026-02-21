@@ -12,7 +12,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/lib/pq"
 )
 
 // ForumHandler handles forum thread and reply operations
@@ -150,7 +149,7 @@ func (h *ForumHandler) CreateThread(c *gin.Context) {
 
 	var createdAt time.Time
 	err := h.db.QueryRow(c.Request.Context(), query,
-		threadID, userID, req.Title, req.Content, gameID, pq.Array(req.Tags),
+		threadID, userID, req.Title, req.Content, gameID, req.Tags,
 	).Scan(&createdAt)
 
 	if err != nil {
@@ -245,7 +244,7 @@ func (h *ForumHandler) ListThreads(c *gin.Context) {
 	threads := []ForumThread{}
 	for rows.Next() {
 		var thread ForumThread
-		var tags pq.StringArray
+		var tags []string
 
 		err := rows.Scan(
 			&thread.ID, &thread.UserID, &thread.Username, &thread.Title, &thread.Content,
@@ -290,7 +289,7 @@ func (h *ForumHandler) GetThread(c *gin.Context) {
 
 	// Get thread details
 	var thread ForumThread
-	var tags pq.StringArray
+	var tags []string
 
 	query := `
 		SELECT 
@@ -1352,7 +1351,7 @@ func (h *ForumHandler) GetForumAnalytics(c *gin.Context) {
 		var gameName *string
 		err := threadRows.Scan(
 			&thread.ID, &thread.UserID, &thread.Username, &thread.Title, &thread.Content,
-			&thread.GameID, &gameName, pq.Array(&thread.Tags),
+			&thread.GameID, &gameName, &thread.Tags,
 			&thread.ViewCount, &thread.ReplyCount, &thread.Locked, &thread.LockedAt,
 			&thread.Pinned, &thread.CreatedAt, &thread.UpdatedAt,
 		)
@@ -1461,7 +1460,7 @@ func (h *ForumHandler) GetPopularDiscussions(c *gin.Context) {
 		var gameName *string
 		err := rows.Scan(
 			&thread.ID, &thread.UserID, &thread.Username, &thread.Title, &thread.Content,
-			&thread.GameID, &gameName, pq.Array(&thread.Tags),
+			&thread.GameID, &gameName, &thread.Tags,
 			&thread.ViewCount, &thread.ReplyCount, &thread.Locked, &thread.LockedAt,
 			&thread.Pinned, &thread.CreatedAt, &thread.UpdatedAt,
 		)

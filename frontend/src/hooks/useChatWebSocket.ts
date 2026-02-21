@@ -33,6 +33,12 @@ export function useChatWebSocket({
   const maxReconnectAttempts = 10;
   const connectRef = useRef<(() => void) | null>(null);
 
+  // Store callbacks in refs to avoid reconnecting when they change
+  const onMessageRef = useRef(onMessage);
+  const onTypingRef = useRef(onTyping);
+  onMessageRef.current = onMessage;
+  onTypingRef.current = onTyping;
+
   const connect = useCallback(() => {
     try {
       // Get WebSocket URL from environment or default
@@ -57,9 +63,9 @@ export function useChatWebSocket({
           if (data.type === 'message') {
             const message = data.data as ChatMessage;
             setMessages((prev) => [...prev, message]);
-            onMessage?.(message);
+            onMessageRef.current?.(message);
           } else if (data.type === 'typing') {
-            onTyping?.(data.data.username);
+            onTypingRef.current?.(data.data.username);
           } else if (data.type === 'history') {
             // Initial message history
             setMessages(data.data.messages || []);
@@ -97,7 +103,7 @@ export function useChatWebSocket({
       setError('Failed to connect to chat');
       console.error('WebSocket connection error:', err);
     }
-  }, [channelId, onMessage, onTyping]);
+  }, [channelId]);
 
   useEffect(() => {
     // Store connect in ref so it can be called recursively

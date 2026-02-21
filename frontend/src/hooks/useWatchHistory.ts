@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { apiClient } from '@/lib/api';
 
 // Generate a unique session ID for tracking watch sessions
 function generateSessionId(): string {
@@ -42,16 +43,7 @@ export function useWatchHistory({
 
     const fetchResumePosition = async () => {
       try {
-        const response = await fetch(`/api/v1/clips/${clipId}/progress`, {
-          credentials: 'include',
-        });
-
-        if (!response.ok) {
-          console.error('Failed to fetch resume position');
-          return;
-        }
-
-        const data = await response.json();
+        const { data } = await apiClient.get(`/clips/${clipId}/progress`);
         if (data.has_progress) {
           setProgress(data.progress_seconds);
           setHasProgress(true);
@@ -81,18 +73,11 @@ export function useWatchHistory({
 
       setLastRecordedTimestamp(now);
 
-      fetch('/api/v1/watch-history', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          clip_id: clipId,
-          progress_seconds: progressSeconds,
-          duration_seconds: durationSeconds,
-          session_id: sessionId,
-        }),
+      apiClient.post('/watch-history', {
+        clip_id: clipId,
+        progress_seconds: progressSeconds,
+        duration_seconds: durationSeconds,
+        session_id: sessionId,
       }).catch((error) => {
         console.error('Error recording watch progress:', error);
       });
@@ -111,18 +96,11 @@ export function useWatchHistory({
       // Update timestamp to prevent duplicate recordings
       setLastRecordedTimestamp(Date.now());
 
-      fetch('/api/v1/watch-history', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          clip_id: clipId,
-          progress_seconds: progressSeconds,
-          duration_seconds: durationSeconds,
-          session_id: sessionId,
-        }),
+      apiClient.post('/watch-history', {
+        clip_id: clipId,
+        progress_seconds: progressSeconds,
+        duration_seconds: durationSeconds,
+        session_id: sessionId,
       }).catch((error) => {
         console.error('Error recording watch progress on pause:', error);
       });

@@ -1,3 +1,5 @@
+import type { UserRole } from '../lib/roles';
+
 export interface ClipSubmission {
   id: string;
   user_id: string;
@@ -35,7 +37,7 @@ export interface ClipSubmissionWithUser extends ClipSubmission {
     display_name: string;
     avatar_url?: string;
     karma_points: number;
-    role: string;
+    role: UserRole;
   };
 }
 

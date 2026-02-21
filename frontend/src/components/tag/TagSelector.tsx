@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { tagApi } from '../../lib/tag-api';
+import { useClickOutside } from '../../hooks/useClickOutside';
 import type { Tag } from '../../types/tag';
 import { TagChip } from './TagChip';
 
@@ -30,20 +31,7 @@ export const TagSelector: React.FC<TagSelectorProps> = ({
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     // Close dropdown when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (
-                dropdownRef.current &&
-                !dropdownRef.current.contains(event.target as Node)
-            ) {
-                setIsOpen(false);
-            }
-        };
-
-        document.addEventListener('mousedown', handleClickOutside);
-        return () =>
-            document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+    useClickOutside(dropdownRef, () => setIsOpen(false));
 
     // Fetch suggestions when search query changes
     useEffect(() => {

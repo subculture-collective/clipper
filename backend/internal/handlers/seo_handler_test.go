@@ -22,6 +22,10 @@ func (m *mockClipRepository) ListForSitemap(ctx context.Context) ([]models.Clip,
 	return m.clips, nil
 }
 
+func (m *mockClipRepository) ListForSitemapBroadcasters(ctx context.Context) ([]models.BroadcasterWithClipCount, error) {
+	return nil, nil
+}
+
 func TestGetSitemap(t *testing.T) {
 	// Set Gin to test mode
 	gin.SetMode(gin.TestMode)
@@ -40,7 +44,7 @@ func TestGetSitemap(t *testing.T) {
 		clips: []models.Clip{clip1, clip2},
 	}
 
-	handler := NewSEOHandler(mockRepo)
+	handler := NewSEOHandler(mockRepo, nil)
 
 	// Create router
 	r := gin.New()
@@ -92,7 +96,7 @@ func TestGetRobotsTxtProduction(t *testing.T) {
 	// Set Gin to test mode
 	gin.SetMode(gin.TestMode)
 
-	handler := NewSEOHandler(nil) // No repo needed for robots.txt
+	handler := NewSEOHandler(nil, nil) // No repo needed for robots.txt
 
 	// Create router
 	r := gin.New()
@@ -142,7 +146,7 @@ func TestGetRobotsTxtDevelopment(t *testing.T) {
 	// Set Gin to test mode
 	gin.SetMode(gin.TestMode)
 
-	handler := NewSEOHandler(nil) // No repo needed for robots.txt
+	handler := NewSEOHandler(nil, nil) // No repo needed for robots.txt
 
 	// Create router
 	r := gin.New()

@@ -12,7 +12,6 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/jackc/pgx/v5 v5.7.6
 	github.com/joho/godotenv v1.5.1
-	github.com/lib/pq v1.10.9
 	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/opensearch-project/opensearch-go/v2 v2.3.0
 	github.com/pgvector/pgvector-go v0.3.0

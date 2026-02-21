@@ -142,13 +142,14 @@ export function ClipDetailPage() {
             toast.info('Please log in to vote on clips');
             return;
         }
-        if (isBanned) {
-            toast.error('You are banned and cannot interact with clips');
-            return;
-        }
         if (!clip || isVoting) return;
         if (clip.user_vote === voteType) return;
-        voteMutation.mutate({ clip_id: clip.id, vote_type: voteType });
+        voteMutation.mutate({ clip_id: clip.id, vote_type: voteType }, {
+            onError: (error) => {
+                const msg = (error as { response?: { data?: { error?: string } } })?.response?.data?.error;
+                toast.error(msg || 'Failed to vote. Please try again.');
+            },
+        });
     };
 
     const handleFavorite = () => {
@@ -156,12 +157,13 @@ export function ClipDetailPage() {
             toast.info('Please log in to favorite clips');
             return;
         }
-        if (isBanned) {
-            toast.error('You are banned and cannot interact with clips');
-            return;
-        }
         if (!clip) return;
-        favoriteMutation.mutate({ clip_id: clip.id });
+        favoriteMutation.mutate({ clip_id: clip.id }, {
+            onError: (error) => {
+                const msg = (error as { response?: { data?: { error?: string } } })?.response?.data?.error;
+                toast.error(msg || 'Failed to favorite. Please try again.');
+            },
+        });
     };
 
     if (isLoading) {
@@ -275,15 +277,6 @@ export function ClipDetailPage() {
                         <h1 className='text-2xl xs:text-3xl font-bold mb-2'>
                             {clip.title}
                         </h1>
-                        {isBanned && (
-                            <div
-                                role='alert'
-                                className='mb-3 rounded-lg border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800 p-3 text-sm text-red-800 dark:text-red-300'
-                            >
-                                You are banned and cannot interact with clips
-                                {banReason ? `: ${banReason}` : ''}.
-                            </div>
-                        )}
                         <div className='flex flex-wrap gap-2 xs:gap-4 text-xs xs:text-sm text-muted-foreground'>
                             <span className='font-medium'>
                                 <Link

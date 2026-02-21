@@ -2113,6 +2113,7 @@ type GameEntity struct {
 	ID           uuid.UUID `json:"id" db:"id"`
 	TwitchGameID string    `json:"twitch_game_id" db:"twitch_game_id"`
 	Name         string    `json:"name" db:"name"`
+	Slug         string    `json:"slug" db:"slug"`
 	BoxArtURL    *string   `json:"box_art_url,omitempty" db:"box_art_url"`
 	IGDBID       *string   `json:"igdb_id,omitempty" db:"igdb_id"`
 	CreatedAt    time.Time `json:"created_at" db:"created_at"`
@@ -3494,19 +3495,34 @@ type PlaylistBookmark struct {
 
 // PlaylistScript represents an automated playlist definition
 type PlaylistScript struct {
-	ID                       uuid.UUID  `json:"id" db:"id"`
-	Name                     string     `json:"name" db:"name"`
-	Description              *string    `json:"description,omitempty" db:"description"`
-	Sort                     string     `json:"sort" db:"sort"`
-	Timeframe                *string    `json:"timeframe,omitempty" db:"timeframe"`
-	ClipLimit                int        `json:"clip_limit" db:"clip_limit"`
-	Visibility               string     `json:"visibility" db:"visibility"`
-	IsActive                 bool       `json:"is_active" db:"is_active"`
-	CreatedBy                *uuid.UUID `json:"created_by,omitempty" db:"created_by"`
-	CreatedAt                time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt                time.Time  `json:"updated_at" db:"updated_at"`
-	LastRunAt                *time.Time `json:"last_run_at,omitempty" db:"last_run_at"`
-	LastGeneratedPlaylistID  *uuid.UUID `json:"last_generated_playlist_id,omitempty" db:"last_generated_playlist_id"`
+	ID                      uuid.UUID  `json:"id" db:"id"`
+	Name                    string     `json:"name" db:"name"`
+	Description             *string    `json:"description,omitempty" db:"description"`
+	Sort                    string     `json:"sort" db:"sort"`
+	Timeframe               *string    `json:"timeframe,omitempty" db:"timeframe"`
+	ClipLimit               int        `json:"clip_limit" db:"clip_limit"`
+	Visibility              string     `json:"visibility" db:"visibility"`
+	IsActive                bool       `json:"is_active" db:"is_active"`
+	Schedule                string     `json:"schedule" db:"schedule"`
+	Strategy                string     `json:"strategy" db:"strategy"`
+	GameID                  *string    `json:"game_id,omitempty" db:"game_id"`
+	GameIDs                 []string   `json:"game_ids,omitempty" db:"game_ids"`
+	BroadcasterID           *string    `json:"broadcaster_id,omitempty" db:"broadcaster_id"`
+	Tag                     *string    `json:"tag,omitempty" db:"tag"`
+	ExcludeTags             []string   `json:"exclude_tags,omitempty" db:"exclude_tags"`
+	Language                *string    `json:"language,omitempty" db:"language"`
+	MinVoteScore            *int       `json:"min_vote_score,omitempty" db:"min_vote_score"`
+	MinViewCount            *int       `json:"min_view_count,omitempty" db:"min_view_count"`
+	ExcludeNSFW             bool       `json:"exclude_nsfw" db:"exclude_nsfw"`
+	Top10kStreamers         bool       `json:"top_10k_streamers" db:"top_10k_streamers"`
+	SeedClipID              *uuid.UUID `json:"seed_clip_id,omitempty" db:"seed_clip_id"`
+	RetentionDays           int        `json:"retention_days" db:"retention_days"`
+	TitleTemplate           *string    `json:"title_template,omitempty" db:"title_template"`
+	CreatedBy               *uuid.UUID `json:"created_by,omitempty" db:"created_by"`
+	CreatedAt               time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt               time.Time  `json:"updated_at" db:"updated_at"`
+	LastRunAt               *time.Time `json:"last_run_at,omitempty" db:"last_run_at"`
+	LastGeneratedPlaylistID *uuid.UUID `json:"last_generated_playlist_id,omitempty" db:"last_generated_playlist_id"`
 }
 
 // GeneratedPlaylist represents a playlist generated from a script
@@ -3571,24 +3587,54 @@ type CopyPlaylistRequest struct {
 
 // CreatePlaylistScriptRequest represents the request to create a playlist script
 type CreatePlaylistScriptRequest struct {
-	Name        string  `json:"name" binding:"required,min=1,max=100"`
-	Description *string `json:"description,omitempty" binding:"omitempty,max=500"`
-	Sort        string  `json:"sort" binding:"required,oneof=hot new top rising discussed trending popular"`
-	Timeframe   *string `json:"timeframe,omitempty" binding:"omitempty,oneof=hour day week month year"`
-	ClipLimit   int     `json:"clip_limit" binding:"required,min=1,max=100"`
-	Visibility  *string `json:"visibility,omitempty" binding:"omitempty,oneof=private public unlisted"`
-	IsActive    *bool   `json:"is_active,omitempty"`
+	Name            string   `json:"name" binding:"required,min=1,max=100"`
+	Description     *string  `json:"description,omitempty" binding:"omitempty,max=500"`
+	Sort            string   `json:"sort" binding:"required,oneof=hot new top rising discussed trending popular"`
+	Timeframe       *string  `json:"timeframe,omitempty" binding:"omitempty,oneof=hour day week month year"`
+	ClipLimit       int      `json:"clip_limit" binding:"required,min=1,max=100"`
+	Visibility      *string  `json:"visibility,omitempty" binding:"omitempty,oneof=private public unlisted"`
+	IsActive        *bool    `json:"is_active,omitempty"`
+	Schedule        *string  `json:"schedule,omitempty" binding:"omitempty,oneof=manual hourly daily weekly monthly"`
+	Strategy        *string  `json:"strategy,omitempty" binding:"omitempty,oneof=standard sleeper_hits viral_velocity community_favorites deep_cuts fresh_faces similar_vibes cross_game_hits controversial binge_worthy rising_stars twitch_top_game twitch_top_broadcaster twitch_trending twitch_discovery"`
+	GameID          *string  `json:"game_id,omitempty" binding:"omitempty,max=50"`
+	GameIDs         []string `json:"game_ids,omitempty"`
+	BroadcasterID   *string  `json:"broadcaster_id,omitempty" binding:"omitempty,max=50"`
+	Tag             *string  `json:"tag,omitempty" binding:"omitempty,max=100"`
+	ExcludeTags     []string `json:"exclude_tags,omitempty"`
+	Language        *string  `json:"language,omitempty" binding:"omitempty,max=10"`
+	MinVoteScore    *int     `json:"min_vote_score,omitempty" binding:"omitempty,min=0"`
+	MinViewCount    *int     `json:"min_view_count,omitempty" binding:"omitempty,min=0"`
+	ExcludeNSFW     *bool    `json:"exclude_nsfw,omitempty"`
+	Top10kStreamers *bool    `json:"top_10k_streamers,omitempty"`
+	SeedClipID      *string  `json:"seed_clip_id,omitempty" binding:"omitempty,uuid"`
+	RetentionDays   *int     `json:"retention_days,omitempty" binding:"omitempty,min=1,max=365"`
+	TitleTemplate   *string  `json:"title_template,omitempty" binding:"omitempty,max=200"`
 }
 
 // UpdatePlaylistScriptRequest represents the request to update a playlist script
 type UpdatePlaylistScriptRequest struct {
-	Name        *string `json:"name,omitempty" binding:"omitempty,min=1,max=100"`
-	Description *string `json:"description,omitempty" binding:"omitempty,max=500"`
-	Sort        *string `json:"sort,omitempty" binding:"omitempty,oneof=hot new top rising discussed trending popular"`
-	Timeframe   *string `json:"timeframe,omitempty" binding:"omitempty,oneof=hour day week month year"`
-	ClipLimit   *int    `json:"clip_limit,omitempty" binding:"omitempty,min=1,max=100"`
-	Visibility  *string `json:"visibility,omitempty" binding:"omitempty,oneof=private public unlisted"`
-	IsActive    *bool   `json:"is_active,omitempty"`
+	Name            *string  `json:"name,omitempty" binding:"omitempty,min=1,max=100"`
+	Description     *string  `json:"description,omitempty" binding:"omitempty,max=500"`
+	Sort            *string  `json:"sort,omitempty" binding:"omitempty,oneof=hot new top rising discussed trending popular"`
+	Timeframe       *string  `json:"timeframe,omitempty" binding:"omitempty,oneof=hour day week month year"`
+	ClipLimit       *int     `json:"clip_limit,omitempty" binding:"omitempty,min=1,max=100"`
+	Visibility      *string  `json:"visibility,omitempty" binding:"omitempty,oneof=private public unlisted"`
+	IsActive        *bool    `json:"is_active,omitempty"`
+	Schedule        *string  `json:"schedule,omitempty" binding:"omitempty,oneof=manual hourly daily weekly monthly"`
+	Strategy        *string  `json:"strategy,omitempty" binding:"omitempty,oneof=standard sleeper_hits viral_velocity community_favorites deep_cuts fresh_faces similar_vibes cross_game_hits controversial binge_worthy rising_stars twitch_top_game twitch_top_broadcaster twitch_trending twitch_discovery"`
+	GameID          *string  `json:"game_id,omitempty" binding:"omitempty,max=50"`
+	GameIDs         []string `json:"game_ids,omitempty"`
+	BroadcasterID   *string  `json:"broadcaster_id,omitempty" binding:"omitempty,max=50"`
+	Tag             *string  `json:"tag,omitempty" binding:"omitempty,max=100"`
+	ExcludeTags     []string `json:"exclude_tags,omitempty"`
+	Language        *string  `json:"language,omitempty" binding:"omitempty,max=10"`
+	MinVoteScore    *int     `json:"min_vote_score,omitempty" binding:"omitempty,min=0"`
+	MinViewCount    *int     `json:"min_view_count,omitempty" binding:"omitempty,min=0"`
+	ExcludeNSFW     *bool    `json:"exclude_nsfw,omitempty"`
+	Top10kStreamers *bool    `json:"top_10k_streamers,omitempty"`
+	SeedClipID      *string  `json:"seed_clip_id,omitempty" binding:"omitempty,uuid"`
+	RetentionDays   *int     `json:"retention_days,omitempty" binding:"omitempty,min=1,max=365"`
+	TitleTemplate   *string  `json:"title_template,omitempty" binding:"omitempty,max=200"`
 }
 
 // AddClipsToPlaylistRequest represents the request to add clips to a playlist

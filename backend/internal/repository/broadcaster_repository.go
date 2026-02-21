@@ -505,3 +505,34 @@ WHERE broadcaster_id = $1
 
 	return userIDs, nil
 }
+
+// ListBroadcasterGames returns games a broadcaster has clips in, ordered by clip count.
+func (r *BroadcasterRepository) ListBroadcasterGames(ctx context.Context, broadcasterID string) ([]models.GameWithClipCount, error) {
+	query := `
+		SELECT c.game_id, COALESCE(g.name, c.game_name, 'Unknown'), COUNT(*) as clip_count, g.box_art_url
+		FROM clips c
+		LEFT JOIN games g ON g.twitch_game_id = c.game_id
+		WHERE c.broadcaster_id = $1 AND c.is_removed = false AND c.game_id IS NOT NULL
+		GROUP BY c.game_id, g.name, c.game_name, g.box_art_url
+		ORDER BY clip_count DESC
+		LIMIT 50
+	`
+	rows, err := r.pool.Query(ctx, query, broadcasterID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list broadcaster games: %w", err)
+	}
+	defer rows.Close()
+
+	var games []models.GameWithClipCount
+	for rows.Next() {
+		var g models.GameWithClipCount
+		if err := rows.Scan(&g.GameID, &g.Name, &g.ClipCount, &g.BoxArtURL); err != nil {
+			return nil, fmt.Errorf("failed to scan game: %w", err)
+		}
+		games = append(games, g)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating games: %w", err)
+	}
+	return games, nil
+}
