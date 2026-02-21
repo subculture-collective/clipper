@@ -1,10 +1,10 @@
 # Evolution Review (Quick)
 
-Generated: 2026-02-19T04:29:18Z
+Generated: 2026-02-21T19:13:16Z
 
 ## Signal Summary
 
-- events_total: 140
+- events_total: 292
 - failures_total (windowed): 0
 - top_categories: none
 
