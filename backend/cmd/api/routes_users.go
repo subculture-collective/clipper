@@ -135,9 +135,6 @@ func registerUserRoutes(v1 *gin.RouterGroup, h *Handlers, svcs *Services, infra 
 			broadcasters.GET("/live", h.LiveStatus.ListLiveBroadcasters)
 		}
 
-		// Popular broadcasters endpoint (must come before /:id route)
-		broadcasters.GET("/popular", h.Broadcaster.ListPopularBroadcasters)
-
 		// Public broadcaster profile endpoint (with optional auth for follow status)
 		broadcasters.GET("/:id", middleware.OptionalAuthMiddleware(svcs.Auth), h.Broadcaster.GetBroadcasterProfile)
 
