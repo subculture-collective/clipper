@@ -38,6 +38,13 @@ func registerPublicRoutes(r *gin.Engine, v1 *gin.RouterGroup, h *Handlers, svcs 
 
 	// Health check endpoints (additional checks requiring middleware)
 
+	// Basic health check (used by Docker HEALTHCHECK)
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"status": "healthy",
+		})
+	})
+
 	// Readiness check - indicates if the service is ready to serve traffic
 	r.GET("/health/ready", func(c *gin.Context) {
 		// Check database connection
