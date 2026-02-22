@@ -2,9 +2,9 @@ import apiClient from './api';
 import type { Clip } from '@/types/clip';
 
 export interface PopularBroadcaster {
-    broadcaster_id: string;
-    broadcaster_name: string;
-    clip_count: number;
+  broadcaster_id: string;
+  broadcaster_name: string;
+  clip_count: number;
 }
 
 export interface BroadcasterProfile {
@@ -49,6 +49,19 @@ export async function fetchPopularBroadcasters(
         broadcasters: PopularBroadcaster[];
     }>(`/broadcasters/popular`, { params: { limit } });
     return response.data.broadcasters || [];
+}
+
+/**
+ * Fetch popular broadcasters by clip count
+ */
+export async function fetchPopularBroadcasters(
+  limit: number = 15
+): Promise<PopularBroadcaster[]> {
+  const response = await apiClient.get<{ broadcasters: PopularBroadcaster[] }>(
+    `/broadcasters/popular`,
+    { params: { limit } }
+  );
+  return response.data.broadcasters || [];
 }
 
 /**
