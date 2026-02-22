@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Clipper – Share Twitch Clip</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <!-- ── Loading state ── -->
+    <div id="view-loading" class="view">
+      <div class="spinner" aria-label="Loading…"></div>
+    </div>
+
+    <!-- ── Not-on-Twitch state ── -->
+    <div id="view-no-clip" class="view hidden">
+      <div class="empty-state">
+        <img src="../icons/icon-48.png" alt="Clipper logo" class="logo" />
+        <p class="empty-title">No Twitch clip detected</p>
+        <p class="empty-sub">Navigate to a Twitch clip page to share it.</p>
+        <a id="btn-open-twitch" href="https://twitch.tv" target="_blank" class="btn btn-secondary">
+          Open Twitch
+        </a>
+      </div>
+    </div>
+
+    <!-- ── Login state ── -->
+    <div id="view-login" class="view hidden">
+      <div class="login-state">
+        <img src="../icons/icon-48.png" alt="Clipper logo" class="logo" />
+        <p class="login-title">Sign in to Clipper</p>
+        <p class="login-sub">Log in with your Twitch account to share clips.</p>
+        <button id="btn-login" class="btn btn-primary">Login with Twitch</button>
+      </div>
+    </div>
+
+    <!-- ── Clip submission form ── -->
+    <div id="view-form" class="view hidden">
+      <header class="popup-header">
+        <img src="../icons/icon-16.png" alt="" class="header-logo" />
+        <span class="header-title">Share to Clipper</span>
+        <span id="user-badge" class="user-badge" title="Logged in"></span>
+      </header>
+
+      <!-- Clip preview -->
+      <div class="clip-preview" id="clip-preview-wrap">
+        <img id="clip-thumbnail" src="" alt="Clip thumbnail" class="thumbnail" />
+        <div class="clip-meta">
+          <p id="clip-streamer" class="clip-streamer"></p>
+          <p id="clip-game" class="clip-game"></p>
+          <p id="clip-duration" class="clip-duration"></p>
+        </div>
+      </div>
+
+      <div class="form-body">
+        <!-- Title -->
+        <label for="input-title" class="field-label">Title</label>
+        <input
+          id="input-title"
+          type="text"
+          class="field-input"
+          maxlength="200"
+          placeholder="Clip title"
+          aria-required="true"
+        />
+
+        <!-- Description -->
+        <label for="input-description" class="field-label">Description <span class="optional">(optional)</span></label>
+        <textarea
+          id="input-description"
+          class="field-textarea"
+          rows="3"
+          maxlength="500"
+          placeholder="Why is this clip worth sharing?"
+        ></textarea>
+
+        <!-- Tags -->
+        <label class="field-label">Tags <span class="optional">(optional)</span></label>
+        <div id="tag-search-wrap" class="tag-search-wrap">
+          <input
+            id="input-tag-search"
+            type="text"
+            class="field-input"
+            placeholder="Search tags…"
+            autocomplete="off"
+          />
+          <ul id="tag-dropdown" class="tag-dropdown hidden" role="listbox" aria-label="Tag suggestions"></ul>
+        </div>
+        <div id="selected-tags" class="selected-tags" aria-label="Selected tags"></div>
+
+        <!-- NSFW -->
+        <label class="nsfw-label">
+          <input id="input-nsfw" type="checkbox" />
+          <span>Mark as NSFW</span>
+        </label>
+
+        <!-- Submit -->
+        <button id="btn-submit" class="btn btn-primary btn-full">
+          Share Clip
+        </button>
+
+        <!-- Error -->
+        <p id="form-error" class="form-error hidden" role="alert"></p>
+      </div>
+    </div>
+
+    <!-- ── Success state ── -->
+    <div id="view-success" class="view hidden">
+      <div class="success-state">
+        <div class="success-icon" aria-hidden="true">✓</div>
+        <p class="success-title">Clip submitted!</p>
+        <p class="success-sub">Your clip is pending review on Clipper.</p>
+        <button id="btn-view-clipper" class="btn btn-secondary">View on Clipper</button>
+        <button id="btn-share-another" class="btn btn-ghost">Share another</button>
+      </div>
+    </div>
+
+    <script src="popup.js" type="module"></script>
+  </body>
+</html>

@@ -14,6 +14,7 @@ export { PrivacyPage } from './PrivacyPage';
 export { TermsPage } from './TermsPage';
 export { CommunityRulesPage } from './CommunityRulesPage';
 export { DocsPage } from './DocsPage';
+export { ExtensionPage } from './ExtensionPage';
 export { NotFoundPage } from './NotFoundPage';
 
 // Auth pages
