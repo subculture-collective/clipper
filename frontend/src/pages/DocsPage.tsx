@@ -60,7 +60,6 @@ export function DocsPage() {
     const fetchDocsList = useCallback(async () => {
         try {
             const response = await axios.get('/api/v1/docs');
-            console.log('[DocsPage] API response:', response.data);
             setDocs(response.data.docs || []);
             setLoading(false);
         } catch (err) {

@@ -87,7 +87,7 @@ export function AdDisplay({
       try {
         setIsLoading(true);
         const sessionId = getOrCreateSessionId();
-        
+
         const request: AdSelectionRequest = {
           platform,
           page_url: window.location.href,
@@ -149,7 +149,7 @@ export function AdDisplay({
 
       if (currentViewableTime >= VIEWABILITY_THRESHOLD_MS && !hasTrackedViewability) {
         setHasTrackedViewability(true);
-        
+
         // Track the viewable impression
         trackImpression(impressionId, {
           viewability_time_ms: currentViewableTime,
@@ -216,6 +216,7 @@ export function AdDisplay({
       onClick={handleClick}
       role="button"
       tabIndex={0}
+      aria-label={ad.alt_text || `Advertisement by ${ad.advertiser_name}`}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
@@ -237,7 +238,7 @@ export function AdDisplay({
           loading="lazy"
         />
       )}
-      
+
       {ad.ad_type === 'video' && isValidUrl(ad.content_url) && (
         <video
           src={ad.content_url}
@@ -249,7 +250,7 @@ export function AdDisplay({
           aria-label={ad.alt_text || `Video ad by ${ad.advertiser_name}`}
         />
       )}
-      
+
       {ad.ad_type === 'native' && (
         <div className="ad-display__native p-2">
           <span className="text-xs text-gray-500 uppercase">Sponsored</span>
@@ -257,7 +258,7 @@ export function AdDisplay({
           <div className="text-sm text-gray-600">{ad.advertiser_name}</div>
         </div>
       )}
-      
+
       {/* Ad indicator */}
       <div className="ad-display__indicator absolute top-1 right-1 text-xs bg-black/50 text-white px-1 rounded">
         Ad

@@ -574,6 +574,7 @@ export function SettingsPage() {
                                     onChange={(e) => {
                                         updateConsent({ functional: e.target.checked });
                                         setConsentSuccess(true);
+                                        if (consentTimeoutRef.current) clearTimeout(consentTimeoutRef.current);
                                         consentTimeoutRef.current = setTimeout(() => setConsentSuccess(false), 3000);
                                     }}
                                     disabled={doNotTrack}
@@ -585,6 +586,7 @@ export function SettingsPage() {
                                     onChange={(e) => {
                                         updateConsent({ analytics: e.target.checked });
                                         setConsentSuccess(true);
+                                        if (consentTimeoutRef.current) clearTimeout(consentTimeoutRef.current);
                                         consentTimeoutRef.current = setTimeout(() => setConsentSuccess(false), 3000);
                                     }}
                                     disabled={doNotTrack}
@@ -596,6 +598,7 @@ export function SettingsPage() {
                                     onChange={(e) => {
                                         updateConsent({ advertising: e.target.checked });
                                         setConsentSuccess(true);
+                                        if (consentTimeoutRef.current) clearTimeout(consentTimeoutRef.current);
                                         consentTimeoutRef.current = setTimeout(() => setConsentSuccess(false), 3000);
                                     }}
                                     disabled={doNotTrack}

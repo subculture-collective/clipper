@@ -439,14 +439,17 @@ type ClipFilters struct {
 // buildDateFilterClauses adds date range and timeframe filtering clauses
 // Note: DateFrom and DateTo are validated before being passed to this function
 // to prevent SQL injection. See validateDateFilter in handlers.
-func buildDateFilterClauses(filters ClipFilters, whereClauses []string) []string {
+func buildDateFilterClauses(filters ClipFilters, whereClauses []string, args []interface{}, argIndex int) ([]string, []interface{}, int) {
 	// Add custom date range filter (overrides timeframe if provided)
-	// Date strings should already be validated as ISO 8601 format by the handler
 	if filters.DateFrom != nil && *filters.DateFrom != "" {
-		whereClauses = append(whereClauses, fmt.Sprintf("c.created_at >= '%s'", *filters.DateFrom))
+		whereClauses = append(whereClauses, fmt.Sprintf("c.created_at >= %s", utils.SQLPlaceholder(argIndex)))
+		args = append(args, *filters.DateFrom)
+		argIndex++
 	}
 	if filters.DateTo != nil && *filters.DateTo != "" {
-		whereClauses = append(whereClauses, fmt.Sprintf("c.created_at <= '%s'", *filters.DateTo))
+		whereClauses = append(whereClauses, fmt.Sprintf("c.created_at <= %s", utils.SQLPlaceholder(argIndex)))
+		args = append(args, *filters.DateTo)
+		argIndex++
 	}
 
 	// Only apply timeframe if custom date range is not provided
@@ -491,7 +494,7 @@ func buildDateFilterClauses(filters ClipFilters, whereClauses []string) []string
 		}
 	}
 
-	return whereClauses
+	return whereClauses, args, argIndex
 }
 
 // ListWithFilters retrieves clips with filters, sorting, and pagination
@@ -582,7 +585,7 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 	}
 
 	// Add date range and timeframe filtering
-	whereClauses = buildDateFilterClauses(filters, whereClauses)
+	whereClauses, args, argIndex = buildDateFilterClauses(filters, whereClauses, args, argIndex)
 
 	// Add cursor-based filtering if cursor is provided
 	if filters.Cursor != nil && *filters.Cursor != "" {
@@ -815,7 +818,7 @@ func (r *ClipRepository) ListScrapedClipsWithFilters(ctx context.Context, filter
 	}
 
 	// Add date range and timeframe filtering
-	whereClauses = buildDateFilterClauses(filters, whereClauses)
+	whereClauses, args, argIndex = buildDateFilterClauses(filters, whereClauses, args, argIndex)
 
 	whereClause := "WHERE " + whereClauses[0]
 	for i := 1; i < len(whereClauses); i++ {
@@ -1452,10 +1455,9 @@ SELECT following_id FROM user_follows WHERE follower_id = $1
 ),
 followed_broadcasters AS (
 SELECT broadcaster_id FROM broadcaster_follows WHERE user_id = $1
-,
+),
 blocked_users AS (
 SELECT blocked_user_id FROM user_blocks WHERE user_id = $1
-)
 )
 SELECT COUNT(*)
 FROM clips c
@@ -1464,8 +1466,8 @@ AND c.is_hidden = false
 AND (
 c.submitted_by_user_id IN (SELECT following_id FROM followed_users)
 OR c.broadcaster_id IN (SELECT broadcaster_id FROM followed_broadcasters)
-AND c.submitted_by_user_id NOT IN (SELECT blocked_user_id FROM blocked_users)
 )
+AND c.submitted_by_user_id NOT IN (SELECT blocked_user_id FROM blocked_users)
 `
 
 	var total int

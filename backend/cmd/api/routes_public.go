@@ -38,6 +38,13 @@ func registerPublicRoutes(r *gin.Engine, v1 *gin.RouterGroup, h *Handlers, svcs 
 
 	// Health check endpoints (additional checks requiring middleware)
 
+	// Basic health check (used by Docker HEALTHCHECK)
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"status": "healthy",
+		})
+	})
+
 	// Readiness check - indicates if the service is ready to serve traffic
 	r.GET("/health/ready", func(c *gin.Context) {
 		// Check database connection
@@ -120,6 +127,7 @@ func registerPublicRoutes(r *gin.Engine, v1 *gin.RouterGroup, h *Handlers, svcs 
 	// Profiling and metrics endpoints (for debugging and monitoring)
 	// These should be protected in production (e.g., firewall rules or internal network only)
 	debug := r.Group("/debug")
+	debug.Use(middleware.AuthMiddleware(svcs.Auth), middleware.RequireRole("admin"))
 	{
 		// Prometheus metrics endpoint
 		debug.GET("/metrics", gin.WrapH(promhttp.Handler()))

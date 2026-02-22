@@ -154,7 +154,7 @@ export function PlaylistDetail() {
                     cover_url: '',
                     visibility: 'private' as const,
                 },
-        [data?.data],
+        [data?.data?.title, data?.data?.description, data?.data?.cover_url],
     );
 
     const handleVisibilityChange = useCallback(

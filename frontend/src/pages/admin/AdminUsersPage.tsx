@@ -13,6 +13,7 @@ interface User {
   role: string;
   karma_points: number;
   is_banned: boolean;
+  account_status: string;
   comment_suspended_until?: string;
   comments_require_review?: boolean;
   comment_warning_count?: number;
@@ -233,7 +234,7 @@ export function AdminUsersPage() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [actionType, setActionType] = useState<'ban' | 'unban' | 'promote' | 'demote' | 'karma' | 'suspend_comments' | 'lift_suspension' | 'toggle_review' | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  
+
   const queryClient = useQueryClient();
   const perPage = 25;
 
@@ -497,6 +498,7 @@ export function AdminUsersPage() {
                 <option value="all">All Status</option>
                 <option value="active">Active</option>
                 <option value="banned">Banned</option>
+                <option value="unclaimed">Unclaimed</option>
               </select>
             </div>
           </div>
@@ -617,6 +619,8 @@ export function AdminUsersPage() {
                           className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
                             user.is_banned
                               ? 'bg-red-500/20 text-red-400'
+                              : user.account_status === 'unclaimed'
+                              ? 'bg-yellow-500/20 text-yellow-400'
                               : 'bg-green-500/20 text-green-400'
                           }`}
                         >
@@ -625,6 +629,8 @@ export function AdminUsersPage() {
                               <Ban className="w-3 h-3" />
                               Banned
                             </>
+                          ) : user.account_status === 'unclaimed' ? (
+                            'Unclaimed'
                           ) : (
                             'Active'
                           )}

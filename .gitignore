@@ -86,3 +86,8 @@ docs/.obsidian/plugins
 /playwright/.auth/
 coverage.html
 test-reports/
+
+# Claude Code artifacts
+.claude/
+runs/
+quality-review.md

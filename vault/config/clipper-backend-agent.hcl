@@ -18,7 +18,6 @@ auto_auth {
 
 vault {
   address               = "http://vault:8200"
-  unwrap_token          = true
   retry {
     num_retries = 5
   }

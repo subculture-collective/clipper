@@ -7,9 +7,11 @@
 
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useSyncManager } from '@/hooks/useSyncManager';
+import { useTranslation } from 'react-i18next';
 import { SyncStatus } from '@/lib/sync-manager';
 
 export function OfflineIndicator() {
+  const { t } = useTranslation();
   const { online, queuedRequestCount } = useNetworkStatus();
   const { syncState, pendingCount, triggerSync } = useSyncManager();
 
@@ -45,10 +47,10 @@ export function OfflineIndicator() {
             />
           </svg>
           <div className="flex-1">
-            <p className="font-medium">You're offline</p>
+            <p className="font-medium">{t('offline.youreOffline')}</p>
             {totalPending > 0 && (
               <p className="text-sm opacity-90">
-                {totalPending} {totalPending === 1 ? 'operation' : 'operations'} will sync when you reconnect
+                {t('offline.operationsWillSync', { count: totalPending })}
               </p>
             )}
           </div>
@@ -119,23 +121,23 @@ export function OfflineIndicator() {
             <div className="flex-1">
               {isSyncing && (
                 <p className="text-sm text-gray-700 dark:text-gray-300">
-                  Syncing {totalPending} {totalPending === 1 ? 'change' : 'changes'}...
+                  {t('offline.syncing', { count: totalPending })}
                 </p>
               )}
               {!isSyncing && syncState.status === SyncStatus.SUCCESS && totalPending === 0 && (
                 <p className="text-sm text-gray-700 dark:text-gray-300">
-                  All changes synced
+                  {t('offline.allSynced')}
                 </p>
               )}
               {!isSyncing && totalPending > 0 && syncState.status !== SyncStatus.ERROR && (
                 <p className="text-sm text-gray-700 dark:text-gray-300">
-                  {totalPending} {totalPending === 1 ? 'change' : 'changes'} pending
+                  {t('offline.changesPending', { count: totalPending })}
                 </p>
               )}
               {syncState.status === SyncStatus.ERROR && (
                 <>
                   <p className="text-sm text-red-600 dark:text-red-400 font-medium">
-                    Sync failed
+                    {t('offline.syncFailed')}
                   </p>
                   {syncState.error && (
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -146,7 +148,7 @@ export function OfflineIndicator() {
               )}
               {syncState.lastSyncAt && syncState.status === SyncStatus.SUCCESS && (
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Last synced {new Date(syncState.lastSyncAt).toLocaleTimeString()}
+                  {t('offline.lastSynced', { time: new Date(syncState.lastSyncAt).toLocaleTimeString() })}
                 </p>
               )}
             </div>
@@ -157,7 +159,7 @@ export function OfflineIndicator() {
                 onClick={triggerSync}
                 className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
               >
-                Retry
+                {t('common.retry')}
               </button>
             )}
           </div>

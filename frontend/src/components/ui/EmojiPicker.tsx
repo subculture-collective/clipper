@@ -84,6 +84,7 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({ onEmojiSelect, onClose
                 : 'text-muted-foreground hover:text-foreground'
             )}
             title={category.name}
+            aria-label={`Show ${category.name} emojis`}
           >
             {category.emojis[0]}
           </button>
