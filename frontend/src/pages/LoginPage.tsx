@@ -1,9 +1,11 @@
 import { useEffect } from 'react';
-import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Container, Card, CardHeader, CardBody, Button, Stack } from '../components';
 import { useAuth } from '../context/AuthContext';
 
 export function LoginPage() {
+  const { t } = useTranslation();
   const { login, isLoading } = useAuth();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -25,13 +27,13 @@ export function LoginPage() {
     <Container className="py-16 max-w-md">
       <Card>
         <CardHeader>
-          <h1 className="text-2xl font-bold text-center">Welcome to Clipper</h1>
+          <h1 className="text-2xl font-bold text-center">{t('login.welcome')}</h1>
           <p className="text-center text-muted-foreground mt-2">
-            Sign in to upvote, comment, and save your favorite clips
+            {t('login.subtitle')}
           </p>
           {oauthError && (
             <div data-testid="login-error" className="mt-3 text-center text-red-600 text-sm">
-              Authentication failed: {oauthError}
+              {t('error.authFailed', { error: oauthError })}
             </div>
           )}
         </CardHeader>
@@ -54,15 +56,12 @@ export function LoginPage() {
                 >
                   <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z" />
                 </svg>
-                Continue with Twitch
+                {t('login.continueWithTwitch')}
               </span>
             </Button>
 
             <div className="text-xs text-center text-muted-foreground">
-              By continuing, you agree to our{' '}
-              <Link to="/terms" className="underline hover:text-foreground">Terms of Service</Link>
-              {' '}and{' '}
-              <Link to="/privacy" className="underline hover:text-foreground">Privacy Policy</Link>
+              {t('login.termsAgreement')}
             </div>
           </Stack>
         </CardBody>

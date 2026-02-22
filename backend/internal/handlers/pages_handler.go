@@ -213,7 +213,7 @@ func (h *PagesHandler) GetBestOfMonthPage(c *gin.Context) {
 	monthStr := c.Param("month")
 
 	year, err := strconv.Atoi(yearStr)
-	if err != nil || year < 2020 || year > 2030 {
+	if err != nil || year < 2020 || year > time.Now().Year()+1 {
 		h.render404(c)
 		return
 	}

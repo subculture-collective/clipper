@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { apiClient } from '@/lib/api';
 
 // Generate a unique session ID for tracking watch sessions
@@ -31,7 +31,7 @@ export function useWatchHistory({
   const [progress, setProgress] = useState(0);
   const [hasProgress, setHasProgress] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [lastRecordedTimestamp, setLastRecordedTimestamp] = useState(0);
+  const lastRecordedTimestampRef = useRef(0);
   const sessionId = useMemo(() => generateSessionId(), []);
 
   // Fetch resume position on mount
@@ -65,13 +65,13 @@ export function useWatchHistory({
 
       // Only record if at least 30 seconds have passed since last record (wall-clock time)
       const now = Date.now();
-      const timeSinceLastRecord = now - lastRecordedTimestamp;
+      const timeSinceLastRecord = now - lastRecordedTimestampRef.current;
       if (timeSinceLastRecord < 30000) return; // 30 seconds in milliseconds
 
       const progressSeconds = Math.floor(currentTime);
       const durationSeconds = Math.floor(duration);
 
-      setLastRecordedTimestamp(now);
+      lastRecordedTimestampRef.current = now;
 
       apiClient.post('/watch-history', {
         clip_id: clipId,
@@ -82,7 +82,7 @@ export function useWatchHistory({
         console.error('Error recording watch progress:', error);
       });
     },
-    [clipId, duration, sessionId, enabled, lastRecordedTimestamp]
+    [clipId, duration, sessionId, enabled]
   );
 
   // Record progress immediately (on pause or unmount)
@@ -94,7 +94,7 @@ export function useWatchHistory({
       const durationSeconds = Math.floor(duration);
 
       // Update timestamp to prevent duplicate recordings
-      setLastRecordedTimestamp(Date.now());
+      lastRecordedTimestampRef.current = Date.now();
 
       apiClient.post('/watch-history', {
         clip_id: clipId,

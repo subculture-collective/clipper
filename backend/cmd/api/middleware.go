@@ -51,6 +51,9 @@ func applyGlobalMiddleware(r *gin.Engine, cfg *config.Config, infra *Infrastruct
 			return fmt.Sprintf("%d", n)
 		},
 		"safeJSON": func(v any) template.JS {
+			if s, ok := v.(string); ok {
+				return template.JS(s)
+			}
 			b, err := json.Marshal(v)
 			if err != nil {
 				return template.JS("null")

@@ -113,7 +113,7 @@ func registerSocialRoutes(v1 *gin.RouterGroup, h *Handlers, svcs *Services, infr
 		playlists.POST("/:id/clips", middleware.AuthMiddleware(svcs.Auth), middleware.RateLimitMiddleware(infra.Redis, 60, time.Minute), h.Playlist.AddClipsToPlaylist)
 		playlists.DELETE("/:id/clips/:clip_id", middleware.AuthMiddleware(svcs.Auth), h.Playlist.RemoveClipFromPlaylist)
 		playlists.PUT("/:id/clips/order", middleware.AuthMiddleware(svcs.Auth), h.Playlist.ReorderPlaylistClips)
-		playlists.POST(":id/copy", middleware.AuthMiddleware(svcs.Auth), middleware.RateLimitMiddleware(infra.Redis, 10, time.Hour), h.Playlist.CopyPlaylist)
+		playlists.POST("/:id/copy", middleware.AuthMiddleware(svcs.Auth), middleware.RateLimitMiddleware(infra.Redis, 10, time.Hour), h.Playlist.CopyPlaylist)
 
 		// Playlist likes (social engagement)
 		playlists.POST("/:id/like", middleware.AuthMiddleware(svcs.Auth), middleware.RateLimitMiddleware(infra.Redis, 30, time.Minute), h.Playlist.LikePlaylist)

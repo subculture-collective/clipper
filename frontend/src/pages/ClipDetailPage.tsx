@@ -18,6 +18,7 @@ import {
     useWatchHistory,
 } from '../hooks';
 import { cn } from '@/lib/utils';
+import { apiClient } from '@/lib/api';
 import { useState, useEffect, useRef } from 'react';
 
 export function ClipDetailPage() {
@@ -54,16 +55,11 @@ export function ClipDetailPage() {
         if (!isAuthenticated || !clip || clip.video_url || viewRecorded.current)
             return;
         viewRecorded.current = true;
-        fetch('/api/v1/watch-history', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({
-                clip_id: clip.id,
-                progress_seconds: Math.floor(clip.duration || 0),
-                duration_seconds: Math.floor(clip.duration || 30),
-                session_id: `embed_${Date.now()}`,
-            }),
+        apiClient.post('/watch-history', {
+            clip_id: clip.id,
+            progress_seconds: Math.floor(clip.duration || 0),
+            duration_seconds: Math.floor(clip.duration || 30),
+            session_id: `embed_${Date.now()}`,
         }).catch(() => {
             /* ignore */
         });

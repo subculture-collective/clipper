@@ -120,6 +120,7 @@ func registerPublicRoutes(r *gin.Engine, v1 *gin.RouterGroup, h *Handlers, svcs 
 	// Profiling and metrics endpoints (for debugging and monitoring)
 	// These should be protected in production (e.g., firewall rules or internal network only)
 	debug := r.Group("/debug")
+	debug.Use(middleware.AuthMiddleware(svcs.Auth), middleware.RequireRole("admin"))
 	{
 		// Prometheus metrics endpoint
 		debug.GET("/metrics", gin.WrapH(promhttp.Handler()))

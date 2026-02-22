@@ -58,6 +58,8 @@ export function CategoriesNav() {
             setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 1);
         };
 
+
+        // Reset scroll position when tab changes
         el.scrollLeft = 0;
         updateScrollState();
         el.addEventListener('scroll', updateScrollState);
@@ -79,6 +81,8 @@ export function CategoriesNav() {
         return null;
     }
 
+
+    // Hide if no data at all
     if (
         categories.length === 0 &&
         tags.length === 0 &&
@@ -93,12 +97,15 @@ export function CategoriesNav() {
         { key: 'streamers', label: 'Streamers', count: streamers.length },
     ];
 
+
+    // Only show tabs that have data
     const visibleTabs = tabs.filter(t => t.count > 0);
 
     return (
         <div className='border-b border-border bg-background'>
             <div className='container mx-auto px-4'>
                 <div className='relative flex items-center'>
+                    {/* Tab selector */}
                     {visibleTabs.length > 1 && (
                         <div className='flex items-center gap-1 pr-3 mr-3 border-r border-border shrink-0'>
                             {visibleTabs.map(tab => (
@@ -118,6 +125,8 @@ export function CategoriesNav() {
                         </div>
                     )}
 
+
+                    {/* Scrollable items */}
                     <div className='relative flex-1 min-w-0'>
                         {canScrollLeft && (
                             <button

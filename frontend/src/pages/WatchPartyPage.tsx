@@ -34,7 +34,6 @@ export function WatchPartyPage() {
   } = useWatchPartyWebSocket({
     partyId: id || '',
     onSyncEvent: (event) => {
-      console.log('Sync event:', event);
       // Update party state based on sync events
       if (event.type === 'play' || event.type === 'pause' || event.type === 'seek') {
         setParty((prev) => prev ? {
@@ -361,9 +360,9 @@ export function WatchPartyPage() {
                   if (offset < 3000) return { color: 'bg-warning-500', title: 'Slight delay' };
                   return { color: 'bg-error-500', title: 'Out of sync' };
                 };
-                
+
                 const syncIndicator = getSyncIndicator();
-                
+
                 return (
                   <div
                     key={participant.id}

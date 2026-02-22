@@ -178,55 +178,61 @@ func (h *CategoryHandler) ListCategoryClips(c *gin.Context) {
 		return
 	}
 
-	// Fetch clips from games in the category, or fall back to recent clips
-	allClips := make([]models.Clip, 0)
+	// Collect all twitch game IDs from the category
+	gameIDs := make([]string, 0, len(games))
+	for _, game := range games {
+		if game.TwitchGameID != "" {
+			gameIDs = append(gameIDs, game.TwitchGameID)
+		}
+	}
 
-	if len(games) > 0 {
-		for _, game := range games {
-			gameID := game.TwitchGameID
+	var allClips []models.Clip
+	var total int
+
+	if len(gameIDs) > 0 {
+		// Fetch clips matching any of the category's games in a single query
+		for _, gameID := range gameIDs {
+			gid := gameID
 			filters := repository.ClipFilters{
-				GameID:    &gameID,
+				GameID:    &gid,
 				Sort:      sort,
 				Timeframe: &timeframe,
 			}
 
 			clips, _, err := h.clipRepo.ListWithFilters(c.Request.Context(), filters, 200, 0)
 			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{
-					"error": "Failed to fetch clips",
-				})
-				return
+				continue
 			}
-
 			allClips = append(allClips, clips...)
 		}
 	}
 
-	// Fallback: if no clips found (no games or games have no clips), show recent clips
+	// Fallback: if no clips found via games, show recent clips
 	if len(allClips) == 0 {
 		filters := repository.ClipFilters{
 			Sort:      sort,
 			Timeframe: &timeframe,
 		}
-		fallbackClips, _, err := h.clipRepo.ListWithFilters(c.Request.Context(), filters, limit, offset)
+		clips, count, err := h.clipRepo.ListWithFilters(c.Request.Context(), filters, limit, offset)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": "Failed to fetch clips",
 			})
 			return
 		}
+
 		c.JSON(http.StatusOK, gin.H{
-			"clips":    fallbackClips,
-			"total":    len(fallbackClips),
+			"clips":    clips,
+			"total":    count,
 			"page":     page,
 			"limit":    limit,
-			"has_more": len(fallbackClips) >= limit,
+			"has_more": len(clips) == limit,
 		})
 		return
 	}
 
-	// Calculate pagination
-	total := len(allClips)
+	// Calculate pagination over combined results
+	total = len(allClips)
 	start := offset
 	end := offset + limit
 

@@ -1793,7 +1793,7 @@ type BroadcasterProfile struct {
 	UpdatedAt       time.Time `json:"updated_at"`
 }
 
-// PopularBroadcaster represents a broadcaster with their clip count for the popular broadcasters listing
+// PopularBroadcaster represents a broadcaster summary for navigation/discovery
 type PopularBroadcaster struct {
 	BroadcasterID   string `json:"broadcaster_id"`
 	BroadcasterName string `json:"broadcaster_name"`

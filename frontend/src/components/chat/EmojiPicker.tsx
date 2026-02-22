@@ -51,9 +51,9 @@ export function EmojiPicker({ onSelect }: EmojiPickerProps) {
       {isOpen && (
         <div className="absolute bottom-full right-0 mb-2 bg-background border border-border rounded-lg shadow-lg p-2 w-72 max-h-64 overflow-y-auto z-50">
           <div className="grid grid-cols-8 gap-1">
-            {COMMON_EMOJIS.map((emoji, index) => (
+            {COMMON_EMOJIS.map((emoji) => (
               <button
-                key={index}
+                key={emoji}
                 type="button"
                 onClick={() => handleEmojiSelect(emoji)}
                 className="text-2xl p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded transition-colors"

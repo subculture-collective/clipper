@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { getSecureItem } from '@/lib/secure-storage';
 import type {
   WatchPartySyncEvent,
   WatchPartyCommand,
@@ -50,12 +51,12 @@ export function useWatchPartyWebSocket({
   const onChatMessageRef = useRef(onChatMessage);
   const onReactionRef = useRef(onReaction);
   const onTypingRef = useRef(onTyping);
-  onSyncEventRef.current = onSyncEvent;
-  onChatMessageRef.current = onChatMessage;
-  onReactionRef.current = onReaction;
-  onTypingRef.current = onTyping;
+  useEffect(() => { onSyncEventRef.current = onSyncEvent; }, [onSyncEvent]);
+  useEffect(() => { onChatMessageRef.current = onChatMessage; }, [onChatMessage]);
+  useEffect(() => { onReactionRef.current = onReaction; }, [onReaction]);
+  useEffect(() => { onTypingRef.current = onTyping; }, [onTyping]);
 
-  const connect = useCallback(() => {
+  const connect = useCallback(async () => {
     if (!enabled) return;
 
     try {
@@ -63,8 +64,8 @@ export function useWatchPartyWebSocket({
       const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsHost = import.meta.env.VITE_WS_HOST || window.location.host;
 
-      // Get auth token from localStorage
-      const token = localStorage.getItem('token');
+      // Get auth token from secure storage
+      const token = await getSecureItem('token');
       if (!token) {
         setError('Authentication required');
         return;

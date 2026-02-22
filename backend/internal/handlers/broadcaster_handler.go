@@ -204,6 +204,26 @@ func (h *BroadcasterHandler) UnfollowBroadcaster(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "successfully unfollowed broadcaster"})
 }
 
+// ListPopularBroadcasters returns popular broadcasters by clip count
+// GET /api/v1/broadcasters/popular
+func (h *BroadcasterHandler) ListPopularBroadcasters(c *gin.Context) {
+	limit := 15
+	if l := c.Query("limit"); l != "" {
+		if parsed, err := strconv.Atoi(l); err == nil && parsed >= 1 && parsed <= 50 {
+			limit = parsed
+		}
+	}
+
+	broadcasters, err := h.broadcasterRepo.ListPopularBroadcasters(c.Request.Context(), limit)
+	if err != nil {
+		utils.GetLogger().Error("Failed to list popular broadcasters", err, nil)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list popular broadcasters"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"broadcasters": broadcasters})
+}
+
 // ListBroadcasterClips returns all clips for a broadcaster
 // GET /api/v1/broadcasters/:id/clips
 // ListPopularBroadcasters handles GET /api/v1/broadcasters/popular

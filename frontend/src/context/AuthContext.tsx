@@ -5,6 +5,7 @@ import React, {
     useEffect,
     useCallback,
     useRef,
+    useMemo,
 } from 'react';
 import {
     getCurrentUser,
@@ -201,20 +202,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const isModerator = user?.role === 'moderator';
     const isModeratorOrAdminFlag = isModeratorOrAdmin(user?.role);
 
+    const value = useMemo(
+        () => ({
+            user,
+            isAuthenticated,
+            isAdmin,
+            isModerator,
+            isModeratorOrAdmin: isModeratorOrAdminFlag,
+            isLoading,
+            login,
+            logout,
+            refreshUser,
+        }),
+        [user, isAuthenticated, isAdmin, isModerator, isModeratorOrAdminFlag, isLoading, login, logout, refreshUser],
+    );
+
     return (
-        <AuthContext.Provider
-            value={{
-                user,
-                isAuthenticated,
-                isAdmin,
-                isModerator,
-                isModeratorOrAdmin: isModeratorOrAdminFlag,
-                isLoading,
-                login,
-                logout,
-                refreshUser,
-            }}
-        >
+        <AuthContext.Provider value={value}>
             {children}
         </AuthContext.Provider>
     );

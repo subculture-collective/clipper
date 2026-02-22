@@ -1,40 +1,8 @@
 import { Link } from 'react-router-dom';
-
-/**
- * ExternalLink component that checks if link should work in current environment
- * Shows placeholder notice for docs/status in local development
- */
-function ExternalLink({ href, children, className }: { href: string; children: React.ReactNode; className?: string }) {
-  const isDev = import.meta.env.DEV;
-  // Note: This substring check is for UX purposes only (dev environment detection), not security.
-  // The href values are hardcoded constants defined in this component's usage, not user input.
-  const isDocsOrStatus = href.includes('docs.clipper.com') || href.includes('status.clipper.com');
-
-  // In development, show placeholder notice for docs/status links
-  if (isDev && isDocsOrStatus) {
-    return (
-      <span
-        className={`${className} cursor-not-allowed opacity-60`}
-        title="Available in production. Documentation and status pages are external services."
-      >
-        {children} <span className="text-xs">⚠️</span>
-      </span>
-    );
-  }
-
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={className}
-    >
-      {children}
-    </a>
-  );
-}
+import { useTranslation } from 'react-i18next';
 
 export function Footer() {
+  const { t } = useTranslation();
   const currentYear = new Date().getFullYear();
 
   return (
@@ -43,14 +11,14 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* About Section */}
           <div>
-            <h3 className="font-semibold mb-4">About</h3>
+            <h3 className="font-semibold mb-4">{t('footer.about')}</h3>
             <ul className="space-y-2">
               <li>
                 <Link
                   to="/about"
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  About clpr
+                  {t('footer.aboutClpr')}
                 </Link>
               </li>
               <li>
@@ -60,7 +28,7 @@ export function Footer() {
                   rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  GitHub Repository
+                  {t('footer.githubRepo')}
                 </a>
               </li>
             </ul>
@@ -68,14 +36,14 @@ export function Footer() {
 
           {/* Legal Section */}
           <div>
-            <h3 className="font-semibold mb-4">Legal</h3>
+            <h3 className="font-semibold mb-4">{t('footer.legal')}</h3>
             <ul className="space-y-2">
               <li>
                 <Link
                   to="/privacy"
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  Privacy Policy
+                  {t('footer.privacyPolicy')}
                 </Link>
               </li>
               <li>
@@ -83,7 +51,7 @@ export function Footer() {
                   to="/terms"
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  Terms of Service
+                  {t('footer.termsOfService')}
                 </Link>
               </li>
               <li>
@@ -91,7 +59,7 @@ export function Footer() {
                   to="/legal/dmca"
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  DMCA Policy
+                  {t('footer.dmcaPolicy')}
                 </Link>
               </li>
             </ul>
@@ -99,24 +67,24 @@ export function Footer() {
 
           {/* Community Section */}
           <div>
-            <h3 className="font-semibold mb-4">Community</h3>
+            <h3 className="font-semibold mb-4">{t('footer.community')}</h3>
             <ul className="space-y-2">
               <li>
                 <Link
                   to="/community-rules"
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  Community Rules
+                  {t('footer.communityRules')}
                 </Link>
               </li>
               <li>
                 <a
-                  href="https://discord.gg/BYrHNpH4"
+                  href="https://discord.gg/TFwB4aJRef"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  Discord
+                  {t('footer.discord')}
                 </a>
               </li>
               <li>
@@ -126,7 +94,7 @@ export function Footer() {
                   rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  Twitter
+                  {t('footer.twitter')}
                 </a>
               </li>
             </ul>
@@ -134,7 +102,7 @@ export function Footer() {
 
           {/* Resources Section */}
           <div>
-            <h3 className="font-semibold mb-4">Resources</h3>
+            <h3 className="font-semibold mb-4">{t('footer.resources')}</h3>
             <ul className="space-y-2">
               {/* <li>
                 <Link
@@ -145,19 +113,11 @@ export function Footer() {
                 </Link>
               </li> */}
               <li>
-                <ExternalLink
-                  href="https://status.clipper.com"
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Status
-                </ExternalLink>
-              </li>
-              <li>
                 <Link
                   to="/contact"
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  Contact Us
+                  {t('footer.contactUs')}
                 </Link>
               </li>
             </ul>
@@ -166,7 +126,7 @@ export function Footer() {
 
         {/* Copyright */}
         <div className="mt-8 pt-8 border-t border-border text-center text-muted-foreground">
-          <p>© {currentYear} <Link to="http://subcult.tv">subcult.tv</Link> 💜</p>
+          <p>© {currentYear} <a href="https://subcult.tv" target="_blank" rel="noopener noreferrer">subcult.tv</a> 💜</p>
         </div>
       </div>
     </footer>

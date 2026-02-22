@@ -36,8 +36,8 @@ export function useChatWebSocket({
   // Store callbacks in refs to avoid reconnecting when they change
   const onMessageRef = useRef(onMessage);
   const onTypingRef = useRef(onTyping);
-  onMessageRef.current = onMessage;
-  onTypingRef.current = onTyping;
+  useEffect(() => { onMessageRef.current = onMessage; }, [onMessage]);
+  useEffect(() => { onTypingRef.current = onTyping; }, [onTyping]);
 
   const connect = useCallback(() => {
     try {

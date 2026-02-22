@@ -230,11 +230,6 @@ const AdminAPIDocsPage = lazy(() =>
         default: m.AdminAPIDocsPage,
     })),
 );
-const ServiceStatusPage = lazy(() =>
-    import('./pages/admin/ServiceStatusPage').then(m => ({
-        default: m.ServiceStatusPage,
-    })),
-);
 const PricingPage = lazy(() => import('./pages/PricingPage'));
 const SubscriptionSuccessPage = lazy(
     () => import('./pages/SubscriptionSuccessPage'),
@@ -376,7 +371,6 @@ function LoadingFallback() {
 }
 
 function App() {
-    console.log('[App] Rendering...');
     return (
         <HelmetProvider>
             <AuthProvider>
@@ -922,14 +916,6 @@ function App() {
                                             element={
                                                 <AdminRoute>
                                                     <AdminDiscoveryListFormPage />
-                                                </AdminRoute>
-                                            }
-                                        />
-                                        <Route
-                                            path='/admin/status'
-                                            element={
-                                                <AdminRoute>
-                                                    <ServiceStatusPage />
                                                 </AdminRoute>
                                             }
                                         />

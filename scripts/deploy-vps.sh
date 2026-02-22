@@ -85,10 +85,7 @@ if [ "$SKIP_GIT" = false ]; then
 
     # Check for uncommitted changes
     if ! git diff-index --quiet HEAD -- 2>/dev/null; then
-        warn "Uncommitted changes detected"
-        log "Stashing changes..."
-        git stash push -m "auto-stash-before-deploy-$(date +%s)"
-        success "Changes stashed"
+        warn "Uncommitted changes detected — deploying with local changes"
     fi
 
     # Optionally pull latest changes

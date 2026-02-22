@@ -369,7 +369,8 @@ func (r *SearchRepository) searchTags(ctx context.Context, tsQuery string, req *
 	// Get paginated results
 	offset := (req.Page - 1) * req.Limit
 	query := fmt.Sprintf(`
-		SELECT t.* FROM tags t
+		SELECT t.id, t.name, t.slug, t.description, t.color, t.usage_count, t.created_at
+		FROM tags t
 		WHERE %s
 		ORDER BY %s
 		LIMIT %s OFFSET %s

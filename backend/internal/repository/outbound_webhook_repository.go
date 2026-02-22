@@ -208,8 +208,8 @@ func (r *OutboundWebhookRepository) CreateDelivery(ctx context.Context, delivery
 // GetDeliveryByID retrieves a webhook delivery by ID
 func (r *OutboundWebhookRepository) GetDeliveryByID(ctx context.Context, id uuid.UUID) (*models.WebhookDelivery, error) {
 	query := `
-		SELECT id, subscription_id, event_type, event_id, payload, status, http_status_code, 
-		       response_body, error_message, attempt_count, max_attempts, next_attempt_at, 
+		SELECT id, subscription_id, event_type, event_id, payload, status, http_status_code,
+		       response_body, error_message, attempt_count, max_attempts, next_attempt_at,
 		       delivered_at, created_at, updated_at
 		FROM webhook_deliveries
 		WHERE id = $1
@@ -424,7 +424,7 @@ func (r *OutboundWebhookRepository) CountPendingDeliveries(ctx context.Context) 
 // GetRecentDeliveryStats returns delivery statistics for the last hour
 func (r *OutboundWebhookRepository) GetRecentDeliveryStats(ctx context.Context) (map[string]int, error) {
 	query := `
-		SELECT 
+		SELECT
 			status,
 			COUNT(*) as count
 		FROM webhook_deliveries
@@ -505,7 +505,7 @@ func (r *OutboundWebhookRepository) GetDeadLetterQueueItems(ctx context.Context,
 	}
 	defer rows.Close()
 
-	var items []*models.OutboundWebhookDeadLetterQueue
+	var items []*models.OutboundWebhookDeadLetterQueue = make([]*models.OutboundWebhookDeadLetterQueue, 0)
 	for rows.Next() {
 		var item models.OutboundWebhookDeadLetterQueue
 		err := rows.Scan(
