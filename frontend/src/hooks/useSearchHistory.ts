@@ -77,7 +77,7 @@ export function useSearchHistory() {
 
     // Update local state
     setHistory(prev => {
-      const filtered = prev.filter(h => h.query !== query);
+      const filtered = (prev || []).filter(h => h.query !== query);
       return [item, ...filtered].slice(0, 20);
     });
 

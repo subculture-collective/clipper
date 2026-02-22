@@ -64,7 +64,7 @@ export const searchApi = {
     }>('/search/history', {
       params: { limit },
     });
-    return response.data.search_history;
+    return response.data.search_history || [];
   },
 
   // Get failed searches (admin only)
