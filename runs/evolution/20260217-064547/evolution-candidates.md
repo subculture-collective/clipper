@@ -6,18 +6,18 @@ Generated: 2026-02-21T19:13:16Z
 
 ```json
 {
-  "workflow": "evolution",
-  "run_id": "20260217-064547",
-  "created_at": "2026-02-17T06:45:47Z",
-  "last_updated": "2026-02-21T19:13:10Z",
-  "project_root": "/home/onnwee/projects/clipper",
-  "next_version": "",
-  "package_manager": "npm",
-  "last_tool": "",
-  "hooks": {
-    "settings_path": "/home/onnwee/.claude/skills/skill-evolution/hooks/settings.json",
-    "version": 2
-  }
+    "workflow": "evolution",
+    "run_id": "20260217-064547",
+    "created_at": "2026-02-17T06:45:47Z",
+    "last_updated": "2026-02-21T19:13:10Z",
+    "project_root": "/home/onnwee/projects/clipper",
+    "next_version": "",
+    "package_manager": "npm",
+    "last_tool": "",
+    "hooks": {
+        "settings_path": "/home/onnwee/.claude/skills/skill-evolution/hooks/settings.json",
+        "version": 2
+    }
 }
 ```
 
@@ -44,4 +44,5 @@ Generated: 2026-02-21T19:13:16Z
 - Review and apply patches manually (no auto edits)
 
 Run directory:
+
 - /home/onnwee/projects/clipper/runs/evolution/20260217-064547

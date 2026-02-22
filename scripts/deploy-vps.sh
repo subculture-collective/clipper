@@ -92,7 +92,7 @@ if [ "$SKIP_GIT" = false ]; then
     if [ "$NO_PULL" = false ]; then
         log "Fetching latest changes..."
         git fetch origin main || warn "Could not fetch from origin"
-        
+
         if git rev-parse origin/main >/dev/null 2>&1; then
             log "Pulling latest from origin/main..."
             git pull origin main || warn "Could not pull from origin/main"
@@ -261,12 +261,12 @@ while [ $retry -lt $max_retries ]; do
     if docker compose -p "$PROJECT_NAME" -f "$COMPOSE_FILE" ps frontend | grep -q "healthy"; then
         frontend_healthy=true
     fi
-    
+
     if [ "$backend_healthy" = true ] && [ "$frontend_healthy" = true ]; then
         success "All services healthy"
         break
     fi
-    
+
     retry=$((retry + 1))
     if [ $((retry % 10)) -eq 0 ]; then
         log "Waiting for health checks... Backend: $backend_healthy, Frontend: $frontend_healthy (${retry}/${max_retries})"
@@ -288,7 +288,7 @@ if [ "$CADDY_RUNNING" = true ]; then
     # Check if Caddy is on the web network
     if docker network inspect web | grep -q "$CADDY_CONTAINER"; then
         success "Caddy is connected to 'web' network"
-        
+
         # Verify Caddyfile points to the right containers
         log "Checking Caddyfile configuration..."
         if [ -f "Caddyfile" ]; then
@@ -298,7 +298,7 @@ if [ "$CADDY_RUNNING" = true ]; then
                 warn "Caddyfile may need updating to reference clipper-backend and clipper-frontend"
             fi
         fi
-        
+
         # Suggest reloading Caddy
         log "To reload Caddy configuration, run:"
         log "  docker exec $CADDY_CONTAINER caddy reload --config /etc/caddy/Caddyfile"

@@ -58,7 +58,6 @@ export function CategoriesNav() {
             setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 1);
         };
 
-
         // Reset scroll position when tab changes
         el.scrollLeft = 0;
         updateScrollState();
@@ -81,7 +80,6 @@ export function CategoriesNav() {
         return null;
     }
 
-
     // Hide if no data at all
     if (
         categories.length === 0 &&
@@ -96,7 +94,6 @@ export function CategoriesNav() {
         { key: 'tags', label: 'Tags', count: tags.length },
         { key: 'streamers', label: 'Streamers', count: streamers.length },
     ];
-
 
     // Only show tabs that have data
     const visibleTabs = tabs.filter(t => t.count > 0);
@@ -114,9 +111,9 @@ export function CategoriesNav() {
                                     type='button'
                                     onClick={() => setActiveTab(tab.key)}
                                     className={`px-2.5 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
-                                        activeTab === tab.key
-                                            ? 'bg-primary text-primary-foreground'
-                                            : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                                        activeTab === tab.key ?
+                                            'bg-primary text-primary-foreground'
+                                        :   'text-muted-foreground hover:text-foreground hover:bg-muted'
                                     }`}
                                 >
                                     {tab.label}
@@ -124,7 +121,6 @@ export function CategoriesNav() {
                             ))}
                         </div>
                     )}
-
 
                     {/* Scrollable items */}
                     <div className='relative flex-1 min-w-0'>
@@ -232,9 +228,7 @@ export function CategoriesNav() {
                                         <span className='text-purple-500'>
                                             ●
                                         </span>
-                                        <span>
-                                            {streamer.broadcaster_name}
-                                        </span>
+                                        <span>{streamer.broadcaster_name}</span>
                                         <span className='text-xs text-muted-foreground'>
                                             {streamer.clip_count} clips
                                         </span>

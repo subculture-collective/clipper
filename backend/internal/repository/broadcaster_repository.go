@@ -85,7 +85,7 @@ func (r *BroadcasterRepository) GetFollowerCount(ctx context.Context, broadcaste
 // GetBroadcasterStats returns statistics for a broadcaster from the clips table
 func (r *BroadcasterRepository) GetBroadcasterStats(ctx context.Context, broadcasterID string) (totalClips int, totalViews int64, avgVoteScore float64, err error) {
 	query := `
-		SELECT 
+		SELECT
 			COUNT(*) as total_clips,
 			COALESCE(SUM(view_count), 0) as total_views,
 			COALESCE(AVG(vote_score), 0) as avg_vote_score
@@ -182,7 +182,7 @@ func (r *BroadcasterRepository) UpsertLiveStatus(ctx context.Context, status *mo
 		INSERT INTO broadcaster_live_status (
 			broadcaster_id, user_login, user_name, is_live, stream_title, game_name, viewer_count, started_at, last_checked
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-		ON CONFLICT (broadcaster_id) 
+		ON CONFLICT (broadcaster_id)
 		DO UPDATE SET
 			user_login = EXCLUDED.user_login,
 			user_name = EXCLUDED.user_name,
@@ -214,7 +214,7 @@ func (r *BroadcasterRepository) UpsertLiveStatus(ctx context.Context, status *mo
 // GetLiveStatus retrieves live status for a broadcaster
 func (r *BroadcasterRepository) GetLiveStatus(ctx context.Context, broadcasterID string) (*models.BroadcasterLiveStatus, error) {
 	query := `
-		SELECT broadcaster_id, user_login, user_name, is_live, stream_title, game_name, viewer_count, 
+		SELECT broadcaster_id, user_login, user_name, is_live, stream_title, game_name, viewer_count,
 		       started_at, last_checked, created_at, updated_at
 		FROM broadcaster_live_status
 		WHERE broadcaster_id = $1
@@ -297,8 +297,8 @@ func (r *BroadcasterRepository) ListLiveBroadcasters(ctx context.Context, limit,
 // GetFollowedLiveBroadcasters retrieves live broadcasters that a user follows
 func (r *BroadcasterRepository) GetFollowedLiveBroadcasters(ctx context.Context, userID uuid.UUID) ([]models.BroadcasterLiveStatus, error) {
 	query := `
-		SELECT bls.broadcaster_id, bls.user_login, bls.user_name, bls.is_live, bls.stream_title, bls.game_name, 
-		       bls.viewer_count, bls.started_at, bls.last_checked, 
+		SELECT bls.broadcaster_id, bls.user_login, bls.user_name, bls.is_live, bls.stream_title, bls.game_name,
+		       bls.viewer_count, bls.started_at, bls.last_checked,
 		       bls.created_at, bls.updated_at
 		FROM broadcaster_live_status bls
 		INNER JOIN broadcaster_follows bf ON bls.broadcaster_id = bf.broadcaster_id
@@ -371,7 +371,7 @@ func (r *BroadcasterRepository) GetFollowedBroadcasterIDs(ctx context.Context, u
 // GetAllFollowedBroadcasterIDs retrieves all unique broadcaster IDs that are followed by any user
 func (r *BroadcasterRepository) GetAllFollowedBroadcasterIDs(ctx context.Context) ([]string, error) {
 	query := `
-		SELECT DISTINCT broadcaster_id 
+		SELECT DISTINCT broadcaster_id
 		FROM broadcaster_follows
 	`
 	rows, err := r.pool.Query(ctx, query)
@@ -404,7 +404,7 @@ func (r *BroadcasterRepository) UpsertSyncStatus(ctx context.Context, status *mo
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7
 		)
-		ON CONFLICT (broadcaster_id) 
+		ON CONFLICT (broadcaster_id)
 		DO UPDATE SET
 			is_live = EXCLUDED.is_live,
 			stream_started_at = EXCLUDED.stream_started_at,
@@ -432,7 +432,7 @@ func (r *BroadcasterRepository) UpsertSyncStatus(ctx context.Context, status *mo
 // GetSyncStatus retrieves sync status for a broadcaster
 func (r *BroadcasterRepository) GetSyncStatus(ctx context.Context, broadcasterID string) (*models.BroadcasterSyncStatus, error) {
 	query := `
-SELECT broadcaster_id, is_live, stream_started_at, last_synced, game_name, viewer_count, 
+SELECT broadcaster_id, is_live, stream_started_at, last_synced, game_name, viewer_count,
        stream_title, created_at, updated_at
 FROM broadcaster_sync_status
 WHERE broadcaster_id = $1
