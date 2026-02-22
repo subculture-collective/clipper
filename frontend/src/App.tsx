@@ -278,6 +278,11 @@ const PublicPlaylistsPage = lazy(() =>
         default: m.PublicPlaylistsPage,
     })),
 );
+const SmartPlaylistsPage = lazy(() =>
+    import('./pages/SmartPlaylistsPage').then(m => ({
+        default: m.SmartPlaylistsPage,
+    })),
+);
 const WatchHistoryPage = lazy(() =>
     import('./pages/WatchHistoryPage').then(m => ({
         default: m.WatchHistoryPage,
@@ -621,6 +626,14 @@ function App() {
                                         <Route
                                             path='/playlists/discover'
                                             element={<PublicPlaylistsPage />}
+                                        />
+                                        <Route
+                                            path='/playlists/smart'
+                                            element={
+                                                <ProtectedRoute>
+                                                    <SmartPlaylistsPage />
+                                                </ProtectedRoute>
+                                            }
                                         />
                                         <Route
                                             path='/playlists/:id'

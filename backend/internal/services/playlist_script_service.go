@@ -46,6 +46,86 @@ func (s *PlaylistScriptService) ListScripts(ctx context.Context) ([]*models.Play
     return s.scriptRepo.List(ctx)
 }
 
+// ListUserScripts returns playlist scripts owned by a specific user
+func (s *PlaylistScriptService) ListUserScripts(ctx context.Context, userID uuid.UUID) ([]*models.PlaylistScript, error) {
+    return s.scriptRepo.ListByUser(ctx, userID)
+}
+
+// allowedUserSchedules defines the schedules available to non-admin users.
+var allowedUserSchedules = map[string]bool{
+    "manual": true,
+    "daily":  true,
+    "weekly": true,
+}
+
+// CreateUserScript creates a playlist script scoped to a regular user.
+// Strategy is forced to "standard" and schedule is restricted.
+func (s *PlaylistScriptService) CreateUserScript(ctx context.Context, userID uuid.UUID, req *models.CreatePlaylistScriptRequest) (*models.PlaylistScript, error) {
+    // Force strategy to standard for user-created scripts
+    standard := "standard"
+    req.Strategy = &standard
+
+    // Validate schedule
+    schedule := "manual"
+    if req.Schedule != nil {
+        schedule = *req.Schedule
+    }
+    if !allowedUserSchedules[schedule] {
+        return nil, fmt.Errorf("schedule %q is not allowed; choose manual, daily, or weekly", schedule)
+    }
+
+    return s.CreateScript(ctx, userID, req)
+}
+
+// GetUserScript retrieves a script only if owned by the given user.
+func (s *PlaylistScriptService) GetUserScript(ctx context.Context, scriptID, userID uuid.UUID) (*models.PlaylistScript, error) {
+    script, err := s.scriptRepo.GetByID(ctx, scriptID)
+    if err != nil {
+        return nil, err
+    }
+    if script == nil {
+        return nil, fmt.Errorf("playlist script not found")
+    }
+    if script.CreatedBy == nil || *script.CreatedBy != userID {
+        return nil, fmt.Errorf("playlist script not found")
+    }
+    return script, nil
+}
+
+// UpdateUserScript updates a script only if owned by the given user.
+// Strategy changes are not allowed for user scripts.
+func (s *PlaylistScriptService) UpdateUserScript(ctx context.Context, scriptID, userID uuid.UUID, req *models.UpdatePlaylistScriptRequest) (*models.PlaylistScript, error) {
+    if _, err := s.GetUserScript(ctx, scriptID, userID); err != nil {
+        return nil, err
+    }
+
+    // Prevent users from changing strategy
+    req.Strategy = nil
+
+    // Validate schedule if provided
+    if req.Schedule != nil && !allowedUserSchedules[*req.Schedule] {
+        return nil, fmt.Errorf("schedule %q is not allowed; choose manual, daily, or weekly", *req.Schedule)
+    }
+
+    return s.UpdateScript(ctx, scriptID, req)
+}
+
+// DeleteUserScript deletes a script only if owned by the given user.
+func (s *PlaylistScriptService) DeleteUserScript(ctx context.Context, scriptID, userID uuid.UUID) error {
+    if _, err := s.GetUserScript(ctx, scriptID, userID); err != nil {
+        return err
+    }
+    return s.DeleteScript(ctx, scriptID)
+}
+
+// GenerateUserPlaylist generates a playlist from a script only if owned by the given user.
+func (s *PlaylistScriptService) GenerateUserPlaylist(ctx context.Context, scriptID, userID uuid.UUID) (*models.Playlist, error) {
+    if _, err := s.GetUserScript(ctx, scriptID, userID); err != nil {
+        return nil, err
+    }
+    return s.GeneratePlaylist(ctx, scriptID)
+}
+
 // CreateScript creates a new playlist script
 func (s *PlaylistScriptService) CreateScript(ctx context.Context, userID uuid.UUID, req *models.CreatePlaylistScriptRequest) (*models.PlaylistScript, error) {
     visibility := models.PlaylistVisibilityPublic
