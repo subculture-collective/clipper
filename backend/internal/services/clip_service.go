@@ -19,6 +19,7 @@ var ErrUnauthorized = errors.New("user does not have permission to manage this c
 // ClipService handles business logic for clips
 type ClipService struct {
 	clipRepo            *repository.ClipRepository
+	discoveryClipRepo   *repository.DiscoveryClipRepository
 	voteRepo            *repository.VoteRepository
 	favoriteRepo        *repository.FavoriteRepository
 	userRepo            *repository.UserRepository
@@ -31,6 +32,7 @@ type ClipService struct {
 // NewClipService creates a new ClipService
 func NewClipService(
 	clipRepo *repository.ClipRepository,
+	discoveryClipRepo *repository.DiscoveryClipRepository,
 	voteRepo *repository.VoteRepository,
 	favoriteRepo *repository.FavoriteRepository,
 	userRepo *repository.UserRepository,
@@ -41,6 +43,7 @@ func NewClipService(
 ) *ClipService {
 	return &ClipService{
 		clipRepo:            clipRepo,
+		discoveryClipRepo:   discoveryClipRepo,
 		voteRepo:            voteRepo,
 		favoriteRepo:        favoriteRepo,
 		userRepo:            userRepo,
@@ -351,19 +354,36 @@ func (s *ClipService) ListClips(ctx context.Context, filters repository.ClipFilt
 	return clipsWithData, total, nil
 }
 
-// ListScrapedClips retrieves only scraped clips (not claimed by users) with filters and pagination
+// ListScrapedClips retrieves discovery clips (not yet claimed by users) with filters and pagination.
+// Now reads from the discovery_clips staging table via DiscoveryClipRepository.
 func (s *ClipService) ListScrapedClips(ctx context.Context, filters repository.ClipFilters, page, limit int, userID *uuid.UUID) ([]ClipWithUserData, int, error) {
+	// Convert ClipFilters → DiscoveryClipFilters
+	dcFilters := repository.DiscoveryClipFilters{
+		GameID:          filters.GameID,
+		BroadcasterID:   filters.BroadcasterID,
+		CreatorID:       filters.CreatorID,
+		Tag:             filters.Tag,
+		ExcludeTags:     filters.ExcludeTags,
+		Search:          filters.Search,
+		Language:        filters.Language,
+		Timeframe:       filters.Timeframe,
+		DateFrom:        filters.DateFrom,
+		DateTo:          filters.DateTo,
+		Sort:            filters.Sort,
+		Top10kStreamers: filters.Top10kStreamers,
+	}
+
 	// Check cache for non-user-specific queries
-	cacheKey := s.buildCacheKey(filters, page, limit) + ":scraped"
-	var cachedClips []models.Clip
+	cacheKey := s.buildCacheKey(filters, page, limit) + ":discovery"
+	var cachedClips []models.DiscoveryClip
 	var cachedTotal int
 
 	if userID == nil {
 		cached, err := s.redisClient.Get(ctx, cacheKey)
 		if err == nil && cached != "" {
 			var cacheData struct {
-				Clips []models.Clip `json:"clips"`
-				Total int           `json:"total"`
+				Clips []models.DiscoveryClip `json:"clips"`
+				Total int                    `json:"total"`
 			}
 			if json.Unmarshal([]byte(cached), &cacheData) == nil {
 				cachedClips = cacheData.Clips
@@ -372,16 +392,16 @@ func (s *ClipService) ListScrapedClips(ctx context.Context, filters repository.C
 		}
 	}
 
-	var clips []models.Clip
+	var discoveryClips []models.DiscoveryClip
 	var total int
 	var err error
 
 	if cachedClips != nil {
-		clips = cachedClips
+		discoveryClips = cachedClips
 		total = cachedTotal
 	} else {
 		offset := (page - 1) * limit
-		clips, total, err = s.clipRepo.ListScrapedClipsWithFilters(ctx, filters, limit, offset)
+		discoveryClips, total, err = s.discoveryClipRepo.ListWithFilters(ctx, dcFilters, limit, offset)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -389,10 +409,10 @@ func (s *ClipService) ListScrapedClips(ctx context.Context, filters repository.C
 		// Cache non-user-specific results
 		if userID == nil {
 			cacheData := struct {
-				Clips []models.Clip `json:"clips"`
-				Total int           `json:"total"`
+				Clips []models.DiscoveryClip `json:"clips"`
+				Total int                    `json:"total"`
 			}{
-				Clips: clips,
+				Clips: discoveryClips,
 				Total: total,
 			}
 			if data, err := json.Marshal(cacheData); err == nil {
@@ -402,50 +422,32 @@ func (s *ClipService) ListScrapedClips(ctx context.Context, filters repository.C
 		}
 	}
 
-	// Batch fetch watch progress for all clips if user is authenticated
-	var watchProgressMap map[uuid.UUID]*models.ResumePositionResponse
-	if userID != nil && len(clips) > 0 {
-		clipIDs := make([]uuid.UUID, len(clips))
-		for i, clip := range clips {
-			clipIDs[i] = clip.ID
-		}
-		watchProgressMap, _ = s.watchHistoryRepo.GetResumePositions(ctx, *userID, clipIDs)
-	}
-
-	// Enrich with user data (scraped clips won't have submitters)
-	clipsWithData := make([]ClipWithUserData, len(clips))
-	for i, clip := range clips {
+	// Convert DiscoveryClip → ClipWithUserData for backward-compatible API response
+	clipsWithData := make([]ClipWithUserData, len(discoveryClips))
+	for i, dc := range discoveryClips {
 		clipsWithData[i] = ClipWithUserData{
-			Clip: clip,
-		}
-
-		// Get vote counts
-		upvotes, downvotes, err := s.voteRepo.GetVoteCounts(ctx, clip.ID)
-		if err == nil {
-			clipsWithData[i].UpvoteCount = upvotes
-			clipsWithData[i].DownvoteCount = downvotes
-		}
-
-		// Get user-specific data if authenticated
-		if userID != nil {
-			vote, err := s.voteRepo.GetVote(ctx, *userID, clip.ID)
-			if err == nil && vote != nil {
-				clipsWithData[i].UserVote = &vote.VoteType
-			}
-
-			isFavorited, err := s.favoriteRepo.IsFavorited(ctx, *userID, clip.ID)
-			if err == nil {
-				clipsWithData[i].IsFavorited = isFavorited
-			}
-
-			// Add watch progress if available
-			if watchProgress, ok := watchProgressMap[clip.ID]; ok && watchProgress.HasProgress {
-				clipsWithData[i].Clip.WatchProgress = s.buildWatchProgressInfo(
-					watchProgress.ProgressSeconds,
-					watchProgress.Completed,
-					clip.Duration,
-				)
-			}
+			Clip: models.Clip{
+				ID:              dc.ID,
+				TwitchClipID:    dc.TwitchClipID,
+				TwitchClipURL:   dc.TwitchClipURL,
+				EmbedURL:        dc.EmbedURL,
+				Title:           dc.Title,
+				CreatorName:     dc.CreatorName,
+				CreatorID:       dc.CreatorID,
+				BroadcasterName: dc.BroadcasterName,
+				BroadcasterID:   dc.BroadcasterID,
+				GameID:          dc.GameID,
+				GameName:        dc.GameName,
+				Language:        dc.Language,
+				ThumbnailURL:    dc.ThumbnailURL,
+				Duration:        dc.Duration,
+				ViewCount:       dc.ViewCount,
+				CreatedAt:       dc.CreatedAt,
+				ImportedAt:      dc.ImportedAt,
+				IsNSFW:          dc.IsNSFW,
+				IsRemoved:       dc.IsRemoved,
+				IsHidden:        dc.IsHidden,
+			},
 		}
 	}
 

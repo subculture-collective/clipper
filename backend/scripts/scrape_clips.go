@@ -11,7 +11,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/subculture-collective/clipper/config"
-	"github.com/subculture-collective/clipper/internal/models"
 	"github.com/subculture-collective/clipper/pkg/database"
 	"github.com/subculture-collective/clipper/pkg/redis"
 	"github.com/subculture-collective/clipper/pkg/twitch"
@@ -321,89 +320,56 @@ func scrapeClipsForBroadcaster(
 	return clipsAdded, clipsSkipped, apiCalls, nil
 }
 
-// clipExists checks if a clip already exists in the database
+// clipExists checks if a clip already exists in the database (both clips and discovery_clips)
 func clipExists(ctx context.Context, db *pgxpool.Pool, twitchClipID string) (bool, error) {
 	var exists bool
-	query := `SELECT EXISTS(SELECT 1 FROM clips WHERE twitch_clip_id = $1)`
+	query := `SELECT EXISTS(
+		SELECT 1 FROM clips WHERE twitch_clip_id = $1
+		UNION ALL
+		SELECT 1 FROM discovery_clips WHERE twitch_clip_id = $1
+	)`
 	err := db.QueryRow(ctx, query, twitchClipID).Scan(&exists)
 	return exists, err
 }
 
-// insertClip inserts a new clip into the database
+// insertClip inserts a new clip into the discovery_clips staging table
 func insertClip(ctx context.Context, db *pgxpool.Pool, twitchClip *twitch.Clip) error {
-	clip := &models.Clip{
-		ID:              uuid.New(),
-		TwitchClipID:    twitchClip.ID,
-		TwitchClipURL:   twitchClip.URL,
-		EmbedURL:        twitchClip.EmbedURL,
-		Title:           twitchClip.Title,
-		CreatorName:     twitchClip.CreatorName,
-		CreatorID:       &twitchClip.CreatorID,
-		BroadcasterName: twitchClip.BroadcasterName,
-		BroadcasterID:   &twitchClip.BroadcasterID,
-		GameID:          &twitchClip.GameID,
-		Language:        &twitchClip.Language,
-		ThumbnailURL:    &twitchClip.ThumbnailURL,
-		Duration:        &twitchClip.Duration,
-		ViewCount:       twitchClip.ViewCount,
-		CreatedAt:       twitchClip.CreatedAt,
-		ImportedAt:      time.Now(),
-		VoteScore:       0,
-		CommentCount:    0,
-		FavoriteCount:   0,
-		IsFeatured:      false,
-		IsNSFW:          false,
-		IsRemoved:       false,
-		IsHidden:        false,
-	}
-
-	// Get game name from Twitch API if game ID is present
-	if twitchClip.GameID != "" {
-		// Try to get game name (we can skip if it fails)
-		// Note: This would require calling the Twitch API again which might be expensive
-		// For now, we'll leave it as nil
-		clip.GameName = nil
-	}
+	id := uuid.New()
+	now := time.Now()
 
 	query := `
-		INSERT INTO clips (
+		INSERT INTO discovery_clips (
 			id, twitch_clip_id, twitch_clip_url, embed_url, title,
 			creator_name, creator_id, broadcaster_name, broadcaster_id,
 			game_id, game_name, language, thumbnail_url, duration, view_count,
-			created_at, imported_at, vote_score, comment_count, favorite_count,
-			is_featured, is_nsfw, is_removed, is_hidden
+			created_at, imported_at, is_nsfw, is_removed, is_hidden
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-			$11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
-			$21, $22, $23, $24
+			$11, $12, $13, $14, $15, $16, $17, $18, $19, $20
 		)
 	`
 
 	_, err := db.Exec(ctx, query,
-		clip.ID,
-		clip.TwitchClipID,
-		clip.TwitchClipURL,
-		clip.EmbedURL,
-		clip.Title,
-		clip.CreatorName,
-		clip.CreatorID,
-		clip.BroadcasterName,
-		clip.BroadcasterID,
-		clip.GameID,
-		clip.GameName,
-		clip.Language,
-		clip.ThumbnailURL,
-		clip.Duration,
-		clip.ViewCount,
-		clip.CreatedAt,
-		clip.ImportedAt,
-		clip.VoteScore,
-		clip.CommentCount,
-		clip.FavoriteCount,
-		clip.IsFeatured,
-		clip.IsNSFW,
-		clip.IsRemoved,
-		clip.IsHidden,
+		id,
+		twitchClip.ID,
+		twitchClip.URL,
+		twitchClip.EmbedURL,
+		twitchClip.Title,
+		twitchClip.CreatorName,
+		&twitchClip.CreatorID,
+		twitchClip.BroadcasterName,
+		&twitchClip.BroadcasterID,
+		&twitchClip.GameID,
+		nil, // game_name - would require additional API call
+		&twitchClip.Language,
+		&twitchClip.ThumbnailURL,
+		&twitchClip.Duration,
+		twitchClip.ViewCount,
+		twitchClip.CreatedAt,
+		now,
+		false, // is_nsfw
+		false, // is_removed
+		false, // is_hidden
 	)
 
 	return err

@@ -40,6 +40,8 @@ export const useScrapedClipsFeed = (filters?: ClipFeedFilters) => {
             return lastPage.has_more ? lastPage.page + 1 : undefined;
         },
         initialPageParam: 1,
+        refetchInterval: 30_000,
+        refetchIntervalInBackground: false,
     });
 };
 

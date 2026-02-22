@@ -57,6 +57,7 @@ type Repositories struct {
 	ApplicationLog        *repository.ApplicationLogRepository
 	BanReasonTemplate     *repository.BanReasonTemplateRepository
 	MFA                   *repository.MFARepository
+	DiscoveryClip         *repository.DiscoveryClipRepository
 }
 
 func initRepositories(pool *pgxpool.Pool) *Repositories {
@@ -111,5 +112,6 @@ func initRepositories(pool *pgxpool.Pool) *Repositories {
 		ApplicationLog:        repository.NewApplicationLogRepository(pool),
 		BanReasonTemplate:     repository.NewBanReasonTemplateRepository(pool),
 		MFA:                   repository.NewMFARepository(pool),
+		DiscoveryClip:         repository.NewDiscoveryClipRepository(pool),
 	}
 }
