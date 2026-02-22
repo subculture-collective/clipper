@@ -30,8 +30,15 @@ export async function verifyAuth(
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) return null;
-    const data = await res.json() as { success: boolean; data?: UserProfile; user?: UserProfile };
-    return data.data ?? data.user ?? null;
+    const raw = await res.json() as Record<string, unknown>;
+    // Support both wrapped { success, data/user } and direct user object.
+    if (raw.data && typeof raw.data === 'object') return raw.data as UserProfile;
+    if (raw.user && typeof raw.user === 'object') return raw.user as UserProfile;
+    // Fallback: backend returns the user object directly (require id + username).
+    if (typeof raw.id === 'string' && typeof raw.username === 'string') {
+      return raw as unknown as UserProfile;
+    }
+    return null;
   } catch {
     return null;
   }

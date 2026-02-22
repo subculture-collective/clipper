@@ -65,7 +65,7 @@ export interface UserProfile {
 
 /** Message types sent between content scripts and background */
 export type ExtensionMessage =
-  | { type: 'TWITCH_CLIP_DETECTED'; clipInfo: TwitchClipInfo }
+  | { type: 'TWITCH_CLIP_DETECTED'; clipInfo: TwitchClipInfo | null }
   | { type: 'GET_CURRENT_CLIP' }
   | { type: 'OPEN_POPUP'; clipInfo?: TwitchClipInfo };
 

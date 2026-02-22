@@ -12,9 +12,8 @@
     "cookies"
   ],
   "host_permissions": [
-    "https://*.twitch.tv/*",
+    "https://www.twitch.tv/*/clip/*",
     "https://clips.twitch.tv/*",
-    "https://clipper.gg/*",
     "https://api.clipper.gg/*"
   ],
   "background": {

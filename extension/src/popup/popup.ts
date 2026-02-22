@@ -40,12 +40,15 @@ function el<T extends HTMLElement>(id: string): T {
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
-let config: ExtensionConfig = DEFAULT_CONFIG;
+let config: ExtensionConfig = { ...DEFAULT_CONFIG };
 let currentToken: string | null = null;
 let currentClipInfo: TwitchClipInfo | null = null;
 let currentMetadata: ClipMetadata | null = null;
 let allTags: Tag[] = [];
 let selectedTagSlugs: string[] = [];
+
+// Guard: ensure setupTagSearch registers its document-level click listener only once.
+let tagSearchInitialized = false;
 
 // ─── Tag UI ───────────────────────────────────────────────────────────────────
 
@@ -130,26 +133,33 @@ function setupTagSearch(): void {
     showDropdown(matches);
   });
 
-  // Close dropdown when clicking outside.
-  document.addEventListener('click', e => {
-    if (!input.contains(e.target as Node) && !dropdown.contains(e.target as Node)) {
-      dropdown.classList.add('hidden');
-    }
-  });
-
   input.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
       dropdown.classList.add('hidden');
     }
   });
+
+  // The document-level click handler must only be registered once to avoid
+  // accumulation across re-inits triggered by "Share another".
+  if (!tagSearchInitialized) {
+    tagSearchInitialized = true;
+    document.addEventListener('click', e => {
+      if (!input.contains(e.target as Node) && !dropdown.contains(e.target as Node)) {
+        dropdown.classList.add('hidden');
+      }
+    });
+  }
 }
 
 // ─── Form population ──────────────────────────────────────────────────────────
 
 function populateForm(metadata: ClipMetadata | null, clipInfo: TwitchClipInfo): void {
   const titleInput = el<HTMLInputElement>('input-title');
+  const previewWrap = el('clip-preview-wrap');
 
   if (metadata) {
+    // Ensure the preview is visible (it may have been hidden in a previous init cycle).
+    previewWrap.style.display = '';
     el<HTMLImageElement>('clip-thumbnail').src = metadata.thumbnail_url;
     el('clip-streamer').textContent = metadata.streamer_name;
     el('clip-game').textContent = metadata.game_name;
@@ -157,9 +167,9 @@ function populateForm(metadata: ClipMetadata | null, clipInfo: TwitchClipInfo): 
     el('clip-duration').textContent = dur > 0 ? `${dur.toFixed(1)}s` : '';
     titleInput.value = metadata.title;
   } else {
-    // Fallback: use clip URL as title placeholder.
+    // Fallback: hide preview and use clip ID as title placeholder.
+    previewWrap.style.display = 'none';
     titleInput.placeholder = clipInfo.clipId;
-    el('clip-preview-wrap').style.display = 'none';
   }
 }
 
@@ -221,11 +231,6 @@ async function handleSubmit(): Promise<void> {
 // ─── Bootstrap ────────────────────────────────────────────────────────────────
 
 async function init(): Promise<void> {
-  // Load config from storage (allows override for self-hosted instances).
-  const stored = await chrome.storage.local.get(['apiBaseUrl', 'frontendUrl']) as Partial<ExtensionConfig>;
-  if (stored.apiBaseUrl) config.apiBaseUrl = stored.apiBaseUrl;
-  if (stored.frontendUrl) config.frontendUrl = stored.frontendUrl;
-
   showView('loading');
 
   // 1. Check auth.
@@ -269,21 +274,25 @@ async function init(): Promise<void> {
   populateForm(currentMetadata, currentClipInfo);
   setupTagSearch();
   showView('form');
-
-  // Wire up submit button.
-  el<HTMLButtonElement>('btn-submit').addEventListener('click', () => {
-    void handleSubmit();
-  });
 }
 
-// ─── Event wiring ─────────────────────────────────────────────────────────────
+// ─── Event wiring (registered once on DOMContentLoaded) ──────────────────────
 
-document.addEventListener('DOMContentLoaded', () => {
-  void init();
+document.addEventListener('DOMContentLoaded', async () => {
+  // Load config overrides from storage before wiring any handlers so all
+  // callbacks (including the login button) use the correct URLs.
+  const stored = await chrome.storage.local.get(['apiBaseUrl', 'frontendUrl']) as Partial<ExtensionConfig>;
+  if (stored.apiBaseUrl) config.apiBaseUrl = stored.apiBaseUrl;
+  if (stored.frontendUrl) config.frontendUrl = stored.frontendUrl;
 
-  // Login button.
+  // Login button – registered once; always reads current `config` value.
   el<HTMLButtonElement>('btn-login').addEventListener('click', () => {
     openLoginPage(config);
+  });
+
+  // Submit button – registered once to prevent duplicate submissions on re-init.
+  el<HTMLButtonElement>('btn-submit').addEventListener('click', () => {
+    void handleSubmit();
   });
 
   // Success actions.
@@ -292,10 +301,12 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   el<HTMLButtonElement>('btn-share-another').addEventListener('click', () => {
-    // Reset state and re-init.
+    // Reset state and re-init without re-registering event handlers.
     selectedTagSlugs = [];
     currentClipInfo = null;
     currentMetadata = null;
     void init();
   });
+
+  void init();
 });

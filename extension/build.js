@@ -4,7 +4,7 @@
  * Bundles TypeScript source files using esbuild and copies static assets to dist/.
  */
 
-import { build } from 'esbuild';
+import { build, context } from 'esbuild';
 import { cpSync, mkdirSync, copyFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -27,6 +27,29 @@ const sharedOptions = {
   minify: !isWatch,
   sourcemap: isWatch,
 };
+
+/** Copy static assets that do not need bundling. */
+function copyStaticAssets() {
+  copyFileSync(
+    join(__dirname, 'manifest.json'),
+    join(outDir, 'manifest.json')
+  );
+
+  copyFileSync(
+    join(__dirname, 'src/popup/popup.html'),
+    join(outDir, 'popup/popup.html')
+  );
+
+  copyFileSync(
+    join(__dirname, 'src/popup/popup.css'),
+    join(outDir, 'popup/popup.css')
+  );
+
+  const iconsDir = join(__dirname, 'icons');
+  if (existsSync(iconsDir)) {
+    cpSync(iconsDir, join(outDir, 'icons'), { recursive: true });
+  }
+}
 
 async function buildExtension() {
   // Build background service worker
@@ -51,45 +74,47 @@ async function buildExtension() {
     outfile: join(outDir, 'popup/popup.js'),
   });
 
-  // Copy static assets
-  copyFileSync(
-    join(__dirname, 'manifest.json'),
-    join(outDir, 'manifest.json')
-  );
-
-  copyFileSync(
-    join(__dirname, 'src/popup/popup.html'),
-    join(outDir, 'popup/popup.html')
-  );
-
-  copyFileSync(
-    join(__dirname, 'src/popup/popup.css'),
-    join(outDir, 'popup/popup.css')
-  );
-
-  // Copy icons
-  const iconsDir = join(__dirname, 'icons');
-  if (existsSync(iconsDir)) {
-    cpSync(iconsDir, join(outDir, 'icons'), { recursive: true });
-  }
+  copyStaticAssets();
 
   console.log('✅ Extension built to dist/');
 }
 
-if (isWatch) {
-  // Watch mode: use esbuild's watch API
-  const contexts = await Promise.all([
-    build({
+async function watchExtension() {
+  // Use esbuild context() API for proper watch support.
+  const [bgCtx, contentCtx, popupCtx] = await Promise.all([
+    context({
       ...sharedOptions,
       entryPoints: [join(__dirname, 'src/background.ts')],
       outfile: join(outDir, 'background.js'),
-      watch: true,
-    }).catch(() => null),
+    }),
+    context({
+      ...sharedOptions,
+      format: 'iife',
+      entryPoints: [join(__dirname, 'src/content.ts')],
+      outfile: join(outDir, 'content.js'),
+    }),
+    context({
+      ...sharedOptions,
+      entryPoints: [join(__dirname, 'src/popup/popup.ts')],
+      outfile: join(outDir, 'popup/popup.js'),
+    }),
   ]);
+
+  await Promise.all([bgCtx.watch(), contentCtx.watch(), popupCtx.watch()]);
+
+  copyStaticAssets();
   console.log('👀 Watching for changes...');
-  process.on('SIGINT', () => {
-    contexts.forEach(ctx => ctx?.dispose?.());
+
+  process.on('SIGINT', async () => {
+    await Promise.all([bgCtx.dispose(), contentCtx.dispose(), popupCtx.dispose()]);
     process.exit(0);
+  });
+}
+
+if (isWatch) {
+  watchExtension().catch(err => {
+    console.error('Watch failed:', err);
+    process.exit(1);
   });
 } else {
   buildExtension().catch(err => {

@@ -51,7 +51,7 @@ export async function fetchTags(
   token: string,
   config: ExtensionConfig
 ): Promise<Tag[]> {
-  const res = await fetch(`${config.apiBaseUrl}/tags?limit=200`, {
+  const res = await fetch(`${config.apiBaseUrl}/tags?limit=100`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) return [];

@@ -88,7 +88,23 @@ chrome.tabs.onRemoved.addListener(tabId => {
 
 // ─── Message Passing ──────────────────────────────────────────────────────────
 
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // Content script notifies background when the page URL changes.
+  if (message.type === 'TWITCH_CLIP_DETECTED') {
+    const tabId = sender.tab?.id;
+    if (tabId !== undefined) {
+      if (message.clipInfo) {
+        tabClips.set(tabId, message.clipInfo);
+        chrome.action.setBadgeText({ text: '▶', tabId });
+        chrome.action.setBadgeBackgroundColor({ color: '#9146FF', tabId });
+      } else {
+        tabClips.delete(tabId);
+        chrome.action.setBadgeText({ text: '', tabId });
+      }
+    }
+    return false;
+  }
+
   if (message.type === 'GET_CURRENT_CLIP') {
     chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
       const tab = tabs[0];
