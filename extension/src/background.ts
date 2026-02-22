@@ -42,9 +42,24 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 
   // Open the extension popup by focusing the browser action.
   // Note: programmatic popup opening requires Manifest V3 special handling;
-  // we use chrome.action.openPopup() when available (Chrome 99+).
-  if (typeof chrome.action.openPopup === 'function') {
+  // we use chrome.action.openPopup() when available (Chrome 99+),
+  // and fall back to a notification or dedicated page in other browsers.
+  if (chrome.action && typeof chrome.action.openPopup === 'function') {
     chrome.action.openPopup();
+  } else {
+    // Fallback for environments without chrome.action.openPopup (e.g. Firefox MV3).
+    if (chrome.notifications && typeof chrome.notifications.create === 'function') {
+      chrome.notifications.create({
+        type: 'basic',
+        iconUrl: chrome.runtime.getURL('icons/icon-128.png'),
+        title: 'Share to Clipper',
+        message: 'Click the Clipper toolbar button to share this clip.',
+      });
+    } else if (chrome.tabs && typeof chrome.tabs.create === 'function') {
+      // Last-resort fallback: open the extension page in a new tab.
+      const url = chrome.runtime.getURL('popup.html');
+      chrome.tabs.create({ url });
+    }
   }
 });
 
