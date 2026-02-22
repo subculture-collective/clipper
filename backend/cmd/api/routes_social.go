@@ -128,6 +128,17 @@ func registerSocialRoutes(v1 *gin.RouterGroup, h *Handlers, svcs *Services, infr
 		playlists.PATCH("/:id/collaborators/:user_id", middleware.AuthMiddleware(svcs.Auth), h.Playlist.UpdateCollaboratorPermission)
 	}
 
+	// User-scoped playlist script routes (smart playlists)
+	playlistScripts := v1.Group("/playlist-scripts")
+	playlistScripts.Use(middleware.AuthMiddleware(svcs.Auth))
+	{
+		playlistScripts.GET("", h.PlaylistScript.ListMyScripts)
+		playlistScripts.POST("", middleware.RateLimitMiddleware(infra.Redis, 20, time.Hour), h.PlaylistScript.CreateMyScript)
+		playlistScripts.PUT("/:id", h.PlaylistScript.UpdateMyScript)
+		playlistScripts.DELETE("/:id", h.PlaylistScript.DeleteMyScript)
+		playlistScripts.POST("/:id/generate", middleware.RateLimitMiddleware(infra.Redis, 10, time.Hour), h.PlaylistScript.GenerateMyPlaylist)
+	}
+
 	// Forum routes
 	forum := v1.Group("/forum")
 	{

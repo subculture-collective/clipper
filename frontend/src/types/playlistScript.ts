@@ -14,6 +14,32 @@ export type PlaylistScriptTimeframe =
     | 'month'
     | 'year';
 
+export type PlaylistScriptSchedule =
+    | 'manual'
+    | 'hourly'
+    | 'daily'
+    | 'weekly'
+    | 'monthly';
+
+export type PlaylistScriptStrategy =
+    | 'standard'
+    | 'sleeper_hits'
+    | 'viral_velocity'
+    | 'community_favorites'
+    | 'deep_cuts'
+    | 'fresh_faces'
+    | 'similar_vibes'
+    | 'cross_game_hits'
+    | 'controversial'
+    | 'binge_worthy'
+    | 'rising_stars'
+    | 'twitch_top_game'
+    | 'twitch_top_broadcaster'
+    | 'twitch_trending'
+    | 'twitch_discovery';
+
+export type PlaylistScriptVisibility = 'private' | 'public' | 'unlisted';
+
 export interface PlaylistScript {
     id: string;
     name: string;
@@ -21,8 +47,23 @@ export interface PlaylistScript {
     sort: PlaylistScriptSort;
     timeframe?: PlaylistScriptTimeframe;
     clip_limit: number;
-    visibility: 'private' | 'public' | 'unlisted';
+    visibility: PlaylistScriptVisibility;
     is_active: boolean;
+    schedule: PlaylistScriptSchedule;
+    strategy: PlaylistScriptStrategy;
+    game_id?: string;
+    game_ids?: string[];
+    broadcaster_id?: string;
+    tag?: string;
+    exclude_tags?: string[];
+    language?: string;
+    min_vote_score?: number;
+    min_view_count?: number;
+    exclude_nsfw: boolean;
+    top_10k_streamers: boolean;
+    seed_clip_id?: string;
+    retention_days: number;
+    title_template?: string;
     created_by?: string;
     created_at: string;
     updated_at: string;
@@ -36,8 +77,23 @@ export interface CreatePlaylistScriptRequest {
     sort: PlaylistScriptSort;
     timeframe?: PlaylistScriptTimeframe;
     clip_limit: number;
-    visibility?: 'private' | 'public' | 'unlisted';
+    visibility?: PlaylistScriptVisibility;
     is_active?: boolean;
+    schedule?: PlaylistScriptSchedule;
+    strategy?: PlaylistScriptStrategy;
+    game_id?: string;
+    game_ids?: string[];
+    broadcaster_id?: string;
+    tag?: string;
+    exclude_tags?: string[];
+    language?: string;
+    min_vote_score?: number;
+    min_view_count?: number;
+    exclude_nsfw?: boolean;
+    top_10k_streamers?: boolean;
+    seed_clip_id?: string;
+    retention_days?: number;
+    title_template?: string;
 }
 
 export interface UpdatePlaylistScriptRequest {
@@ -46,6 +102,21 @@ export interface UpdatePlaylistScriptRequest {
     sort?: PlaylistScriptSort;
     timeframe?: PlaylistScriptTimeframe;
     clip_limit?: number;
-    visibility?: 'private' | 'public' | 'unlisted';
+    visibility?: PlaylistScriptVisibility;
     is_active?: boolean;
+    schedule?: PlaylistScriptSchedule;
+    strategy?: PlaylistScriptStrategy;
+    game_id?: string;
+    game_ids?: string[];
+    broadcaster_id?: string;
+    tag?: string;
+    exclude_tags?: string[];
+    language?: string;
+    min_vote_score?: number;
+    min_view_count?: number;
+    exclude_nsfw?: boolean;
+    top_10k_streamers?: boolean;
+    seed_clip_id?: string;
+    retention_days?: number;
+    title_template?: string;
 }

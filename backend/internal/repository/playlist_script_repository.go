@@ -120,6 +120,19 @@ func (r *PlaylistScriptRepository) List(ctx context.Context) ([]*models.Playlist
     return scanPlaylistScriptRows(rows)
 }
 
+// ListByUser retrieves playlist scripts owned by a specific user
+func (r *PlaylistScriptRepository) ListByUser(ctx context.Context, userID uuid.UUID) ([]*models.PlaylistScript, error) {
+    query := fmt.Sprintf(`SELECT %s FROM playlist_scripts WHERE created_by = $1 ORDER BY created_at DESC`, playlistScriptColumns)
+
+    rows, err := r.pool.Query(ctx, query, userID)
+    if err != nil {
+        return nil, fmt.Errorf("failed to list user playlist scripts: %w", err)
+    }
+    defer rows.Close()
+
+    return scanPlaylistScriptRows(rows)
+}
+
 // GetByID retrieves a playlist script by ID
 func (r *PlaylistScriptRepository) GetByID(ctx context.Context, scriptID uuid.UUID) (*models.PlaylistScript, error) {
     query := fmt.Sprintf(`SELECT %s FROM playlist_scripts WHERE id = $1`, playlistScriptColumns)

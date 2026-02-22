@@ -2,9 +2,9 @@ import apiClient from './api';
 import type { Clip } from '@/types/clip';
 
 export interface PopularBroadcaster {
-  broadcaster_id: string;
-  broadcaster_name: string;
-  clip_count: number;
+    broadcaster_id: string;
+    broadcaster_name: string;
+    clip_count: number;
 }
 
 export interface BroadcasterProfile {
