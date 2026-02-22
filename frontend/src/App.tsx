@@ -84,6 +84,9 @@ const ContactPage = lazy(() =>
 const DocsPage = lazy(() =>
     import('./pages/DocsPage').then(m => ({ default: m.DocsPage })),
 );
+const ExtensionPage = lazy(() =>
+    import('./pages/ExtensionPage').then(m => ({ default: m.ExtensionPage })),
+);
 const NotFoundPage = lazy(() =>
     import('./pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })),
 );
@@ -488,6 +491,10 @@ function App() {
                                         <Route
                                             path='/docs'
                                             element={<DocsPage />}
+                                        />
+                                        <Route
+                                            path='/extension'
+                                            element={<ExtensionPage />}
                                         />
                                         <Route
                                             path='/leaderboards'
