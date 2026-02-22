@@ -52,19 +52,6 @@ export async function fetchPopularBroadcasters(
 }
 
 /**
- * Fetch popular broadcasters by clip count
- */
-export async function fetchPopularBroadcasters(
-  limit: number = 15
-): Promise<PopularBroadcaster[]> {
-  const response = await apiClient.get<{ broadcasters: PopularBroadcaster[] }>(
-    `/broadcasters/popular`,
-    { params: { limit } }
-  );
-  return response.data.broadcasters || [];
-}
-
-/**
  * Fetch broadcaster profile by broadcaster ID
  */
 export async function fetchBroadcasterProfile(
