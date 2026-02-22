@@ -183,6 +183,32 @@ type WatchProgressInfo struct {
 	WatchedAt       string  `json:"watched_at,omitempty"` // Optional: May be omitted for performance
 }
 
+// DiscoveryClip represents a scraped clip in the discovery_clips staging table.
+// These clips have not been posted by any user yet. When a user claims one,
+// it is moved into the main clips table and deleted from discovery_clips.
+type DiscoveryClip struct {
+	ID              uuid.UUID `json:"id" db:"id"`
+	TwitchClipID    string    `json:"twitch_clip_id" db:"twitch_clip_id"`
+	TwitchClipURL   string    `json:"twitch_clip_url" db:"twitch_clip_url"`
+	EmbedURL        string    `json:"embed_url" db:"embed_url"`
+	Title           string    `json:"title" db:"title"`
+	CreatorName     string    `json:"creator_name" db:"creator_name"`
+	CreatorID       *string   `json:"creator_id,omitempty" db:"creator_id"`
+	BroadcasterName string    `json:"broadcaster_name" db:"broadcaster_name"`
+	BroadcasterID   *string   `json:"broadcaster_id,omitempty" db:"broadcaster_id"`
+	GameID          *string   `json:"game_id,omitempty" db:"game_id"`
+	GameName        *string   `json:"game_name,omitempty" db:"game_name"`
+	Language        *string   `json:"language,omitempty" db:"language"`
+	ThumbnailURL    *string   `json:"thumbnail_url,omitempty" db:"thumbnail_url"`
+	Duration        *float64  `json:"duration,omitempty" db:"duration"`
+	ViewCount       int       `json:"view_count" db:"view_count"`
+	CreatedAt       time.Time `json:"created_at" db:"created_at"`
+	ImportedAt      time.Time `json:"imported_at" db:"imported_at"`
+	IsNSFW          bool      `json:"is_nsfw" db:"is_nsfw"`
+	IsRemoved       bool      `json:"is_removed" db:"is_removed"`
+	IsHidden        bool      `json:"is_hidden" db:"is_hidden"`
+}
+
 // Vote represents a user's vote on a clip
 type Vote struct {
 	ID        uuid.UUID `json:"id" db:"id"`

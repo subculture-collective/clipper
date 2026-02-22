@@ -112,7 +112,7 @@ func initServices(cfg *config.Config, repos *Repositories, infra *Infrastructure
 	)
 
 	commentService := services.NewCommentService(repos.Comment, repos.Clip, repos.User, notificationService, toxicityClassifier)
-	clipService := services.NewClipService(repos.Clip, repos.Vote, repos.Favorite, repos.User, repos.WatchHistory, infra.Redis, repos.AuditLog, notificationService)
+	clipService := services.NewClipService(repos.Clip, repos.DiscoveryClip, repos.Vote, repos.Favorite, repos.User, repos.WatchHistory, infra.Redis, repos.AuditLog, notificationService)
 	autoTagService := services.NewAutoTagService(repos.Tag)
 	reputationService := services.NewReputationService(repos.Reputation, repos.User)
 	analyticsService := services.NewAnalyticsService(repos.Analytics, repos.Clip)
@@ -268,7 +268,7 @@ func initServices(cfg *config.Config, repos *Repositories, infra *Infrastructure
 	outboundWebhookService := services.NewOutboundWebhookService(repos.OutboundWebhook)
 	if infra.TwitchClient != nil {
 		clipSyncService = services.NewClipSyncService(infra.TwitchClient, repos.Clip, repos.Tag, repos.User, infra.Redis)
-		submissionService = services.NewSubmissionService(repos.Submission, repos.Clip, repos.User, repos.Vote, repos.AuditLog, infra.TwitchClient, notificationService, infra.Redis, outboundWebhookService, cacheService, cfg)
+		submissionService = services.NewSubmissionService(repos.Submission, repos.Clip, repos.DiscoveryClip, repos.User, repos.Vote, repos.AuditLog, infra.TwitchClient, notificationService, infra.Redis, outboundWebhookService, cacheService, cfg)
 		liveStatusService = services.NewLiveStatusService(repos.Broadcaster, repos.StreamFollow, infra.TwitchClient)
 		// Set notification service for live status notifications
 		liveStatusService.SetNotificationService(notificationService)

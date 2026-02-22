@@ -23,7 +23,7 @@ export const useClipFeed = (filters?: ClipFeedFilters) => {
                 pageParam: number;
                 filters?: ClipFeedFilters;
             }),
-        getNextPageParam: (lastPage) => {
+        getNextPageParam: lastPage => {
             return lastPage.has_more ? (lastPage.page ?? 1) + 1 : undefined;
         },
         initialPageParam: 1,
@@ -36,20 +36,24 @@ export const useScrapedClipsFeed = (filters?: ClipFeedFilters) => {
         queryKey: ['scraped-clips', filters],
         queryFn: ({ pageParam = 1 }) =>
             clipApi.fetchScrapedClips({ pageParam, filters }),
-        getNextPageParam: (lastPage) => {
+        getNextPageParam: lastPage => {
             return lastPage.has_more ? lastPage.page + 1 : undefined;
         },
         initialPageParam: 1,
+        refetchInterval: 30_000,
+        refetchIntervalInBackground: false,
     });
 };
 
 // Hook for infinite scrolling favorites feed
-export const useFavoritesFeed = (sort: 'newest' | 'top' | 'discussed' = 'newest') => {
+export const useFavoritesFeed = (
+    sort: 'newest' | 'top' | 'discussed' = 'newest',
+) => {
     return useInfiniteQuery({
         queryKey: ['favorites', sort],
         queryFn: ({ pageParam = 1 }) =>
             clipApi.fetchFavorites({ pageParam, sort }),
-        getNextPageParam: (lastPage) => {
+        getNextPageParam: lastPage => {
             return lastPage.has_more ? lastPage.page + 1 : undefined;
         },
         initialPageParam: 1,
@@ -76,7 +80,7 @@ export const useClipVote = () => {
 
     const updateClipCaches = (
         clipId: string,
-        updater: (clip: Clip) => Clip
+        updater: (clip: Clip) => Clip,
     ) => {
         queryClient.setQueriesData({ queryKey: ['clips'] }, (old: unknown) => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -88,7 +92,7 @@ export const useClipVote = () => {
                 pages: oldData.pages.map((page: ClipFeedResponse) => ({
                     ...page,
                     clips: page.clips.map((clip: Clip) =>
-                        clip.id === clipId ? updater(clip) : clip
+                        clip.id === clipId ? updater(clip) : clip,
                     ),
                 })),
             };
@@ -96,7 +100,10 @@ export const useClipVote = () => {
 
         const singleClip = queryClient.getQueryData<Clip>(['clip', clipId]);
         if (singleClip) {
-            queryClient.setQueryData<Clip>(['clip', clipId], updater(singleClip));
+            queryClient.setQueryData<Clip>(
+                ['clip', clipId],
+                updater(singleClip),
+            );
         }
     };
 
@@ -109,10 +116,12 @@ export const useClipVote = () => {
         mutationFn: async (payload: VotePayload) => {
             return await clipApi.voteOnClip(payload);
         },
-        onMutate: async (payload) => {
+        onMutate: async payload => {
             // Optimistic update for feed and single clip caches
             await queryClient.cancelQueries({ queryKey: ['clips'] });
-            await queryClient.cancelQueries({ queryKey: ['clip', payload.clip_id] });
+            await queryClient.cancelQueries({
+                queryKey: ['clip', payload.clip_id],
+            });
 
             const previousFeedQueries = queryClient.getQueriesData({
                 queryKey: ['clips'],
@@ -122,7 +131,7 @@ export const useClipVote = () => {
                 payload.clip_id,
             ]);
 
-            updateClipCaches(payload.clip_id, (clip) => {
+            updateClipCaches(payload.clip_id, clip => {
                 const previousVote = clip.user_vote ?? 0;
                 const scoreDelta = payload.vote_type - previousVote;
 
@@ -166,14 +175,15 @@ export const useClipVote = () => {
             if (context?.previousClip) {
                 queryClient.setQueryData(
                     ['clip', payload.clip_id],
-                    context.previousClip
+                    context.previousClip,
                 );
             }
         },
         onSuccess: (data, payload) => {
-            const normalizedUserVote = data.user_vote === 0 ? null : data.user_vote;
+            const normalizedUserVote =
+                data.user_vote === 0 ? null : data.user_vote;
 
-            updateClipCaches(payload.clip_id, (clip) => ({
+            updateClipCaches(payload.clip_id, clip => ({
                 ...clip,
                 user_vote: normalizedUserVote as Clip['user_vote'],
                 vote_score: data.vote_score,
@@ -208,11 +218,10 @@ export const useClipFavorite = () => {
                             pages?: ClipFeedResponse[];
                         };
                         return (
-                            queryData?.pages?.flatMap((page) => page.clips) ||
-                            []
+                            queryData?.pages?.flatMap(page => page.clips) || []
                         );
                     })
-                    .find((clip) => clip.id === payload.clip_id);
+                    .find(clip => clip.id === payload.clip_id);
                 isCurrentlyFavorited = cachedClip?.is_favorited;
             }
             if (isCurrentlyFavorited) {
@@ -221,7 +230,7 @@ export const useClipFavorite = () => {
                 return await clipApi.addFavorite(payload);
             }
         },
-        onMutate: async (payload) => {
+        onMutate: async payload => {
             // Optimistic update for clips queries
             await queryClient.cancelQueries({ queryKey: ['clips'] });
             await queryClient.cancelQueries({ queryKey: ['favorites'] });
@@ -260,7 +269,7 @@ export const useClipFavorite = () => {
                             }),
                         })),
                     };
-                }
+                },
             );
 
             // Update favorites feed (remove unfavorited clips)
@@ -275,10 +284,12 @@ export const useClipFavorite = () => {
                         ...oldData,
                         pages: oldData.pages.map((page: ClipFeedResponse) => ({
                             ...page,
-                            clips: page.clips.filter((clip: Clip) => clip.id !== payload.clip_id),
+                            clips: page.clips.filter(
+                                (clip: Clip) => clip.id !== payload.clip_id,
+                            ),
                         })),
                     };
-                }
+                },
             );
 
             return { previousClipsData, previousFavoritesData };

@@ -665,7 +665,7 @@ func (r *ClipRepository) ListWithFilters(ctx context.Context, filters ClipFilter
 	case "hot":
 		orderBy = "ORDER BY calculate_hot_score(c.vote_score, c.created_at) DESC, c.created_at DESC, c.id DESC"
 	case "new":
-		orderBy = "ORDER BY c.created_at DESC, c.id DESC"
+		orderBy = "ORDER BY COALESCE(c.submitted_at, c.created_at) DESC, c.id DESC"
 	case "top":
 		orderBy = "ORDER BY c.vote_score DESC, c.created_at DESC, c.id DESC"
 	case "trending":

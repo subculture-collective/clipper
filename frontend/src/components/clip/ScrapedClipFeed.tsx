@@ -22,8 +22,7 @@ const MemoizedDiscoverClipCard = memo(
     (prevProps, nextProps) => {
         return (
             prevProps.clip.id === nextProps.clip.id &&
-            prevProps.clip.view_count === nextProps.clip.view_count &&
-            prevProps.clip.submitted_by?.id === nextProps.clip.submitted_by?.id
+            prevProps.clip.view_count === nextProps.clip.view_count
         );
     },
 );
@@ -66,9 +65,9 @@ export function ScrapedClipFeed({
 
     // Get all clips from all pages
     const clips = data?.pages.flatMap(page => page.clips) ?? [];
-    // Discovery should only show unposted, visible clips
+    // Discovery clips from the staging table are always unposted
     const filteredClips = clips.filter(
-        clip => !clip.submitted_by && !clip.is_removed && !clip.is_hidden,
+        clip => !clip.is_removed && !clip.is_hidden,
     );
 
     // Intersection observer for infinite scroll

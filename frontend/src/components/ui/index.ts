@@ -21,6 +21,8 @@ export type {
 export { Checkbox } from './Checkbox';
 export type { CheckboxProps } from './Checkbox';
 
+export { ConfirmModal } from './ConfirmModal';
+
 export { Divider } from './Divider';
 export type { DividerProps } from './Divider';
 

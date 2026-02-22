@@ -96,7 +96,8 @@ func (r *SearchRepository) Search(ctx context.Context, req *models.SearchRequest
 // searchClips searches for clips
 func (r *SearchRepository) searchClips(ctx context.Context, tsQuery string, req *models.SearchRequest) ([]models.Clip, int, error) {
 	// Build WHERE clause with filters
-	whereClause := "c.is_removed = false"
+	// Belt-and-suspenders: only search user-submitted clips (scraped clips are in discovery_clips)
+	whereClause := "c.is_removed = false AND c.submitted_by_user_id IS NOT NULL"
 	args := []interface{}{}
 	argPos := 1
 
@@ -282,7 +283,7 @@ func (r *SearchRepository) searchCreators(ctx context.Context, tsQuery string, r
 
 // searchGames searches for games (aggregated from clips)
 func (r *SearchRepository) searchGames(ctx context.Context, tsQuery string, req *models.SearchRequest) ([]models.GameSearchResult, int, error) {
-	whereClause := "c.game_id IS NOT NULL AND c.game_name IS NOT NULL AND c.is_removed = false"
+	whereClause := "c.game_id IS NOT NULL AND c.game_name IS NOT NULL AND c.is_removed = false AND c.submitted_by_user_id IS NOT NULL"
 	args := []interface{}{}
 	argPos := 1
 
@@ -411,7 +412,7 @@ func (r *SearchRepository) GetSuggestions(ctx context.Context, query string, lim
 	gameQuery := `
 		SELECT DISTINCT game_name
 		FROM clips
-		WHERE game_name ILIKE $1 AND game_name IS NOT NULL AND is_removed = false
+		WHERE game_name ILIKE $1 AND game_name IS NOT NULL AND is_removed = false AND submitted_by_user_id IS NOT NULL
 		ORDER BY COUNT(*) OVER (PARTITION BY game_name) DESC
 		LIMIT $2
 	`
@@ -433,7 +434,7 @@ func (r *SearchRepository) GetSuggestions(ctx context.Context, query string, lim
 	creatorQuery := `
 		SELECT DISTINCT creator_name
 		FROM clips
-		WHERE creator_name ILIKE $1 AND is_removed = false
+		WHERE creator_name ILIKE $1 AND is_removed = false AND submitted_by_user_id IS NOT NULL
 		ORDER BY COUNT(*) OVER (PARTITION BY creator_name) DESC
 		LIMIT $2
 	`

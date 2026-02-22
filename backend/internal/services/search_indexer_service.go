@@ -125,6 +125,11 @@ func (s *SearchIndexerService) IndexClip(ctx context.Context, clip *models.Clip)
 		"recency_score":    recencyScore,
 	}
 
+	// Include submitted_by_user_id so we can filter out unsubmitted clips
+	if clip.SubmittedByUserID != nil {
+		doc["submitted_by_user_id"] = clip.SubmittedByUserID.String()
+	}
+
 	return s.indexDocument(ctx, ClipsIndex, clip.ID.String(), doc)
 }
 
@@ -318,6 +323,12 @@ func (s *SearchIndexerService) BulkIndexClips(ctx context.Context, clips []model
 			"engagement_score": engagementScore,
 			"recency_score":    recencyScore,
 		}
+
+		// Include submitted_by_user_id so we can filter out unsubmitted clips
+		if clip.SubmittedByUserID != nil {
+			doc["submitted_by_user_id"] = clip.SubmittedByUserID.String()
+		}
+
 		docJSON, _ := json.Marshal(doc)
 		buf.Write(docJSON)
 		buf.WriteByte('\n')
