@@ -4,7 +4,6 @@ import {
     useQueue,
     useRemoveFromQueue,
     useClearQueue,
-    useMarkAsPlayed,
     useReorderQueue,
 } from '@/hooks/useQueue';
 import { cn } from '@/lib/utils';
@@ -24,7 +23,6 @@ export function QueuePage() {
     const { data: queue, isLoading, isError } = useQueue(100);
     const removeFromQueue = useRemoveFromQueue();
     const clearQueue = useClearQueue();
-    const markAsPlayed = useMarkAsPlayed();
     const reorderQueue = useReorderQueue();
     const queryClient = useQueryClient();
     const navigate = useNavigate();
@@ -43,22 +41,16 @@ export function QueuePage() {
         played_at: item.played_at,
     }));
 
-    // Auto-select first unplayed item
+    // Auto-select first item
     if (!currentItemId && playlistItems.length > 0) {
-        const firstUnplayed = playlistItems.find(item => !item.played_at);
-        if (firstUnplayed) {
-            setCurrentItemId(firstUnplayed.id);
-        } else {
-            setCurrentItemId(playlistItems[0].id);
-        }
+        setCurrentItemId(playlistItems[0].id);
     }
 
     const handleItemClick = useCallback(
         (item: PlaylistItem) => {
             setCurrentItemId(item.id);
-            markAsPlayed.mutate(item.id);
         },
-        [markAsPlayed],
+        [],
     );
 
     const handleItemRemove = useCallback(
@@ -67,9 +59,7 @@ export function QueuePage() {
                 const currentIndex = playlistItems.findIndex(
                     item => item.id === itemId,
                 );
-                const nextItem = playlistItems
-                    .slice(currentIndex + 1)
-                    .find(item => !item.played_at);
+                const nextItem = playlistItems[currentIndex + 1] || playlistItems[currentIndex - 1];
                 setCurrentItemId(nextItem?.id || null);
             }
             removeFromQueue.mutate(itemId);

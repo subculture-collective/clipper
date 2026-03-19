@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import {
     useQueue,
     useRemoveFromQueue,
-    useMarkAsPlayed,
     useQueueCount,
 } from '@/hooks/useQueue';
 import { useAuth } from '@/context/AuthContext';
@@ -30,7 +29,6 @@ export function QueueWidget() {
     const { data: queue } = useQueue(20, isAuthenticated);
     const { data: queueCount } = useQueueCount(isAuthenticated);
     const removeFromQueue = useRemoveFromQueue();
-    const markAsPlayed = useMarkAsPlayed();
     const reorderQueue = useReorderQueue();
 
     const [widgetState, setWidgetState] = useState<WidgetState>('collapsed');
@@ -52,28 +50,23 @@ export function QueueWidget() {
             setCurrentClip(item);
             setCurrentItemId(item.id);
             setWidgetState('playing');
-            markAsPlayed.mutate(item.id);
         },
-        [markAsPlayed],
+        [],
     );
 
     const handlePlayNext = useCallback(() => {
-        const items =
-            currentItemId ?
-                (queue?.items || []).filter(item => item.id !== currentItemId)
-            :   queue?.items || [];
-        if (items.length > 0) {
-            setCurrentClip(items[0]);
-            setCurrentItemId(items[0].id);
+        const items = queue?.items || [];
+        const currentIndex = items.findIndex(item => item.id === currentItemId);
+        const nextItem = items[currentIndex + 1];
+        if (nextItem) {
+            setCurrentClip(nextItem);
+            setCurrentItemId(nextItem.id);
             setWidgetState('playing');
-            markAsPlayed.mutate(items[0].id);
         } else {
-            // Queue exhausted
-            setCurrentClip(null);
-            setCurrentItemId(null);
-            setWidgetState('collapsed');
+            // End of queue — stay on last clip
+            setWidgetState('playing');
         }
-    }, [queue?.items, currentItemId, markAsPlayed]);
+    }, [queue?.items, currentItemId]);
 
     const handleRemoveItem = useCallback(
         (itemId: string) => {
