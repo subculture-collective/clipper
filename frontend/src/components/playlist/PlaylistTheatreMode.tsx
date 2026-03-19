@@ -418,7 +418,7 @@ export function PlaylistTheatreMode({
 
                         {/* Controls + keyboard shortcuts */}
                         <div className='border-t border-border bg-background/50'>
-                            {/* Prev / Next / Fullscreen buttons */}
+                            {/* Prev / Next / Fullscreen buttons with inline key hints */}
                             <div className='flex items-center justify-between px-3 py-2'>
                                 <div className='flex items-center gap-1'>
                                     <Button
@@ -434,6 +434,9 @@ export function PlaylistTheatreMode({
                                     >
                                         <SkipBack className='h-4 w-4 mr-1' />
                                         Prev
+                                        <kbd className='ml-1.5 px-1 py-0.5 text-[10px] bg-surface-raised rounded text-text-tertiary'>
+                                            P
+                                        </kbd>
                                     </Button>
                                     <Button
                                         variant='ghost'
@@ -449,6 +452,9 @@ export function PlaylistTheatreMode({
                                     >
                                         <SkipForward className='h-4 w-4 mr-1' />
                                         Next
+                                        <kbd className='ml-1.5 px-1 py-0.5 text-[10px] bg-surface-raised rounded text-text-tertiary'>
+                                            N
+                                        </kbd>
                                     </Button>
                                 </div>
                                 {onClose && (
@@ -466,16 +472,6 @@ export function PlaylistTheatreMode({
                             {/* Key hints */}
                             <div className='px-3 pb-2'>
                                 <p className='text-xs text-text-tertiary'>
-                                    <kbd className='px-1.5 py-0.5 bg-surface-raised rounded text-text-secondary'>
-                                        P
-                                    </kbd>{' '}
-                                    Prev
-                                    {' • '}
-                                    <kbd className='px-1.5 py-0.5 bg-surface-raised rounded text-text-secondary'>
-                                        N
-                                    </kbd>{' '}
-                                    Next
-                                    {' • '}
                                     <kbd className='px-1.5 py-0.5 bg-surface-raised rounded text-text-secondary'>
                                         S
                                     </kbd>{' '}
