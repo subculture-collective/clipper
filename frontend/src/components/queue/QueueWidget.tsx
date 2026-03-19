@@ -106,7 +106,7 @@ export function QueueWidget() {
         return (
             <button
                 onClick={handleExpand}
-                className='fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-full shadow-lg transition-all hover:scale-105 cursor-pointer'
+                className='fixed bottom-20 right-6 z-50 flex items-center gap-2 px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-full shadow-lg transition-all hover:scale-105 cursor-pointer'
                 aria-label='Open queue'
             >
                 <ListMusic className='h-5 w-5' />
@@ -124,7 +124,7 @@ export function QueueWidget() {
         const embedUrl = `https://clips.twitch.tv/embed?clip=${currentClip.clip.twitch_clip_id}&parent=${parentDomain}&autoplay=true&muted=false`;
 
         return (
-            <div className='fixed bottom-6 right-6 z-50 w-80 bg-card border border-border rounded-xl shadow-2xl overflow-hidden'>
+            <div className='fixed bottom-20 right-6 z-50 w-80 bg-card border border-border rounded-xl shadow-2xl overflow-hidden'>
                 {/* Header */}
                 <div className='flex items-center justify-between px-3 py-2 bg-muted/50 border-b border-border'>
                     <div className='flex items-center gap-2'>
@@ -137,7 +137,7 @@ export function QueueWidget() {
                             className='p-1 hover:bg-muted rounded transition-colors cursor-pointer'
                             aria-label='Expand queue'
                         >
-                            <ChevronUp className='h-4 w-4' />
+                            <ChevronDown className='h-4 w-4' />
                         </button>
                         <button
                             onClick={handleClose}
@@ -232,7 +232,7 @@ export function QueueWidget() {
 
     // Expanded state - full queue list
     return (
-        <div className='fixed bottom-6 right-6 z-50 w-80 max-h-[70vh] bg-card border border-border rounded-xl shadow-2xl overflow-hidden flex flex-col'>
+        <div className='fixed bottom-20 right-6 z-50 w-80 max-h-[70vh] bg-card border border-border rounded-xl shadow-2xl overflow-hidden flex flex-col'>
             {/* Header */}
             <div className='flex items-center justify-between px-3 py-2 bg-muted/50 border-b border-border shrink-0'>
                 <div className='flex items-center gap-2'>
@@ -249,7 +249,7 @@ export function QueueWidget() {
                             className='p-1 hover:bg-muted rounded transition-colors cursor-pointer'
                             aria-label='Back to player'
                         >
-                            <ChevronDown className='h-4 w-4' />
+                            <ChevronUp className='h-4 w-4' />
                         </button>
                     )}
                     <button
