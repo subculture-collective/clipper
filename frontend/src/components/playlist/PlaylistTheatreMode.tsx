@@ -267,8 +267,12 @@ export function PlaylistTheatreMode({
                                     clipId={currentClip.id}
                                     title={currentClip.title}
                                     embedUrl={currentClip.embed_url}
+                                    twitchClipId={currentClip.twitch_clip_id}
                                     fit='height'
                                     className='max-h-full'
+                                    onEnded={handleClipEnd}
+                                    onPlay={() => setCountdownPaused(false)}
+                                    onPause={() => setCountdownPaused(true)}
                                 />
 
                         :   <div className='text-center text-text-secondary'>
