@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useId } from 'react';
 import { useVolumePreference } from '@/hooks';
+import { usePlaybackControl } from '@/context/PlaybackContext';
 import { MutedIcon } from '@/components/ui';
 import { cn } from '@/lib/utils';
 
@@ -95,6 +96,22 @@ export function VideoPlayer({
     const { embedMuted, hasSetPreference, setUnmutedPreference } =
         useVolumePreference();
 
+    // Global playback control — only one video plays at a time
+    const playerId = useId();
+    const { requestPlayback, registerPlayer } = usePlaybackControl(`video-${playerId}-${clipId}`);
+
+    // Register pause function so other players can pause this one
+    useEffect(() => {
+        const unregister = registerPlayer(() => {
+            try {
+                embedRef.current?.getPlayer()?.pause();
+            } catch {
+                // Embed may not be ready yet
+            }
+        });
+        return unregister;
+    }, [registerPlayer]);
+
     // Store callbacks in refs to avoid stale closures
     const onEndedRef = useRef(onEnded);
     const onPlayRef = useRef(onPlay);
@@ -148,6 +165,7 @@ export function VideoPlayer({
             embedRef.current = embed;
 
             embed.addEventListener(TWITCH_EVENTS.VIDEO_PLAY, () => {
+                requestPlayback();
                 onPlayRef.current?.();
             });
             embed.addEventListener(TWITCH_EVENTS.VIDEO_PAUSE, () => {
