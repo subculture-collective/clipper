@@ -1,12 +1,24 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
     LeaderboardSummary,
     LeaderboardTable,
 } from '../components/reputation/LeaderboardTable';
 import { LeaderboardSkeleton, EmptyStateWithAction } from '../components/ui';
 import { useAuth } from '../context/AuthContext';
+import { apiClient } from '../lib/api';
 import type { LeaderboardResponse, LeaderboardType } from '../types/reputation';
+
+interface StreamerRanking {
+    broadcaster_id: string;
+    broadcaster_name: string;
+    total_clips: number;
+    human_submitted_clips: number;
+    total_vote_score: number;
+    total_comments: number;
+    engagement_score: number;
+    follower_count: number;
+}
 
 export default function LeaderboardPage() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -14,6 +26,7 @@ export default function LeaderboardPage() {
     const [leaderboard, setLeaderboard] = useState<LeaderboardResponse | null>(
         null
     );
+    const [streamerRankings, setStreamerRankings] = useState<StreamerRanking[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -26,34 +39,44 @@ export default function LeaderboardPage() {
             setLoading(true);
             setError(null);
 
-            const response = await fetch(
-                `/api/v1/leaderboards/${type}?page=${page}&limit=${limit}`
-            );
+            if (type === 'streamers') {
+                const res = await apiClient.get<{
+                    success: boolean;
+                    data: StreamerRanking[];
+                }>('/broadcasters/rankings?limit=100');
+                setStreamerRankings(res.data?.data || []);
+                setLeaderboard(null);
+            } else {
+                const response = await fetch(
+                    `/api/v1/leaderboards/${type}?page=${page}&limit=${limit}`
+                );
 
-            // Handle non-OK responses
-            if (!response.ok) {
-                let errorMessage = 'Failed to fetch leaderboard';
+                // Handle non-OK responses
+                if (!response.ok) {
+                    let errorMessage = 'Failed to fetch leaderboard';
 
-                // Try to parse JSON error response
-                try {
-                    const errorData = await response.json();
-                    errorMessage = errorData.message || errorData.error || errorMessage;
-                } catch {
-                    // If JSON parsing fails, use status text
-                    errorMessage = response.statusText || errorMessage;
+                    // Try to parse JSON error response
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.message || errorData.error || errorMessage;
+                    } catch {
+                        // If JSON parsing fails, use status text
+                        errorMessage = response.statusText || errorMessage;
+                    }
+
+                    throw new Error(errorMessage);
                 }
 
-                throw new Error(errorMessage);
-            }
+                // Ensure response is JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Invalid response format from server');
+                }
 
-            // Ensure response is JSON
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                throw new Error('Invalid response format from server');
+                const data = await response.json();
+                setLeaderboard(data);
+                setStreamerRankings([]);
             }
-
-            const data = await response.json();
-            setLeaderboard(data);
         } catch (err) {
             console.error('Leaderboard fetch error:', err);
             setError(err instanceof Error ? err.message : 'An error occurred');
@@ -108,6 +131,16 @@ export default function LeaderboardPage() {
                 >
                     ⚡ Engagement
                 </button>
+                <button
+                    onClick={() => handleTypeChange('streamers')}
+                    className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
+                        type === 'streamers'
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-gray-800 text-gray-400 hover:bg-gray-750'
+                    }`}
+                >
+                    🎮 Streamers
+                </button>
             </div>
 
             {/* Loading State */}
@@ -137,7 +170,70 @@ export default function LeaderboardPage() {
             )}
 
             {/* Leaderboard Content */}
-            {!loading && !error && leaderboard && (
+            {!loading && !error && type === 'streamers' && streamerRankings.length > 0 && (
+                <div className='bg-surface rounded-xl border border-border overflow-hidden'>
+                    <table className='w-full'>
+                        <thead>
+                            <tr className='border-b border-border text-text-secondary text-sm'>
+                                <th className='px-4 py-3 text-left font-semibold'>Rank</th>
+                                <th className='px-4 py-3 text-left font-semibold'>Streamer</th>
+                                <th className='px-4 py-3 text-right font-semibold'>Engagement Score</th>
+                                <th className='px-4 py-3 text-right font-semibold'>Clips</th>
+                                <th className='px-4 py-3 text-right font-semibold'>Comments</th>
+                                <th className='px-4 py-3 text-right font-semibold'>Followers</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {streamerRankings.map((streamer, idx) => {
+                                const rank = idx + 1;
+                                const rankBadge =
+                                    rank === 1 ? '\u{1F947}' :
+                                    rank === 2 ? '\u{1F948}' :
+                                    rank === 3 ? '\u{1F949}' :
+                                    `#${rank}`;
+                                return (
+                                    <tr
+                                        key={streamer.broadcaster_id}
+                                        className='border-b border-border last:border-b-0 hover:bg-gray-800/50 transition-colors'
+                                    >
+                                        <td className='px-4 py-3 text-text-primary font-semibold text-lg'>
+                                            {rankBadge}
+                                        </td>
+                                        <td className='px-4 py-3'>
+                                            <Link
+                                                to={`/broadcaster/${streamer.broadcaster_id}`}
+                                                className='text-text-primary font-medium hover:text-purple-400 transition-colors'
+                                            >
+                                                {streamer.broadcaster_name}
+                                            </Link>
+                                        </td>
+                                        <td className='px-4 py-3 text-right text-text-primary font-semibold'>
+                                            {streamer.engagement_score.toLocaleString()}
+                                        </td>
+                                        <td className='px-4 py-3 text-right text-text-secondary'>
+                                            {streamer.total_clips.toLocaleString()}
+                                        </td>
+                                        <td className='px-4 py-3 text-right text-text-secondary'>
+                                            {streamer.total_comments.toLocaleString()}
+                                        </td>
+                                        <td className='px-4 py-3 text-right text-text-secondary'>
+                                            {streamer.follower_count.toLocaleString()}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+
+            {!loading && !error && type === 'streamers' && streamerRankings.length === 0 && (
+                <div className='text-center text-gray-400 py-12'>
+                    <p>No streamer rankings available yet.</p>
+                </div>
+            )}
+
+            {!loading && !error && type !== 'streamers' && leaderboard && (
                 <>
                     {/* Top 3 Summary */}
                     {page === 1 && (

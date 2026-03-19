@@ -228,6 +228,11 @@ const AdminPlaylistScriptsPage = lazy(() =>
         default: m.AdminPlaylistScriptsPage,
     })),
 );
+const AdminTagsPage = lazy(() =>
+    import('./pages/admin/AdminTagsPage').then(m => ({
+        default: m.AdminTagsPage,
+    })),
+);
 const AdminAPIDocsPage = lazy(() =>
     import('./pages/admin/AdminAPIDocsPage').then(m => ({
         default: m.AdminAPIDocsPage,
@@ -928,6 +933,14 @@ function App() {
                                             element={
                                                 <AdminRoute>
                                                     <AdminPlaylistScriptsPage />
+                                                </AdminRoute>
+                                            }
+                                        />
+                                        <Route
+                                            path='/admin/tags'
+                                            element={
+                                                <AdminRoute>
+                                                    <AdminTagsPage />
                                                 </AdminRoute>
                                             }
                                         />
