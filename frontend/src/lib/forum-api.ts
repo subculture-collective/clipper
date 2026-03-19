@@ -51,20 +51,20 @@ export const forumApi = {
       params.tags.forEach(tag => queryParams.append('tags', tag));
     }
 
-    const response = await apiClient.get<ForumThreadsResponse>(
+    const response = await apiClient.get<{ success: boolean; data: ForumThreadsResponse }>(
       `/forum/threads?${queryParams.toString()}`
     );
-    return response.data;
+    return response.data.data ?? response.data as unknown as ForumThreadsResponse;
   },
 
   /**
    * Get a single thread with its replies
    */
   async getThread(threadId: string): Promise<ForumThreadDetailResponse> {
-    const response = await apiClient.get<ForumThreadDetailResponse>(
+    const response = await apiClient.get<{ success: boolean; data: ForumThreadDetailResponse }>(
       `/forum/threads/${threadId}`
     );
-    return response.data;
+    return response.data.data ?? response.data as unknown as ForumThreadDetailResponse;
   },
 
   /**

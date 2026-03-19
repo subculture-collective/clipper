@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
 import { ArrowLeft } from 'lucide-react';
 import { Container, SEO } from '@/components';
 import { forumApi } from '@/lib/forum-api';
@@ -27,6 +28,7 @@ export function CreateThread() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [topic, setTopic] = useState('');
+  const [showPreview, setShowPreview] = useState(false);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -154,26 +156,67 @@ export function CreateThread() {
 
             {/* Content */}
             <div>
-              <label
-                htmlFor="content"
-                className="block text-sm font-medium text-text-secondary mb-2"
-              >
-                Content <span className="text-error-500">*</span>
-              </label>
-              <textarea
-                id="content"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Share your thoughts... (Markdown supported)"
-                rows={10}
-                maxLength={5000}
-                className={cn(
-                  'w-full px-4 py-3 border border-border rounded-lg resize-none',
-                  'bg-surface-raised text-text-primary placeholder-text-tertiary',
-                  'focus:outline-none focus:ring-2 focus:ring-brand'
-                )}
-                required
-              />
+              <div className="flex items-center justify-between mb-2">
+                <label
+                  htmlFor="content"
+                  className="block text-sm font-medium text-text-secondary"
+                >
+                  Content <span className="text-error-500">*</span>
+                </label>
+                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowPreview(false)}
+                    className={cn(
+                      'px-3 py-1 text-sm rounded transition-colors cursor-pointer',
+                      !showPreview
+                        ? 'bg-surface-raised text-text-primary'
+                        : 'text-text-tertiary hover:text-text-primary',
+                    )}
+                  >
+                    Write
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowPreview(true)}
+                    className={cn(
+                      'px-3 py-1 text-sm rounded transition-colors cursor-pointer',
+                      showPreview
+                        ? 'bg-surface-raised text-text-primary'
+                        : 'text-text-tertiary hover:text-text-primary',
+                    )}
+                  >
+                    Preview
+                  </button>
+                </div>
+              </div>
+
+              {showPreview ? (
+                <div className="w-full min-h-[260px] px-4 py-3 border border-border rounded-lg bg-surface-raised">
+                  {content.trim() ? (
+                    <div className="comment-body">
+                      <ReactMarkdown>{content}</ReactMarkdown>
+                    </div>
+                  ) : (
+                    <p className="text-text-tertiary text-sm italic">Nothing to preview</p>
+                  )}
+                </div>
+              ) : (
+                <textarea
+                  id="content"
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder="Share your thoughts... (Markdown supported)"
+                  rows={10}
+                  maxLength={5000}
+                  className={cn(
+                    'w-full px-4 py-3 border border-border rounded-lg resize-none',
+                    'bg-surface-raised text-text-primary placeholder-text-tertiary',
+                    'focus:outline-none focus:ring-2 focus:ring-brand'
+                  )}
+                  required
+                />
+              )}
               <p className="mt-1 text-xs text-text-tertiary">
                 {content.length}/5000 characters • Markdown formatting is supported
               </p>
