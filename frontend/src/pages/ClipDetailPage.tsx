@@ -437,7 +437,7 @@ export function ClipDetailPage() {
 
                     <button
                         onClick={() => setShowShareMenu(!showShareMenu)}
-                        className='w-full xs:w-auto px-4 py-2 border border-border rounded-md hover:bg-muted transition-colors text-sm xs:text-base'
+                        className='w-full xs:w-auto px-4 py-2 border border-border rounded-md hover:bg-muted transition-colors text-sm xs:text-base cursor-pointer'
                         aria-label='Share this clip'
                     >
                         📤 Share
@@ -447,27 +447,27 @@ export function ClipDetailPage() {
                         <div className='mt-2 p-3 border border-border rounded-md bg-card space-y-2'>
                             <button
                                 onClick={handleCopyLink}
-                                className='w-full px-4 py-2 text-left hover:bg-muted rounded transition-colors text-sm'
+                                className='w-full px-4 py-2 text-left hover:bg-muted rounded transition-colors text-sm cursor-pointer'
                             >
                                 📋 Copy Link
                             </button>
                             {navigator.share && (
                                 <button
                                     onClick={handleNativeShare}
-                                    className='w-full px-4 py-2 text-left hover:bg-muted rounded transition-colors text-sm'
+                                    className='w-full px-4 py-2 text-left hover:bg-muted rounded transition-colors text-sm cursor-pointer'
                                 >
                                     📤 Share via...
                                 </button>
                             )}
                             <button
                                 onClick={handleShareToTwitter}
-                                className='w-full px-4 py-2 text-left hover:bg-muted rounded transition-colors text-sm'
+                                className='w-full px-4 py-2 text-left hover:bg-muted rounded transition-colors text-sm cursor-pointer'
                             >
                                 🐦 Share on Twitter/X
                             </button>
                             <button
                                 onClick={handleShareToReddit}
-                                className='w-full px-4 py-2 text-left hover:bg-muted rounded transition-colors text-sm'
+                                className='w-full px-4 py-2 text-left hover:bg-muted rounded transition-colors text-sm cursor-pointer'
                             >
                                 🔴 Share on Reddit
                             </button>

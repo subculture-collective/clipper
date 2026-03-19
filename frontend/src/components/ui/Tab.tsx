@@ -22,7 +22,7 @@ export const Tab: React.FC<TabProps> = ({ tabs, activeTab, onTabChange, classNam
           key={tab.id}
           onClick={() => onTabChange(tab.id)}
           className={cn(
-            'flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-semibold transition-colors',
+            'flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-semibold transition-colors cursor-pointer',
             'font-heading',
             activeTab === tab.id
               ? 'text-text-primary border-b-2 border-brand'

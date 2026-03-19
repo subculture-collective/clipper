@@ -288,7 +288,7 @@ export function PlaylistCard({ playlist }: PlaylistCardProps) {
                                         likeMutation.isPending ||
                                         unlikeMutation.isPending
                                     }
-                                    className="inline-flex items-center gap-1 rounded px-1 py-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-primary-500 disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="inline-flex items-center gap-1 rounded px-1 py-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-primary-500 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
                                     title={
                                         isAuthenticated
                                             ? isLiked
@@ -316,7 +316,7 @@ export function PlaylistCard({ playlist }: PlaylistCardProps) {
                                         bookmarkMutation.isPending ||
                                         unbookmarkMutation.isPending
                                     }
-                                    className="inline-flex items-center gap-1 rounded px-1 py-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-primary-500 disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="inline-flex items-center gap-1 rounded px-1 py-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-primary-500 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
                                     title={
                                         isAuthenticated
                                             ? isBookmarked

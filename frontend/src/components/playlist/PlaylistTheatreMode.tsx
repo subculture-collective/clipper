@@ -216,7 +216,7 @@ export function PlaylistTheatreMode({
                 {!showSidebar && (
                     <button
                         onClick={() => setShowSidebar(true)}
-                        className='absolute top-4 right-4 z-10 p-2 bg-surface/80 hover:bg-surface-hover border border-border rounded-lg transition-colors'
+                        className='absolute top-4 right-4 z-10 p-2 bg-surface/80 hover:bg-surface-hover border border-border rounded-lg transition-colors cursor-pointer'
                         aria-label='Show playlist'
                     >
                         <ChevronLeft className='h-5 w-5 text-text-primary' />
@@ -248,7 +248,7 @@ export function PlaylistTheatreMode({
                                 </div>
                                 <button
                                     onClick={() => setShowSidebar(false)}
-                                    className='p-1.5 hover:bg-surface-hover rounded-lg transition-colors'
+                                    className='p-1.5 hover:bg-surface-hover rounded-lg transition-colors cursor-pointer'
                                     aria-label='Hide sidebar'
                                 >
                                     <ChevronLeft className='h-4 w-4 text-text-primary rotate-180' />

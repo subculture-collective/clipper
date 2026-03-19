@@ -60,7 +60,7 @@ export const CommentVoteButtons: React.FC<CommentVoteButtonsProps> = ({
         onClick={() => handleVote(1)}
         disabled={isPending || isVoting}
         className={cn(
-          'rounded hover:bg-surface-hover transition-colors',
+          'rounded hover:bg-surface-hover transition-colors cursor-pointer',
           'disabled:opacity-50 disabled:cursor-not-allowed',
           isCompact ? 'p-0.5' : 'min-w-8 min-h-8 p-1.5',
           isUpvoted ? 'text-upvote' : 'text-text-tertiary'
@@ -102,7 +102,7 @@ export const CommentVoteButtons: React.FC<CommentVoteButtonsProps> = ({
         onClick={() => handleVote(-1)}
         disabled={isPending || isVoting}
         className={cn(
-          'rounded hover:bg-surface-hover transition-colors',
+          'rounded hover:bg-surface-hover transition-colors cursor-pointer',
           'disabled:opacity-50 disabled:cursor-not-allowed',
           isCompact ? 'p-0.5' : 'min-w-8 min-h-8 p-1.5',
           isDownvoted ? 'text-downvote' : 'text-text-tertiary'

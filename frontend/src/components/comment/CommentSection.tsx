@@ -158,7 +158,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
                         onChange={e =>
                             setSort(e.target.value as CommentSortOption)
                         }
-                        className='px-3 py-1.5 rounded-md border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary-500'
+                        className='px-3 py-1.5 rounded-md border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer'
                     >
                         <option value='best'>Best</option>
                         <option value='top'>Top</option>
