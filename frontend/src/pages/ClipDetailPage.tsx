@@ -14,11 +14,11 @@ import {
     useClipFavorite,
     useIsAuthenticated,
     useToast,
-    useShare,
     useWatchHistory,
 } from '../hooks';
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/lib/api';
+import { ShareButton } from '@/components/clip/ShareButton';
 import { useState, useEffect, useRef } from 'react';
 
 export function ClipDetailPage() {
@@ -29,8 +29,6 @@ export function ClipDetailPage() {
     const voteMutation = useClipVote();
     const favoriteMutation = useClipFavorite();
     const toast = useToast();
-    const { share } = useShare();
-    const [showShareMenu, setShowShareMenu] = useState(false);
     const isVoting = voteMutation.isPending;
     const isBanned = user?.is_banned;
     const banReason = user?.ban_reason;
@@ -66,11 +64,6 @@ export function ClipDetailPage() {
     }, [isAuthenticated, clip]);
 
     const clipUrl = clip ? `${window.location.origin}/clip/${clip.id}` : '';
-    const shareTitle = clip ? clip.title : 'Check out this clip';
-    const shareText =
-        clip ?
-            `${clip.title} - Clipped from ${clip.broadcaster_name}'s stream`
-        :   '';
     // Show ban message if user is banned (before clip loading checks)
     if (isBanned) {
         return (
@@ -91,47 +84,6 @@ export function ClipDetailPage() {
         );
     }
 
-    const handleNativeShare = async () => {
-        const clipUrl = `${window.location.origin}/clip/${clip?.id}`;
-        await share({
-            title: clip?.title || 'Check out this clip',
-            text: `${clip?.title} - Clipped from ${clip?.broadcaster_name}'s stream`,
-            url: clipUrl,
-        });
-        setShowShareMenu(false);
-    };
-
-    const handleCopyLink = async () => {
-        try {
-            await navigator.clipboard.writeText(clipUrl);
-            toast.success('Link copied to clipboard!');
-            setShowShareMenu(false);
-        } catch {
-            toast.error('Failed to copy link');
-        }
-    };
-
-    const handleShareToTwitter = () => {
-        const text = encodeURIComponent(shareText);
-        const url = encodeURIComponent(clipUrl);
-        window.open(
-            `https://twitter.com/intent/tweet?text=${text}&url=${url}`,
-            '_blank',
-            'noopener,noreferrer',
-        );
-        setShowShareMenu(false);
-    };
-
-    const handleShareToReddit = () => {
-        const title = encodeURIComponent(shareTitle);
-        const url = encodeURIComponent(clipUrl);
-        window.open(
-            `https://reddit.com/submit?title=${title}&url=${url}`,
-            '_blank',
-            'noopener,noreferrer',
-        );
-        setShowShareMenu(false);
-    };
 
     const handleVote = (voteType: 1 | -1) => {
         if (!isAuthenticated) {
@@ -402,35 +354,14 @@ export function ClipDetailPage() {
                             </span>
                         </button>
 
-                        <button
-                            onClick={() => setShowShareMenu(!showShareMenu)}
-                            className='inline-flex items-center gap-1 rounded px-1.5 py-0.5 transition-colors hover:bg-accent hover:text-foreground cursor-pointer'
-                        >
-                            <svg className='h-3.5 w-3.5' fill='none' stroke='currentColor' strokeWidth={2} viewBox='0 0 24 24'>
-                                <path strokeLinecap='round' strokeLinejoin='round' d='M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z' />
-                            </svg>
-                            <span>Share</span>
-                        </button>
+                        <ShareButton
+                            shareUrl={clipUrl}
+                            shareTitle={clip.title}
+                            showLabel={false}
+                            buttonClassName='inline-flex min-h-0 items-center rounded px-1.5 py-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground cursor-pointer'
+                            iconClassName='h-3.5 w-3.5'
+                        />
                     </div>
-
-                    {showShareMenu && (
-                        <div className='mt-2 p-2 border border-border rounded-md bg-card space-y-1'>
-                            <button onClick={handleCopyLink} className='w-full px-3 py-1.5 text-left text-xs hover:bg-muted rounded transition-colors cursor-pointer'>
-                                Copy Link
-                            </button>
-                            {navigator.share && (
-                                <button onClick={handleNativeShare} className='w-full px-3 py-1.5 text-left text-xs hover:bg-muted rounded transition-colors cursor-pointer'>
-                                    Share via...
-                                </button>
-                            )}
-                            <button onClick={handleShareToTwitter} className='w-full px-3 py-1.5 text-left text-xs hover:bg-muted rounded transition-colors cursor-pointer'>
-                                Share on Twitter/X
-                            </button>
-                            <button onClick={handleShareToReddit} className='w-full px-3 py-1.5 text-left text-xs hover:bg-muted rounded transition-colors cursor-pointer'>
-                                Share on Reddit
-                            </button>
-                        </div>
-                    )}
                 </div>
 
                 {/* Comments */}
