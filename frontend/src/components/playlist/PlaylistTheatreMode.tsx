@@ -6,6 +6,7 @@ import {
     X,
     GripVertical,
     SkipForward,
+    SkipBack,
     Minimize2,
     ChevronLeft,
     Check,
@@ -84,6 +85,14 @@ export function PlaylistTheatreMode({
         }
     }, [items, currentItemId, onItemClick]);
 
+    // Skip to previous clip
+    const handleSkipPrev = useCallback(() => {
+        const currentIndex = items.findIndex(item => item.id === currentItemId);
+        if (currentIndex > 0) {
+            onItemClick(items[currentIndex - 1]);
+        }
+    }, [items, currentItemId, onItemClick]);
+
     // Drag and drop handlers
     const handleDragStart = useCallback((id: string) => {
         setDraggedId(id);
@@ -132,6 +141,10 @@ export function PlaylistTheatreMode({
                 e.preventDefault();
                 handleSkipNext();
             }
+            if (e.key === 'ArrowUp' || e.key === 'p') {
+                e.preventDefault();
+                handleSkipPrev();
+            }
             if (e.key === 's') {
                 e.preventDefault();
                 setShowSidebar(prev => !prev);
@@ -148,7 +161,7 @@ export function PlaylistTheatreMode({
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [handleSkipNext]);
+    }, [handleSkipNext, handleSkipPrev]);
 
     return (
         <div
@@ -218,55 +231,27 @@ export function PlaylistTheatreMode({
                         )}
                     >
                         {/* Sidebar header */}
-                        <div className='p-4 border-b border-border'>
+                        <div className='px-4 py-2.5 border-b border-border'>
                             <div className='flex items-center justify-between'>
                                 <div className='flex items-center gap-2'>
-                                    {onClose && (
-                                        <button
-                                            onClick={onClose}
-                                            className='p-1.5 hover:bg-surface-hover rounded-lg transition-colors'
-                                            aria-label='Exit theatre mode'
-                                        >
-                                            <Minimize2 className='h-4 w-4 text-text-primary' />
-                                        </button>
-                                    )}
-                                    <div>
-                                        <h2 className='text-text-primary font-semibold'>
-                                            {isQueue ? 'Queue' : 'Playlist'}
-                                        </h2>
-                                        <p className='text-text-secondary text-sm'>
+                                    <p className='text-text-secondary text-xs'>
+                                        <span className='font-medium text-text-primary'>
                                             {items.findIndex(
                                                 item => item.id === currentItemId,
-                                            ) + 1}{' '}
-                                            / {items.length}{' '}
-                                            {items.length === 1 ? 'clip' : 'clips'}
-                                        </p>
-                                    </div>
+                                            ) + 1}
+                                        </span>
+                                        {' / '}
+                                        {items.length}{' '}
+                                        {items.length === 1 ? 'clip' : 'clips'}
+                                    </p>
                                 </div>
-                                <div className='flex items-center gap-1'>
-                                    <Button
-                                        variant='ghost'
-                                        size='sm'
-                                        onClick={handleSkipNext}
-                                        disabled={
-                                            items.findIndex(
-                                                item => item.id === currentItemId,
-                                            ) ===
-                                            items.length - 1
-                                        }
-                                        className='text-text-primary hover:bg-surface-hover'
-                                    >
-                                        <SkipForward className='h-4 w-4 mr-1' />
-                                        Next
-                                    </Button>
-                                    <button
-                                        onClick={() => setShowSidebar(false)}
-                                        className='p-1.5 hover:bg-surface-hover rounded-lg transition-colors'
-                                        aria-label='Hide sidebar'
-                                    >
-                                        <ChevronLeft className='h-4 w-4 text-text-primary rotate-180' />
-                                    </button>
-                                </div>
+                                <button
+                                    onClick={() => setShowSidebar(false)}
+                                    className='p-1.5 hover:bg-surface-hover rounded-lg transition-colors'
+                                    aria-label='Hide sidebar'
+                                >
+                                    <ChevronLeft className='h-4 w-4 text-text-primary rotate-180' />
+                                </button>
                             </div>
                         </div>
 
@@ -431,29 +416,82 @@ export function PlaylistTheatreMode({
                             </div>
                         )}
 
-                        {/* Keyboard shortcuts hint */}
-                        <div className='p-3 border-t border-border bg-background/50'>
-                            <p className='text-xs text-text-tertiary'>
-                                <kbd className='px-1.5 py-0.5 bg-surface-raised rounded text-text-secondary'>
-                                    N
-                                </kbd>{' '}
-                                Next clip
-                                {' • '}
-                                <kbd className='px-1.5 py-0.5 bg-surface-raised rounded text-text-secondary'>
-                                    S
-                                </kbd>{' '}
-                                Toggle sidebar
-                                {' • '}
-                                <kbd className='px-1.5 py-0.5 bg-surface-raised rounded text-text-secondary'>
-                                    Q
-                                </kbd>{' '}
-                                Queue
-                                {' • '}
-                                <kbd className='px-1.5 py-0.5 bg-surface-raised rounded text-text-secondary'>
-                                    C
-                                </kbd>{' '}
-                                Chat
-                            </p>
+                        {/* Controls + keyboard shortcuts */}
+                        <div className='border-t border-border bg-background/50'>
+                            {/* Prev / Next / Fullscreen buttons */}
+                            <div className='flex items-center justify-between px-3 py-2'>
+                                <div className='flex items-center gap-1'>
+                                    <Button
+                                        variant='ghost'
+                                        size='sm'
+                                        onClick={handleSkipPrev}
+                                        disabled={
+                                            items.findIndex(
+                                                item => item.id === currentItemId,
+                                            ) === 0
+                                        }
+                                        className='text-text-primary hover:bg-surface-hover'
+                                    >
+                                        <SkipBack className='h-4 w-4 mr-1' />
+                                        Prev
+                                    </Button>
+                                    <Button
+                                        variant='ghost'
+                                        size='sm'
+                                        onClick={handleSkipNext}
+                                        disabled={
+                                            items.findIndex(
+                                                item => item.id === currentItemId,
+                                            ) ===
+                                            items.length - 1
+                                        }
+                                        className='text-text-primary hover:bg-surface-hover'
+                                    >
+                                        <SkipForward className='h-4 w-4 mr-1' />
+                                        Next
+                                    </Button>
+                                </div>
+                                {onClose && (
+                                    <Button
+                                        variant='ghost'
+                                        size='sm'
+                                        onClick={onClose}
+                                        className='text-text-primary hover:bg-surface-hover'
+                                    >
+                                        <Minimize2 className='h-4 w-4 mr-1' />
+                                        Exit
+                                    </Button>
+                                )}
+                            </div>
+                            {/* Key hints */}
+                            <div className='px-3 pb-2'>
+                                <p className='text-xs text-text-tertiary'>
+                                    <kbd className='px-1.5 py-0.5 bg-surface-raised rounded text-text-secondary'>
+                                        P
+                                    </kbd>{' '}
+                                    Prev
+                                    {' • '}
+                                    <kbd className='px-1.5 py-0.5 bg-surface-raised rounded text-text-secondary'>
+                                        N
+                                    </kbd>{' '}
+                                    Next
+                                    {' • '}
+                                    <kbd className='px-1.5 py-0.5 bg-surface-raised rounded text-text-secondary'>
+                                        S
+                                    </kbd>{' '}
+                                    Sidebar
+                                    {' • '}
+                                    <kbd className='px-1.5 py-0.5 bg-surface-raised rounded text-text-secondary'>
+                                        Q
+                                    </kbd>{' '}
+                                    Queue
+                                    {' • '}
+                                    <kbd className='px-1.5 py-0.5 bg-surface-raised rounded text-text-secondary'>
+                                        C
+                                    </kbd>{' '}
+                                    Chat
+                                </p>
+                            </div>
                         </div>
                     </div>
                 )}
