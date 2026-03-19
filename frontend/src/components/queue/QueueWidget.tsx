@@ -291,7 +291,7 @@ export function QueueWidget() {
                         aria-label='Show player'
                         title='Show player'
                     >
-                        <ChevronDown className='h-4 w-4' />
+                        <ChevronUp className='h-4 w-4' />
                     </button>
                     <button
                         onClick={handleClose}
