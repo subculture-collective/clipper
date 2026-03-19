@@ -243,12 +243,19 @@ func (s *AutoTagService) GenerateTagsForClip(ctx context.Context, clip *models.C
 	if clip.Language != nil && *clip.Language != "" {
 		langTag := getLanguageTag(*clip.Language)
 		if langTag != "" && !seenTags[langTag] {
-			tagSlugs = append(tagSlugs, langTag)
-			seenTags[langTag] = true
+			// Check blacklist before creating tag
+			blacklisted, err := s.tagRepo.IsBlacklisted(ctx, langTag)
+			if err != nil {
+				log.Printf("Warning: failed to check blacklist for tag %q: %v", langTag, err)
+			}
+			if !blacklisted {
+				tagSlugs = append(tagSlugs, langTag)
+				seenTags[langTag] = true
 
-			langName := getLanguageName(*clip.Language)
-			color := stringPtr("#708090")
-			_, _ = s.tagRepo.GetOrCreateTag(ctx, langName, langTag, color)
+				langName := getLanguageName(*clip.Language)
+				color := stringPtr("#708090")
+				_, _ = s.tagRepo.GetOrCreateTag(ctx, langName, langTag, color)
+			}
 		}
 	}
 
