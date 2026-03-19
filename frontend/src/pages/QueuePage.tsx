@@ -105,7 +105,7 @@ export function QueuePage() {
                 description="Your clip queue - clips you've saved to watch later"
             />
 
-            <div className='max-w-5xl mx-auto px-4 py-8'>
+            <div className='w-full px-4 sm:px-6 lg:px-8 py-8'>
                 {/* Loading State */}
                 {isLoading && (
                     <div className='flex items-center justify-center py-16'>
