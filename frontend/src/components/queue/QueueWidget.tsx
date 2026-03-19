@@ -17,7 +17,9 @@ import {
     Maximize2,
     ListMusic,
     Trash2,
+    GripVertical,
 } from 'lucide-react';
+import { useReorderQueue } from '@/hooks/useQueue';
 import type { QueueItemWithClip } from '@/types/queue';
 
 type WidgetState = 'collapsed' | 'expanded' | 'playing';
@@ -29,8 +31,11 @@ export function QueueWidget() {
     const { data: queueCount } = useQueueCount(isAuthenticated);
     const removeFromQueue = useRemoveFromQueue();
     const markAsPlayed = useMarkAsPlayed();
+    const reorderQueue = useReorderQueue();
 
     const [widgetState, setWidgetState] = useState<WidgetState>('collapsed');
+    const [draggedId, setDraggedId] = useState<string | null>(null);
+    const [dragOverId, setDragOverId] = useState<string | null>(null);
     const [currentClip, setCurrentClip] = useState<QueueItemWithClip | null>(
         null,
     );
@@ -95,6 +100,37 @@ export function QueueWidget() {
             setWidgetState('collapsed');
         }
     }, [currentClip]);
+
+    const handleDragStart = useCallback((id: string) => {
+        setDraggedId(id);
+    }, []);
+
+    const handleDragOver = useCallback((e: React.DragEvent, id: string) => {
+        e.preventDefault();
+        setDragOverId(id);
+    }, []);
+
+    const handleDragLeave = useCallback(() => {
+        setDragOverId(null);
+    }, []);
+
+    const handleDrop = useCallback(
+        (e: React.DragEvent, targetId: string) => {
+            e.preventDefault();
+            if (!draggedId || draggedId === targetId) {
+                setDraggedId(null);
+                setDragOverId(null);
+                return;
+            }
+            const targetIndex = queueItems.findIndex(item => item.id === targetId);
+            if (targetIndex !== -1) {
+                reorderQueue.mutate({ item_id: draggedId, new_position: targetIndex });
+            }
+            setDraggedId(null);
+            setDragOverId(null);
+        },
+        [draggedId, queueItems, reorderQueue],
+    );
 
     // Don't show for logged out users or empty queues
     if (!user || !queueCount || queueCount === 0) {
@@ -243,6 +279,15 @@ export function QueueWidget() {
                     </span>
                 </div>
                 <div className='flex items-center gap-1'>
+                    <Link
+                        to='/queue/theatre'
+                        onClick={handleClose}
+                        className='p-1 hover:bg-muted rounded transition-colors cursor-pointer'
+                        aria-label='Open theatre mode'
+                        title='Theatre mode'
+                    >
+                        <Maximize2 className='h-4 w-4' />
+                    </Link>
                     {currentClip && (
                         <button
                             onClick={handleMinimizeToPlayer}
@@ -273,16 +318,26 @@ export function QueueWidget() {
                         {queueItems.map((item, idx) => (
                             <div
                                 key={item.id}
+                                draggable
+                                onDragStart={() => handleDragStart(item.id)}
+                                onDragOver={(e) => handleDragOver(e, item.id)}
+                                onDragLeave={handleDragLeave}
+                                onDrop={(e) => handleDrop(e, item.id)}
                                 className={cn(
                                     'flex items-center gap-2 p-2 hover:bg-muted/50 transition-colors group',
                                     item.id === currentItemId &&
                                         'bg-primary-500/10',
+                                    draggedId === item.id && 'opacity-50',
+                                    dragOverId === item.id && 'border-t-2 border-brand',
                                 )}
                             >
-                                {/* Position */}
-                                <span className='text-xs text-muted-foreground w-4 text-center shrink-0'>
-                                    {idx + 1}
-                                </span>
+                                {/* Drag handle + Position */}
+                                <div className='flex items-center gap-1 shrink-0'>
+                                    <GripVertical className='h-3 w-3 text-muted-foreground cursor-grab active:cursor-grabbing' />
+                                    <span className='text-xs text-muted-foreground w-4 text-center'>
+                                        {idx + 1}
+                                    </span>
+                                </div>
 
                                 {/* Thumbnail with play button */}
                                 <div
