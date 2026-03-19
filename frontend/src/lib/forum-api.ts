@@ -17,6 +17,7 @@ import type {
   ForumAnalyticsResponse,
   PopularDiscussionsResponse,
   HelpfulRepliesResponse,
+  FlagContentRequest,
 } from '@/types/forum';
 
 interface ListThreadsParams {
@@ -147,8 +148,16 @@ export const forumApi = {
     const params = new URLSearchParams();
     params.append('timeframe', timeframe);
     params.append('limit', limit.toString());
-    
+
     const response = await apiClient.get<HelpfulRepliesResponse>(`/forum/helpful-replies?${params.toString()}`);
+    return response.data;
+  },
+
+  /**
+   * Flag content (thread or reply) for moderation review
+   */
+  async flagContent(data: FlagContentRequest) {
+    const response = await apiClient.post('/forum/flag', data);
     return response.data;
   },
 };

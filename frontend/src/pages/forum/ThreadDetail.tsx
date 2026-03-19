@@ -1,17 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Lock, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Flag, Lock, MessageSquare } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Container, SEO } from '@/components';
-import { Avatar } from '@/components/ui';
+import { Avatar, Modal } from '@/components/ui';
 import { ReplyTree, ReplyComposer } from '@/components/forum';
 import { forumApi } from '@/lib/forum-api';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { formatTimestamp } from '@/lib/utils';
+import type { FlagContentRequest } from '@/types/forum';
 
 export function ThreadDetail() {
   const { threadId } = useParams<{ threadId: string }>();
@@ -23,6 +24,9 @@ export function ThreadDetail() {
 
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [showMobileComposer, setShowMobileComposer] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState<FlagContentRequest['reason']>('spam');
+  const [reportDetails, setReportDetails] = useState('');
 
   // Handle mobile drawer keyboard and scroll
   useEffect(() => {
@@ -94,6 +98,30 @@ export function ThreadDetail() {
     },
   });
 
+  // Flag content mutation
+  const flagContentMutation = useMutation({
+    mutationFn: (data: FlagContentRequest) => forumApi.flagContent(data),
+    onSuccess: () => {
+      showToast('Content has been flagged for review', 'success');
+      setShowReportModal(false);
+      setReportReason('spam');
+      setReportDetails('');
+    },
+    onError: () => {
+      showToast('Failed to flag content', 'error');
+    },
+  });
+
+  const handleReportThread = () => {
+    if (!threadId) return;
+    flagContentMutation.mutate({
+      target_type: 'thread',
+      target_id: threadId,
+      reason: reportReason,
+      details: reportDetails || undefined,
+    });
+  };
+
   const handleReply = (replyId: string | null = null) => {
     if (!user) {
       navigate('/login');
@@ -160,6 +188,14 @@ export function ThreadDetail() {
             <span>Back to Forum</span>
           </Link>
 
+          {/* Locked thread banner */}
+          {thread.locked && (
+            <div className="bg-warning-500/10 border border-warning-500/30 rounded-lg p-3 mb-4 text-sm text-warning-600 flex items-center gap-2">
+              <Lock className="h-4 w-4" />
+              This thread is locked. No new replies can be posted.
+            </div>
+          )}
+
           {/* Thread Header */}
           <div className="bg-gray-900 rounded-lg border border-gray-700 p-6 mb-6">
             {/* Status badges */}
@@ -224,6 +260,15 @@ export function ThreadDetail() {
               <div>
                 <span>{thread.view_count} views</span>
               </div>
+              {user && user.id !== thread.user_id && (
+                <button
+                  onClick={() => setShowReportModal(true)}
+                  className="ml-auto flex items-center gap-1 text-gray-400 hover:text-red-400 transition-colors"
+                >
+                  <Flag className="w-4 h-4" />
+                  <span>Report</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -305,6 +350,58 @@ export function ThreadDetail() {
           </div>
         </div>
       )}
+
+      {/* Report modal */}
+      <Modal
+        open={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        title="Report Thread"
+        size="sm"
+      >
+        <div className="p-6">
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Reason
+          </label>
+          <select
+            value={reportReason}
+            onChange={(e) => setReportReason(e.target.value as FlagContentRequest['reason'])}
+            className="w-full bg-gray-800 text-white rounded-lg p-2.5 border border-gray-700 focus:border-blue-500 focus:outline-none mb-4"
+          >
+            <option value="spam">Spam</option>
+            <option value="harassment">Harassment</option>
+            <option value="off-topic">Off-topic</option>
+            <option value="misinformation">Misinformation</option>
+            <option value="other">Other</option>
+          </select>
+
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Additional details (optional)
+          </label>
+          <textarea
+            value={reportDetails}
+            onChange={(e) => setReportDetails(e.target.value)}
+            className="w-full bg-gray-800 text-white rounded-lg p-3 border border-gray-700 focus:border-blue-500 focus:outline-none resize-none mb-4"
+            rows={3}
+            placeholder="Provide any additional context..."
+          />
+
+          <div className="flex gap-3 justify-end">
+            <button
+              onClick={() => setShowReportModal(false)}
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleReportThread}
+              disabled={flagContentMutation.isPending}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+            >
+              {flagContentMutation.isPending ? 'Submitting...' : 'Submit Report'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </>
   );
 }

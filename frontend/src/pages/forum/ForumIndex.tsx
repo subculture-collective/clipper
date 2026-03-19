@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
@@ -76,6 +76,15 @@ export function ForumIndex() {
 
   const threads = data?.threads || [];
 
+  const sortedThreads = useMemo(() => {
+    if (!threads) return [];
+    return [...threads].sort((a, b) => {
+      if (a.pinned && !b.pinned) return -1;
+      if (!a.pinned && b.pinned) return 1;
+      return 0;
+    });
+  }, [threads]);
+
   return (
     <>
       <SEO
@@ -125,7 +134,7 @@ export function ForumIndex() {
           )}
 
           {/* Thread List */}
-          <ThreadList threads={threads} loading={isLoading} />
+          <ThreadList threads={sortedThreads} loading={isLoading} />
 
           {/* Empty state for unauthenticated users */}
           {!user && threads.length === 0 && !isLoading && (

@@ -68,6 +68,11 @@ export function Header() {
                                 🔍 Discover
                             </Button>
                         </Link>
+                        <Link to='/forum'>
+                            <Button variant='ghost' size='sm'>
+                                💬 Forum
+                            </Button>
+                        </Link>
 
                         {/* More dropdown */}
                         <div className='relative' ref={moreMenuRef}>
@@ -215,6 +220,18 @@ export function Header() {
                                     className='w-full justify-start'
                                 >
                                     🔍 Discover
+                                </Button>
+                            </Link>
+                            <Link
+                                to='/forum'
+                                onClick={() => setMobileMenuOpen(false)}
+                            >
+                                <Button
+                                    variant='ghost'
+                                    size='sm'
+                                    className='w-full justify-start'
+                                >
+                                    💬 Forum
                                 </Button>
                             </Link>
 
