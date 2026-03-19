@@ -219,7 +219,7 @@ export function PlaylistTheatreMode({
                         className='absolute top-4 right-4 z-10 p-2 bg-surface/80 hover:bg-surface-hover border border-border rounded-lg transition-colors'
                         aria-label='Show playlist'
                     >
-                        <ChevronLeft className='h-5 w-5 text-text-primary rotate-180' />
+                        <ChevronLeft className='h-5 w-5 text-text-primary' />
                     </button>
                 )}
 
