@@ -1,8 +1,8 @@
 #!/bin/bash
 # test-stripe-webhooks.sh
-# 
+#
 # This script tests all supported Stripe webhook event types using Stripe CLI
-# 
+#
 # Prerequisites:
 # 1. Stripe CLI installed (https://stripe.com/docs/stripe-cli)
 # 2. Authenticated with `stripe login`
@@ -33,7 +33,7 @@ fi
 echo -e "${YELLOW}Checking if backend is running...${NC}"
 if ! curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/health/live | grep -q "200"; then
     echo -e "${RED}Error: Backend server is not running on localhost:8080${NC}"
-    echo "Start the backend server first: go run cmd/api/main.go"
+    echo "Start the backend server first: go run ./cmd/api"
     exit 1
 fi
 echo -e "${GREEN}✓ Backend server is running${NC}"
@@ -60,7 +60,7 @@ failed_events=()
 # Test each event
 for event in "${events[@]}"; do
   echo -e "${YELLOW}Testing: $event${NC}"
-  
+
   if stripe trigger "$event" > /dev/null 2>&1; then
     echo -e "${GREEN}✓ Success${NC}"
     ((success_count++))
@@ -69,7 +69,7 @@ for event in "${events[@]}"; do
     ((fail_count++))
     failed_events+=("$event")
   fi
-  
+
   # Wait between events to avoid rate limiting
   sleep 2
   echo ""

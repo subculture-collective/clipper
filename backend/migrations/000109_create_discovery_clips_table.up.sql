@@ -76,6 +76,42 @@ FROM clips
 WHERE submitted_by_user_id IS NULL
 ON CONFLICT (twitch_clip_id) DO NOTHING;
 
+-- Remove dependent records in a stable order before deleting the source clips.
+-- This avoids ON DELETE cascade paths that can fire legacy karma triggers after the
+-- parent comment row is already gone, which can otherwise fail on existing data.
+DELETE FROM comment_votes
+WHERE comment_id IN (
+        SELECT c.id
+        FROM comments c
+        JOIN clips cl ON cl.id = c.clip_id
+        WHERE cl.submitted_by_user_id IS NULL
+            AND cl.twitch_clip_id IN (SELECT twitch_clip_id FROM discovery_clips)
+);
+
+DELETE FROM comments
+WHERE clip_id IN (
+        SELECT id
+        FROM clips
+        WHERE submitted_by_user_id IS NULL
+            AND twitch_clip_id IN (SELECT twitch_clip_id FROM discovery_clips)
+);
+
+DELETE FROM favorites
+WHERE clip_id IN (
+        SELECT id
+        FROM clips
+        WHERE submitted_by_user_id IS NULL
+            AND twitch_clip_id IN (SELECT twitch_clip_id FROM discovery_clips)
+);
+
+DELETE FROM votes
+WHERE clip_id IN (
+        SELECT id
+        FROM clips
+        WHERE submitted_by_user_id IS NULL
+            AND twitch_clip_id IN (SELECT twitch_clip_id FROM discovery_clips)
+);
+
 -- Delete the migrated scraped clips from the main clips table.
 -- Only delete rows that were successfully copied (match on twitch_clip_id).
 DELETE FROM clips

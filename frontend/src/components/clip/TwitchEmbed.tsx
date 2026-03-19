@@ -12,7 +12,7 @@
 // - No stripping of Twitch branding or attribution
 // - Respects creator's right to delete clips (graceful error handling)
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useVolumePreference } from '@/hooks';
 import { MutedIcon } from '@/components/ui';
 
@@ -32,6 +32,27 @@ export function TwitchEmbed({
   title = 'Twitch Clip'
 }: TwitchEmbedProps) {
   const [isLoaded, setIsLoaded] = useState(autoplay);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-load embed when it scrolls into view
+  useEffect(() => {
+    if (isLoaded || autoplay) return;
+    const el = containerRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsLoaded(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '200px' },
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [isLoaded, autoplay]);
   const [hasError, setHasError] = useState(false);
   const [showMutedIndicator, setShowMutedIndicator] = useState(true);
   const { embedMuted: volumePreferredMuted, hasSetPreference, setUnmutedPreference } = useVolumePreference();
@@ -72,10 +93,6 @@ export function TwitchEmbed({
   // - Download or cache video content
   const embedUrl = `https://clips.twitch.tv/embed?clip=${clipId}&parent=${parentDomain}&autoplay=${isLoaded ? 'true' : 'false'}&muted=${embedMuted}`;
 
-  const handleLoadClick = () => {
-    setIsLoaded(true);
-  };
-
   const handleError = () => {
     setHasError(true);
   };
@@ -104,45 +121,21 @@ export function TwitchEmbed({
   if (!isLoaded) {
     return (
       <div
-        className="relative w-full pt-[56.25%] bg-black rounded-lg cursor-pointer group overflow-hidden"
-        onClick={handleLoadClick}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            handleLoadClick();
-          }
-        }}
-        aria-label="Load and play video"
+        ref={containerRef}
+        className="relative w-full pt-[56.25%] bg-black rounded-lg overflow-hidden"
       >
-        {/* Thumbnail */}
+        {/* Thumbnail shown while waiting for viewport intersection */}
         {thumbnailUrl && (
           <img
             src={thumbnailUrl}
             alt={title}
             loading="lazy"
             decoding="async"
-            className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105"
+            className="absolute inset-0 w-full h-full object-cover"
             width="1920"
             height="1080"
           />
         )}
-
-        {/* Overlay */}
-        <div className="absolute inset-0 bg-black bg-opacity-40 group-hover:bg-opacity-60 transition-all flex items-center justify-center">
-          {/* Play button */}
-          <div className="w-16 h-16 bg-white bg-opacity-90 rounded-full flex items-center justify-center transform group-hover:scale-110 transition-transform">
-            <svg className="w-8 h-8 text-black ml-1" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M8 5v14l11-7z" />
-            </svg>
-          </div>
-        </div>
-
-        {/* Watch label */}
-        <div className="absolute bottom-4 left-4 bg-black bg-opacity-75 text-white px-3 py-1 rounded text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-          Click to play
-        </div>
       </div>
     );
   }

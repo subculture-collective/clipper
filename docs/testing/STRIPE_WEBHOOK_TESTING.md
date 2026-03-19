@@ -85,7 +85,7 @@ stripe login
 
 ```bash
 cd backend
-go run cmd/api/main.go
+go run ./cmd/api
 ```
 
 Verify the server is running on `http://localhost:8080` (or your configured port).
@@ -324,7 +324,7 @@ tail -f /var/log/clipper/backend.log | grep WEBHOOK
 
 #### 1. Signature Verification Fails
 **Problem**: `webhook signature verification failed`
-**Solution**: 
+**Solution**:
 - Verify `STRIPE_WEBHOOK_SECRET` matches the secret from Stripe CLI or Dashboard
 - Ensure you're using the correct secret for test vs live mode
 - Check that the secret is correctly loaded in your application

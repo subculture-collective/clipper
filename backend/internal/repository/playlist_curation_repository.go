@@ -231,6 +231,32 @@ func (r *PlaylistCurationRepository) FreshFaces(ctx context.Context, script *mod
 	return r.scanClipIDs(ctx, query, args)
 }
 
+// OnePerCreator finds a single standout clip per creator to maximize variety.
+func (r *PlaylistCurationRepository) OnePerCreator(ctx context.Context, script *models.PlaylistScript) ([]models.Clip, error) {
+	where, args := baseClipFilter(script)
+	where += timeframeClause(script)
+	nextArg := len(args) + 1
+
+	query := fmt.Sprintf(`
+		WITH ranked AS (
+			SELECT c.id,
+			       ROW_NUMBER() OVER (
+				   PARTITION BY COALESCE(c.creator_id, c.broadcaster_id, c.id::text)
+				   ORDER BY c.vote_score DESC, c.view_count DESC, c.created_at DESC
+			   ) AS creator_rank
+			FROM clips c
+			WHERE %s
+		)
+		SELECT id
+		FROM ranked
+		WHERE creator_rank = 1
+		LIMIT $%d
+	`, where, nextArg)
+	args = append(args, script.ClipLimit)
+
+	return r.scanClipIDs(ctx, query, args)
+}
+
 // SimilarVibes finds clips semantically similar to a seed clip using pgvector cosine distance.
 func (r *PlaylistCurationRepository) SimilarVibes(ctx context.Context, script *models.PlaylistScript, seedClipID uuid.UUID) ([]models.Clip, error) {
 	where, args := baseClipFilter(script)

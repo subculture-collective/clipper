@@ -65,11 +65,11 @@ backend/
    ```bash
    # macOS
    brew install golang-migrate
-   
+
    # Linux
    curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz
    sudo mv migrate /usr/local/bin/
-   
+
    # Or using Go
    go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
    ```
@@ -93,7 +93,7 @@ backend/
    ```bash
    # From project root
    make migrate-up
-   
+
    # Or from backend directory
    cd backend
    migrate -path migrations -database "postgresql://clipper:clipper_password@localhost:5436/clipper_db?sslmode=disable" up
@@ -112,7 +112,7 @@ backend/
 8. Run the server:
 
    ```bash
-   go run cmd/api/main.go
+  go run ./cmd/api
    ```
 
 The server will start on `http://localhost:8080`
@@ -471,13 +471,13 @@ The backend includes evaluation frameworks for assessing the quality of search a
 ### Recommendation Evaluation
 - **Metrics**: Precision@k, Recall@k, nDCG, Diversity, Serendipity, Cold-start performance
 - **Dataset**: `testdata/recommendation_evaluation_dataset.yaml`
-- **CLI tools**: 
+- **CLI tools**:
   - `cmd/evaluate-recommendations` - Run evaluations
   - `cmd/grid-search-recommendations` - Parameter optimization
-- **Makefile**: 
+- **Makefile**:
   - `make evaluate-recommendations` or `make evaluate-recommendations-json`
   - `make grid-search-recommendations` or `make grid-search-recommendations-full`
-- **Documentation**: 
+- **Documentation**:
   - `../docs/RECOMMENDATION-EVALUATION.md` - Evaluation framework
   - `../docs/CF-OPTIMIZATION-RESULTS.md` - Optimization results and A/B test plan
 - **CI**: Runs nightly via GitHub Actions (`.github/workflows/recommendation-evaluation.yml`)

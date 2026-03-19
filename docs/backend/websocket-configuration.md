@@ -57,7 +57,7 @@ WEBSOCKET_ALLOWED_ORIGINS=*.clpr.tv
 ```
 
 **Important Notes:**
-- Wildcard patterns must start with `*.` 
+- Wildcard patterns must start with `*.`
 - Only subdomain wildcards are supported (not path or protocol wildcards)
 - The pattern `*.clpr.tv` matches both the base domain `clpr.tv` and any subdomain
 - Wildcards work with both HTTP and HTTPS protocols
@@ -159,7 +159,7 @@ To test WebSocket CORS configuration:
 
 1. Start the backend server with your configuration:
    ```bash
-   WEBSOCKET_ALLOWED_ORIGINS=https://clpr.tv go run cmd/api/main.go
+   WEBSOCKET_ALLOWED_ORIGINS=https://clpr.tv go run ./cmd/api
    ```
 
 2. Try to connect from different origins and verify:

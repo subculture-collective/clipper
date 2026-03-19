@@ -81,6 +81,7 @@ Comprehensive documentation is available in the [\`/docs\`](docs/) directory:
 - **[API Reference](docs/backend/api.md)** - REST API documentation
 - **[Architecture](docs/backend/architecture.md)** - System design and components
 - **[Deployment](docs/operations/deployment.md)** - General deployment guide
+- **[Site Freshness Automation](docs/operations/SITE_FRESHNESS_AUTOMATION.md)** - Bootstrapping auto-refreshing public playlists
 - **[Contributing](docs/contributing.md)** - Contribution guidelines
 
 **📖 Full documentation index**: [\`docs/index.md\`](docs/index.md)

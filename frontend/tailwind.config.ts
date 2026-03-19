@@ -15,22 +15,56 @@ const config: Config = {
     },
     extend: {
       colors: {
-        // Primary: Twitch purple (UNCHANGED)
+        // === New design system tokens ===
+
+        // Surfaces
+        surface: {
+          DEFAULT: 'rgb(var(--color-surface) / <alpha-value>)',
+          raised: 'rgb(var(--color-surface-raised) / <alpha-value>)',
+          hover: 'rgb(var(--color-surface-hover) / <alpha-value>)',
+        },
+
+        // Brand
+        brand: {
+          DEFAULT: 'rgb(var(--color-brand) / <alpha-value>)',
+          hover: 'rgb(var(--color-brand-hover) / <alpha-value>)',
+        },
+
+        // Interaction
+        upvote: 'rgb(var(--color-upvote) / <alpha-value>)',
+        downvote: 'rgb(var(--color-downvote) / <alpha-value>)',
+        cta: {
+          DEFAULT: 'rgb(var(--color-cta) / <alpha-value>)',
+          hover: 'rgb(var(--color-cta-hover) / <alpha-value>)',
+        },
+
+        // Thread depth colors
+        thread: {
+          0: 'rgb(var(--color-thread-0) / <alpha-value>)',
+          1: 'rgb(var(--color-thread-1) / <alpha-value>)',
+          2: 'rgb(var(--color-thread-2) / <alpha-value>)',
+          3: 'rgb(var(--color-thread-3) / <alpha-value>)',
+          4: 'rgb(var(--color-thread-4) / <alpha-value>)',
+        },
+
+        // === Existing palettes (updated primary scale) ===
+
+        // Primary: Brand violet (shifted from Twitch #9146FF to own #7C3AED)
         primary: {
           50: '#f5f3ff',
           100: '#ede9fe',
           200: '#ddd6fe',
           300: '#c4b5fd',
           400: '#a78bfa',
-          500: '#9146FF',
-          600: '#7c3aed',
-          700: '#6d28d9',
-          800: '#5b21b6',
-          900: '#4c1d95',
-          950: '#2e1065',
+          500: '#7C3AED',
+          600: '#6D28D9',
+          700: '#5B21B6',
+          800: '#4C1D95',
+          900: '#3B1578',
+          950: '#2E1065',
         },
 
-        // Secondary (UPDATED): neon-magenta vibe
+        // Secondary: neon-magenta vibe
         secondary: {
           50: '#fff0fb',
           100: '#ffe0f7',
@@ -45,7 +79,7 @@ const config: Config = {
           950: '#3f002e',
         },
 
-        // Success state (UNCHANGED)
+        // Success state
         success: {
           50: '#f0fdf4',
           100: '#dcfce7',
@@ -60,7 +94,7 @@ const config: Config = {
           950: '#052e16',
         },
 
-        // Warning state (UNCHANGED)
+        // Warning state
         warning: {
           50: '#fffbeb',
           100: '#fef3c7',
@@ -75,7 +109,7 @@ const config: Config = {
           950: '#451a03',
         },
 
-        // Error state (UNCHANGED)
+        // Error state
         error: {
           50: '#fef2f2',
           100: '#fee2e2',
@@ -90,7 +124,7 @@ const config: Config = {
           950: '#450a0a',
         },
 
-        // Info state (UPDATED): cyan-forward to match neon vibe
+        // Info state
         info: {
           50: '#ecfeff',
           100: '#cffafe',
@@ -105,8 +139,7 @@ const config: Config = {
           950: '#083344',
         },
 
-        // Neutral grays (UPDATED): purple-black neutrals for dark UI
-        // (keeps the same `neutral-*` utilities you already use)
+        // Neutral grays: purple-tinted for dark UI
         neutral: {
           50: '#f7f6fb',
           100: '#edeaf6',
@@ -124,6 +157,7 @@ const config: Config = {
 
       fontFamily: {
         sans: [
+          'Inter',
           'system-ui',
           '-apple-system',
           'BlinkMacSystemFont',
@@ -133,7 +167,14 @@ const config: Config = {
           'Arial',
           'sans-serif',
         ],
+        heading: [
+          '"Space Grotesk"',
+          'system-ui',
+          '-apple-system',
+          'sans-serif',
+        ],
         mono: [
+          '"JetBrains Mono"',
           'ui-monospace',
           'SFMono-Regular',
           '"SF Mono"',
@@ -204,8 +245,12 @@ const config: Config = {
     'hover:bg-primary-600',
     'hover:bg-primary-700',
     'active:bg-primary-700',
-    'dark:bg-primary-600',
-    'dark:hover:bg-primary-700',
+
+    // Brand colors
+    'bg-brand',
+    'bg-brand-hover',
+    'text-brand',
+    'border-brand',
 
     // Secondary button colors
     'bg-secondary-500',
@@ -223,20 +268,34 @@ const config: Config = {
     'hover:bg-error-700',
     'active:bg-error-700',
 
-    // Neutral colors for ghost variant
-    'hover:bg-neutral-800',
-    'active:bg-neutral-700',
-    'dark:hover:bg-neutral-800',
-    'dark:active:bg-neutral-700',
+    // Surface colors
+    'bg-surface',
+    'bg-surface-raised',
+    'bg-surface-hover',
+    'hover:bg-surface-hover',
 
     // Text colors
     'text-white',
     'text-primary-500',
     'text-foreground',
+    'text-text-primary',
+    'text-text-secondary',
+    'text-text-tertiary',
+    'text-upvote',
+    'text-downvote',
+    'text-cta',
 
     // Border colors
     'border-primary-500',
     'border-2',
+    'border-subtle',
+
+    // Thread colors
+    'border-thread-0',
+    'border-thread-1',
+    'border-thread-2',
+    'border-thread-3',
+    'border-thread-4',
   ],
 
   plugins: [],

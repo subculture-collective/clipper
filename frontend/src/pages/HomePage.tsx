@@ -1,7 +1,7 @@
 import { Container, SEO } from '../components';
 import { ClipFeed } from '../components/clip';
-import { DiscoveryListCard } from '../components/discovery';
-import { useDiscoveryLists } from '../hooks/useDiscoveryLists';
+import { PlaylistCard } from '../components/playlist/PlaylistCard';
+import { useFeaturedPlaylists } from '../hooks/usePlaylist';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -31,11 +31,11 @@ export function HomePage() {
         );
     }, []);
 
-    // Fetch featured discovery lists
-    const { data: featuredLists, isLoading } = useDiscoveryLists({
-        featured: true,
-        limit: 8,
-    });
+    const { data: featuredPlaylistsResponse, isLoading } = useFeaturedPlaylists(
+        1,
+        8,
+    );
+    const featuredPlaylists = featuredPlaylistsResponse?.data ?? [];
 
     useEffect(() => {
         updateCarouselControls();
@@ -51,7 +51,7 @@ export function HomePage() {
             container.removeEventListener('scroll', handle);
             resizeObserver.disconnect();
         };
-    }, [featuredLists?.length, updateCarouselControls]);
+    }, [featuredPlaylists.length, updateCarouselControls]);
 
     return (
         <>
@@ -61,16 +61,16 @@ export function HomePage() {
                 canonicalUrl='/'
             />
             <Container className='py-4 xs:py-6 md:py-8'>
-                {/* Featured Discovery Lists Section */}
-                {!isLoading && featuredLists && featuredLists.length > 0 && (
-                    <div className='mb-8'>
+                {/* Curated Collections Section */}
+                {!isLoading && featuredPlaylists.length > 0 && (
+                    <div className='mb-8 overflow-hidden'>
                         <div className='flex items-center justify-between mb-4'>
                             <div>
                                 <h2 className='text-2xl font-bold text-foreground'>
                                     Curated Collections
                                 </h2>
                                 <p className='text-muted-foreground text-sm mt-1'>
-                                    Handpicked lists of amazing clips
+                                    Handpicked and freshly generated playlists worth a peek
                                 </p>
                             </div>
                             <Link
@@ -82,23 +82,20 @@ export function HomePage() {
                             </Link>
                         </div>
                         <div className='relative'>
-                            <div className='absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-background to-transparent pointer-events-none' />
-                            <div className='absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-background to-transparent pointer-events-none' />
+                            <div className='absolute inset-y-0 left-0 w-10 bg-linear-to-r from-background to-transparent pointer-events-none' />
+                            <div className='absolute inset-y-0 right-0 w-10 bg-linear-to-l from-background to-transparent pointer-events-none' />
 
                             <div
                                 ref={carouselRef}
                                 className='flex gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 scrollbar-hide scrolling-touch touch-pan-x overscroll-x-contain'
                                 aria-label='Curated collections carousel'
                             >
-                                {featuredLists.map(list => (
+                                {featuredPlaylists.map(playlist => (
                                     <div
-                                        key={list.id}
-                                        className='snap-start shrink-0 w-[320px] xs:w-[340px] sm:w-[360px] lg:w-[400px]'
+                                        key={playlist.id}
+                                        className='snap-start shrink-0 w-[320px] xs:w-85 sm:w-90 lg:w-100'
                                     >
-                                        <DiscoveryListCard
-                                            list={list}
-                                            size='compact'
-                                        />
+                                        <PlaylistCard playlist={playlist} />
                                     </div>
                                 ))}
                             </div>

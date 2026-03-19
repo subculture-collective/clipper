@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 @import 'tailwindcss';
 
 /* Custom breakpoints for Tailwind v4 */
@@ -6,18 +7,57 @@
 /* Base layer - custom CSS resets and base styles */
 @layer base {
     :root {
-        /* Dark mode colors (always used since we removed theme toggle) */
-        --color-background: 10 10 10;
-        --color-foreground: 250 250 250;
-        --color-card: 23 23 23;
-        --color-card-foreground: 250 250 250;
-        --color-popover: 23 23 23;
-        --color-popover-foreground: 250 250 250;
-        --color-muted: 38 38 38;
-        --color-muted-foreground: 163 163 163;
-        --color-border: 38 38 38;
-        --color-input: 38 38 38;
-        --color-ring: 145 70 255;
+        /* === Swiss Dark Design System Tokens === */
+
+        /* Background & Surface */
+        --color-background: 15 15 20;
+        --color-surface: 26 26 36;
+        --color-surface-raised: 34 34 51;
+        --color-surface-hover: 42 42 60;
+
+        /* Borders */
+        --color-border: 42 42 58;
+        --color-border-subtle: 34 34 48;
+
+        /* Text hierarchy */
+        --color-text-primary: 232 232 237;
+        --color-text-secondary: 152 152 168;
+        --color-text-tertiary: 104 104 120;
+        --color-text-disabled: 68 68 82;
+
+        /* Brand */
+        --color-brand: 124 58 237;
+        --color-brand-hover: 109 40 217;
+
+        /* Interaction */
+        --color-upvote: 249 115 22;
+        --color-downvote: 99 102 241;
+        --color-cta: 59 130 246;
+        --color-cta-hover: 37 99 235;
+
+        /* Focus */
+        --color-focus-ring: 124 58 237;
+
+        /* Thread depth colors */
+        --color-thread-0: 124 58 237;
+        --color-thread-1: 99 102 241;
+        --color-thread-2: 59 130 246;
+        --color-thread-3: 6 182 212;
+        --color-thread-4: 20 184 166;
+
+        /* Nav height for sticky calculations */
+        --nav-height: 56px;
+
+        /* === Backward-compatible aliases (old token names → new values) === */
+        --color-foreground: 232 232 237;
+        --color-card: 26 26 36;
+        --color-card-foreground: 232 232 237;
+        --color-popover: 34 34 51;
+        --color-popover-foreground: 232 232 237;
+        --color-muted: 34 34 51;
+        --color-muted-foreground: 152 152 168;
+        --color-input: 42 42 58;
+        --color-ring: 124 58 237;
 
         /* Font settings */
         font-synthesis: none;
@@ -44,6 +84,7 @@
     h5,
     h6 {
         @apply font-semibold tracking-tight;
+        font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
         /* Prevent text overflow */
         word-wrap: break-word;
         overflow-wrap: break-word;
@@ -75,11 +116,11 @@
 
     a {
         @apply transition-colors;
-        color: rgb(145 70 255);
+        color: rgb(var(--color-brand));
     }
 
     a:hover {
-        color: rgb(124 58 237);
+        color: rgb(var(--color-brand-hover));
     }
 
     button {
@@ -87,14 +128,14 @@
     }
 
     button:focus-visible {
-        outline: 2px solid rgb(var(--color-ring));
+        outline: 2px solid rgb(var(--color-focus-ring));
         outline-offset: 2px;
     }
 }
 
 /* Components layer - custom component styles */
 @layer components {
-    /* Custom utility classes */
+    /* === Backward-compatible utility classes (consumed by ~317 existing usages) === */
     .bg-background {
         background-color: rgb(var(--color-background));
     }
@@ -123,16 +164,94 @@
         --tw-ring-color: rgb(var(--color-ring));
     }
 
+    /* === New design system utility classes === */
+    .bg-surface {
+        background-color: rgb(var(--color-surface));
+    }
+
+    .bg-surface-raised {
+        background-color: rgb(var(--color-surface-raised));
+    }
+
+    .bg-surface-hover {
+        background-color: rgb(var(--color-surface-hover));
+    }
+
+    .text-text-primary {
+        color: rgb(var(--color-text-primary));
+    }
+
+    .text-text-secondary {
+        color: rgb(var(--color-text-secondary));
+    }
+
+    .text-text-tertiary {
+        color: rgb(var(--color-text-tertiary));
+    }
+
+    .text-text-disabled {
+        color: rgb(var(--color-text-disabled));
+    }
+
+    .border-subtle {
+        border-color: rgb(var(--color-border-subtle));
+    }
+
+    .text-brand {
+        color: rgb(var(--color-brand));
+    }
+
+    .text-upvote {
+        color: rgb(var(--color-upvote));
+    }
+
+    .text-downvote {
+        color: rgb(var(--color-downvote));
+    }
+
+    .text-cta {
+        color: rgb(var(--color-cta));
+    }
+
+    .bg-brand {
+        background-color: rgb(var(--color-brand));
+    }
+
+    .bg-brand-hover {
+        background-color: rgb(var(--color-brand-hover));
+    }
+
+    .border-brand {
+        border-color: rgb(var(--color-brand));
+    }
+
+    /* Thread depth border colors */
+    .border-thread-0 {
+        border-color: rgb(var(--color-thread-0));
+    }
+    .border-thread-1 {
+        border-color: rgb(var(--color-thread-1));
+    }
+    .border-thread-2 {
+        border-color: rgb(var(--color-thread-2));
+    }
+    .border-thread-3 {
+        border-color: rgb(var(--color-thread-3));
+    }
+    .border-thread-4 {
+        border-color: rgb(var(--color-thread-4));
+    }
+
     /* Container utility */
     .container {
         @apply w-full mx-auto px-4 sm:px-6 lg:px-8;
-        max-width: 1280px;
+        max-width: 1440px;
     }
 
     /* Focus visible utility */
     .focus-visible {
         @apply outline-none;
-        box-shadow: 0 0 0 2px rgb(145 70 255);
+        box-shadow: 0 0 0 2px rgb(var(--color-focus-ring));
     }
 
     /* Smooth transitions */
@@ -141,6 +260,77 @@
             background-color, border-color, color, fill, stroke;
         transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
         transition-duration: 200ms;
+    }
+
+    /* Comment body markdown rendering */
+    .comment-body {
+        font-family: 'Inter', system-ui, sans-serif;
+        font-size: 0.875rem;
+        line-height: 1.6;
+        color: rgb(var(--color-text-primary));
+    }
+
+    .comment-body p + p {
+        margin-top: 0.5rem;
+    }
+
+    .comment-body blockquote {
+        border-left: 2px solid rgb(var(--color-border));
+        padding-left: 0.75rem;
+        color: rgb(var(--color-text-secondary));
+        font-style: italic;
+    }
+
+    .comment-body code {
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-size: 0.8125rem;
+        background: rgb(var(--color-surface-raised));
+        padding: 0.125rem 0.375rem;
+        border-radius: 4px;
+    }
+
+    .comment-body pre code {
+        display: block;
+        padding: 0.75rem;
+        overflow-x: auto;
+    }
+
+    .comment-body a {
+        color: rgb(var(--color-brand));
+        text-decoration: underline;
+        text-underline-offset: 2px;
+    }
+
+    .comment-body ul,
+    .comment-body ol {
+        padding-left: 1.5rem;
+        margin-top: 0.25rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .comment-body li {
+        margin-top: 0.125rem;
+    }
+
+    /* Clip detail side-by-side layout */
+    .clip-detail-layout {
+        display: grid;
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+    }
+
+    @media (min-width: 1024px) {
+        .clip-detail-layout {
+            grid-template-columns: 1fr 420px;
+            grid-template-rows: 1fr;
+            max-height: calc(100vh - var(--nav-height));
+        }
+    }
+
+    @media (min-width: 1280px) {
+        .clip-detail-layout {
+            grid-template-columns: 1fr 480px;
+        }
     }
 }
 
@@ -163,19 +353,19 @@
         background-color: #a78bfa;
     }
     .bg-primary-500 {
-        background-color: #9146ff;
-    }
-    .bg-primary-600 {
         background-color: #7c3aed;
     }
-    .bg-primary-700 {
+    .bg-primary-600 {
         background-color: #6d28d9;
     }
-    .bg-primary-800 {
+    .bg-primary-700 {
         background-color: #5b21b6;
     }
-    .bg-primary-900 {
+    .bg-primary-800 {
         background-color: #4c1d95;
+    }
+    .bg-primary-900 {
+        background-color: #3b1578;
     }
     .bg-primary-950 {
         background-color: #2e1065;
@@ -253,17 +443,17 @@
         color: #f5f3ff;
     }
     .text-primary-500 {
-        color: #9146ff;
+        color: #7c3aed;
     }
     .text-primary-600 {
-        color: #7c3aed;
+        color: #6d28d9;
     }
 
     .border-primary-50 {
         border-color: #f5f3ff;
     }
     .border-primary-500 {
-        border-color: #9146ff;
+        border-color: #7c3aed;
     }
 
     /* Minimum touch target size for accessibility */
@@ -303,15 +493,16 @@
     }
 
     .scrollbar-thin::-webkit-scrollbar-track {
-        @apply bg-neutral-100 dark:bg-neutral-800;
+        background-color: rgb(var(--color-surface));
     }
 
     .scrollbar-thin::-webkit-scrollbar-thumb {
-        @apply bg-neutral-300 dark:bg-neutral-600 rounded-full;
+        background-color: rgb(var(--color-surface-hover));
+        border-radius: 9999px;
     }
 
     .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-        @apply bg-neutral-400 dark:bg-neutral-500;
+        background-color: rgb(var(--color-text-tertiary));
     }
 
     /* Hide scrollbar but keep functionality */
@@ -336,8 +527,8 @@
         color: transparent;
         background-image: linear-gradient(
             to right,
-            rgb(145 70 255),
-            rgb(217 70 239)
+            rgb(var(--color-brand)),
+            rgb(167 139 250)
         );
     }
 
@@ -399,5 +590,16 @@
     /* Style for PostgreSQL ts_headline highlighted text */
     & b {
         @apply font-semibold text-yellow-400 bg-yellow-900/30 px-0.5 rounded;
+    }
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
     }
 }
