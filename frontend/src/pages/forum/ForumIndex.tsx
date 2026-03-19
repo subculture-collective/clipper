@@ -6,7 +6,6 @@ import { Container, SEO } from '@/components';
 import {
   ThreadList,
   ForumSearch,
-  ForumFilters,
   SortSelector,
 } from '@/components/forum';
 import { forumApi } from '@/lib/forum-api';
@@ -70,10 +69,6 @@ export function ForumIndex() {
 
   const handleSortChange = (newSort: ForumSort) => {
     setSort(newSort);
-  };
-
-  const handleFilterChange = (newFilters: ForumFiltersType) => {
-    setFilters(newFilters);
   };
 
   const threads = data?.threads || [];
@@ -156,9 +151,8 @@ export function ForumIndex() {
             })}
           </div>
 
-          {/* Filters and Sort */}
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
-            <ForumFilters filters={filters} onFilterChange={handleFilterChange} />
+          {/* Sort */}
+          <div className="flex justify-end mb-6">
             <SortSelector value={sort} onChange={handleSortChange} />
           </div>
 
