@@ -28,8 +28,7 @@ LEFT JOIN (
         COUNT(DISTINCT cm.user_id) AS unique_commenters
     FROM comments cm
     JOIN clips cl ON cl.id = cm.clip_id
-    WHERE cm.is_deleted = false
-      AND cm.is_removed = false
+    WHERE cm.is_removed = false
     GROUP BY cl.broadcaster_id
 ) comment_counts ON comment_counts.broadcaster_id = c.broadcaster_id
 WHERE c.broadcaster_id IS NOT NULL
