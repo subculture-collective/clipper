@@ -71,8 +71,8 @@ export const forumApi = {
    * Create a new forum thread
    */
   async createThread(data: CreateThreadRequest): Promise<ForumThread> {
-    const response = await apiClient.post<ForumThread>('/forum/threads', data);
-    return response.data;
+    const response = await apiClient.post<{ success: boolean; data: ForumThread }>('/forum/threads', data);
+    return response.data.data ?? response.data as unknown as ForumThread;
   },
 
   /**
