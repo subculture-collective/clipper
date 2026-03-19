@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { VideoPlayer } from '@/components/video';
 import {
     useQueue,
@@ -153,7 +153,12 @@ export function QueueWidget() {
         [draggedId, queueItems, reorderQueue],
     );
 
-    // Don't show for logged out users or empty queues
+    const location = useLocation();
+
+    // Don't show on queue pages, for logged out users, or empty queues
+    if (location.pathname.startsWith('/queue')) {
+        return null;
+    }
     if (!user || !queueCount || queueCount === 0) {
         return null;
     }
@@ -403,15 +408,15 @@ export function QueueWidget() {
                 </div>
             </div>
 
-            {/* Queue List */}
+            {/* Queue List — compact style matching playing state */}
             <div className='flex-1 overflow-y-auto'>
                 {queueItems.length === 0 ?
                     <div className='p-6 text-center text-muted-foreground'>
                         <ListMusic className='h-8 w-8 mx-auto mb-2 opacity-50' />
                         <p className='text-sm'>Your queue is empty</p>
                     </div>
-                :   <div className='divide-y divide-border'>
-                        {queueItems.map((item, idx) => {
+                :   <div>
+                        {queueItems.map((item) => {
                             const isCurrentItem = item.id === currentItemId;
                             return (
                                 <div
@@ -422,70 +427,38 @@ export function QueueWidget() {
                                     onDragLeave={handleDragLeave}
                                     onDrop={(e) => handleDrop(e, item.id)}
                                     className={cn(
-                                        'flex items-center gap-2 p-2 hover:bg-muted/50 transition-colors group',
-                                        isCurrentItem && 'bg-brand/10 border-l-2 border-brand',
+                                        'flex items-center gap-2 px-2 py-1.5 transition-colors group',
+                                        isCurrentItem
+                                            ? 'bg-brand/10 border-l-2 border-brand'
+                                            : 'hover:bg-muted/50 cursor-pointer',
                                         draggedId === item.id && 'opacity-50',
                                         dragOverId === item.id && 'border-t-2 border-brand',
                                     )}
+                                    onClick={() => !isCurrentItem && handlePlayClip(item)}
                                 >
-                                    {/* Drag handle + Position / Now Playing indicator */}
-                                    <div className='flex items-center gap-1 shrink-0'>
-                                        <GripVertical className='h-3 w-3 text-muted-foreground cursor-grab active:cursor-grabbing' />
-                                        {isCurrentItem ? (
-                                            <Play className='h-3 w-3 text-brand fill-brand' />
-                                        ) : (
-                                            <span className='text-xs text-muted-foreground w-4 text-center'>
-                                                {idx + 1}
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    {/* Thumbnail with play button */}
-                                    <div
-                                        onClick={() => handlePlayClip(item)}
-                                        className='relative w-14 h-9 shrink-0 rounded overflow-hidden cursor-pointer group/thumb'
-                                    >
-                                        {item.clip?.thumbnail_url && (
-                                            <img
-                                                src={item.clip.thumbnail_url}
-                                                alt=''
-                                                className='w-full h-full object-cover'
-                                            />
-                                        )}
-                                        <div className='absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 flex items-center justify-center transition-opacity'>
-                                            <Play className='h-4 w-4 text-white fill-white' />
-                                        </div>
-                                        {item.clip?.duration && (
-                                            <span className='absolute bottom-0.5 right-0.5 text-[10px] bg-black/75 text-white px-0.5 rounded'>
-                                                {formatDuration(item.clip.duration)}
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    {/* Clip info */}
+                                    <GripVertical className='h-3 w-3 text-muted-foreground cursor-grab active:cursor-grabbing shrink-0' onClick={(e) => e.stopPropagation()} />
+                                    {isCurrentItem && (
+                                        <Play className='h-3 w-3 text-brand fill-brand shrink-0' />
+                                    )}
                                     <div className='flex-1 min-w-0'>
                                         <p className={cn(
-                                            'text-xs font-medium line-clamp-1',
-                                            isCurrentItem && 'text-brand',
+                                            'text-xs line-clamp-1',
+                                            isCurrentItem ? 'font-medium text-brand' : 'text-foreground',
                                         )}>
                                             {item.clip?.title || 'Unknown Clip'}
                                         </p>
-                                        <Link
-                                            to={`/broadcaster/${item.clip?.broadcaster_id || item.clip?.broadcaster_name}`}
-                                            className='text-[10px] text-muted-foreground hover:text-foreground transition-colors line-clamp-1 cursor-pointer'
-                                            onClick={(e) => e.stopPropagation()}
-                                        >
-                                            {item.clip?.broadcaster_name}
-                                        </Link>
                                     </div>
-
-                                    {/* Remove button */}
+                                    {item.clip?.duration && (
+                                        <span className='text-[10px] text-muted-foreground shrink-0'>
+                                            {formatDuration(item.clip.duration)}
+                                        </span>
+                                    )}
                                     <button
-                                        onClick={() => handleRemoveItem(item.id)}
-                                        className='p-1 opacity-0 group-hover:opacity-100 hover:bg-muted rounded transition-all cursor-pointer text-muted-foreground hover:text-error-600'
+                                        onClick={(e) => { e.stopPropagation(); handleRemoveItem(item.id); }}
+                                        className='p-0.5 opacity-0 group-hover:opacity-100 hover:text-error-600 rounded transition-all cursor-pointer text-muted-foreground'
                                         aria-label='Remove from queue'
                                     >
-                                        <Trash2 className='h-3 w-3' />
+                                        <X className='h-3 w-3' />
                                     </button>
                                 </div>
                             );
