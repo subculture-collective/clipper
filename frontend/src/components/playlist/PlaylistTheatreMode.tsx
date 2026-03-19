@@ -160,33 +160,80 @@ export function PlaylistTheatreMode({
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [handleSkipNext, handleSkipPrev]);
 
-    // Auto-advance for Twitch iframe clips (no onEnded event available)
-    // Uses a timer based on clip duration to advance to the next clip
-    const clipEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    useEffect(() => {
-        // Clear any existing timer
-        if (clipEndTimerRef.current) {
-            clearTimeout(clipEndTimerRef.current);
-            clipEndTimerRef.current = null;
-        }
+    // Auto-advance countdown for Twitch iframe clips (no onEnded event available)
+    // Shows a visible countdown the user can pause/resume
+    const [countdown, setCountdown] = useState<number | null>(null);
+    const [countdownPaused, setCountdownPaused] = useState(false);
+    const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const isIframeClip = currentClip && !currentClip.video_url && !!currentClip.duration;
+    const hasNextClip = (() => {
+        const idx = items.findIndex(item => item.id === currentItemId);
+        return idx >= 0 && idx < items.length - 1;
+    })();
 
-        // Only set timer for Twitch iframe clips (no video_url means iframe)
-        if (!currentClip || currentClip.video_url || !currentClip.duration) {
+    // Reset countdown when clip changes
+    useEffect(() => {
+        if (countdownIntervalRef.current) {
+            clearInterval(countdownIntervalRef.current);
+            countdownIntervalRef.current = null;
+        }
+        setCountdownPaused(false);
+
+        if (!isIframeClip || !hasNextClip) {
+            setCountdown(null);
             return;
         }
 
-        // Auto-advance after clip duration + 3s buffer for loading
-        const delayMs = (currentClip.duration + 3) * 1000;
-        clipEndTimerRef.current = setTimeout(() => {
-            handleClipEnd();
-        }, delayMs);
+        // Start countdown from clip duration + 3s buffer
+        const totalSeconds = Math.ceil(currentClip!.duration! + 3);
+        setCountdown(totalSeconds);
 
         return () => {
-            if (clipEndTimerRef.current) {
-                clearTimeout(clipEndTimerRef.current);
+            if (countdownIntervalRef.current) {
+                clearInterval(countdownIntervalRef.current);
             }
         };
-    }, [currentClip, handleClipEnd]);
+    }, [currentClip?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Tick the countdown every second
+    useEffect(() => {
+        if (countdownIntervalRef.current) {
+            clearInterval(countdownIntervalRef.current);
+            countdownIntervalRef.current = null;
+        }
+
+        if (countdown === null || countdown <= 0 || countdownPaused) {
+            if (countdown !== null && countdown <= 0 && !countdownPaused) {
+                handleClipEnd();
+                setCountdown(null);
+            }
+            return;
+        }
+
+        countdownIntervalRef.current = setInterval(() => {
+            setCountdown(prev => {
+                if (prev === null || prev <= 1) return 0;
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => {
+            if (countdownIntervalRef.current) {
+                clearInterval(countdownIntervalRef.current);
+            }
+        };
+    }, [countdown, countdownPaused, handleClipEnd]);
+
+    // Pause countdown when tab is hidden
+    useEffect(() => {
+        const handleVisibility = () => {
+            if (document.hidden && countdown !== null && !countdownPaused) {
+                setCountdownPaused(true);
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibility);
+        return () => document.removeEventListener('visibilitychange', handleVisibility);
+    }, [countdown, countdownPaused]);
 
     return (
         <div
@@ -234,6 +281,49 @@ export function PlaylistTheatreMode({
                             </div>
                         }
                     </div>
+
+                    {/* Auto-advance countdown bar for Twitch iframe clips */}
+                    {isIframeClip && countdown !== null && hasNextClip && (
+                        <div className='w-full px-4 py-1.5 flex items-center justify-center gap-3 bg-surface/80 text-[12px]'>
+                            {countdownPaused ? (
+                                <>
+                                    <span className='text-text-secondary'>
+                                        Auto-advance paused
+                                    </span>
+                                    <button
+                                        onClick={() => setCountdownPaused(false)}
+                                        className='text-cta hover:text-cta-hover transition-colors cursor-pointer font-medium'
+                                    >
+                                        Resume
+                                    </button>
+                                    <button
+                                        onClick={() => setCountdown(null)}
+                                        className='text-text-tertiary hover:text-text-secondary transition-colors cursor-pointer'
+                                    >
+                                        Cancel
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <span className='text-text-secondary'>
+                                        Next clip in {countdown}s
+                                    </span>
+                                    <button
+                                        onClick={() => setCountdownPaused(true)}
+                                        className='text-cta hover:text-cta-hover transition-colors cursor-pointer font-medium'
+                                    >
+                                        Pause
+                                    </button>
+                                    <button
+                                        onClick={() => handleClipEnd()}
+                                        className='text-text-tertiary hover:text-text-secondary transition-colors cursor-pointer'
+                                    >
+                                        Skip now
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Sidebar toggle when hidden */}
