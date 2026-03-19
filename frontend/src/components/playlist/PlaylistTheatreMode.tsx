@@ -8,6 +8,7 @@ import {
     SkipForward,
     SkipBack,
     Minimize2,
+    Maximize2,
     ChevronLeft,
     Check,
 } from 'lucide-react';
@@ -464,8 +465,16 @@ export function PlaylistTheatreMode({
                                         onClick={onClose}
                                         className='text-text-primary hover:bg-surface-hover'
                                     >
-                                        <Minimize2 className='h-4 w-4 mr-1' />
-                                        Exit
+                                        {contained ?
+                                            <>
+                                                <Maximize2 className='h-4 w-4 mr-1' />
+                                                Full
+                                            </>
+                                        :   <>
+                                                <Minimize2 className='h-4 w-4 mr-1' />
+                                                Exit
+                                            </>
+                                        }
                                     </Button>
                                 )}
                             </div>
