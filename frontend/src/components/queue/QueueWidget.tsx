@@ -279,24 +279,20 @@ export function QueueWidget() {
                     </span>
                 </div>
                 <div className='flex items-center gap-1'>
-                    <Link
-                        to='/queue/theatre'
-                        onClick={handleClose}
+                    <button
+                        onClick={() => {
+                            if (currentClip) {
+                                setWidgetState('playing');
+                            } else if (queueItems.length > 0) {
+                                handlePlayClip(queueItems[0]);
+                            }
+                        }}
                         className='p-1 hover:bg-muted rounded transition-colors cursor-pointer'
-                        aria-label='Open theatre mode'
-                        title='Theatre mode'
+                        aria-label='Show player'
+                        title='Show player'
                     >
-                        <Maximize2 className='h-4 w-4' />
-                    </Link>
-                    {currentClip && (
-                        <button
-                            onClick={handleMinimizeToPlayer}
-                            className='p-1 hover:bg-muted rounded transition-colors cursor-pointer'
-                            aria-label='Back to player'
-                        >
-                            <ChevronUp className='h-4 w-4' />
-                        </button>
-                    )}
+                        <ChevronDown className='h-4 w-4' />
+                    </button>
                     <button
                         onClick={handleClose}
                         className='p-1 hover:bg-muted rounded transition-colors cursor-pointer'
