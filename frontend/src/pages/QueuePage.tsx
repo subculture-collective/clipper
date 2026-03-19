@@ -10,6 +10,8 @@ import { cn } from '@/lib/utils';
 import {
     Trash2,
     ListPlus,
+    Repeat,
+    Shuffle,
 } from 'lucide-react';
 import { Button, Spinner } from '@/components/ui';
 import { SEO } from '@/components/SEO';
@@ -29,6 +31,8 @@ export function QueuePage() {
 
     const [showConvertDialog, setShowConvertDialog] = useState(false);
     const [currentItemId, setCurrentItemId] = useState<string | null>(null);
+    const [loopEnabled, setLoopEnabled] = useState(false);
+    const [shuffleEnabled, setShuffleEnabled] = useState(false);
 
     const queueItems = queue?.items || [];
     const total = queue?.total || 0;
@@ -166,7 +170,23 @@ export function QueuePage() {
                             {/* Actions row */}
                             <div className='flex flex-wrap items-center gap-2'>
                                 <Button
-                                    variant='primary'
+                                    variant={shuffleEnabled ? 'primary' : 'outline'}
+                                    size='sm'
+                                    onClick={() => setShuffleEnabled(!shuffleEnabled)}
+                                >
+                                    <Shuffle className='h-4 w-4 mr-1' />
+                                    Shuffle
+                                </Button>
+                                <Button
+                                    variant={loopEnabled ? 'primary' : 'outline'}
+                                    size='sm'
+                                    onClick={() => setLoopEnabled(!loopEnabled)}
+                                >
+                                    <Repeat className='h-4 w-4 mr-1' />
+                                    Loop
+                                </Button>
+                                <Button
+                                    variant='outline'
                                     size='sm'
                                     onClick={() => setShowConvertDialog(true)}
                                 >
