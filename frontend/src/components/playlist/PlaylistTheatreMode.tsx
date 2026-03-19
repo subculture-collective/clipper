@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { cn, formatDuration } from '@/lib/utils';
 import { TheatreMode, VideoPlayer } from '@/components/video';
 import {
@@ -63,16 +63,12 @@ export function PlaylistTheatreMode({
     );
     const currentClip = currentItem?.clip;
 
-    // Auto-advance to next unplayed clip (HLS only)
+    // Auto-advance to the next clip when current one finishes
     const handleClipEnd = useCallback(() => {
         const currentIndex = items.findIndex(item => item.id === currentItemId);
         if (currentIndex === -1) return;
 
-        // Find next unplayed item
-        const nextItem = items
-            .slice(currentIndex + 1)
-            .find(item => !item.played_at);
-
+        const nextItem = items[currentIndex + 1];
         if (nextItem) {
             onItemClick(nextItem);
         }
@@ -163,6 +159,34 @@ export function PlaylistTheatreMode({
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [handleSkipNext, handleSkipPrev]);
+
+    // Auto-advance for Twitch iframe clips (no onEnded event available)
+    // Uses a timer based on clip duration to advance to the next clip
+    const clipEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    useEffect(() => {
+        // Clear any existing timer
+        if (clipEndTimerRef.current) {
+            clearTimeout(clipEndTimerRef.current);
+            clipEndTimerRef.current = null;
+        }
+
+        // Only set timer for Twitch iframe clips (no video_url means iframe)
+        if (!currentClip || currentClip.video_url || !currentClip.duration) {
+            return;
+        }
+
+        // Auto-advance after clip duration + 3s buffer for loading
+        const delayMs = (currentClip.duration + 3) * 1000;
+        clipEndTimerRef.current = setTimeout(() => {
+            handleClipEnd();
+        }, delayMs);
+
+        return () => {
+            if (clipEndTimerRef.current) {
+                clearTimeout(clipEndTimerRef.current);
+            }
+        };
+    }, [currentClip, handleClipEnd]);
 
     return (
         <div
