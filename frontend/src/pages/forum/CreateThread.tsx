@@ -254,7 +254,7 @@ export function CreateThread() {
                   placeholder={
                     tags.length >= 5
                       ? 'Maximum 5 tags reached'
-                      : 'e.g. discussion, drama, highlight, funny...'
+                      : 'e.g. help, discussion, suggestion, bug-report, feature-request...'
                   }
                   maxLength={50}
                   disabled={tags.length >= 5}
