@@ -11,6 +11,8 @@ import {
 } from '@/components/forum';
 import { forumApi } from '@/lib/forum-api';
 import { useAuth } from '@/context/AuthContext';
+import { FORUM_TOPICS } from './CreateThread';
+import { cn } from '@/lib/utils';
 import type { ForumSort, ForumFilters as ForumFiltersType } from '@/types/forum';
 
 export function ForumIndex() {
@@ -117,6 +119,42 @@ export function ForumIndex() {
 
           {/* Search */}
           <ForumSearch onSearch={handleSearch} className="mb-4" />
+
+          {/* Topic filter buttons */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            <button
+              onClick={() => setFilters({ ...filters, tags: [] })}
+              className={cn(
+                'px-3 py-1.5 rounded-full text-sm font-medium border transition-colors cursor-pointer',
+                (!filters.tags || filters.tags.length === 0)
+                  ? 'bg-brand text-white border-transparent'
+                  : 'text-text-secondary border-border hover:border-text-tertiary hover:text-text-primary',
+              )}
+            >
+              All
+            </button>
+            {FORUM_TOPICS.map((t) => {
+              const isActive = filters.tags?.includes(t.value);
+              return (
+                <button
+                  key={t.value}
+                  onClick={() => setFilters({
+                    ...filters,
+                    tags: isActive ? [] : [t.value],
+                  })}
+                  className={cn(
+                    'px-3 py-1.5 rounded-full text-sm font-medium border transition-colors cursor-pointer',
+                    isActive
+                      ? 'text-white border-transparent'
+                      : 'text-text-secondary border-border hover:border-text-tertiary hover:text-text-primary',
+                  )}
+                  style={isActive ? { backgroundColor: t.color } : undefined}
+                >
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
 
           {/* Filters and Sort */}
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">

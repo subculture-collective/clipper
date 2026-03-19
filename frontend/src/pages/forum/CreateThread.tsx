@@ -1,14 +1,23 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, X } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { Container, SEO } from '@/components';
 import { forumApi } from '@/lib/forum-api';
-import { tagApi } from '@/lib/tag-api';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { cn } from '@/lib/utils';
-import type { Tag } from '@/types/tag';
+
+export const FORUM_TOPICS = [
+  { value: 'discussion', label: 'Discussion', color: '#3B82F6' },
+  { value: 'help', label: 'Help', color: '#22C55E' },
+  { value: 'suggestion', label: 'Suggestion', color: '#F59E0B' },
+  { value: 'bug-report', label: 'Bug Report', color: '#EF4444' },
+  { value: 'feature-request', label: 'Feature Request', color: '#8B5CF6' },
+  { value: 'news', label: 'News', color: '#06B6D4' },
+  { value: 'clip-highlight', label: 'Clip Highlight', color: '#F97316' },
+  { value: 'meta', label: 'Meta', color: '#6366F1' },
+] as const;
 
 export function CreateThread() {
   const { user } = useAuth();
@@ -17,8 +26,7 @@ export function CreateThread() {
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [tags, setTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState('');
+  const [topic, setTopic] = useState('');
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -37,76 +45,6 @@ export function CreateThread() {
       showToast('Failed to create thread', 'error');
     },
   });
-
-  const [tagSuggestions, setTagSuggestions] = useState<Tag[]>([]);
-  const [popularTags, setPopularTags] = useState<Tag[]>([]);
-  const [showTagDropdown, setShowTagDropdown] = useState(false);
-  const [tagSearching, setTagSearching] = useState(false);
-  const tagDropdownRef = useRef<HTMLDivElement>(null);
-  const tagInputRef = useRef<HTMLInputElement>(null);
-
-  // Fetch popular tags on mount
-  useEffect(() => {
-    tagApi.listTags({ sort: 'popularity', limit: 8 }).then(res => {
-      setPopularTags(res.tags || []);
-    }).catch(() => {});
-  }, []);
-
-  // Search tags as user types
-  useEffect(() => {
-    if (tagInput.length < 1) {
-      setTagSuggestions([]);
-      return;
-    }
-    setTagSearching(true);
-    const timer = setTimeout(async () => {
-      try {
-        const res = await tagApi.searchTags(tagInput, 8);
-        setTagSuggestions((res.tags || []).filter(t => !tags.includes(t.name.toLowerCase())));
-      } catch {
-        setTagSuggestions([]);
-      } finally {
-        setTagSearching(false);
-      }
-    }, 200);
-    return () => clearTimeout(timer);
-  }, [tagInput, tags]);
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (tagDropdownRef.current && !tagDropdownRef.current.contains(e.target as Node)) {
-        setShowTagDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
-
-  const handleAddTag = useCallback((tagName?: string) => {
-    const name = (tagName || tagInput).trim().toLowerCase();
-    if (name && !tags.includes(name) && tags.length < 5) {
-      setTags(prev => [...prev, name]);
-      setTagInput('');
-      setShowTagDropdown(false);
-      tagInputRef.current?.focus();
-    }
-  }, [tagInput, tags]);
-
-  const handleRemoveTag = (tagToRemove: string) => {
-    setTags(tags.filter((tag) => tag !== tagToRemove));
-  };
-
-  const handleTagInputKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      if (tagSuggestions.length > 0) {
-        handleAddTag(tagSuggestions[0].name);
-      } else if (tagInput.trim()) {
-        handleAddTag();
-      }
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,7 +67,7 @@ export function CreateThread() {
     await createThreadMutation.mutateAsync({
       title: title.trim(),
       content: content.trim(),
-      tags: tags.length > 0 ? tags : undefined,
+      tags: topic ? [topic] : undefined,
     });
   };
 
@@ -144,26 +82,56 @@ export function CreateThread() {
           {/* Back button */}
           <Link
             to="/forum"
-            className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors"
+            className="inline-flex items-center gap-2 text-text-secondary hover:text-text-primary mb-6 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Forum</span>
           </Link>
 
           {/* Header */}
-          <h1 className="text-3xl font-bold text-white mb-6">
+          <h1 className="text-3xl font-bold text-text-primary mb-6">
             Start a New Discussion
           </h1>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Topic */}
+            <div>
+              <label className="block text-sm font-medium text-text-secondary mb-2">
+                Topic <span className="text-error-500">*</span>
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {FORUM_TOPICS.map((t) => (
+                  <button
+                    key={t.value}
+                    type="button"
+                    onClick={() => setTopic(topic === t.value ? '' : t.value)}
+                    className={cn(
+                      'px-3 py-1.5 rounded-full text-sm font-medium border transition-colors cursor-pointer',
+                      topic === t.value
+                        ? 'text-white border-transparent'
+                        : 'text-text-secondary border-border hover:border-text-tertiary hover:text-text-primary',
+                    )}
+                    style={topic === t.value ? { backgroundColor: t.color } : undefined}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+              {!topic && (
+                <p className="mt-1.5 text-xs text-text-tertiary">
+                  Select a topic to categorize your thread
+                </p>
+              )}
+            </div>
+
             {/* Title */}
             <div>
               <label
                 htmlFor="title"
-                className="block text-sm font-medium text-gray-300 mb-2"
+                className="block text-sm font-medium text-text-secondary mb-2"
               >
-                Title <span className="text-red-500">*</span>
+                Title <span className="text-error-500">*</span>
               </label>
               <input
                 id="title"
@@ -173,13 +141,13 @@ export function CreateThread() {
                 placeholder="What's your discussion about?"
                 maxLength={200}
                 className={cn(
-                  'w-full px-4 py-3 bg-gray-800 border border-gray-700',
-                  'text-white placeholder-gray-400 rounded-lg',
-                  'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                  'w-full px-4 py-3 border border-border rounded-lg',
+                  'bg-surface-raised text-text-primary placeholder-text-tertiary',
+                  'focus:outline-none focus:ring-2 focus:ring-brand'
                 )}
                 required
               />
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-text-tertiary">
                 {title.length}/200 characters
               </p>
             </div>
@@ -188,9 +156,9 @@ export function CreateThread() {
             <div>
               <label
                 htmlFor="content"
-                className="block text-sm font-medium text-gray-300 mb-2"
+                className="block text-sm font-medium text-text-secondary mb-2"
               >
-                Content <span className="text-red-500">*</span>
+                Content <span className="text-error-500">*</span>
               </label>
               <textarea
                 id="content"
@@ -200,134 +168,14 @@ export function CreateThread() {
                 rows={10}
                 maxLength={5000}
                 className={cn(
-                  'w-full px-4 py-3 bg-gray-800 border border-gray-700',
-                  'text-white placeholder-gray-400 rounded-lg resize-none',
-                  'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                  'w-full px-4 py-3 border border-border rounded-lg resize-none',
+                  'bg-surface-raised text-text-primary placeholder-text-tertiary',
+                  'focus:outline-none focus:ring-2 focus:ring-brand'
                 )}
                 required
               />
-              <p className="mt-1 text-xs text-gray-500">
-                {content.length}/5000 characters • Markdown formatting is supported
-              </p>
-            </div>
-
-            {/* Tags */}
-            <div>
-              <label
-                htmlFor="tags"
-                className="block text-sm font-medium text-text-secondary mb-2"
-              >
-                Tags (optional)
-              </label>
-
-              {/* Selected tags */}
-              {tags.length > 0 && (
-                <div className="flex gap-2 flex-wrap mb-2">
-                  {tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand/10 text-brand border border-brand/30 rounded-full text-sm"
-                    >
-                      {tag}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveTag(tag)}
-                        className="hover:text-error-500 transition-colors cursor-pointer"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* Tag input with auto-suggest */}
-              <div className="relative" ref={tagDropdownRef}>
-                <input
-                  ref={tagInputRef}
-                  id="tags"
-                  type="text"
-                  value={tagInput}
-                  onChange={(e) => { setTagInput(e.target.value); setShowTagDropdown(true); }}
-                  onFocus={() => setShowTagDropdown(true)}
-                  onKeyDown={handleTagInputKeyDown}
-                  placeholder={
-                    tags.length >= 5
-                      ? 'Maximum 5 tags reached'
-                      : 'e.g. help, discussion, suggestion, bug-report, feature-request...'
-                  }
-                  maxLength={50}
-                  disabled={tags.length >= 5}
-                  className={cn(
-                    'w-full px-4 py-2 border border-border rounded-lg',
-                    'bg-surface-raised text-text-primary placeholder-text-tertiary',
-                    'focus:outline-none focus:ring-2 focus:ring-brand',
-                    'disabled:opacity-50 disabled:cursor-not-allowed'
-                  )}
-                />
-                <div className="absolute right-3 top-2.5 text-xs text-text-tertiary">
-                  {tags.length}/5
-                </div>
-
-                {/* Dropdown */}
-                {showTagDropdown && tags.length < 5 && (
-                  <div className="absolute z-10 w-full mt-1 bg-surface border border-border rounded-lg shadow-lg max-h-52 overflow-y-auto">
-                    {tagSearching ? (
-                      <div className="px-4 py-3 text-text-secondary text-sm">Searching...</div>
-                    ) : tagInput.length >= 1 && tagSuggestions.length > 0 ? (
-                      <ul>
-                        {tagSuggestions.map(tag => (
-                          <li key={tag.id}>
-                            <button
-                              type="button"
-                              onClick={() => handleAddTag(tag.name)}
-                              className="w-full px-4 py-2 text-left hover:bg-surface-hover flex items-center justify-between cursor-pointer"
-                            >
-                              <div className="flex items-center gap-2">
-                                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: tag.color || '#7C3AED' }} />
-                                <span className="text-text-primary text-sm">{tag.name}</span>
-                              </div>
-                              <span className="text-[11px] text-text-tertiary">{tag.usage_count} clips</span>
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : tagInput.length >= 1 ? (
-                      <div className="px-4 py-3 text-text-secondary text-sm">
-                        Press Enter to add &ldquo;{tagInput.trim()}&rdquo;
-                      </div>
-                    ) : popularTags.length > 0 ? (
-                      <>
-                        <div className="px-4 py-2 text-[11px] font-semibold text-text-tertiary uppercase tracking-wide">
-                          Popular tags
-                        </div>
-                        <ul>
-                          {popularTags
-                            .filter(t => !tags.includes(t.name.toLowerCase()))
-                            .map(tag => (
-                              <li key={tag.id}>
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddTag(tag.name)}
-                                  className="w-full px-4 py-2 text-left hover:bg-surface-hover flex items-center justify-between cursor-pointer"
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: tag.color || '#7C3AED' }} />
-                                    <span className="text-text-primary text-sm">{tag.name}</span>
-                                  </div>
-                                  <span className="text-[11px] text-text-tertiary">{tag.usage_count} clips</span>
-                                </button>
-                              </li>
-                            ))}
-                        </ul>
-                      </>
-                    ) : null}
-                  </div>
-                )}
-              </div>
-
               <p className="mt-1 text-xs text-text-tertiary">
-                Tags help others find your discussion
+                {content.length}/5000 characters • Markdown formatting is supported
               </p>
             </div>
 
@@ -336,7 +184,7 @@ export function CreateThread() {
               <button
                 type="button"
                 onClick={() => navigate('/forum')}
-                className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors"
+                className="px-6 py-3 bg-surface-raised hover:bg-surface-hover text-text-primary font-medium rounded-lg transition-colors cursor-pointer"
               >
                 Cancel
               </button>
@@ -345,11 +193,12 @@ export function CreateThread() {
                 disabled={
                   !title.trim() ||
                   !content.trim() ||
+                  !topic ||
                   createThreadMutation.isPending
                 }
                 className={cn(
-                  'px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg',
-                  'transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                  'px-6 py-3 bg-brand hover:bg-brand-hover text-white font-medium rounded-lg',
+                  'transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
                 )}
               >
                 {createThreadMutation.isPending
