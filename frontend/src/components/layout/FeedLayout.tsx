@@ -18,7 +18,7 @@ export function FeedLayout({ children, sidebar, className }: FeedLayoutProps) {
                 {/* Sidebar — hidden on mobile, sticky on desktop */}
                 {sidebar && (
                     <aside className='hidden lg:block'>
-                        <div className='sticky top-[72px] max-h-[calc(100vh-88px)] overflow-y-auto space-y-4 scrollbar-thin'>
+                        <div className='sticky top-[72px] pt-4 max-h-[calc(100vh-88px)] overflow-y-auto space-y-4 scrollbar-thin'>
                             {sidebar}
                         </div>
                     </aside>
