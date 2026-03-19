@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { VideoPlayer } from '@/components/video';
 import {
     useQueue,
     useRemoveFromQueue,
@@ -146,11 +147,6 @@ export function QueueWidget() {
 
     // Playing state - miniplayer with queue
     if (widgetState === 'playing' && currentClip?.clip) {
-        const parentDomain =
-            typeof window !== 'undefined' ?
-                window.location.hostname
-            :   'localhost';
-        const embedUrl = `https://clips.twitch.tv/embed?clip=${currentClip.clip.twitch_clip_id}&parent=${parentDomain}&autoplay=true&muted=false`;
 
         return (
             <div className='fixed bottom-6 right-6 z-50 w-80 bg-card border border-border rounded-xl shadow-2xl overflow-hidden'>
@@ -179,15 +175,13 @@ export function QueueWidget() {
                 </div>
 
                 {/* Miniplayer */}
-                <div className='relative aspect-video bg-black'>
-                    <iframe
-                        src={embedUrl}
-                        className='absolute inset-0 w-full h-full'
-                        allowFullScreen
-                        title={currentClip.clip.title}
-                        allow='autoplay; fullscreen'
-                    />
-                </div>
+                <VideoPlayer
+                    clipId={currentClip.clip.id}
+                    title={currentClip.clip.title}
+                    embedUrl={currentClip.clip.embed_url}
+                    twitchClipId={currentClip.clip.twitch_clip_id}
+                    onEnded={handlePlayNext}
+                />
 
                 {/* Clip Info & Controls */}
                 <div className='p-3'>

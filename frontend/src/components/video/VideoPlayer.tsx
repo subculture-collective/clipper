@@ -103,15 +103,14 @@ export function VideoPlayer({
     useEffect(() => { onPlayRef.current = onPlay; }, [onPlay]);
     useEffect(() => { onPauseRef.current = onPause; }, [onPause]);
 
-    // Try to load Twitch JS embed if we have callbacks to wire up
-    const hasEventCallbacks = !!(onEnded || onPlay || onPause);
+    // Always use Twitch JS embed when twitchClipId is available
     useEffect(() => {
-        if (!hasEventCallbacks || !twitchClipId) return;
+        if (!twitchClipId) return;
 
         loadTwitchEmbedScript()
             .then(() => setUseJsEmbed(true))
             .catch(() => setUseJsEmbed(false)); // Fall back to iframe
-    }, [hasEventCallbacks, twitchClipId]);
+    }, [twitchClipId]);
 
     // Initialize Twitch JS embed
     useEffect(() => {
