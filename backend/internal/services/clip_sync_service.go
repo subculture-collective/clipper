@@ -637,6 +637,65 @@ func (s *ClipSyncService) processClip(ctx context.Context, twitchClip *twitch.Cl
 	return nil
 }
 
+// processClipAsPosted imports a Twitch clip and marks it as "posted" by the given submitter.
+// If the clip already exists and is unclaimed, it claims it for the submitter.
+// If the clip already exists and is already posted, it just updates the view count.
+func (s *ClipSyncService) processClipAsPosted(ctx context.Context, twitchClip *twitch.Clip, stats *SyncStats, streamerTags []string, submitterID uuid.UUID) error {
+	// Check if clip already exists
+	existing, err := s.clipRepo.GetByTwitchClipID(ctx, twitchClip.ID)
+	if err != nil && !strings.Contains(err.Error(), "no rows") {
+		return fmt.Errorf("failed to check clip existence: %w", err)
+	}
+
+	if existing != nil {
+		// Update view count
+		if err := s.clipRepo.UpdateViewCount(ctx, twitchClip.ID, twitchClip.ViewCount); err != nil {
+			return fmt.Errorf("failed to update view count: %w", err)
+		}
+
+		// If unclaimed, claim it for the bot
+		if existing.SubmittedByUserID == nil {
+			if err := s.clipRepo.ClaimScrapedClip(ctx, existing.ID, submitterID, nil, false, nil, time.Now()); err != nil {
+				utils.Warn("Failed to claim scraped clip for bot", map[string]interface{}{
+					"clip_id":    existing.ID.String(),
+					"twitch_id":  twitchClip.ID,
+					"error":      err,
+				})
+			}
+		}
+
+		stats.ClipsUpdated++
+		return nil
+	}
+
+	// New clip — create with submitter attribution
+	clip := transformTwitchClip(twitchClip)
+	clip.SubmittedByUserID = &submitterID
+	now := time.Now()
+	clip.SubmittedAt = &now
+
+	// Ensure unclaimed users exist for creator and broadcaster
+	if err := s.ensureUnclaimedUser(ctx, twitchClip.CreatorID, twitchClip.CreatorName); err != nil {
+		utils.Warn("Failed to ensure unclaimed user for creator", map[string]interface{}{"creator": twitchClip.CreatorName, "error": err})
+	}
+	if err := s.ensureUnclaimedUser(ctx, twitchClip.BroadcasterID, twitchClip.BroadcasterName); err != nil {
+		utils.Warn("Failed to ensure unclaimed user for broadcaster", map[string]interface{}{"broadcaster": twitchClip.BroadcasterName, "error": err})
+	}
+
+	if err := s.clipRepo.Create(ctx, clip); err != nil {
+		return fmt.Errorf("failed to create clip: %w", err)
+	}
+
+	if len(streamerTags) > 0 && s.tagRepo != nil {
+		if err := s.applyStreamerTags(ctx, clip, streamerTags); err != nil {
+			stats.Errors = append(stats.Errors, err.Error())
+		}
+	}
+
+	stats.ClipsCreated++
+	return nil
+}
+
 // transformTwitchClip converts a Twitch API clip to our database model
 func transformTwitchClip(twitchClip *twitch.Clip) *models.Clip {
 	return &models.Clip{
@@ -765,7 +824,7 @@ func (s *ClipSyncService) applyStreamerTags(ctx context.Context, clip *models.Cl
 		if name == "" {
 			continue
 		}
-		slug := slugifyTag(name)
+		slug := utils.Slugify(name)
 		if slug == "" || seen[slug] {
 			continue
 		}
@@ -809,15 +868,6 @@ func languageMatches(clipLang, filter string) bool {
 	return clipLang == filter || strings.HasPrefix(clipLang, filter+"-")
 }
 
-func slugifyTag(s string) string {
-	s = strings.ToLower(s)
-	reg := regexp.MustCompile(`[^a-z0-9\s-]`)
-	s = reg.ReplaceAllString(s, "")
-	s = strings.TrimSpace(s)
-	s = regexp.MustCompile(`\s+`).ReplaceAllString(s, "-")
-	s = strings.Trim(s, "-")
-	return s
-}
 
 // ExtractClipID extracts the clip ID from a Twitch clip URL or returns the ID if already provided
 func ExtractClipID(clipURLOrID string) string {
@@ -856,4 +906,131 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// FetchAndImportClips fetches clips from Twitch using the given parameters,
+// imports any new ones into the local database as "posted" by the submitter,
+// and returns the local clip models ordered by Twitch view count descending.
+// New clips get submitted_by_user_id set; unclaimed existing clips get claimed.
+// This is the primary entry point for Twitch-powered playlist curation strategies.
+func (s *ClipSyncService) FetchAndImportClips(ctx context.Context, params *twitch.ClipParams, limit int, langFilter string, submitterID uuid.UUID) ([]models.Clip, error) {
+	if langFilter == "" {
+		langFilter = s.defaultLang
+	}
+	langFilter = normalizeLanguageFilter(langFilter)
+
+	// Cap per-request to Twitch API limit
+	if params.First == 0 || params.First > 100 {
+		params.First = internalutils.Min(limit, 100)
+	}
+
+	var twitchClipIDs []string
+	totalFetched := 0
+
+	for totalFetched < limit {
+		clipsResp, err := s.twitchClient.GetClips(ctx, params)
+		if err != nil {
+			if len(twitchClipIDs) > 0 {
+				// Partial success — return what we have
+				utils.Warn("Twitch API error during fetch, returning partial results", map[string]interface{}{
+					"error":   err,
+					"fetched": totalFetched,
+				})
+				break
+			}
+			return nil, fmt.Errorf("failed to fetch clips from Twitch: %w", err)
+		}
+
+		if len(clipsResp.Data) == 0 {
+			break
+		}
+
+		stats := &SyncStats{StartTime: time.Now()}
+
+		// Batch fetch channel tags for this page
+		var channelTags map[string][]string
+		if s.tagRepo != nil {
+			ids := make([]string, 0, len(clipsResp.Data))
+			seenIDs := map[string]bool{}
+			for _, clip := range clipsResp.Data {
+				if clip.BroadcasterID != "" && !seenIDs[clip.BroadcasterID] {
+					seenIDs[clip.BroadcasterID] = true
+					ids = append(ids, clip.BroadcasterID)
+				}
+			}
+			channelTags = s.fetchChannelTags(ctx, ids)
+		}
+
+		for _, twitchClip := range clipsResp.Data {
+			if !languageMatches(twitchClip.Language, langFilter) {
+				continue
+			}
+
+			if err := s.processClipAsPosted(ctx, &twitchClip, stats, channelTags[twitchClip.BroadcasterID], submitterID); err != nil {
+				utils.Warn("Failed to process clip during fetch-and-import", map[string]interface{}{
+					"clip_id": twitchClip.ID,
+					"error":   err,
+				})
+				continue
+			}
+
+			twitchClipIDs = append(twitchClipIDs, twitchClip.ID)
+			totalFetched++
+			if totalFetched >= limit {
+				break
+			}
+		}
+
+		if clipsResp.Pagination.Cursor == "" || totalFetched >= limit {
+			break
+		}
+		params.After = clipsResp.Pagination.Cursor
+	}
+
+	if len(twitchClipIDs) == 0 {
+		return nil, nil
+	}
+
+	// Resolve local clip models for the fetched Twitch clip IDs
+	clips, err := s.clipRepo.GetByTwitchClipIDs(ctx, twitchClipIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve local clips: %w", err)
+	}
+
+	return clips, nil
+}
+
+// GetTopGames returns the IDs of the top games currently on Twitch.
+func (s *ClipSyncService) GetTopGames(ctx context.Context, count int) ([]string, error) {
+	resp, err := s.twitchClient.GetTopGames(ctx, count, "")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch top games: %w", err)
+	}
+
+	gameIDs := make([]string, 0, len(resp.Data))
+	for _, g := range resp.Data {
+		gameIDs = append(gameIDs, g.ID)
+	}
+	return gameIDs, nil
+}
+
+// TimeframeToHours converts a timeframe string to hours. Returns 0 for all-time.
+func TimeframeToHours(timeframe *string) int {
+	if timeframe == nil {
+		return 0
+	}
+	switch *timeframe {
+	case "hour":
+		return 1
+	case "day":
+		return 24
+	case "week":
+		return 168
+	case "month":
+		return 720
+	case "year":
+		return 8760
+	default:
+		return 0
+	}
 }

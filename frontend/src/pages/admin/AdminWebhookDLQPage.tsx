@@ -44,7 +44,7 @@ export function AdminWebhookDLQPage() {
             setIsLoading(true);
             setError(null);
             const response = await getWebhookDLQItems(page, 20);
-            setItems(response.items);
+            setItems(response.items || []);
             setTotalPages(response.pagination.total_pages);
             setTotal(response.pagination.total);
         } catch (err: unknown) {

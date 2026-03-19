@@ -944,6 +944,206 @@ func (r *PlaylistRepository) IsCollaborator(ctx context.Context, playlistID, use
 	return exists, nil
 }
 
+// ListFeatured returns playlists that are featured or curated, public, ordered by display_order.
+func (r *PlaylistRepository) ListFeatured(ctx context.Context, limit, offset int) ([]*models.PlaylistListItem, int, error) {
+	countQuery := `
+		SELECT COUNT(*)
+		FROM playlists
+		WHERE (is_featured = true OR is_curated = true)
+		  AND visibility = 'public' AND deleted_at IS NULL
+	`
+
+	var total int
+	err := r.pool.QueryRow(ctx, countQuery).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to count featured playlists: %w", err)
+	}
+
+	query := `
+		SELECT
+			p.id, p.user_id, p.title, p.description, p.cover_url, p.visibility, p.share_token,
+			p.view_count, p.share_count, p.like_count, p.script_id,
+			p.created_at, p.updated_at, p.deleted_at,
+			COALESCE(COUNT(pi.id), 0) AS clip_count,
+			EXISTS (
+				SELECT 1
+				FROM playlist_items pi2
+				JOIN clips c2 ON pi2.clip_id = c2.id
+				WHERE pi2.playlist_id = p.id
+				  AND (c2.video_url IS NULL OR c2.status = 'processing')
+			) AS has_processing_clips
+		FROM playlists p
+		LEFT JOIN playlist_items pi ON p.id = pi.playlist_id
+		WHERE (p.is_featured = true OR p.is_curated = true)
+		  AND p.visibility = 'public' AND p.deleted_at IS NULL
+		GROUP BY p.id, p.user_id, p.title, p.description, p.cover_url, p.visibility, p.share_token,
+		         p.view_count, p.share_count, p.like_count, p.script_id, p.created_at, p.updated_at, p.deleted_at
+		ORDER BY p.display_order ASC, p.created_at DESC
+		LIMIT $1 OFFSET $2
+	`
+
+	rows, err := r.pool.Query(ctx, query, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to list featured playlists: %w", err)
+	}
+	defer rows.Close()
+
+	var playlists []*models.PlaylistListItem
+	for rows.Next() {
+		var item models.PlaylistListItem
+		err := rows.Scan(
+			&item.ID,
+			&item.UserID,
+			&item.Title,
+			&item.Description,
+			&item.CoverURL,
+			&item.Visibility,
+			&item.ShareToken,
+			&item.ViewCount,
+			&item.ShareCount,
+			&item.LikeCount,
+			&item.ScriptID,
+			&item.CreatedAt,
+			&item.UpdatedAt,
+			&item.DeletedAt,
+			&item.ClipCount,
+			&item.HasProcessingClips,
+		)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to scan featured playlist: %w", err)
+		}
+		playlists = append(playlists, &item)
+	}
+
+	// Fetch preview clips for each playlist (first 4)
+	for _, playlist := range playlists {
+		previewQuery := `
+			SELECT c.id, c.twitch_clip_id, c.title, c.broadcaster_name, c.thumbnail_url,
+			       c.duration, c.view_count, c.created_at
+			FROM clips c
+			INNER JOIN playlist_items pi ON c.id = pi.clip_id
+			WHERE pi.playlist_id = $1
+			ORDER BY pi.order_index ASC
+			LIMIT 4
+		`
+		previewRows, err := r.pool.Query(ctx, previewQuery, playlist.ID)
+		if err != nil {
+			continue
+		}
+
+		var previewClips []models.Clip
+		for previewRows.Next() {
+			var clip models.Clip
+			err := previewRows.Scan(
+				&clip.ID,
+				&clip.TwitchClipID,
+				&clip.Title,
+				&clip.BroadcasterName,
+				&clip.ThumbnailURL,
+				&clip.Duration,
+				&clip.ViewCount,
+				&clip.CreatedAt,
+			)
+			if err == nil {
+				previewClips = append(previewClips, clip)
+			}
+		}
+		previewRows.Close()
+		playlist.PreviewClips = previewClips
+	}
+
+	return playlists, total, nil
+}
+
+// GetPlaylistOfTheDay returns the most recently generated playlist from a daily-schedule script.
+func (r *PlaylistRepository) GetPlaylistOfTheDay(ctx context.Context) (*models.PlaylistListItem, error) {
+	query := `
+		SELECT
+			p.id, p.user_id, p.title, p.description, p.cover_url, p.visibility, p.share_token,
+			p.view_count, p.share_count, p.like_count, p.script_id,
+			p.created_at, p.updated_at, p.deleted_at,
+			COALESCE(COUNT(pi.id), 0) AS clip_count,
+			EXISTS (
+				SELECT 1
+				FROM playlist_items pi2
+				JOIN clips c2 ON pi2.clip_id = c2.id
+				WHERE pi2.playlist_id = p.id
+				  AND (c2.video_url IS NULL OR c2.status = 'processing')
+			) AS has_processing_clips
+		FROM playlists p
+		JOIN generated_playlists gp ON gp.playlist_id = p.id
+		JOIN playlist_scripts ps ON ps.id = gp.script_id
+		LEFT JOIN playlist_items pi ON p.id = pi.playlist_id
+		WHERE ps.schedule = 'daily'
+		  AND ps.is_active = true
+		  AND p.visibility = 'public'
+		  AND p.deleted_at IS NULL
+		GROUP BY p.id, p.user_id, p.title, p.description, p.cover_url, p.visibility, p.share_token,
+		         p.view_count, p.share_count, p.like_count, p.script_id, p.created_at, p.updated_at, p.deleted_at
+		ORDER BY gp.generated_at DESC
+		LIMIT 1
+	`
+
+	var item models.PlaylistListItem
+	err := r.pool.QueryRow(ctx, query).Scan(
+		&item.ID,
+		&item.UserID,
+		&item.Title,
+		&item.Description,
+		&item.CoverURL,
+		&item.Visibility,
+		&item.ShareToken,
+		&item.ViewCount,
+		&item.ShareCount,
+		&item.LikeCount,
+		&item.ScriptID,
+		&item.CreatedAt,
+		&item.UpdatedAt,
+		&item.DeletedAt,
+		&item.ClipCount,
+		&item.HasProcessingClips,
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get playlist of the day: %w", err)
+	}
+
+	// Fetch preview clips
+	previewQuery := `
+		SELECT c.id, c.twitch_clip_id, c.title, c.broadcaster_name, c.thumbnail_url,
+		       c.duration, c.view_count, c.created_at
+		FROM clips c
+		INNER JOIN playlist_items pi ON c.id = pi.clip_id
+		WHERE pi.playlist_id = $1
+		ORDER BY pi.order_index ASC
+		LIMIT 4
+	`
+	previewRows, err := r.pool.Query(ctx, previewQuery, item.ID)
+	if err == nil {
+		var previewClips []models.Clip
+		for previewRows.Next() {
+			var clip models.Clip
+			scanErr := previewRows.Scan(
+				&clip.ID,
+				&clip.TwitchClipID,
+				&clip.Title,
+				&clip.BroadcasterName,
+				&clip.ThumbnailURL,
+				&clip.Duration,
+				&clip.ViewCount,
+				&clip.CreatedAt,
+			)
+			if scanErr == nil {
+				previewClips = append(previewClips, clip)
+			}
+		}
+		previewRows.Close()
+		item.PreviewClips = previewClips
+	}
+
+	return &item, nil
+}
+
 // TrackShare records a playlist share event
 func (r *PlaylistRepository) TrackShare(ctx context.Context, share *models.PlaylistShare) error {
 	query := `

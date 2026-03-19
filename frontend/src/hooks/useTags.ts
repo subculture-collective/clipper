@@ -66,6 +66,9 @@ export const useAddTagsToClip = () => {
         queryKey: ["tags"],
       });
     },
+    onError: (error) => {
+      console.error("Failed to add tags to clip:", error);
+    },
   });
 };
 
@@ -86,6 +89,9 @@ export const useRemoveTagFromClip = () => {
         queryKey: ["tags"],
       });
     },
+    onError: (error) => {
+      console.error("Failed to remove tag from clip:", error);
+    },
   });
 };
 
@@ -99,6 +105,9 @@ export const useCreateTag = () => {
       queryClient.invalidateQueries({
         queryKey: ["tags"],
       });
+    },
+    onError: (error) => {
+      console.error("Failed to create tag:", error);
     },
   });
 };
@@ -118,6 +127,9 @@ export const useUpdateTag = () => {
         queryKey: ["tags", variables.data.slug],
       });
     },
+    onError: (error) => {
+      console.error("Failed to update tag:", error);
+    },
   });
 };
 
@@ -131,6 +143,9 @@ export const useDeleteTag = () => {
       queryClient.invalidateQueries({
         queryKey: ["tags"],
       });
+    },
+    onError: (error) => {
+      console.error("Failed to delete tag:", error);
     },
   });
 };

@@ -87,10 +87,10 @@ export function ForumIndex() {
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
             <div className="flex-1">
-              <h1 className="text-3xl font-bold text-white">Forum Discussions</h1>
+              <h1 className="text-3xl font-bold text-foreground">Forum Discussions</h1>
               <Link
                 to="/forum/analytics"
-                className="text-sm text-blue-400 hover:text-blue-300 transition-colors mt-1 inline-block"
+                className="text-sm text-primary-500 hover:text-primary-600 transition-colors mt-1 inline-block"
               >
                 View Analytics →
               </Link>
@@ -98,7 +98,7 @@ export function ForumIndex() {
             {user && (
               <Link
                 to="/forum/new"
-                className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors"
               >
                 <Plus className="w-5 h-5" />
                 <span>Start Discussion</span>
@@ -117,8 +117,8 @@ export function ForumIndex() {
 
           {/* Error State */}
           {error && (
-            <div className="p-4 bg-red-900/20 border border-red-800 rounded-lg mb-6">
-              <p className="text-red-400">
+            <div className="p-4 bg-error-900 border border-error-800 rounded-lg mb-6">
+              <p className="text-error-400">
                 Failed to load threads. Please try again later.
               </p>
             </div>
@@ -129,13 +129,13 @@ export function ForumIndex() {
 
           {/* Empty state for unauthenticated users */}
           {!user && threads.length === 0 && !isLoading && (
-            <div className="text-center py-12 bg-gray-900 rounded-lg border border-gray-700 mt-6">
-              <p className="text-gray-400 text-lg mb-4">
+            <div className="text-center py-12 bg-card rounded-lg border border-border mt-6">
+              <p className="text-muted-foreground text-lg mb-4">
                 Join the conversation
               </p>
               <Link
                 to="/login"
-                className="inline-block px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                className="inline-block px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors"
               >
                 Sign in to post
               </Link>

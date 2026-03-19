@@ -1,0 +1,33 @@
+{{define "content"}}
+<h1>{{.Game.Name}} Clips</h1>
+<p class="meta">{{.TotalClips}} clips on clpr.tv</p>
+
+{{if .Game.BoxArtURL}}<img src="{{derefStr .Game.BoxArtURL}}" alt="{{.Game.Name}} box art" style="width:120px;border-radius:0.5rem;margin-bottom:1rem">{{end}}
+
+<p style="margin-bottom:1.5rem">
+  <a class="cta-btn" href="/game/{{.Game.TwitchGameID}}">View interactive page &rarr;</a>
+</p>
+
+{{if .TopBroadcasters}}
+<h2>Top Streamers</h2>
+<div class="broadcaster-list">
+  {{range .TopBroadcasters}}
+  <a class="broadcaster-card" href="/clips/streamer/{{.BroadcasterName}}">
+    <div class="name">{{.BroadcasterName}}</div>
+    <div class="stats">{{.ClipCount}} clips &middot; {{formatViews .TotalViews}} views</div>
+  </a>
+  {{end}}
+</div>
+{{end}}
+
+{{if .TopClips}}
+<h2>Top Clips</h2>
+<div class="clip-grid">
+  {{range .TopClips}}
+  {{template "clip_card" .}}
+  {{end}}
+</div>
+{{else}}
+<p class="empty">No clips found for this game.</p>
+{{end}}
+{{end}}

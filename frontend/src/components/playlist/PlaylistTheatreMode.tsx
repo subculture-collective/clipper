@@ -1,5 +1,4 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { cn, formatDuration } from '@/lib/utils';
 import { TheatreMode, VideoPlayer } from '@/components/video';
 import {

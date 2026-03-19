@@ -58,7 +58,9 @@ const UserProfilePage = lazy(() =>
 const TagPage = lazy(() =>
     import('./pages/TagPage').then(m => ({ default: m.TagPage })),
 );
-import { SearchPage } from './pages/SearchPage';
+const SearchPage = lazy(() =>
+    import('./pages/SearchPage').then(m => ({ default: m.SearchPage })),
+);
 const AboutPage = lazy(() =>
     import('./pages/AboutPage').then(m => ({ default: m.AboutPage })),
 );
@@ -81,6 +83,9 @@ const ContactPage = lazy(() =>
 );
 const DocsPage = lazy(() =>
     import('./pages/DocsPage').then(m => ({ default: m.DocsPage })),
+);
+const ExtensionPage = lazy(() =>
+    import('./pages/ExtensionPage').then(m => ({ default: m.ExtensionPage })),
 );
 const NotFoundPage = lazy(() =>
     import('./pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })),
@@ -228,11 +233,6 @@ const AdminAPIDocsPage = lazy(() =>
         default: m.AdminAPIDocsPage,
     })),
 );
-const ServiceStatusPage = lazy(() =>
-    import('./pages/admin/ServiceStatusPage').then(m => ({
-        default: m.ServiceStatusPage,
-    })),
-);
 const PricingPage = lazy(() => import('./pages/PricingPage'));
 const SubscriptionSuccessPage = lazy(
     () => import('./pages/SubscriptionSuccessPage'),
@@ -276,6 +276,11 @@ const PlaylistTheatrePage = lazy(() =>
 const PublicPlaylistsPage = lazy(() =>
     import('./pages/PublicPlaylistsPage').then(m => ({
         default: m.PublicPlaylistsPage,
+    })),
+);
+const SmartPlaylistsPage = lazy(() =>
+    import('./pages/SmartPlaylistsPage').then(m => ({
+        default: m.SmartPlaylistsPage,
     })),
 );
 const WatchHistoryPage = lazy(() =>
@@ -374,7 +379,6 @@ function LoadingFallback() {
 }
 
 function App() {
-    console.log('[App] Rendering...');
     return (
         <HelmetProvider>
             <AuthProvider>
@@ -487,6 +491,10 @@ function App() {
                                         <Route
                                             path='/docs'
                                             element={<DocsPage />}
+                                        />
+                                        <Route
+                                            path='/extension'
+                                            element={<ExtensionPage />}
                                         />
                                         <Route
                                             path='/leaderboards'
@@ -618,6 +626,14 @@ function App() {
                                         <Route
                                             path='/playlists/discover'
                                             element={<PublicPlaylistsPage />}
+                                        />
+                                        <Route
+                                            path='/playlists/smart'
+                                            element={
+                                                <ProtectedRoute>
+                                                    <SmartPlaylistsPage />
+                                                </ProtectedRoute>
+                                            }
                                         />
                                         <Route
                                             path='/playlists/:id'
@@ -924,14 +940,6 @@ function App() {
                                             }
                                         />
                                         <Route
-                                            path='/admin/status'
-                                            element={
-                                                <AdminRoute>
-                                                    <ServiceStatusPage />
-                                                </AdminRoute>
-                                            }
-                                        />
-                                        <Route
                                             path='/admin/api-docs'
                                             element={
                                                 <AdminRoute>
@@ -960,9 +968,9 @@ function App() {
                                         <Route
                                             path='/moderation/users'
                                             element={
-                                                <ProtectedRoute>
+                                                <AdminRoute>
                                                     <ModerationUsersPage />
-                                                </ProtectedRoute>
+                                                </AdminRoute>
                                             }
                                         />
 

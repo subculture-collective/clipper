@@ -18,7 +18,6 @@ auto_auth {
 
 vault {
   address               = "http://vault:8200"
-  unwrap_token          = true
   retry {
     num_retries = 5
   }
@@ -35,6 +34,14 @@ template {
 template {
   source      = "/vault-agent/templates/postgres.env.ctmpl"
   destination = "/vault-agent/rendered/postgres.env"
+  perms       = "0640"
+  left_delimiter  = "{{"
+  right_delimiter = "}}"
+}
+
+template {
+  source      = "/vault-agent/templates/frontend.env.ctmpl"
+  destination = "/vault-agent/rendered/frontend.env"
   perms       = "0640"
   left_delimiter  = "{{"
   right_delimiter = "}}"

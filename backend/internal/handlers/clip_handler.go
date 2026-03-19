@@ -44,12 +44,8 @@ func (h *ClipSyncHandler) TriggerSync(c *gin.Context) {
 		Language        string `json:"language"`
 	}
 
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid request body",
-		})
-		return
-	}
+	// Body is optional — all fields have defaults
+	_ = c.ShouldBindJSON(&req)
 
 	// Set defaults
 	if req.Hours == 0 {

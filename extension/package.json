@@ -1,0 +1,19 @@
+{
+  "name": "clipper-extension",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Clipper browser extension for sharing Twitch clips",
+  "private": true,
+  "scripts": {
+    "build": "node build.js",
+    "build:watch": "node build.js --watch",
+    "generate-icons": "node scripts/generate-icons.js",
+    "prebuild": "node scripts/generate-icons.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.320",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.0"
+  }
+}

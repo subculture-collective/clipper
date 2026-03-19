@@ -1116,7 +1116,7 @@ func (r *UserRepository) AdminSearchUsers(ctx context.Context, searchQuery strin
 	baseQuery := `
 		SELECT
 			id, twitch_id, username, display_name, email, avatar_url, bio,
-			karma_points, role, account_type, is_banned, created_at, updated_at, last_login_at
+			karma_points, role, account_type, is_banned, account_status, created_at, updated_at, last_login_at
 		FROM users
 		WHERE 1=1
 	`
@@ -1148,6 +1148,8 @@ func (r *UserRepository) AdminSearchUsers(ctx context.Context, searchQuery strin
 			whereClause += ` AND is_banned = true`
 		} else if status == "active" {
 			whereClause += ` AND is_banned = false`
+		} else if status == "unclaimed" {
+			whereClause += ` AND account_status = 'unclaimed'`
 		}
 	}
 
@@ -1174,7 +1176,7 @@ func (r *UserRepository) AdminSearchUsers(ctx context.Context, searchQuery strin
 		err := rows.Scan(
 			&user.ID, &user.TwitchID, &user.Username, &user.DisplayName, &user.Email,
 			&user.AvatarURL, &user.Bio, &user.KarmaPoints, &user.Role, &user.AccountType,
-			&user.IsBanned, &user.CreatedAt, &user.UpdatedAt, &user.LastLoginAt,
+			&user.IsBanned, &user.AccountStatus, &user.CreatedAt, &user.UpdatedAt, &user.LastLoginAt,
 		)
 		if err != nil {
 			return nil, 0, err

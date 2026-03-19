@@ -1,0 +1,13 @@
+{{define "clip_card"}}
+<div class="clip-card">
+  <a href="/clip/{{.ID}}">
+    {{if .ThumbnailURL}}<img src="{{.ThumbnailURL}}" alt="{{.Title}}" loading="lazy">{{end}}
+    <div class="info">
+      <div class="title">{{.Title}}</div>
+      <div class="details">
+        {{.BroadcasterName}}{{if .GameName}} &middot; {{derefStr .GameName}}{{end}} &middot; {{.VoteScore}} votes &middot; {{formatViews .ViewCount}} views
+      </div>
+    </div>
+  </a>
+</div>
+{{end}}

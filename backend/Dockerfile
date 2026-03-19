@@ -19,7 +19,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags '-extldflags "-static"' -o /app/bin/api ./cmd/api
 
 # Final stage
-FROM alpine:latest
+FROM alpine:3.21
 
 # Install ca-certificates for HTTPS calls
 RUN apk --no-cache add ca-certificates
@@ -28,6 +28,9 @@ WORKDIR /root/
 
 # Copy binary from builder
 COPY --from=builder /app/bin/api .
+
+# Copy pSEO HTML templates
+COPY --from=builder /app/templates ./templates/
 
 # Expose port
 EXPOSE 8080

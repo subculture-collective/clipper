@@ -22,6 +22,7 @@ import (
 type SubmissionService struct {
 	submissionRepo      *repository.SubmissionRepository
 	clipRepo            *repository.ClipRepository
+	discoveryClipRepo   *repository.DiscoveryClipRepository
 	userRepo            *repository.UserRepository
 	voteRepo            *repository.VoteRepository
 	auditLogRepo        *repository.AuditLogRepository
@@ -45,6 +46,7 @@ type SubmissionService struct {
 func NewSubmissionService(
 	submissionRepo *repository.SubmissionRepository,
 	clipRepo *repository.ClipRepository,
+	discoveryClipRepo *repository.DiscoveryClipRepository,
 	userRepo *repository.UserRepository,
 	voteRepo *repository.VoteRepository,
 	auditLogRepo *repository.AuditLogRepository,
@@ -69,6 +71,7 @@ func NewSubmissionService(
 	return &SubmissionService{
 		submissionRepo:           submissionRepo,
 		clipRepo:                 clipRepo,
+		discoveryClipRepo:        discoveryClipRepo,
 		userRepo:                 userRepo,
 		voteRepo:                 voteRepo,
 		auditLogRepo:             auditLogRepo,
@@ -337,9 +340,10 @@ func (s *SubmissionService) SubmitClip(ctx context.Context, userID uuid.UUID, re
 		title := req.CustomTitle
 		broadcasterName := req.BroadcasterNameOverride
 
-		// Claim the scraped clip
-		if err := s.clipRepo.ClaimScrapedClip(ctx, clipExistence.Clip.ID, userID, title, req.IsNSFW, broadcasterName, now); err != nil {
-			return nil, fmt.Errorf("failed to claim scraped clip: %w", err)
+		// Claim the discovery clip (atomically moves from discovery_clips to clips)
+		_, err := s.discoveryClipRepo.ClaimDiscoveryClip(ctx, clipExistence.Clip.TwitchClipID, userID, title, req.IsNSFW, broadcasterName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to claim discovery clip: %w", err)
 		}
 
 		// Auto-upvote the claimed clip
@@ -844,25 +848,60 @@ func (s *SubmissionService) CheckClipExistence(ctx context.Context, twitchClipID
 }
 
 // checkClipExistence is the internal implementation that checks if a clip exists and whether it can be claimed.
-// It queries the clips table by twitch_clip_id and determines if the clip is available for claiming.
-//
-// A clip can be claimed when it exists in the database but has no submitted_by_user_id (i.e., it's a scraped clip).
+// It first checks the discovery_clips staging table (claimable), then the main clips table (not claimable).
 func (s *SubmissionService) checkClipExistence(ctx context.Context, twitchClipID string) (*ClipExistenceResult, error) {
+	// Check discovery_clips first — these are claimable
+	if s.discoveryClipRepo != nil {
+		dc, err := s.discoveryClipRepo.GetByTwitchClipID(ctx, twitchClipID)
+		if err == nil && dc != nil {
+			// Convert DiscoveryClip to Clip for backward-compatible result
+			clip := &models.Clip{
+				ID:              dc.ID,
+				TwitchClipID:    dc.TwitchClipID,
+				TwitchClipURL:   dc.TwitchClipURL,
+				EmbedURL:        dc.EmbedURL,
+				Title:           dc.Title,
+				CreatorName:     dc.CreatorName,
+				CreatorID:       dc.CreatorID,
+				BroadcasterName: dc.BroadcasterName,
+				BroadcasterID:   dc.BroadcasterID,
+				GameID:          dc.GameID,
+				GameName:        dc.GameName,
+				Language:        dc.Language,
+				ThumbnailURL:    dc.ThumbnailURL,
+				Duration:        dc.Duration,
+				ViewCount:       dc.ViewCount,
+				CreatedAt:       dc.CreatedAt,
+				ImportedAt:      dc.ImportedAt,
+				IsNSFW:          dc.IsNSFW,
+				IsRemoved:       dc.IsRemoved,
+				IsHidden:        dc.IsHidden,
+			}
+			return &ClipExistenceResult{
+				Exists:       true,
+				Clip:         clip,
+				CanBeClaimed: true,
+			}, nil
+		}
+		// If error is "no rows", continue to check clips table
+		if err != nil && !strings.Contains(err.Error(), "no rows") {
+			return nil, fmt.Errorf("failed to check discovery clip existence: %w", err)
+		}
+	}
+
+	// Check main clips table — these are already posted and not claimable
 	clip, err := s.clipRepo.GetByTwitchClipID(ctx, twitchClipID)
 	if err != nil {
-		// If clip not found, that's ok - it doesn't exist yet
 		if strings.Contains(err.Error(), "no rows") {
 			return &ClipExistenceResult{Exists: false, CanBeClaimed: false}, nil
 		}
 		return nil, fmt.Errorf("failed to check clip existence: %w", err)
 	}
 
-	// Clip exists
-	canBeClaimed := clip.SubmittedByUserID == nil
 	return &ClipExistenceResult{
 		Exists:       true,
 		Clip:         clip,
-		CanBeClaimed: canBeClaimed,
+		CanBeClaimed: false,
 	}, nil
 }
 
@@ -877,6 +916,13 @@ func (s *SubmissionService) checkDuplicates(ctx context.Context, twitchClipID st
 	exists, err := s.clipRepo.ExistsByTwitchClipID(ctx, twitchClipID)
 	if err != nil {
 		return fmt.Errorf("failed to check clip existence: %w", err)
+	}
+	// Also check discovery_clips table
+	if !exists && s.discoveryClipRepo != nil {
+		exists, err = s.discoveryClipRepo.ExistsByTwitchClipID(ctx, twitchClipID)
+		if err != nil {
+			return fmt.Errorf("failed to check discovery clip existence: %w", err)
+		}
 	}
 	if exists {
 		// Track duplicate attempt

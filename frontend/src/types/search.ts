@@ -28,7 +28,7 @@ export interface SearchResponse {
 export interface SearchResultsByType {
   clips?: Clip[];
   creators?: User[];
-  games?: Game[];
+  games?: SearchGame[];
   tags?: Tag[];
 }
 
@@ -67,7 +67,7 @@ export interface SearchMeta {
   total_pages: number;
 }
 
-export interface Game {
+export interface SearchGame {
   id: string;
   name: string;
   clip_count: number;

@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { 
-  TrendingUp, 
-  Users, 
-  MessageSquare, 
-  FileText, 
+import {
+  TrendingUp,
+  Users,
+  MessageSquare,
+  FileText,
   Award,
   ArrowLeft,
   Activity,
@@ -78,7 +78,7 @@ export function ForumAnalyticsPage() {
           {hasError && (
             <div className="bg-red-900/20 border border-red-800 rounded-lg p-6 mb-8">
               <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
                 <div>
                   <h3 className="text-red-400 font-semibold mb-1">Failed to load analytics</h3>
                   <p className="text-gray-300 text-sm">
@@ -327,8 +327,8 @@ export function ForumAnalyticsPage() {
                           </span>
                         </div>
                         <span className={`text-sm font-semibold ${
-                          reply.net_votes > 0 ? 'text-green-400' : 
-                          reply.net_votes < 0 ? 'text-red-400' : 
+                          reply.net_votes > 0 ? 'text-green-400' :
+                          reply.net_votes < 0 ? 'text-red-400' :
                           'text-gray-400'
                         }`}>
                           Net: {reply.net_votes}

@@ -42,9 +42,6 @@ export function DiscoverClipCard({ clip }: DiscoverClipCardProps) {
 
     const timestamp = formatTimestamp(clip.created_at);
 
-    // Check if this clip has already been posted (submitted by a user)
-    const isPosted = !!clip.submitted_by;
-
     const handlePostClip = () => {
         if (!isAuthenticated) {
             toast.info('Please log in to post clips');
@@ -84,13 +81,6 @@ export function DiscoverClipCard({ clip }: DiscoverClipCardProps) {
                     {clip.is_nsfw && (
                         <div className='top-2 left-2 absolute'>
                             <Badge variant='error'>NSFW</Badge>
-                        </div>
-                    )}
-
-                    {/* Posted badge - if clip has already been submitted */}
-                    {isPosted && (
-                        <div className='top-2 right-2 absolute'>
-                            <Badge variant='success'>Posted</Badge>
                         </div>
                     )}
                 </div>
@@ -158,29 +148,18 @@ export function DiscoverClipCard({ clip }: DiscoverClipCardProps) {
                         <span className='hidden sm:inline'>Twitch</span>
                     </a>
 
-                    {/* Post/View button */}
-                    {isPosted ?
-                        <Link
-                            to={`/clip/${clip.id}`}
-                            className={cn(
-                                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs xs:text-sm font-medium transition-colors',
-                                'bg-primary-500/10 text-primary-600 dark:text-primary-400 hover:bg-primary-500/20',
-                            )}
-                        >
-                            View Post
-                        </Link>
-                    :   <button
-                            onClick={handlePostClip}
-                            className={cn(
-                                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs xs:text-sm font-medium transition-colors',
-                                'bg-primary-500 text-white hover:bg-primary-600',
-                                !isAuthenticated && 'opacity-70',
-                            )}
-                        >
-                            <Plus className='w-4 h-4' />
-                            Post Clip
-                        </button>
-                    }
+                    {/* Post button */}
+                    <button
+                        onClick={handlePostClip}
+                        className={cn(
+                            'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs xs:text-sm font-medium transition-colors',
+                            'bg-primary-500 text-white hover:bg-primary-600',
+                            !isAuthenticated && 'opacity-70',
+                        )}
+                    >
+                        <Plus className='w-4 h-4' />
+                        Post Clip
+                    </button>
                 </div>
             </div>
         </div>

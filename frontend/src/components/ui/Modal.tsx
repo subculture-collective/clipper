@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useId } from 'react';
 import { cn } from '@/lib/utils';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 
@@ -61,6 +61,8 @@ export const Modal: React.FC<ModalProps> = ({
   children,
   className,
 }) => {
+  // Unique ID for aria-labelledby
+  const titleId = useId();
   // Focus trap for modal
   const modalRef = useFocusTrap<HTMLDivElement>(open);
 
@@ -81,7 +83,7 @@ export const Modal: React.FC<ModalProps> = ({
     // Always clean up - restore overflow even if component unmounts while open
     return () => {
       document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = '';
     };
   }, [open, onClose]);
 
@@ -112,13 +114,13 @@ export const Modal: React.FC<ModalProps> = ({
         )}
         role="dialog"
         aria-modal="true"
-        aria-labelledby={title ? 'modal-title' : undefined}
+        aria-labelledby={title ? titleId : undefined}
       >
         {/* Header */}
         {(title || showCloseButton) && (
           <div className="flex items-center justify-between px-6 py-4 border-b border-border">
             {title && (
-              <h2 id="modal-title" className="text-xl font-semibold text-foreground">
+              <h2 id={titleId} className="text-xl font-semibold text-foreground">
                 {title}
               </h2>
             )}

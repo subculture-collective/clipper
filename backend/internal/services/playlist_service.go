@@ -350,6 +350,21 @@ func (s *PlaylistService) ListPublicPlaylists(ctx context.Context, page, limit i
 	return playlists, total, nil
 }
 
+// ListFeaturedPlaylists returns featured/curated playlists for public discovery.
+func (s *PlaylistService) ListFeaturedPlaylists(ctx context.Context, page, limit int) ([]*models.PlaylistListItem, int, error) {
+	offset := (page - 1) * limit
+	playlists, total, err := s.playlistRepo.ListFeatured(ctx, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to list featured playlists: %w", err)
+	}
+	return playlists, total, nil
+}
+
+// GetPlaylistOfTheDay returns the most recent daily-generated playlist.
+func (s *PlaylistService) GetPlaylistOfTheDay(ctx context.Context) (*models.PlaylistListItem, error) {
+	return s.playlistRepo.GetPlaylistOfTheDay(ctx)
+}
+
 // AddClipsToPlaylist adds multiple clips to a playlist
 func (s *PlaylistService) AddClipsToPlaylist(ctx context.Context, playlistID, userID uuid.UUID, clipIDs []uuid.UUID) error {
 	// Get the playlist to verify ownership

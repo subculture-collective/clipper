@@ -1,3 +1,5 @@
+import type { UserRole } from '../lib/roles';
+
 export interface Report {
   id: string;
   reporter_id: string;
@@ -18,7 +20,7 @@ export interface ReportWithDetails extends Report {
     display_name: string;
     avatar_url?: string;
     karma_points: number;
-    role: string;
+    role: UserRole;
   };
   related_reports?: Report[];
 }

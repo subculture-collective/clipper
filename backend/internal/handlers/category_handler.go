@@ -178,32 +178,42 @@ func (h *CategoryHandler) ListCategoryClips(c *gin.Context) {
 		return
 	}
 
-	// If no games in category, return empty result
-	if len(games) == 0 {
-		c.JSON(http.StatusOK, gin.H{
-			"clips":    []interface{}{},
-			"total":    0,
-			"page":     page,
-			"limit":    limit,
-			"has_more": false,
-		})
-		return
+	// Collect all twitch game IDs from the category
+	gameIDs := make([]string, 0, len(games))
+	for _, game := range games {
+		if game.TwitchGameID != "" {
+			gameIDs = append(gameIDs, game.TwitchGameID)
+		}
 	}
 
-	// Fetch clips from all games in the category
-	// We'll fetch more clips than needed and then paginate
-	allClips := []models.Clip{}
+	var allClips []models.Clip
+	var total int
 
-	for _, game := range games {
-		gameID := game.TwitchGameID
+	if len(gameIDs) > 0 {
+		// Fetch clips matching any of the category's games in a single query
+		for _, gameID := range gameIDs {
+			gid := gameID
+			filters := repository.ClipFilters{
+				GameID:    &gid,
+				Sort:      sort,
+				Timeframe: &timeframe,
+			}
+
+			clips, _, err := h.clipRepo.ListWithFilters(c.Request.Context(), filters, 200, 0)
+			if err != nil {
+				continue
+			}
+			allClips = append(allClips, clips...)
+		}
+	}
+
+	// Fallback: if no clips found via games, show recent clips
+	if len(allClips) == 0 {
 		filters := repository.ClipFilters{
-			GameID:    &gameID,
 			Sort:      sort,
 			Timeframe: &timeframe,
 		}
-
-		// Fetch a larger batch to account for filtering
-		clips, _, err := h.clipRepo.ListWithFilters(c.Request.Context(), filters, 1000, 0)
+		clips, count, err := h.clipRepo.ListWithFilters(c.Request.Context(), filters, limit, offset)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": "Failed to fetch clips",
@@ -211,11 +221,18 @@ func (h *CategoryHandler) ListCategoryClips(c *gin.Context) {
 			return
 		}
 
-		allClips = append(allClips, clips...)
+		c.JSON(http.StatusOK, gin.H{
+			"clips":    clips,
+			"total":    count,
+			"page":     page,
+			"limit":    limit,
+			"has_more": len(clips) == limit,
+		})
+		return
 	}
 
-	// Calculate pagination
-	total := len(allClips)
+	// Calculate pagination over combined results
+	total = len(allClips)
 	start := offset
 	end := offset + limit
 
@@ -226,7 +243,7 @@ func (h *CategoryHandler) ListCategoryClips(c *gin.Context) {
 		end = total
 	}
 
-	paginatedClips := []models.Clip{}
+	paginatedClips := make([]models.Clip, 0)
 	if start < total {
 		paginatedClips = allClips[start:end]
 	}

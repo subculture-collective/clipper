@@ -122,7 +122,6 @@ export function PlaylistCard({ playlist, onShare }: PlaylistCardProps) {
                             clips={
                                 'clips' in playlist ? playlist.clips : undefined
                             }
-                            title={playlist.title}
                             className='w-full h-full'
                         />
                     }

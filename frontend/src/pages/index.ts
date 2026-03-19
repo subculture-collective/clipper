@@ -1,9 +1,5 @@
 // Public pages
 export { HomePage } from './HomePage';
-export { NewFeedPage } from './NewFeedPage';
-export { TopFeedPage } from './TopFeedPage';
-export { RisingFeedPage } from './RisingFeedPage';
-export { DiscoveryPage } from './DiscoveryPage';
 export { DiscoveryListsPage } from './DiscoveryListsPage';
 export { DiscoveryListDetailPage } from './DiscoveryListDetailPage';
 export { ScrapedClipsPage } from './ScrapedClipsPage';
@@ -18,6 +14,7 @@ export { PrivacyPage } from './PrivacyPage';
 export { TermsPage } from './TermsPage';
 export { CommunityRulesPage } from './CommunityRulesPage';
 export { DocsPage } from './DocsPage';
+export { ExtensionPage } from './ExtensionPage';
 export { NotFoundPage } from './NotFoundPage';
 
 // Auth pages

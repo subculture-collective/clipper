@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { I18nextProvider } from 'react-i18next';
+import i18n from '@/i18n/config';
 import ErrorBoundary from './ErrorBoundary';
 
 // Component that throws an error for testing
@@ -8,6 +10,16 @@ function ThrowError({ shouldThrow }: { shouldThrow: boolean }) {
     throw new Error('Test error');
   }
   return <div>No error</div>;
+}
+
+// Helper to wrap ErrorBoundary with i18n provider (ErrorBoundary must be outermost,
+// so we can't use AllTheProviders which wraps children in ErrorBoundary's position)
+function renderWithI18n(ui: React.ReactElement) {
+  return render(
+    <I18nextProvider i18n={i18n}>
+      {ui}
+    </I18nextProvider>
+  );
 }
 
 describe('ErrorBoundary', () => {
@@ -21,7 +33,7 @@ describe('ErrorBoundary', () => {
   });
 
   it('renders children when there is no error', () => {
-    render(
+    renderWithI18n(
       <ErrorBoundary>
         <div>Test content</div>
       </ErrorBoundary>
@@ -31,7 +43,7 @@ describe('ErrorBoundary', () => {
   });
 
   it('renders error UI when an error is thrown', () => {
-    render(
+    renderWithI18n(
       <ErrorBoundary>
         <ThrowError shouldThrow={true} />
       </ErrorBoundary>
@@ -42,7 +54,7 @@ describe('ErrorBoundary', () => {
   });
 
   it('displays reload and go home buttons', () => {
-    render(
+    renderWithI18n(
       <ErrorBoundary>
         <ThrowError shouldThrow={true} />
       </ErrorBoundary>
@@ -53,7 +65,7 @@ describe('ErrorBoundary', () => {
   });
 
   it('displays contact support link', () => {
-    render(
+    renderWithI18n(
       <ErrorBoundary>
         <ThrowError shouldThrow={true} />
       </ErrorBoundary>
@@ -66,7 +78,7 @@ describe('ErrorBoundary', () => {
   it('renders custom fallback when provided', () => {
     const customFallback = <div>Custom error message</div>;
     
-    render(
+    renderWithI18n(
       <ErrorBoundary fallback={customFallback}>
         <ThrowError shouldThrow={true} />
       </ErrorBoundary>

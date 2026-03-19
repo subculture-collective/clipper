@@ -24,18 +24,18 @@ export function MiniFooter() {
           aria-label="Show footer links"
           title="Footer links"
         >
-          <svg 
-            className="w-6 h-6 transition-transform duration-200 group-hover:scale-110" 
-            fill="none" 
-            stroke="currentColor" 
+          <svg
+            className="w-6 h-6 transition-transform duration-200 group-hover:scale-110"
+            fill="none"
+            stroke="currentColor"
             viewBox="0 0 24 24"
             aria-hidden="true"
           >
-            <path 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              strokeWidth={2} 
-              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" 
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
         </button>
@@ -64,17 +64,17 @@ export function MiniFooter() {
               "
               aria-label="Close footer links"
             >
-              <svg 
-                className="w-5 h-5" 
-                fill="none" 
-                stroke="currentColor" 
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={2} 
-                  d="M6 18L18 6M6 6l12 12" 
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
                 />
               </svg>
             </button>
@@ -140,7 +140,7 @@ export function MiniFooter() {
               </h4>
               <div className="space-y-1">
                 <a
-                  href="https://discord.gg/clipper"
+                  href="https://discord.gg/TFwB4aJRef"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block text-sm text-foreground hover:text-primary-500 transition-colors"
@@ -148,7 +148,7 @@ export function MiniFooter() {
                   Discord
                 </a>
                 <a
-                  href="https://twitter.com/clipper"
+                  href="https://x.com/clpr_tv"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block text-sm text-foreground hover:text-primary-500 transition-colors"

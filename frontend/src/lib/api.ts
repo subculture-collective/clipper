@@ -69,6 +69,8 @@ const processQueue = (
       prom.reject(error);
     } else if (token) {
       prom.resolve(token);
+    } else {
+      prom.reject(new AxiosError('Token refresh failed'));
     }
   });
   failedQueue = [];

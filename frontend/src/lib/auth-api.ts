@@ -22,11 +22,6 @@ export interface User {
   last_login_at?: string;
 }
 
-export interface AuthTokens {
-  access_token: string;
-  refresh_token: string;
-}
-
 export interface TestLoginParams {
   user_id?: string;
   username?: string;
@@ -54,7 +49,7 @@ export async function initiateOAuth() {
   });
 
   // In E2E environments, trigger the OAuth endpoint without performing a full navigation
-  if (typeof window !== 'undefined' && (window as Record<string, unknown>).__E2E_MOCK_OAUTH__) {
+  if (typeof window !== 'undefined' && (window as unknown as Record<string, unknown>).__E2E_MOCK_OAUTH__) {
     try {
       await fetch(`${apiUrl}/auth/twitch?${params.toString()}`, { credentials: 'include', mode: 'no-cors' });
     } catch (err) {
@@ -119,14 +114,6 @@ export async function handleOAuthCallback(code: string, state: string): Promise<
  */
 export async function getCurrentUser(): Promise<User> {
   const response = await apiClient.get<User>('/auth/me');
-  return response.data;
-}
-
-/**
- * Refreshes the access token using the refresh token
- */
-export async function refreshToken(): Promise<AuthTokens> {
-  const response = await apiClient.post<AuthTokens>('/auth/refresh');
   return response.data;
 }
 

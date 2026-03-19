@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { apiClient } from '@/lib/api';
 
 // Generate a unique session ID for tracking watch sessions
 function generateSessionId(): string {
@@ -30,7 +31,7 @@ export function useWatchHistory({
   const [progress, setProgress] = useState(0);
   const [hasProgress, setHasProgress] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [lastRecordedTimestamp, setLastRecordedTimestamp] = useState(0);
+  const lastRecordedTimestampRef = useRef(0);
   const sessionId = useMemo(() => generateSessionId(), []);
 
   // Fetch resume position on mount
@@ -42,16 +43,7 @@ export function useWatchHistory({
 
     const fetchResumePosition = async () => {
       try {
-        const response = await fetch(`/api/v1/clips/${clipId}/progress`, {
-          credentials: 'include',
-        });
-
-        if (!response.ok) {
-          console.error('Failed to fetch resume position');
-          return;
-        }
-
-        const data = await response.json();
+        const { data } = await apiClient.get(`/clips/${clipId}/progress`);
         if (data.has_progress) {
           setProgress(data.progress_seconds);
           setHasProgress(true);
@@ -73,31 +65,24 @@ export function useWatchHistory({
 
       // Only record if at least 30 seconds have passed since last record (wall-clock time)
       const now = Date.now();
-      const timeSinceLastRecord = now - lastRecordedTimestamp;
+      const timeSinceLastRecord = now - lastRecordedTimestampRef.current;
       if (timeSinceLastRecord < 30000) return; // 30 seconds in milliseconds
 
       const progressSeconds = Math.floor(currentTime);
       const durationSeconds = Math.floor(duration);
 
-      setLastRecordedTimestamp(now);
+      lastRecordedTimestampRef.current = now;
 
-      fetch('/api/v1/watch-history', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          clip_id: clipId,
-          progress_seconds: progressSeconds,
-          duration_seconds: durationSeconds,
-          session_id: sessionId,
-        }),
+      apiClient.post('/watch-history', {
+        clip_id: clipId,
+        progress_seconds: progressSeconds,
+        duration_seconds: durationSeconds,
+        session_id: sessionId,
       }).catch((error) => {
         console.error('Error recording watch progress:', error);
       });
     },
-    [clipId, duration, sessionId, enabled, lastRecordedTimestamp]
+    [clipId, duration, sessionId, enabled]
   );
 
   // Record progress immediately (on pause or unmount)
@@ -109,20 +94,13 @@ export function useWatchHistory({
       const durationSeconds = Math.floor(duration);
 
       // Update timestamp to prevent duplicate recordings
-      setLastRecordedTimestamp(Date.now());
+      lastRecordedTimestampRef.current = Date.now();
 
-      fetch('/api/v1/watch-history', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          clip_id: clipId,
-          progress_seconds: progressSeconds,
-          duration_seconds: durationSeconds,
-          session_id: sessionId,
-        }),
+      apiClient.post('/watch-history', {
+        clip_id: clipId,
+        progress_seconds: progressSeconds,
+        duration_seconds: durationSeconds,
+        session_id: sessionId,
       }).catch((error) => {
         console.error('Error recording watch progress on pause:', error);
       });

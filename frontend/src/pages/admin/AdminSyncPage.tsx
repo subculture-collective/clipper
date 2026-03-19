@@ -29,7 +29,7 @@ export function AdminSyncPage() {
   // Trigger manual sync mutation
   const triggerSyncMutation = useMutation({
     mutationFn: async () => {
-      const response = await axios.post('/api/v1/admin/sync/clips');
+      const response = await axios.post('/api/v1/admin/sync/clips', {});
       return response.data;
     },
     onMutate: () => {

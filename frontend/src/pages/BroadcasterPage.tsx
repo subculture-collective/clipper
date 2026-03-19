@@ -101,7 +101,7 @@ export function BroadcasterPage() {
     if (isLoadingProfile) {
         return (
             <Container className='py-8'>
-                <div className='flex justify-center items-center min-h-[400px]'>
+                <div className='flex justify-center items-center min-h-100'>
                     <Spinner size='xl' />
                 </div>
             </Container>
@@ -292,7 +292,7 @@ export function BroadcasterPage() {
 
                 {/* Clips Grid */}
                 {isLoadingClips ?
-                    <div className='flex justify-center items-center min-h-[200px]'>
+                    <div className='flex justify-center items-center min-h-50'>
                         <Spinner size='lg' />
                     </div>
                 : clipsData && (clipsData.data ?? []).length > 0 ?

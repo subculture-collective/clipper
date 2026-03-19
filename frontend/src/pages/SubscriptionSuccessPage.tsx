@@ -46,7 +46,6 @@ export default function SubscriptionSuccessPage() {
     useEffect(() => {
         // Track successful conversion only once
         if (sessionId && !hasTrackedConversion.current) {
-            console.log('Checkout session completed:', sessionId);
             trackConversion({
                 userId: user?.id,
                 metadata: { sessionId },

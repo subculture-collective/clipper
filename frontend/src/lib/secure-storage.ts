@@ -38,14 +38,19 @@ async function getEncryptionKey(): Promise<CryptoKey> {
   const storedKey = sessionStorage.getItem(ENCRYPTION_KEY_NAME);
 
   if (storedKey) {
-    const keyData = JSON.parse(storedKey);
-    return crypto.subtle.importKey(
-      'jwk',
-      keyData,
-      { name: 'AES-GCM', length: 256 },
-      true,
-      ['encrypt', 'decrypt']
-    );
+    try {
+      const keyData = JSON.parse(storedKey);
+      return crypto.subtle.importKey(
+        'jwk',
+        keyData,
+        { name: 'AES-GCM', length: 256 },
+        true,
+        ['encrypt', 'decrypt']
+      );
+    } catch {
+      // Corrupted key data - remove and generate fresh
+      sessionStorage.removeItem(ENCRYPTION_KEY_NAME);
+    }
   }
 
   // Generate new key
@@ -71,8 +76,7 @@ async function encryptData(data: string): Promise<{ iv: Uint8Array; ciphertext: 
   const iv = crypto.getRandomValues(new Uint8Array(12)); // GCM recommends 12 bytes
 
   const ciphertext = await crypto.subtle.encrypt(
-    // Cast to BufferSource to satisfy TS typing mismatch (ArrayBuffer vs ArrayBufferLike)
-    { name: 'AES-GCM', iv: iv as unknown as BufferSource },
+    { name: 'AES-GCM', iv },
     key,
     encoder.encode(data)
   );
@@ -88,8 +92,7 @@ async function decryptData(iv: Uint8Array, ciphertext: ArrayBuffer): Promise<str
   const decoder = new TextDecoder();
 
   const plaintext = await crypto.subtle.decrypt(
-    // Cast to BufferSource to satisfy TS typing mismatch (ArrayBuffer vs ArrayBufferLike)
-    { name: 'AES-GCM', iv: iv as unknown as BufferSource },
+    { name: 'AES-GCM', iv },
     key,
     ciphertext
   );
@@ -105,13 +108,26 @@ export function isSecureStorageAvailable(): boolean {
 }
 
 /**
+ * Helper to clear all secure_* prefixed keys from a storage object
+ */
+function clearSecurePrefixedKeys(storage: Storage): void {
+  const keysToRemove: string[] = [];
+  for (let i = 0; i < storage.length; i++) {
+    const key = storage.key(i);
+    if (key?.startsWith('secure_')) {
+      keysToRemove.push(key);
+    }
+  }
+  keysToRemove.forEach(key => storage.removeItem(key));
+}
+
+/**
  * Store encrypted data
  */
 export async function setSecureItem(key: string, value: string): Promise<void> {
   if (!isSecureStorageAvailable()) {
-    // Fallback to sessionStorage and localStorage for better persistence
+    // Fallback to sessionStorage only (not localStorage) to limit exposure
     sessionStorage.setItem(`secure_${key}`, value);
-    localStorage.setItem(`secure_${key}`, value);
     return;
   }
 
@@ -131,20 +147,15 @@ export async function setSecureItem(key: string, value: string): Promise<void> {
 
       const request = store.put(data, key);
 
-      request.onsuccess = () => {
-        // Also store in localStorage as fallback
-        localStorage.setItem(`secure_${key}`, value);
-        resolve();
-      };
+      request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
 
       transaction.oncomplete = () => db.close();
     });
   } catch (error) {
     console.error('Error storing secure item:', error);
-    // Fallback to sessionStorage and localStorage
+    // Fallback to sessionStorage only
     sessionStorage.setItem(`secure_${key}`, value);
-    localStorage.setItem(`secure_${key}`, value);
   }
 }
 
@@ -153,8 +164,7 @@ export async function setSecureItem(key: string, value: string): Promise<void> {
  */
 export async function getSecureItem(key: string): Promise<string | null> {
   if (!isSecureStorageAvailable()) {
-    // Fallback to sessionStorage first, then localStorage
-    return sessionStorage.getItem(`secure_${key}`) || localStorage.getItem(`secure_${key}`);
+    return sessionStorage.getItem(`secure_${key}`);
   }
 
   try {
@@ -168,9 +178,8 @@ export async function getSecureItem(key: string): Promise<string | null> {
       request.onsuccess = async () => {
         const data = request.result;
         if (!data) {
-          // Fallback to localStorage if not in IndexedDB
-          const localStorageValue = localStorage.getItem(`secure_${key}`);
-          resolve(localStorageValue);
+          // Check sessionStorage fallback
+          resolve(sessionStorage.getItem(`secure_${key}`));
           return;
         }
 
@@ -181,9 +190,7 @@ export async function getSecureItem(key: string): Promise<string | null> {
           resolve(plaintext);
         } catch (error) {
           console.error('Error decrypting data:', error);
-          // Fallback to localStorage
-          const localStorageValue = localStorage.getItem(`secure_${key}`);
-          resolve(localStorageValue);
+          resolve(sessionStorage.getItem(`secure_${key}`));
         }
       };
 
@@ -193,8 +200,7 @@ export async function getSecureItem(key: string): Promise<string | null> {
     });
   } catch (error) {
     console.error('Error retrieving secure item:', error);
-    // Fallback to sessionStorage then localStorage
-    return sessionStorage.getItem(`secure_${key}`) || localStorage.getItem(`secure_${key}`);
+    return sessionStorage.getItem(`secure_${key}`);
   }
 }
 
@@ -202,11 +208,11 @@ export async function getSecureItem(key: string): Promise<string | null> {
  * Remove encrypted data
  */
 export async function removeSecureItem(key: string): Promise<void> {
-  // Always clean up localStorage
+  // Always clean up both storages
   localStorage.removeItem(`secure_${key}`);
+  sessionStorage.removeItem(`secure_${key}`);
 
   if (!isSecureStorageAvailable()) {
-    sessionStorage.removeItem(`secure_${key}`);
     return;
   }
 
@@ -225,7 +231,6 @@ export async function removeSecureItem(key: string): Promise<void> {
     });
   } catch (error) {
     console.error('Error removing secure item:', error);
-    sessionStorage.removeItem(`secure_${key}`);
   }
 }
 
@@ -233,26 +238,11 @@ export async function removeSecureItem(key: string): Promise<void> {
  * Clear all secure storage
  */
 export async function clearSecureStorage(): Promise<void> {
-  if (!isSecureStorageAvailable()) {
-    // Clear all secure_* items from sessionStorage and localStorage
-    const keysToRemove: string[] = [];
-    for (let i = 0; i < sessionStorage.length; i++) {
-      const key = sessionStorage.key(i);
-      if (key?.startsWith('secure_')) {
-        keysToRemove.push(key);
-      }
-    }
-    keysToRemove.forEach(key => sessionStorage.removeItem(key));
+  // Always clear both storages regardless of IndexedDB availability
+  clearSecurePrefixedKeys(sessionStorage);
+  clearSecurePrefixedKeys(localStorage);
 
-    // Also clear from localStorage
-    const localStorageKeysToRemove: string[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key?.startsWith('secure_')) {
-        localStorageKeysToRemove.push(key);
-      }
-    }
-    localStorageKeysToRemove.forEach(key => localStorage.removeItem(key));
+  if (!isSecureStorageAvailable()) {
     return;
   }
 

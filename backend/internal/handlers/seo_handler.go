@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"html"
 	"log"
 	"net/http"
 	"strings"
@@ -10,22 +11,31 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/subculture-collective/clipper/internal/models"
+	"github.com/subculture-collective/clipper/pkg/utils"
 )
 
 // ClipRepositoryForSEO defines the interface for clip repository methods needed by SEO handler
 type ClipRepositoryForSEO interface {
 	ListForSitemap(ctx context.Context) ([]models.Clip, error)
+	ListForSitemapBroadcasters(ctx context.Context) ([]models.BroadcasterWithClipCount, error)
+}
+
+// GameRepositoryForSEO defines the interface for game repository methods needed by SEO handler
+type GameRepositoryForSEO interface {
+	ListAllWithClipCounts(ctx context.Context, limit, offset int) ([]*models.GameWithStats, error)
 }
 
 // SEOHandler handles SEO-related endpoints (sitemap, robots.txt)
 type SEOHandler struct {
 	clipRepo ClipRepositoryForSEO
+	gameRepo GameRepositoryForSEO
 }
 
 // NewSEOHandler creates a new SEO handler
-func NewSEOHandler(clipRepo ClipRepositoryForSEO) *SEOHandler {
+func NewSEOHandler(clipRepo ClipRepositoryForSEO, gameRepo GameRepositoryForSEO) *SEOHandler {
 	return &SEOHandler{
 		clipRepo: clipRepo,
+		gameRepo: gameRepo,
 	}
 }
 
@@ -79,6 +89,72 @@ func (h *SEOHandler) GetSitemap(c *gin.Context) {
     <priority>%s</priority>
   </url>
 `, baseURL, page.path, page.changefreq, page.priority))
+	}
+
+	// Best-of pages (static temporal)
+	bestOfPages := []struct {
+		path     string
+		priority string
+	}{
+		{"/clips/best/this-week", "0.9"},
+		{"/clips/best/this-month", "0.9"},
+	}
+	for _, page := range bestOfPages {
+		builder.WriteString(fmt.Sprintf(`  <url>
+    <loc>%s%s</loc>
+    <changefreq>daily</changefreq>
+    <priority>%s</priority>
+  </url>
+`, baseURL, page.path, page.priority))
+	}
+
+	// Monthly archive pages (last 12 months)
+	now := time.Now().UTC()
+	for i := 0; i < 12; i++ {
+		t := now.AddDate(0, -i, 0)
+		path := fmt.Sprintf("/clips/best/%d/%02d", t.Year(), t.Month())
+		builder.WriteString(fmt.Sprintf(`  <url>
+    <loc>%s%s</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+`, baseURL, path))
+	}
+
+	// Streamer pSEO pages
+	broadcasters, err := h.clipRepo.ListForSitemapBroadcasters(ctx)
+	if err != nil {
+		log.Printf("Error fetching broadcasters for sitemap: %v", err)
+	} else {
+		for _, b := range broadcasters {
+			builder.WriteString(fmt.Sprintf(`  <url>
+    <loc>%s/clips/streamer/%s</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+`, baseURL, html.EscapeString(b.BroadcasterName)))
+		}
+	}
+
+	// Game pSEO pages
+	if h.gameRepo != nil {
+		games, err := h.gameRepo.ListAllWithClipCounts(ctx, 500, 0)
+		if err != nil {
+			log.Printf("Error fetching games for sitemap: %v", err)
+		} else {
+			for _, g := range games {
+				slug := utils.Slugify(g.Name)
+				if slug == "" {
+					continue
+				}
+				builder.WriteString(fmt.Sprintf(`  <url>
+    <loc>%s/clips/game/%s</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+`, baseURL, slug))
+			}
+		}
 	}
 
 	// Dynamic clip pages

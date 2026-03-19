@@ -133,7 +133,7 @@ func (r *CategoryRepository) GetBySlug(ctx context.Context, slug string) (*model
 func (r *CategoryRepository) GetGamesInCategory(ctx context.Context, categoryID uuid.UUID, userID *uuid.UUID, limit, offset int) ([]*models.GameWithStats, error) {
 	query := `
 		SELECT
-			g.id, g.twitch_game_id, g.name, g.box_art_url, g.igdb_id,
+			g.id, g.twitch_game_id, g.name, g.slug, g.box_art_url, g.igdb_id,
 			g.created_at, g.updated_at,
 			COALESCE(COUNT(DISTINCT c.id), 0) as clip_count,
 			COALESCE(COUNT(DISTINCT gf.id), 0) as follower_count,
@@ -144,7 +144,7 @@ func (r *CategoryRepository) GetGamesInCategory(ctx context.Context, categoryID 
 		LEFT JOIN game_follows gf ON gf.game_id = g.id
 		LEFT JOIN game_follows ugf ON ugf.game_id = g.id AND ugf.user_id = $2
 		WHERE cg.category_id = $1
-		GROUP BY g.id, g.twitch_game_id, g.name, g.box_art_url, g.igdb_id, g.created_at, g.updated_at
+		GROUP BY g.id, g.twitch_game_id, g.name, g.slug, g.box_art_url, g.igdb_id, g.created_at, g.updated_at
 		ORDER BY clip_count DESC, g.name ASC
 		LIMIT $3 OFFSET $4
 	`
@@ -159,7 +159,7 @@ func (r *CategoryRepository) GetGamesInCategory(ctx context.Context, categoryID 
 	for rows.Next() {
 		var game models.GameWithStats
 		err := rows.Scan(
-			&game.ID, &game.TwitchGameID, &game.Name, &game.BoxArtURL, &game.IGDBID,
+			&game.ID, &game.TwitchGameID, &game.Name, &game.Slug, &game.BoxArtURL, &game.IGDBID,
 			&game.CreatedAt, &game.UpdatedAt,
 			&game.ClipCount, &game.FollowerCount, &game.IsFollowing,
 		)

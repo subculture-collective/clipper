@@ -8,25 +8,32 @@
  * Clears auth/session entries in localStorage and sessionStorage
  * without touching unrelated preferences.
  *
- * Heuristics:
- * - Removes keys containing substrings commonly used for auth/session
- *   such as: 'token', 'auth', 'session', 'expires'
- * - Also removes known test keys that may be used by E2E suites
- *   (e.g., 'accessToken', 'refreshToken', 'expiresAt') when present.
+ * Uses an explicit allowlist of known auth key names plus the `secure_` prefix
+ * (from secure-storage.ts). Update AUTH_KEYS if new auth storage keys are added.
  */
 export async function clearAuthStorage(): Promise<void> {
   try {
+    // Explicit keys that are known auth/session storage entries.
+    // An allowlist avoids accidentally removing unrelated keys
+    // (e.g., a "tokenizer" preference) that match broad substrings.
+    const AUTH_KEYS = new Set([
+      'token',
+      'accessToken',
+      'refreshToken',
+      'access_token',
+      'refresh_token',
+      'expiresAt',
+      'expires_at',
+      'auth_state',
+      'oauth_state',
+      'session_id',
+    ]);
+
     const shouldRemove = (key: string) => {
-      const lower = key.toLowerCase();
-      return (
-        lower.includes('token') ||
-        lower.includes('auth') ||
-        lower.includes('session') ||
-        lower.includes('expires') ||
-        key === 'accessToken' ||
-        key === 'refreshToken' ||
-        key === 'expiresAt'
-      );
+      if (AUTH_KEYS.has(key)) return true;
+      // Also remove secure_* prefixed keys (from secure-storage.ts)
+      if (key.startsWith('secure_')) return true;
+      return false;
     };
 
     // Remove matching keys from localStorage

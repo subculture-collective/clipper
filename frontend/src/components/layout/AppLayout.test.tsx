@@ -161,8 +161,8 @@ describe('AppLayout', () => {
             </MemoryRouter>
         );
 
-        // Should reset to unset on initial render
-        expect(document.body.style.overflow).toBe('unset');
+        // Should reset overflow on initial render (empty string = no inline override)
+        expect(document.body.style.overflow).toBe('');
 
         // Set overflow to hidden (simulating modal opened)
         document.body.style.overflow = 'hidden';
