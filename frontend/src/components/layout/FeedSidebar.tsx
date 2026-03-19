@@ -6,6 +6,8 @@ import { useDiscoveryLists } from '@/hooks/useDiscoveryLists';
 import { useQueueCount } from '@/hooks/useQueue';
 import { useIsAuthenticated } from '@/hooks';
 import { gameApi } from '@/lib/game-api';
+import { categoryApi } from '@/lib/category-api';
+import { apiClient } from '@/lib/api';
 import {
     ChevronRight,
     ListMusic,
@@ -14,6 +16,8 @@ import {
     Sparkles,
     Bookmark,
     List,
+    Flame,
+    Users,
 } from 'lucide-react';
 
 function SidebarSection({
@@ -95,6 +99,21 @@ export function FeedSidebar() {
     const { data: discoveryResponse } = useDiscoveryLists({ limit: 5 });
     const discoveryLists = (discoveryResponse as { lists?: Array<{ id: string; title: string; slug?: string; clip_count?: number }> })?.lists ?? [];
 
+    const { data: topicsResponse } = useQuery({
+        queryKey: ['categories', 'topic'],
+        queryFn: () => categoryApi.listCategories({ type: 'topic' }),
+    });
+    const topics = (topicsResponse as { categories?: Array<{ id: string; name: string; slug: string; icon?: string }> })?.categories ?? [];
+
+    const { data: rankingsResponse } = useQuery({
+        queryKey: ['broadcasters', 'rankings', 5],
+        queryFn: async () => {
+            const res = await apiClient.get<{ success: boolean; data: Array<{ broadcaster_id: string; broadcaster_name: string; engagement_score: number }> }>('/broadcasters/rankings?limit=5');
+            return res.data;
+        },
+    });
+    const topStreamers = rankingsResponse?.data ?? [];
+
     const { data: queueCount } = useQueueCount(isAuthenticated);
 
     const { data: myPlaylistsResponse } = usePlaylists(1, 5);
@@ -162,6 +181,44 @@ export function FeedSidebar() {
                                 meta={`${game.recent_clip_count} clips`}
                             >
                                 {game.name}
+                            </SidebarLink>
+                        ))}
+                    </div>
+                </SidebarSection>
+            )}
+
+            {/* Topics (custom categories) */}
+            {topics.length > 0 && (
+                <SidebarSection title='Topics' icon={Flame} viewAllHref='/categories'>
+                    <div className='flex flex-wrap gap-1.5'>
+                        {topics.map(topic => (
+                            <Link
+                                key={topic.id}
+                                to={`/category/${topic.slug}`}
+                                className='inline-flex items-center gap-1 px-2.5 py-1 text-[12px] font-medium bg-surface-raised hover:bg-surface-hover rounded text-text-secondary hover:text-text-primary transition-colors cursor-pointer'
+                            >
+                                {topic.name}
+                            </Link>
+                        ))}
+                    </div>
+                </SidebarSection>
+            )}
+
+            {/* Top Streamers */}
+            {topStreamers.length > 0 && (
+                <SidebarSection
+                    title='Streamers'
+                    icon={Users}
+                    viewAllHref='/leaderboard'
+                >
+                    <div className='space-y-0.5'>
+                        {topStreamers.map((streamer, idx) => (
+                            <SidebarLink
+                                key={streamer.broadcaster_id}
+                                to={`/broadcaster/${streamer.broadcaster_id}`}
+                                meta={`#${idx + 1}`}
+                            >
+                                {streamer.broadcaster_name}
                             </SidebarLink>
                         ))}
                     </div>
