@@ -1,6 +1,8 @@
-import { Container, SEO } from '../components';
+import { SEO } from '../components';
 import { ClipFeed } from '../components/clip';
 import { PlaylistCard } from '../components/playlist/PlaylistCard';
+import { FeedLayout } from '../components/layout/FeedLayout';
+import { FeedSidebar } from '../components/layout/FeedSidebar';
 import { useFeaturedPlaylists } from '../hooks/usePlaylist';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -60,7 +62,7 @@ export function HomePage() {
                 description='Discover and share the best Twitch clips curated by the community. Vote on your favorite moments, explore trending clips, and join the conversation.'
                 canonicalUrl='/'
             />
-            <Container className='py-4 xs:py-6 md:py-8'>
+            <FeedLayout sidebar={<FeedSidebar />}>
                 {/* Curated Collections Section */}
                 {!isLoading && featuredPlaylists.length > 0 && (
                     <div className='mb-8 overflow-hidden'>
@@ -135,7 +137,7 @@ export function HomePage() {
                     defaultSort='trending'
                     showSearch
                 />
-            </Container>
+            </FeedLayout>
         </>
     );
 }

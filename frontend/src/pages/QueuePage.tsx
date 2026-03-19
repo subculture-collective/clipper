@@ -1,4 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
+import { Container } from '@/components/layout/Container';
 import {
     useQueue,
     useRemoveFromQueue,
@@ -105,7 +106,7 @@ export function QueuePage() {
                 description="Your clip queue - clips you've saved to watch later"
             />
 
-            <div className='w-full px-4 sm:px-6 lg:px-8 py-8'>
+            <Container className='py-8'>
                 {/* Loading State */}
                 {isLoading && (
                     <div className='flex items-center justify-center py-16'>
@@ -202,7 +203,7 @@ export function QueuePage() {
                     onClose={() => setShowConvertDialog(false)}
                     queueItemCount={total}
                 />
-            </div>
+            </Container>
         </>
     );
 }
