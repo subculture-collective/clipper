@@ -38,6 +38,9 @@ func (s *PlaylistScriptService) executeStrategy(ctx context.Context, script *mod
 	case "fresh_faces":
 		return s.curationRepo.FreshFaces(ctx, script)
 
+	case "one_per_creator":
+		return s.curationRepo.OnePerCreator(ctx, script)
+
 	case "similar_vibes":
 		if script.SeedClipID == nil {
 			return nil, fmt.Errorf("similar_vibes strategy requires seed_clip_id")

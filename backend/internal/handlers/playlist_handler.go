@@ -585,6 +585,13 @@ func (h *PlaylistHandler) ListUserPlaylists(c *gin.Context) {
 
 // ListPublicPlaylists handles GET /api/playlists/public
 func (h *PlaylistHandler) ListPublicPlaylists(c *gin.Context) {
+	var userID *uuid.UUID
+	if userIDVal, exists := c.Get("user_id"); exists {
+		if uid, ok := userIDVal.(uuid.UUID); ok {
+			userID = &uid
+		}
+	}
+
 	// Parse pagination parameters
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
@@ -598,7 +605,7 @@ func (h *PlaylistHandler) ListPublicPlaylists(c *gin.Context) {
 	}
 
 	// Get public playlists
-	playlists, total, err := h.playlistService.ListPublicPlaylists(c.Request.Context(), page, limit)
+	playlists, total, err := h.playlistService.ListPublicPlaylists(c.Request.Context(), userID, page, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, StandardResponse{
 			Success: false,
@@ -1627,6 +1634,13 @@ func (h *PlaylistHandler) UpdateCollaboratorPermission(c *gin.Context) {
 
 // ListFeaturedPlaylists handles GET /api/v1/playlists/featured
 func (h *PlaylistHandler) ListFeaturedPlaylists(c *gin.Context) {
+	var userID *uuid.UUID
+	if userIDVal, exists := c.Get("user_id"); exists {
+		if uid, ok := userIDVal.(uuid.UUID); ok {
+			userID = &uid
+		}
+	}
+
 	page := 1
 	limit := 20
 
@@ -1641,7 +1655,7 @@ func (h *PlaylistHandler) ListFeaturedPlaylists(c *gin.Context) {
 		}
 	}
 
-	playlists, total, err := h.playlistService.ListFeaturedPlaylists(c.Request.Context(), page, limit)
+	playlists, total, err := h.playlistService.ListFeaturedPlaylists(c.Request.Context(), userID, page, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, StandardResponse{
 			Success: false,
@@ -1653,20 +1667,33 @@ func (h *PlaylistHandler) ListFeaturedPlaylists(c *gin.Context) {
 		return
 	}
 
+	totalPages := (total + limit - 1) / limit
+	meta := PaginationMeta{
+		Page:       page,
+		Limit:      limit,
+		Total:      total,
+		TotalPages: totalPages,
+		HasNext:    page < totalPages,
+		HasPrev:    page > 1,
+	}
+
 	c.JSON(http.StatusOK, StandardResponse{
 		Success: true,
 		Data:    playlists,
-		Meta: map[string]interface{}{
-			"page":  page,
-			"limit": limit,
-			"total": total,
-		},
+		Meta:    meta,
 	})
 }
 
 // GetPlaylistOfTheDay handles GET /api/v1/playlists/today
 func (h *PlaylistHandler) GetPlaylistOfTheDay(c *gin.Context) {
-	playlist, err := h.playlistService.GetPlaylistOfTheDay(c.Request.Context())
+	var userID *uuid.UUID
+	if userIDVal, exists := c.Get("user_id"); exists {
+		if uid, ok := userIDVal.(uuid.UUID); ok {
+			userID = &uid
+		}
+	}
+
+	playlist, err := h.playlistService.GetPlaylistOfTheDay(c.Request.Context(), userID)
 	if err != nil {
 		if strings.Contains(err.Error(), "no rows") {
 			c.JSON(http.StatusNotFound, StandardResponse{
@@ -1691,5 +1718,107 @@ func (h *PlaylistHandler) GetPlaylistOfTheDay(c *gin.Context) {
 	c.JSON(http.StatusOK, StandardResponse{
 		Success: true,
 		Data:    playlist,
+	})
+}
+
+// BookmarkPlaylist handles POST /api/playlists/:id/bookmark
+func (h *PlaylistHandler) BookmarkPlaylist(c *gin.Context) {
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{Code: "UNAUTHORIZED", Message: "Authentication required"},
+		})
+		return
+	}
+
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{Code: "INTERNAL_ERROR", Message: "Invalid user ID format"},
+		})
+		return
+	}
+
+	playlistID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{Code: "INVALID_REQUEST", Message: "Invalid playlist ID"},
+		})
+		return
+	}
+
+	err = h.playlistService.BookmarkPlaylist(c.Request.Context(), playlistID, userID)
+	if err != nil {
+		if err.Error() == "playlist not found" {
+			c.JSON(http.StatusNotFound, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{Code: "NOT_FOUND", Message: "Playlist not found"},
+			})
+			return
+		}
+		if err.Error() == "cannot bookmark private playlists" {
+			c.JSON(http.StatusForbidden, StandardResponse{
+				Success: false,
+				Error: &ErrorInfo{Code: "FORBIDDEN", Message: "Cannot bookmark private playlists"},
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{Code: "INTERNAL_ERROR", Message: "Failed to bookmark playlist"},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, StandardResponse{
+		Success: true,
+		Data: map[string]string{"message": "Playlist bookmarked successfully"},
+	})
+}
+
+// UnbookmarkPlaylist handles DELETE /api/playlists/:id/bookmark
+func (h *PlaylistHandler) UnbookmarkPlaylist(c *gin.Context) {
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{Code: "UNAUTHORIZED", Message: "Authentication required"},
+		})
+		return
+	}
+
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{Code: "INTERNAL_ERROR", Message: "Invalid user ID format"},
+		})
+		return
+	}
+
+	playlistID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{Code: "INVALID_REQUEST", Message: "Invalid playlist ID"},
+		})
+		return
+	}
+
+	err = h.playlistService.UnbookmarkPlaylist(c.Request.Context(), playlistID, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, StandardResponse{
+			Success: false,
+			Error: &ErrorInfo{Code: "INTERNAL_ERROR", Message: "Failed to unbookmark playlist"},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, StandardResponse{
+		Success: true,
+		Data: map[string]string{"message": "Playlist unbookmarked successfully"},
 	})
 }

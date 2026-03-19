@@ -3572,6 +3572,8 @@ type PlaylistListItem struct {
 	Playlist
 	ClipCount           int    `json:"clip_count" db:"clip_count"`
 	HasProcessingClips  bool   `json:"has_processing_clips" db:"has_processing_clips"`
+	IsLiked             bool   `json:"is_liked"`
+	IsBookmarked        bool   `json:"is_bookmarked"`
 	PreviewClips        []Clip `json:"preview_clips,omitempty"`
 }
 
@@ -3628,7 +3630,7 @@ type CreatePlaylistScriptRequest struct {
 	Visibility      *string  `json:"visibility,omitempty" binding:"omitempty,oneof=private public unlisted"`
 	IsActive        *bool    `json:"is_active,omitempty"`
 	Schedule        *string  `json:"schedule,omitempty" binding:"omitempty,oneof=manual hourly daily weekly monthly"`
-	Strategy        *string  `json:"strategy,omitempty" binding:"omitempty,oneof=standard sleeper_hits viral_velocity community_favorites deep_cuts fresh_faces similar_vibes cross_game_hits controversial binge_worthy rising_stars twitch_top_game twitch_top_broadcaster twitch_trending twitch_discovery"`
+	Strategy        *string  `json:"strategy,omitempty" binding:"omitempty,oneof=standard sleeper_hits viral_velocity community_favorites deep_cuts fresh_faces one_per_creator similar_vibes cross_game_hits controversial binge_worthy rising_stars twitch_top_game twitch_top_broadcaster twitch_trending twitch_discovery"`
 	GameID          *string  `json:"game_id,omitempty" binding:"omitempty,max=50"`
 	GameIDs         []string `json:"game_ids,omitempty"`
 	BroadcasterID   *string  `json:"broadcaster_id,omitempty" binding:"omitempty,max=50"`
@@ -3654,7 +3656,7 @@ type UpdatePlaylistScriptRequest struct {
 	Visibility      *string  `json:"visibility,omitempty" binding:"omitempty,oneof=private public unlisted"`
 	IsActive        *bool    `json:"is_active,omitempty"`
 	Schedule        *string  `json:"schedule,omitempty" binding:"omitempty,oneof=manual hourly daily weekly monthly"`
-	Strategy        *string  `json:"strategy,omitempty" binding:"omitempty,oneof=standard sleeper_hits viral_velocity community_favorites deep_cuts fresh_faces similar_vibes cross_game_hits controversial binge_worthy rising_stars twitch_top_game twitch_top_broadcaster twitch_trending twitch_discovery"`
+	Strategy        *string  `json:"strategy,omitempty" binding:"omitempty,oneof=standard sleeper_hits viral_velocity community_favorites deep_cuts fresh_faces one_per_creator similar_vibes cross_game_hits controversial binge_worthy rising_stars twitch_top_game twitch_top_broadcaster twitch_trending twitch_discovery"`
 	GameID          *string  `json:"game_id,omitempty" binding:"omitempty,max=50"`
 	GameIDs         []string `json:"game_ids,omitempty"`
 	BroadcasterID   *string  `json:"broadcaster_id,omitempty" binding:"omitempty,max=50"`

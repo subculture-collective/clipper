@@ -26,8 +26,8 @@ func NewPlaylistRepository(pool *pgxpool.Pool) *PlaylistRepository {
 // Create creates a new playlist
 func (r *PlaylistRepository) Create(ctx context.Context, playlist *models.Playlist) error {
 	query := `
-		INSERT INTO playlists (id, user_id, title, description, cover_url, visibility, script_id)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO playlists (id, user_id, title, description, cover_url, visibility, is_curated, is_featured, display_order, script_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		RETURNING created_at, updated_at
 	`
 
@@ -38,6 +38,9 @@ func (r *PlaylistRepository) Create(ctx context.Context, playlist *models.Playli
 		playlist.Description,
 		playlist.CoverURL,
 		playlist.Visibility,
+		playlist.IsCurated,
+		playlist.IsFeatured,
+		playlist.DisplayOrder,
 		playlist.ScriptID,
 	).Scan(&playlist.CreatedAt, &playlist.UpdatedAt)
 
@@ -57,8 +60,8 @@ func (r *PlaylistRepository) CreateWithItemsCopy(ctx context.Context, playlist *
 	defer tx.Rollback(ctx)
 
 	insertPlaylist := `
-		INSERT INTO playlists (id, user_id, title, description, cover_url, visibility, script_id)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO playlists (id, user_id, title, description, cover_url, visibility, is_curated, is_featured, display_order, script_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		RETURNING created_at, updated_at
 	`
 
@@ -69,6 +72,9 @@ func (r *PlaylistRepository) CreateWithItemsCopy(ctx context.Context, playlist *
 		playlist.Description,
 		playlist.CoverURL,
 		playlist.Visibility,
+		playlist.IsCurated,
+		playlist.IsFeatured,
+		playlist.DisplayOrder,
 		playlist.ScriptID,
 	).Scan(&playlist.CreatedAt, &playlist.UpdatedAt)
 	if err != nil {
@@ -98,7 +104,8 @@ func (r *PlaylistRepository) CreateWithItemsCopy(ctx context.Context, playlist *
 func (r *PlaylistRepository) GetByID(ctx context.Context, playlistID uuid.UUID) (*models.Playlist, error) {
 	query := `
 		SELECT id, user_id, title, description, cover_url, visibility, share_token,
-		       view_count, share_count, like_count, script_id,
+		       view_count, share_count, like_count, follower_count, bookmark_count,
+		       is_curated, is_featured, display_order, script_id, slug,
 		       created_at, updated_at, deleted_at
 		FROM playlists
 		WHERE id = $1 AND deleted_at IS NULL
@@ -116,7 +123,13 @@ func (r *PlaylistRepository) GetByID(ctx context.Context, playlistID uuid.UUID) 
 		&playlist.ViewCount,
 		&playlist.ShareCount,
 		&playlist.LikeCount,
+		&playlist.FollowerCount,
+		&playlist.BookmarkCount,
+		&playlist.IsCurated,
+		&playlist.IsFeatured,
+		&playlist.DisplayOrder,
 		&playlist.ScriptID,
+		&playlist.Slug,
 		&playlist.CreatedAt,
 		&playlist.UpdatedAt,
 		&playlist.DeletedAt,
@@ -136,7 +149,8 @@ func (r *PlaylistRepository) GetByID(ctx context.Context, playlistID uuid.UUID) 
 func (r *PlaylistRepository) GetByShareToken(ctx context.Context, shareToken string) (*models.Playlist, error) {
 	query := `
 		SELECT id, user_id, title, description, cover_url, visibility, share_token,
-		       view_count, share_count, like_count, script_id,
+		       view_count, share_count, like_count, follower_count, bookmark_count,
+		       is_curated, is_featured, display_order, script_id, slug,
 		       created_at, updated_at, deleted_at
 		FROM playlists
 		WHERE share_token = $1 AND deleted_at IS NULL
@@ -154,7 +168,13 @@ func (r *PlaylistRepository) GetByShareToken(ctx context.Context, shareToken str
 		&playlist.ViewCount,
 		&playlist.ShareCount,
 		&playlist.LikeCount,
+		&playlist.FollowerCount,
+		&playlist.BookmarkCount,
+		&playlist.IsCurated,
+		&playlist.IsFeatured,
+		&playlist.DisplayOrder,
 		&playlist.ScriptID,
+		&playlist.Slug,
 		&playlist.CreatedAt,
 		&playlist.UpdatedAt,
 		&playlist.DeletedAt,
@@ -219,7 +239,7 @@ func (r *PlaylistRepository) SoftDelete(ctx context.Context, playlistID uuid.UUI
 }
 
 // ListByUserID retrieves playlists owned by a user
-func (r *PlaylistRepository) ListByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*models.PlaylistListItem, int, error) {
+func (r *PlaylistRepository) ListByUserID(ctx context.Context, userID uuid.UUID, currentUserID *uuid.UUID, limit, offset int) ([]*models.PlaylistListItem, int, error) {
 	// Get total count
 	countQuery := `
 		SELECT COUNT(*)
@@ -237,7 +257,8 @@ func (r *PlaylistRepository) ListByUserID(ctx context.Context, userID uuid.UUID,
 	query := `
 		SELECT
 			p.id, p.user_id, p.title, p.description, p.cover_url, p.visibility, p.share_token,
-			p.view_count, p.share_count, p.like_count, p.script_id,
+			p.view_count, p.share_count, p.like_count, p.follower_count, p.bookmark_count,
+			p.is_curated, p.is_featured, p.display_order, p.script_id, p.slug,
 			p.created_at, p.updated_at, p.deleted_at,
 			COALESCE(COUNT(pi.id), 0) AS clip_count,
 			EXISTS (
@@ -245,13 +266,15 @@ func (r *PlaylistRepository) ListByUserID(ctx context.Context, userID uuid.UUID,
 				FROM playlist_items pi2
 				JOIN clips c2 ON pi2.clip_id = c2.id
 				WHERE pi2.playlist_id = p.id
-				  AND (c2.video_url IS NULL OR c2.status = 'processing')
+				  AND (c2.status = 'processing' OR (c2.stream_source = 'stream' AND c2.video_url IS NULL))
 			) AS has_processing_clips
 		FROM playlists p
 		LEFT JOIN playlist_items pi ON p.id = pi.playlist_id
 		WHERE p.user_id = $1 AND p.deleted_at IS NULL
 		GROUP BY p.id, p.user_id, p.title, p.description, p.cover_url, p.visibility, p.share_token,
-		         p.view_count, p.share_count, p.like_count, p.script_id, p.created_at, p.updated_at, p.deleted_at
+		         p.view_count, p.share_count, p.like_count, p.follower_count, p.bookmark_count,
+		         p.is_curated, p.is_featured, p.display_order, p.script_id, p.slug,
+		         p.created_at, p.updated_at, p.deleted_at
 		ORDER BY p.created_at DESC
 		LIMIT $2 OFFSET $3
 	`
@@ -276,7 +299,13 @@ func (r *PlaylistRepository) ListByUserID(ctx context.Context, userID uuid.UUID,
 			&item.ViewCount,
 			&item.ShareCount,
 			&item.LikeCount,
+			&item.FollowerCount,
+			&item.BookmarkCount,
+			&item.IsCurated,
+			&item.IsFeatured,
+			&item.DisplayOrder,
 			&item.ScriptID,
+			&item.Slug,
 			&item.CreatedAt,
 			&item.UpdatedAt,
 			&item.DeletedAt,
@@ -287,6 +316,12 @@ func (r *PlaylistRepository) ListByUserID(ctx context.Context, userID uuid.UUID,
 			return nil, 0, fmt.Errorf("failed to scan playlist: %w", err)
 		}
 		playlists = append(playlists, &item)
+	}
+
+	if currentUserID != nil {
+		if err := r.enrichPlaylistInteractionStates(ctx, *currentUserID, playlists); err != nil {
+			return nil, 0, err
+		}
 	}
 
 	// Fetch preview clips for each playlist (first 4)
@@ -330,7 +365,7 @@ func (r *PlaylistRepository) ListByUserID(ctx context.Context, userID uuid.UUID,
 }
 
 // ListPublic retrieves public playlists for discovery
-func (r *PlaylistRepository) ListPublic(ctx context.Context, limit, offset int) ([]*models.PlaylistListItem, int, error) {
+func (r *PlaylistRepository) ListPublic(ctx context.Context, currentUserID *uuid.UUID, limit, offset int) ([]*models.PlaylistListItem, int, error) {
 	// Get total count
 	countQuery := `
 		SELECT COUNT(*)
@@ -348,7 +383,8 @@ func (r *PlaylistRepository) ListPublic(ctx context.Context, limit, offset int) 
 	query := `
 		SELECT
 			p.id, p.user_id, p.title, p.description, p.cover_url, p.visibility, p.share_token,
-			p.view_count, p.share_count, p.like_count, p.script_id,
+			p.view_count, p.share_count, p.like_count, p.follower_count, p.bookmark_count,
+			p.is_curated, p.is_featured, p.display_order, p.script_id, p.slug,
 			p.created_at, p.updated_at, p.deleted_at,
 			COALESCE(COUNT(pi.id), 0) AS clip_count,
 			EXISTS (
@@ -356,13 +392,15 @@ func (r *PlaylistRepository) ListPublic(ctx context.Context, limit, offset int) 
 				FROM playlist_items pi2
 				JOIN clips c2 ON pi2.clip_id = c2.id
 				WHERE pi2.playlist_id = p.id
-				  AND (c2.video_url IS NULL OR c2.status = 'processing')
+				  AND (c2.status = 'processing' OR (c2.stream_source = 'stream' AND c2.video_url IS NULL))
 			) AS has_processing_clips
 		FROM playlists p
 		LEFT JOIN playlist_items pi ON p.id = pi.playlist_id
 		WHERE p.visibility = 'public' AND p.deleted_at IS NULL
 		GROUP BY p.id, p.user_id, p.title, p.description, p.cover_url, p.visibility, p.share_token,
-		         p.view_count, p.share_count, p.like_count, p.script_id, p.created_at, p.updated_at, p.deleted_at
+		         p.view_count, p.share_count, p.like_count, p.follower_count, p.bookmark_count,
+		         p.is_curated, p.is_featured, p.display_order, p.script_id, p.slug,
+		         p.created_at, p.updated_at, p.deleted_at
 		ORDER BY p.like_count DESC, p.created_at DESC
 		LIMIT $1 OFFSET $2
 	`
@@ -387,7 +425,13 @@ func (r *PlaylistRepository) ListPublic(ctx context.Context, limit, offset int) 
 			&item.ViewCount,
 			&item.ShareCount,
 			&item.LikeCount,
+			&item.FollowerCount,
+			&item.BookmarkCount,
+			&item.IsCurated,
+			&item.IsFeatured,
+			&item.DisplayOrder,
 			&item.ScriptID,
+			&item.Slug,
 			&item.CreatedAt,
 			&item.UpdatedAt,
 			&item.DeletedAt,
@@ -398,6 +442,12 @@ func (r *PlaylistRepository) ListPublic(ctx context.Context, limit, offset int) 
 			return nil, 0, fmt.Errorf("failed to scan playlist: %w", err)
 		}
 		playlists = append(playlists, &item)
+	}
+
+	if currentUserID != nil {
+		if err := r.enrichPlaylistInteractionStates(ctx, *currentUserID, playlists); err != nil {
+			return nil, 0, err
+		}
 	}
 
 	// Fetch preview clips for each playlist (first 4)
@@ -683,6 +733,37 @@ func (r *PlaylistRepository) LikePlaylist(ctx context.Context, userID, playlistI
 	return nil
 }
 
+// BookmarkPlaylist adds a bookmark to a playlist.
+func (r *PlaylistRepository) BookmarkPlaylist(ctx context.Context, userID, playlistID uuid.UUID) error {
+	query := `
+		INSERT INTO playlist_bookmarks (user_id, playlist_id)
+		VALUES ($1, $2)
+		ON CONFLICT (user_id, playlist_id) DO NOTHING
+	`
+
+	_, err := r.pool.Exec(ctx, query, userID, playlistID)
+	if err != nil {
+		return fmt.Errorf("failed to bookmark playlist: %w", err)
+	}
+
+	return nil
+}
+
+// UnbookmarkPlaylist removes a bookmark from a playlist.
+func (r *PlaylistRepository) UnbookmarkPlaylist(ctx context.Context, userID, playlistID uuid.UUID) error {
+	query := `
+		DELETE FROM playlist_bookmarks
+		WHERE user_id = $1 AND playlist_id = $2
+	`
+
+	_, err := r.pool.Exec(ctx, query, userID, playlistID)
+	if err != nil {
+		return fmt.Errorf("failed to unbookmark playlist: %w", err)
+	}
+
+	return nil
+}
+
 // UnlikePlaylist removes a like from a playlist
 func (r *PlaylistRepository) UnlikePlaylist(ctx context.Context, userID, playlistID uuid.UUID) error {
 	query := `
@@ -714,6 +795,80 @@ func (r *PlaylistRepository) IsLiked(ctx context.Context, userID, playlistID uui
 	}
 
 	return liked, nil
+}
+
+// IsBookmarked checks if a user has bookmarked a playlist.
+func (r *PlaylistRepository) IsBookmarked(ctx context.Context, userID, playlistID uuid.UUID) (bool, error) {
+	query := `
+		SELECT EXISTS(
+			SELECT 1 FROM playlist_bookmarks
+			WHERE user_id = $1 AND playlist_id = $2
+		)
+	`
+
+	var bookmarked bool
+	err := r.pool.QueryRow(ctx, query, userID, playlistID).Scan(&bookmarked)
+	if err != nil {
+		return false, fmt.Errorf("failed to check if bookmarked: %w", err)
+	}
+
+	return bookmarked, nil
+}
+
+func (r *PlaylistRepository) enrichPlaylistInteractionStates(ctx context.Context, userID uuid.UUID, playlists []*models.PlaylistListItem) error {
+	if len(playlists) == 0 {
+		return nil
+	}
+
+	playlistIDs := make([]uuid.UUID, 0, len(playlists))
+	for _, playlist := range playlists {
+		playlistIDs = append(playlistIDs, playlist.ID)
+	}
+
+	likedMap := make(map[uuid.UUID]bool, len(playlists))
+	likedRows, err := r.pool.Query(ctx, `
+		SELECT playlist_id
+		FROM playlist_likes
+		WHERE user_id = $1 AND playlist_id = ANY($2)
+	`, userID, playlistIDs)
+	if err != nil {
+		return fmt.Errorf("failed to load liked playlists: %w", err)
+	}
+	for likedRows.Next() {
+		var playlistID uuid.UUID
+		if scanErr := likedRows.Scan(&playlistID); scanErr != nil {
+			likedRows.Close()
+			return fmt.Errorf("failed to scan liked playlist: %w", scanErr)
+		}
+		likedMap[playlistID] = true
+	}
+	likedRows.Close()
+
+	bookmarkedMap := make(map[uuid.UUID]bool, len(playlists))
+	bookmarkRows, err := r.pool.Query(ctx, `
+		SELECT playlist_id
+		FROM playlist_bookmarks
+		WHERE user_id = $1 AND playlist_id = ANY($2)
+	`, userID, playlistIDs)
+	if err != nil {
+		return fmt.Errorf("failed to load bookmarked playlists: %w", err)
+	}
+	for bookmarkRows.Next() {
+		var playlistID uuid.UUID
+		if scanErr := bookmarkRows.Scan(&playlistID); scanErr != nil {
+			bookmarkRows.Close()
+			return fmt.Errorf("failed to scan bookmarked playlist: %w", scanErr)
+		}
+		bookmarkedMap[playlistID] = true
+	}
+	bookmarkRows.Close()
+
+	for _, playlist := range playlists {
+		playlist.IsLiked = likedMap[playlist.ID]
+		playlist.IsBookmarked = bookmarkedMap[playlist.ID]
+	}
+
+	return nil
 }
 
 // GetCreator retrieves the creator of a playlist
@@ -945,12 +1100,20 @@ func (r *PlaylistRepository) IsCollaborator(ctx context.Context, playlistID, use
 }
 
 // ListFeatured returns playlists that are featured or curated, public, ordered by display_order.
-func (r *PlaylistRepository) ListFeatured(ctx context.Context, limit, offset int) ([]*models.PlaylistListItem, int, error) {
+func (r *PlaylistRepository) ListFeatured(ctx context.Context, currentUserID *uuid.UUID, limit, offset int) ([]*models.PlaylistListItem, int, error) {
 	countQuery := `
+		WITH featured_source AS (
+			SELECT ROW_NUMBER() OVER (
+				PARTITION BY COALESCE(script_id, id)
+				ORDER BY created_at DESC
+			) AS latest_rank
+			FROM playlists
+			WHERE (is_featured = true OR is_curated = true)
+			  AND visibility = 'public' AND deleted_at IS NULL
+		)
 		SELECT COUNT(*)
-		FROM playlists
-		WHERE (is_featured = true OR is_curated = true)
-		  AND visibility = 'public' AND deleted_at IS NULL
+		FROM featured_source
+		WHERE latest_rank = 1
 	`
 
 	var total int
@@ -960,9 +1123,20 @@ func (r *PlaylistRepository) ListFeatured(ctx context.Context, limit, offset int
 	}
 
 	query := `
+		WITH featured_source AS (
+			SELECT p.*,
+			       ROW_NUMBER() OVER (
+				   PARTITION BY COALESCE(p.script_id, p.id)
+				   ORDER BY p.created_at DESC
+			   ) AS latest_rank
+			FROM playlists p
+			WHERE (p.is_featured = true OR p.is_curated = true)
+			  AND p.visibility = 'public' AND p.deleted_at IS NULL
+		)
 		SELECT
 			p.id, p.user_id, p.title, p.description, p.cover_url, p.visibility, p.share_token,
-			p.view_count, p.share_count, p.like_count, p.script_id,
+			p.view_count, p.share_count, p.like_count, p.follower_count, p.bookmark_count,
+			p.is_curated, p.is_featured, p.display_order, p.script_id, p.slug,
 			p.created_at, p.updated_at, p.deleted_at,
 			COALESCE(COUNT(pi.id), 0) AS clip_count,
 			EXISTS (
@@ -970,14 +1144,15 @@ func (r *PlaylistRepository) ListFeatured(ctx context.Context, limit, offset int
 				FROM playlist_items pi2
 				JOIN clips c2 ON pi2.clip_id = c2.id
 				WHERE pi2.playlist_id = p.id
-				  AND (c2.video_url IS NULL OR c2.status = 'processing')
+				  AND (c2.status = 'processing' OR (c2.stream_source = 'stream' AND c2.video_url IS NULL))
 			) AS has_processing_clips
-		FROM playlists p
+		FROM featured_source p
 		LEFT JOIN playlist_items pi ON p.id = pi.playlist_id
-		WHERE (p.is_featured = true OR p.is_curated = true)
-		  AND p.visibility = 'public' AND p.deleted_at IS NULL
+		WHERE p.latest_rank = 1
 		GROUP BY p.id, p.user_id, p.title, p.description, p.cover_url, p.visibility, p.share_token,
-		         p.view_count, p.share_count, p.like_count, p.script_id, p.created_at, p.updated_at, p.deleted_at
+		         p.view_count, p.share_count, p.like_count, p.follower_count, p.bookmark_count,
+		         p.is_curated, p.is_featured, p.display_order, p.script_id, p.slug,
+		         p.created_at, p.updated_at, p.deleted_at
 		ORDER BY p.display_order ASC, p.created_at DESC
 		LIMIT $1 OFFSET $2
 	`
@@ -1002,7 +1177,13 @@ func (r *PlaylistRepository) ListFeatured(ctx context.Context, limit, offset int
 			&item.ViewCount,
 			&item.ShareCount,
 			&item.LikeCount,
+			&item.FollowerCount,
+			&item.BookmarkCount,
+			&item.IsCurated,
+			&item.IsFeatured,
+			&item.DisplayOrder,
 			&item.ScriptID,
+			&item.Slug,
 			&item.CreatedAt,
 			&item.UpdatedAt,
 			&item.DeletedAt,
@@ -1013,6 +1194,12 @@ func (r *PlaylistRepository) ListFeatured(ctx context.Context, limit, offset int
 			return nil, 0, fmt.Errorf("failed to scan featured playlist: %w", err)
 		}
 		playlists = append(playlists, &item)
+	}
+
+	if currentUserID != nil {
+		if err := r.enrichPlaylistInteractionStates(ctx, *currentUserID, playlists); err != nil {
+			return nil, 0, err
+		}
 	}
 
 	// Fetch preview clips for each playlist (first 4)
@@ -1056,11 +1243,12 @@ func (r *PlaylistRepository) ListFeatured(ctx context.Context, limit, offset int
 }
 
 // GetPlaylistOfTheDay returns the most recently generated playlist from a daily-schedule script.
-func (r *PlaylistRepository) GetPlaylistOfTheDay(ctx context.Context) (*models.PlaylistListItem, error) {
+func (r *PlaylistRepository) GetPlaylistOfTheDay(ctx context.Context, currentUserID *uuid.UUID) (*models.PlaylistListItem, error) {
 	query := `
 		SELECT
 			p.id, p.user_id, p.title, p.description, p.cover_url, p.visibility, p.share_token,
-			p.view_count, p.share_count, p.like_count, p.script_id,
+			p.view_count, p.share_count, p.like_count, p.follower_count, p.bookmark_count,
+			p.is_curated, p.is_featured, p.display_order, p.script_id, p.slug,
 			p.created_at, p.updated_at, p.deleted_at,
 			COALESCE(COUNT(pi.id), 0) AS clip_count,
 			EXISTS (
@@ -1068,7 +1256,7 @@ func (r *PlaylistRepository) GetPlaylistOfTheDay(ctx context.Context) (*models.P
 				FROM playlist_items pi2
 				JOIN clips c2 ON pi2.clip_id = c2.id
 				WHERE pi2.playlist_id = p.id
-				  AND (c2.video_url IS NULL OR c2.status = 'processing')
+				  AND (c2.status = 'processing' OR (c2.stream_source = 'stream' AND c2.video_url IS NULL))
 			) AS has_processing_clips
 		FROM playlists p
 		JOIN generated_playlists gp ON gp.playlist_id = p.id
@@ -1079,7 +1267,9 @@ func (r *PlaylistRepository) GetPlaylistOfTheDay(ctx context.Context) (*models.P
 		  AND p.visibility = 'public'
 		  AND p.deleted_at IS NULL
 		GROUP BY p.id, p.user_id, p.title, p.description, p.cover_url, p.visibility, p.share_token,
-		         p.view_count, p.share_count, p.like_count, p.script_id, p.created_at, p.updated_at, p.deleted_at
+		         p.view_count, p.share_count, p.like_count, p.follower_count, p.bookmark_count,
+		         p.is_curated, p.is_featured, p.display_order, p.script_id, p.slug,
+		         p.created_at, p.updated_at, p.deleted_at
 		ORDER BY gp.generated_at DESC
 		LIMIT 1
 	`
@@ -1096,7 +1286,13 @@ func (r *PlaylistRepository) GetPlaylistOfTheDay(ctx context.Context) (*models.P
 		&item.ViewCount,
 		&item.ShareCount,
 		&item.LikeCount,
+		&item.FollowerCount,
+		&item.BookmarkCount,
+		&item.IsCurated,
+		&item.IsFeatured,
+		&item.DisplayOrder,
 		&item.ScriptID,
+		&item.Slug,
 		&item.CreatedAt,
 		&item.UpdatedAt,
 		&item.DeletedAt,
@@ -1106,6 +1302,12 @@ func (r *PlaylistRepository) GetPlaylistOfTheDay(ctx context.Context) (*models.P
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get playlist of the day: %w", err)
+	}
+
+	if currentUserID != nil {
+		if enrichErr := r.enrichPlaylistInteractionStates(ctx, *currentUserID, []*models.PlaylistListItem{&item}); enrichErr != nil {
+			return nil, enrichErr
+		}
 	}
 
 	// Fetch preview clips

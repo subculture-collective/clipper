@@ -51,122 +51,12 @@ export function PlaylistTheatreMode({
     const [draggedId, setDraggedId] = useState<string | null>(null);
     const [dragOverId, setDragOverId] = useState<string | null>(null);
     const [showSidebar, setShowSidebar] = useState(true);
-    const [backfillState, setBackfillState] = useState<
-        Record<string, 'idle' | 'requesting' | 'queued' | 'error'>
-    >({});
-    const [processingStatus, setProcessingStatus] = useState<
-        Record<string, string>
-    >({});
-
     // Find current item and clip
     const currentItem = useMemo(
         () => items.find(item => item.id === currentItemId),
         [items, currentItemId],
     );
     const currentClip = currentItem?.clip;
-    const currentBackfillStatus =
-        currentClip ? backfillState[currentClip.id] : undefined;
-    const currentProcessingStatus =
-        currentClip ? processingStatus[currentClip.id] : undefined;
-
-    const requestBackfill = useCallback(
-        async (clip: Clip) => {
-            const existingStatus = backfillState[clip.id];
-            if (
-                existingStatus === 'requesting' ||
-                existingStatus === 'queued'
-            ) {
-                return;
-            }
-
-            setBackfillState(prev => ({ ...prev, [clip.id]: 'requesting' }));
-
-            try {
-                const res = await fetch(`/api/v1/clips/${clip.id}/backfill`, {
-                    method: 'POST',
-                    credentials: 'include',
-                });
-
-                if (!res.ok) {
-                    throw new Error('backfill_failed');
-                }
-
-                const payload = await res.json();
-                const status = payload?.data?.status || 'queued';
-
-                setBackfillState(prev => ({ ...prev, [clip.id]: 'queued' }));
-                setProcessingStatus(prev => ({ ...prev, [clip.id]: status }));
-            } catch {
-                setBackfillState(prev => ({ ...prev, [clip.id]: 'error' }));
-                setProcessingStatus(prev => ({
-                    ...prev,
-                    [clip.id]: 'unknown',
-                }));
-            }
-        },
-        [backfillState],
-    );
-
-    const fetchProcessingStatus = useCallback(async (clipId: string) => {
-        try {
-            const res = await fetch(
-                `/api/v1/clips/${clipId}/processing-status`,
-                {
-                    credentials: 'include',
-                },
-            );
-
-            if (!res.ok) {
-                throw new Error('status_failed');
-            }
-
-            const payload = await res.json();
-            const status = payload?.data?.status || 'unknown';
-            setProcessingStatus(prev => ({ ...prev, [clipId]: status }));
-            return status as string;
-        } catch {
-            setProcessingStatus(prev => ({ ...prev, [clipId]: 'unknown' }));
-            return 'unknown';
-        }
-    }, []);
-
-    useEffect(() => {
-        if (!currentClip || currentClip.video_url) return;
-
-        const status = backfillState[currentClip.id];
-        if (!status || status === 'idle') {
-            requestBackfill(currentClip);
-        }
-    }, [currentClip, backfillState, requestBackfill]);
-
-    useEffect(() => {
-        if (!currentClip || currentClip.video_url) return;
-
-        let isActive = true;
-        let intervalId: ReturnType<typeof setInterval> | undefined;
-
-        const poll = async () => {
-            const status = await fetchProcessingStatus(currentClip.id);
-            if (!isActive) return;
-
-            if (status === 'completed' || status === 'ready') {
-                if (intervalId) {
-                    clearInterval(intervalId);
-                }
-                onClipUpdated?.(currentClip.id);
-            }
-        };
-
-        poll();
-        intervalId = setInterval(poll, 5000);
-
-        return () => {
-            isActive = false;
-            if (intervalId) {
-                clearInterval(intervalId);
-            }
-        };
-    }, [currentClip, fetchProcessingStatus, onClipUpdated]);
 
     // Auto-advance to next unplayed clip (HLS only)
     const handleClipEnd = useCallback(() => {
@@ -266,57 +156,9 @@ export function PlaylistTheatreMode({
                 )}
             >
                 {/* Video player area */}
-                <div
-                    className={cn(
-                        'flex-1 flex flex-col items-center justify-center transition-all',
-                        showSidebar ? 'pr-0' : 'pr-0',
-                    )}
-                >
-                    {/* Top bar */}
-                    <div className='absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/80 to-transparent p-4'>
-                        <div className='flex items-center justify-between'>
-                            <div className='flex items-center gap-3'>
-                                {onClose && (
-                                    <button
-                                        onClick={onClose}
-                                        className='p-2 hover:bg-white/10 rounded-lg transition-colors'
-                                        aria-label='Exit theatre mode'
-                                    >
-                                        <Minimize2 className='h-5 w-5 text-white' />
-                                    </button>
-                                )}
-                                <div>
-                                    <h1 className='text-white text-lg font-semibold'>
-                                        {title}
-                                    </h1>
-                                    {currentClip && (
-                                        <p className='text-white/60 text-sm'>
-                                            {currentClip.title}
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-
-                            <button
-                                onClick={() => setShowSidebar(prev => !prev)}
-                                className='p-2 hover:bg-white/10 rounded-lg transition-colors text-white'
-                                aria-label={
-                                    showSidebar ? 'Hide playlist' : (
-                                        'Show playlist'
-                                    )
-                                }
-                            >
-                                <ChevronLeft
-                                    className={`h-5 w-5 transition-transform ${
-                                        !showSidebar ? 'rotate-180' : ''
-                                    }`}
-                                />
-                            </button>
-                        </div>
-                    </div>
-
+                <div className='flex-1 flex flex-col items-center justify-center transition-all'>
                     {/* Video player */}
-                    <div className='w-full flex-1 flex items-center justify-center overflow-hidden relative'>
+                    <div className='w-full flex-1 flex items-center justify-center overflow-hidden'>
                         {currentClip ?
                             currentClip.video_url ?
                                 <TheatreMode
@@ -342,104 +184,19 @@ export function PlaylistTheatreMode({
                                 </p>
                             </div>
                         }
-
-                        {currentClip && !currentClip.video_url && (
-                            <div className='absolute bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-xl bg-black/80 border border-neutral-700 rounded-xl p-4 text-white/90 backdrop-blur-sm'>
-                                <div className='space-y-2'>
-                                    <p className='text-sm font-semibold'>
-                                        This clip isn’t processed for theatre
-                                        mode yet.
-                                    </p>
-                                    <p className='text-xs text-white/70'>
-                                        We’ve queued it for processing so it can
-                                        autoplay with the rest of the playlist.
-                                    </p>
-                                    {currentProcessingStatus && (
-                                        <p className='text-[11px] text-white/60'>
-                                            Status:{' '}
-                                            <span className='text-white/80 capitalize'>
-                                                {String(
-                                                    currentProcessingStatus,
-                                                ).replace('_', ' ')}
-                                            </span>
-                                        </p>
-                                    )}
-                                </div>
-                                <div className='mt-3 flex flex-wrap gap-2'>
-                                    <Button
-                                        variant='secondary'
-                                        size='sm'
-                                        onClick={() =>
-                                            currentClip &&
-                                            requestBackfill(currentClip)
-                                        }
-                                        disabled={
-                                            currentBackfillStatus ===
-                                                'requesting' ||
-                                            currentBackfillStatus === 'queued'
-                                        }
-                                    >
-                                        {(
-                                            currentBackfillStatus ===
-                                            'requesting'
-                                        ) ?
-                                            'Requesting…'
-                                        : currentBackfillStatus === 'queued' ?
-                                            'Queued'
-                                        :   'Request processing'}
-                                    </Button>
-                                    <Button
-                                        variant='primary'
-                                        size='sm'
-                                        onClick={handleSkipNext}
-                                        disabled={
-                                            items.findIndex(
-                                                item =>
-                                                    item.id === currentItemId,
-                                            ) ===
-                                            items.length - 1
-                                        }
-                                    >
-                                        Next clip
-                                    </Button>
-                                </div>
-                                {currentBackfillStatus === 'error' && (
-                                    <p className='mt-2 text-xs text-error-300'>
-                                        Failed to queue processing. Try again in
-                                        a moment.
-                                    </p>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Bottom controls */}
-                    <div className='absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4'>
-                        <div className='flex items-center justify-between'>
-                            <div className='text-white/80 text-sm'>
-                                {items.findIndex(
-                                    item => item.id === currentItemId,
-                                ) + 1}{' '}
-                                / {items.length}
-                            </div>
-                            <Button
-                                variant='ghost'
-                                size='sm'
-                                onClick={handleSkipNext}
-                                disabled={
-                                    items.findIndex(
-                                        item => item.id === currentItemId,
-                                    ) ===
-                                    items.length - 1
-                                }
-                                className='text-white hover:bg-white/10'
-                            >
-                                <SkipForward className='h-4 w-4 mr-1' />
-                                Next
-                            </Button>
-                        </div>
                     </div>
                 </div>
+
+                {/* Sidebar toggle when hidden */}
+                {!showSidebar && (
+                    <button
+                        onClick={() => setShowSidebar(true)}
+                        className='absolute top-4 right-4 z-10 p-2 bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-700 rounded-lg transition-colors'
+                        aria-label='Show playlist'
+                    >
+                        <ChevronLeft className='h-5 w-5 text-white rotate-180' />
+                    </button>
+                )}
 
                 {/* Playlist/Queue sidebar */}
                 {showSidebar && (
@@ -452,14 +209,52 @@ export function PlaylistTheatreMode({
                         {/* Sidebar header */}
                         <div className='p-4 border-b border-neutral-800'>
                             <div className='flex items-center justify-between'>
-                                <div>
-                                    <h2 className='text-white font-semibold'>
-                                        {isQueue ? 'Queue' : 'Playlist'}
-                                    </h2>
-                                    <p className='text-white/60 text-sm'>
-                                        {items.length}{' '}
-                                        {items.length === 1 ? 'clip' : 'clips'}
-                                    </p>
+                                <div className='flex items-center gap-2'>
+                                    {onClose && (
+                                        <button
+                                            onClick={onClose}
+                                            className='p-1.5 hover:bg-white/10 rounded-lg transition-colors'
+                                            aria-label='Exit theatre mode'
+                                        >
+                                            <Minimize2 className='h-4 w-4 text-white' />
+                                        </button>
+                                    )}
+                                    <div>
+                                        <h2 className='text-white font-semibold'>
+                                            {isQueue ? 'Queue' : 'Playlist'}
+                                        </h2>
+                                        <p className='text-white/60 text-sm'>
+                                            {items.findIndex(
+                                                item => item.id === currentItemId,
+                                            ) + 1}{' '}
+                                            / {items.length}{' '}
+                                            {items.length === 1 ? 'clip' : 'clips'}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className='flex items-center gap-1'>
+                                    <Button
+                                        variant='ghost'
+                                        size='sm'
+                                        onClick={handleSkipNext}
+                                        disabled={
+                                            items.findIndex(
+                                                item => item.id === currentItemId,
+                                            ) ===
+                                            items.length - 1
+                                        }
+                                        className='text-white hover:bg-white/10'
+                                    >
+                                        <SkipForward className='h-4 w-4 mr-1' />
+                                        Next
+                                    </Button>
+                                    <button
+                                        onClick={() => setShowSidebar(false)}
+                                        className='p-1.5 hover:bg-white/10 rounded-lg transition-colors'
+                                        aria-label='Hide sidebar'
+                                    >
+                                        <ChevronLeft className='h-4 w-4 text-white rotate-180' />
+                                    </button>
                                 </div>
                             </div>
                         </div>

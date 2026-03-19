@@ -35,6 +35,19 @@ const fetchPublicPlaylists = async (
     return response.data;
 };
 
+const fetchFeaturedPlaylists = async (
+    page = 1,
+    limit = 20,
+): Promise<PlaylistListResponse> => {
+    const response = await apiClient.get<PlaylistListResponse>(
+        '/playlists/featured',
+        {
+            params: { page, limit },
+        },
+    );
+    return response.data;
+};
+
 const fetchPlaylist = async (
     id: string,
     page = 1,
@@ -128,6 +141,14 @@ const unlikePlaylist = async (id: string): Promise<void> => {
     await apiClient.delete(`/playlists/${id}/like`);
 };
 
+const bookmarkPlaylist = async (id: string): Promise<void> => {
+    await apiClient.post(`/playlists/${id}/bookmark`);
+};
+
+const unbookmarkPlaylist = async (id: string): Promise<void> => {
+    await apiClient.delete(`/playlists/${id}/bookmark`);
+};
+
 // React Query hooks
 export const usePlaylists = (page = 1, limit = 20) => {
     return useQuery({
@@ -143,6 +164,13 @@ export const usePublicPlaylists = (page = 1, limit = 20) => {
     });
 };
 
+export const useFeaturedPlaylists = (page = 1, limit = 20) => {
+    return useQuery({
+        queryKey: ['playlists', 'featured', page, limit],
+        queryFn: () => fetchFeaturedPlaylists(page, limit),
+    });
+};
+
 export const usePlaylist = (id: string, page = 1, limit = 20) => {
     const isUuid =
         /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
@@ -151,9 +179,9 @@ export const usePlaylist = (id: string, page = 1, limit = 20) => {
     return useQuery({
         queryKey: ['playlist', id, page, limit],
         queryFn: () =>
-            isUuid ?
-                fetchPlaylist(id, page, limit)
-            :   fetchPlaylistByShareToken(id, page, limit),
+            isUuid
+                ? fetchPlaylist(id, page, limit)
+                : fetchPlaylistByShareToken(id, page, limit),
         enabled: !!id,
     });
 };
@@ -310,6 +338,36 @@ export const useUnlikePlaylist = () => {
         },
         onError: (error) => {
             console.error('Failed to unlike playlist:', error);
+        },
+    });
+};
+
+export const useBookmarkPlaylist = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: bookmarkPlaylist,
+        onSuccess: (_, id) => {
+            queryClient.invalidateQueries({ queryKey: ['playlist', id] });
+            queryClient.invalidateQueries({ queryKey: ['playlists'] });
+        },
+        onError: (error) => {
+            console.error('Failed to bookmark playlist:', error);
+        },
+    });
+};
+
+export const useUnbookmarkPlaylist = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: unbookmarkPlaylist,
+        onSuccess: (_, id) => {
+            queryClient.invalidateQueries({ queryKey: ['playlist', id] });
+            queryClient.invalidateQueries({ queryKey: ['playlists'] });
+        },
+        onError: (error) => {
+            console.error('Failed to unbookmark playlist:', error);
         },
     });
 };

@@ -1,4 +1,4 @@
-.PHONY: help install dev build test test-help test-setup test-teardown test-unit test-integration clean docker-up docker-down backend-dev frontend-dev migrate-up migrate-down migrate-create migrate-seed migrate-status test-security test-idor k8s-provision k8s-setup k8s-verify k8s-deploy-prod k8s-deploy-staging openapi-validate openapi-serve openapi-build deploy-vps deploy-vps-status deploy-vps-logs deploy-vps-down
+.PHONY: help install dev build test test-help test-setup test-teardown test-unit test-integration clean docker-up docker-down backend-dev frontend-dev migrate-up migrate-down migrate-create migrate-seed migrate-status site-freshness-seed site-freshness-generate test-security test-idor k8s-provision k8s-setup k8s-verify k8s-deploy-prod k8s-deploy-staging openapi-validate openapi-serve openapi-build deploy-vps deploy-vps-status deploy-vps-logs deploy-vps-down
 
 # Compose project + network names stay in sync across targets
 PROJECT_NAME := $(if $(COMPOSE_PROJECT_NAME),$(COMPOSE_PROJECT_NAME),$(notdir $(CURDIR)))
@@ -97,7 +97,7 @@ test: ## Run all tests (unit by default; set INTEGRATION=1 and/or E2E=1 to expan
 			CORS_ALLOWED_ORIGINS=http://127.0.0.1:5173 \
 			RATE_LIMIT_WHITELIST_IPS=127.0.0.1 \
 			FEATURE_ANALYTICS=false \
-			go run cmd/api/main.go \
+			go run ./cmd/api \
 		') > .tmp/backend-e2e.log 2>&1 & echo $$! > .tmp/backend-e2e.pid; \
 		echo "Backend started (PID: $$(cat .tmp/backend-e2e.pid))"; \
 		sleep 5; \
@@ -648,7 +648,7 @@ backend-dev: ## Run backend in development mode
 	@echo "Waiting for PostgreSQL on localhost:5436..."
 	@bash -c 'until pg_isready -h localhost -p 5436 -U clipper -d clipper_db >/dev/null 2>&1; do sleep 1; done'
 	@echo "PostgreSQL is ready. Starting backend..."
-	cd backend && go run cmd/api/main.go
+	cd backend && go run ./cmd/api
 
 frontend-dev: ## Run frontend in development mode
 	@echo "Starting frontend..."
@@ -700,7 +700,7 @@ MIGRATIONS_PATH := backend/migrations
 migrate-up: ## Run database migrations up
 	@echo "Running database migrations..."
 	@if command -v migrate > /dev/null; then \
-		migrate -path $(MIGRATIONS_PATH) -database $(DB_URL) up; \
+		migrate -path $(MIGRATIONS_PATH) -database $(DB_URL) up && \
 		echo "✓ Migrations completed"; \
 	else \
 		echo "Error: golang-migrate is not installed"; \
@@ -770,6 +770,16 @@ migrate-seed-moderation-perf-test: ## Seed database with moderation performance 
 	@echo "  - 100+ community moderators"
 	@PGPASSWORD=clipper_password psql -h localhost -p 5436 -U clipper -d clipper_db -f $(MIGRATIONS_PATH)/seed_moderation_perf_test.sql
 	@echo "✓ Moderation performance test data seeded successfully"
+
+site-freshness-seed: ## Ensure default public smart playlists exist for fresh site content
+	@echo "Ensuring default site freshness playlist rules exist..."
+	@cd backend && go run ./cmd/seed-site-freshness
+	@echo "✓ Site freshness rules ensured"
+
+site-freshness-generate: ## Ensure default smart playlists exist and generate a fresh batch immediately
+	@echo "Ensuring site freshness rules exist and generating playlists now..."
+	@cd backend && go run ./cmd/seed-site-freshness -generate-now
+	@echo "✓ Site freshness rules ensured and generated"
 
 # Search Evaluation
 evaluate-search: ## Run search quality evaluation

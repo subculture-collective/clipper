@@ -72,7 +72,7 @@ const DEFAULT_VALUES: PlaylistScriptFormValues = {
     exclude_nsfw: true,
     top_10k_streamers: false,
     seed_clip_id: '',
-    schedule: 'manual',
+    schedule: 'daily',
     retention_days: 30,
     title_template: '',
 };
@@ -129,18 +129,20 @@ function CollapsibleSection({
 }) {
     const [open, setOpen] = useState(defaultOpen);
     return (
-        <div className='border border-border rounded-lg'>
+        <div className="border border-border rounded-lg">
             <button
-                type='button'
-                onClick={() => setOpen(o => !o)}
-                className='flex items-center justify-between w-full px-4 py-3 text-left font-medium hover:bg-accent/50 transition-colors rounded-lg'
+                type="button"
+                onClick={() => setOpen((o) => !o)}
+                className="flex items-center justify-between w-full px-4 py-3 text-left font-medium hover:bg-accent/50 transition-colors rounded-lg"
             >
                 {title}
-                {open ?
-                    <ChevronDown className='w-4 h-4' />
-                :   <ChevronRight className='w-4 h-4' />}
+                {open ? (
+                    <ChevronDown className="w-4 h-4" />
+                ) : (
+                    <ChevronRight className="w-4 h-4" />
+                )}
             </button>
-            {open && <div className='px-4 pb-4'>{children}</div>}
+            {open && <div className="px-4 pb-4">{children}</div>}
         </div>
     );
 }
@@ -166,42 +168,42 @@ function TagInput({
 
     return (
         <div>
-            <div className='flex flex-wrap gap-1.5 mb-2'>
-                {value.map(tag => (
-                    <Badge key={tag} variant='default' size='sm'>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+                {value.map((tag) => (
+                    <Badge key={tag} variant="default" size="sm">
                         {tag}
                         <button
-                            type='button'
+                            type="button"
                             onClick={() =>
-                                onChange(value.filter(t => t !== tag))
+                                onChange(value.filter((t) => t !== tag))
                             }
-                            className='ml-1 hover:text-error-500'
+                            className="ml-1 hover:text-error-500"
                         >
-                            <X className='w-3 h-3' />
+                            <X className="w-3 h-3" />
                         </button>
                     </Badge>
                 ))}
             </div>
-            <div className='flex gap-2'>
+            <div className="flex gap-2">
                 <input
                     value={input}
-                    onChange={e => setInput(e.target.value)}
-                    onKeyDown={e => {
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                             e.preventDefault();
                             addTag();
                         }
                     }}
                     placeholder={placeholder}
-                    className='flex-1 px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary-500'
+                    className="flex-1 px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
                 <Button
-                    type='button'
-                    variant='ghost'
-                    size='sm'
+                    type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={addTag}
                 >
-                    <Plus className='w-4 h-4' />
+                    <Plus className="w-4 h-4" />
                 </Button>
             </div>
         </div>
@@ -226,7 +228,7 @@ export function PlaylistScriptForm({
             key: K,
             value: PlaylistScriptFormValues[K],
         ) => {
-            setForm(prev => ({ ...prev, [key]: value }));
+            setForm((prev) => ({ ...prev, [key]: value }));
         },
         [],
     );
@@ -275,61 +277,61 @@ export function PlaylistScriptForm({
     );
 
     return (
-        <form onSubmit={handleSubmit} className='space-y-4'>
+        <form onSubmit={handleSubmit} className="space-y-4">
             {/* Section 1 — Basics */}
             <Card>
                 <CardHeader>
-                    <h3 className='text-lg font-semibold'>
+                    <h3 className="text-lg font-semibold">
                         {isEditing ? 'Edit Script' : 'Create Script'}
                     </h3>
                 </CardHeader>
-                <CardBody className='space-y-4'>
-                    <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                <CardBody className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Input
-                            label='Name'
+                            label="Name"
                             value={form.name}
-                            onChange={e => set('name', e.target.value)}
-                            placeholder='Daily Top 10'
+                            onChange={(e) => set('name', e.target.value)}
+                            placeholder="Daily Top 10"
                             maxLength={100}
                             required
                             fullWidth
                         />
-                        <div className='flex flex-col gap-1.5'>
-                            <label className='text-sm font-medium text-foreground'>
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-sm font-medium text-foreground">
                                 Visibility
                             </label>
                             <select
                                 value={form.visibility}
-                                onChange={e =>
+                                onChange={(e) =>
                                     set(
                                         'visibility',
                                         e.target
                                             .value as PlaylistScriptVisibility,
                                     )
                                 }
-                                className='w-full px-3 py-2.5 rounded-lg border border-border bg-background text-foreground min-h-[44px] focus:outline-none focus:ring-2 focus:ring-primary-500'
+                                className="w-full px-3 py-2.5 rounded-lg border border-border bg-background text-foreground min-h-[44px] focus:outline-none focus:ring-2 focus:ring-primary-500"
                             >
-                                <option value='public'>Public</option>
-                                <option value='unlisted'>Unlisted</option>
-                                <option value='private'>Private</option>
+                                <option value="public">Public</option>
+                                <option value="unlisted">Unlisted</option>
+                                <option value="private">Private</option>
                             </select>
                         </div>
                     </div>
                     <TextArea
-                        label='Description'
+                        label="Description"
                         value={form.description}
-                        onChange={e => set('description', e.target.value)}
-                        placeholder='Auto-generated playlist of top clips'
+                        onChange={(e) => set('description', e.target.value)}
+                        placeholder="Auto-generated playlist of top clips"
                         maxLength={500}
                         showCount
                         fullWidth
                         rows={2}
                     />
                     <Toggle
-                        label='Active'
-                        helperText='When active, scheduled scripts run automatically'
+                        label="Active"
+                        helperText="When active, scheduled scripts run automatically"
                         checked={form.is_active}
-                        onChange={e => set('is_active', e.target.checked)}
+                        onChange={(e) => set('is_active', e.target.checked)}
                     />
                 </CardBody>
             </Card>
@@ -337,33 +339,33 @@ export function PlaylistScriptForm({
             {/* Section 2 — Strategy */}
             <Card>
                 <CardHeader>
-                    <h3 className='text-lg font-semibold'>Strategy</h3>
+                    <h3 className="text-lg font-semibold">Strategy</h3>
                 </CardHeader>
-                <CardBody className='space-y-4'>
+                <CardBody className="space-y-4">
                     {!standardOnly && (
-                        <div className='flex flex-col gap-1.5'>
-                            <label className='text-sm font-medium text-foreground'>
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-sm font-medium text-foreground">
                                 Curation Strategy
                             </label>
                             <select
                                 value={form.strategy}
-                                onChange={e =>
+                                onChange={(e) =>
                                     set(
                                         'strategy',
                                         e.target
                                             .value as PlaylistScriptStrategy,
                                     )
                                 }
-                                className='w-full px-3 py-2.5 rounded-lg border border-border bg-background text-foreground min-h-[44px] focus:outline-none focus:ring-2 focus:ring-primary-500'
+                                className="w-full px-3 py-2.5 rounded-lg border border-border bg-background text-foreground min-h-[44px] focus:outline-none focus:ring-2 focus:ring-primary-500"
                             >
-                                <optgroup label='Database Strategies'>
+                                <optgroup label="Database Strategies">
                                     {databaseStrategies.map(([key, meta]) => (
                                         <option key={key} value={key}>
                                             {meta.label} — {meta.description}
                                         </option>
                                     ))}
                                 </optgroup>
-                                <optgroup label='Twitch-Powered'>
+                                <optgroup label="Twitch-Powered">
                                     {twitchStrategies.map(([key, meta]) => (
                                         <option key={key} value={key}>
                                             {meta.label} — {meta.description}
@@ -372,84 +374,84 @@ export function PlaylistScriptForm({
                                 </optgroup>
                             </select>
                             {strategyMeta && (
-                                <p className='text-sm text-muted-foreground flex items-start gap-1.5'>
-                                    <Info className='w-4 h-4 mt-0.5 shrink-0' />
+                                <p className="text-sm text-muted-foreground flex items-start gap-1.5">
+                                    <Info className="w-4 h-4 mt-0.5 shrink-0" />
                                     {strategyMeta.description}
                                 </p>
                             )}
                         </div>
                     )}
 
-                    <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {showSortTimeframe && (
                             <>
-                                <div className='flex flex-col gap-1.5'>
-                                    <label className='text-sm font-medium text-foreground'>
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-sm font-medium text-foreground">
                                         Sort
                                     </label>
                                     <select
                                         value={form.sort}
-                                        onChange={e =>
+                                        onChange={(e) =>
                                             set(
                                                 'sort',
                                                 e.target
                                                     .value as PlaylistScriptSort,
                                             )
                                         }
-                                        className='w-full px-3 py-2.5 rounded-lg border border-border bg-background text-foreground min-h-[44px] focus:outline-none focus:ring-2 focus:ring-primary-500'
+                                        className="w-full px-3 py-2.5 rounded-lg border border-border bg-background text-foreground min-h-[44px] focus:outline-none focus:ring-2 focus:ring-primary-500"
                                     >
-                                        <option value='top'>Top</option>
-                                        <option value='trending'>
+                                        <option value="top">Top</option>
+                                        <option value="trending">
                                             Trending
                                         </option>
-                                        <option value='hot'>Hot</option>
-                                        <option value='popular'>Popular</option>
-                                        <option value='new'>New</option>
-                                        <option value='rising'>Rising</option>
-                                        <option value='discussed'>
+                                        <option value="hot">Hot</option>
+                                        <option value="popular">Popular</option>
+                                        <option value="new">New</option>
+                                        <option value="rising">Rising</option>
+                                        <option value="discussed">
                                             Discussed
                                         </option>
                                     </select>
                                 </div>
-                                <div className='flex flex-col gap-1.5'>
-                                    <label className='text-sm font-medium text-foreground'>
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-sm font-medium text-foreground">
                                         Timeframe
                                     </label>
                                     <select
                                         value={form.timeframe}
-                                        onChange={e =>
+                                        onChange={(e) =>
                                             set(
                                                 'timeframe',
                                                 e.target
                                                     .value as PlaylistScriptTimeframe,
                                             )
                                         }
-                                        className='w-full px-3 py-2.5 rounded-lg border border-border bg-background text-foreground min-h-[44px] focus:outline-none focus:ring-2 focus:ring-primary-500'
+                                        className="w-full px-3 py-2.5 rounded-lg border border-border bg-background text-foreground min-h-[44px] focus:outline-none focus:ring-2 focus:ring-primary-500"
                                     >
-                                        <option value='hour'>Last hour</option>
-                                        <option value='day'>Last day</option>
-                                        <option value='week'>Last week</option>
-                                        <option value='month'>
+                                        <option value="hour">Last hour</option>
+                                        <option value="day">Last day</option>
+                                        <option value="week">Last week</option>
+                                        <option value="month">
                                             Last month
                                         </option>
-                                        <option value='year'>Last year</option>
+                                        <option value="year">Last year</option>
                                     </select>
                                 </div>
                             </>
                         )}
-                        <div className='flex flex-col gap-1.5'>
-                            <label className='text-sm font-medium text-foreground'>
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-sm font-medium text-foreground">
                                 Clip Limit
                             </label>
                             <input
-                                type='number'
+                                type="number"
                                 min={1}
                                 max={100}
                                 value={form.clip_limit}
-                                onChange={e =>
+                                onChange={(e) =>
                                     set('clip_limit', Number(e.target.value))
                                 }
-                                className='w-full px-3 py-2.5 rounded-lg border border-border bg-background text-foreground min-h-[44px] focus:outline-none focus:ring-2 focus:ring-primary-500'
+                                className="w-full px-3 py-2.5 rounded-lg border border-border bg-background text-foreground min-h-[44px] focus:outline-none focus:ring-2 focus:ring-primary-500"
                             />
                         </div>
                     </div>
@@ -457,43 +459,45 @@ export function PlaylistScriptForm({
                     {/* Strategy-specific fields */}
                     {strategyMeta?.requiresSeedClipId && (
                         <Input
-                            label='Seed Clip ID'
+                            label="Seed Clip ID"
                             value={form.seed_clip_id}
-                            onChange={e => set('seed_clip_id', e.target.value)}
-                            placeholder='UUID of the seed clip'
-                            helperText='Clips similar to this one will be selected'
+                            onChange={(e) =>
+                                set('seed_clip_id', e.target.value)
+                            }
+                            placeholder="UUID of the seed clip"
+                            helperText="Clips similar to this one will be selected"
                             fullWidth
                         />
                     )}
                     {strategyMeta?.requiresGameId && (
                         <Input
-                            label='Game ID'
+                            label="Game ID"
                             value={form.game_id}
-                            onChange={e => set('game_id', e.target.value)}
-                            placeholder='Twitch game ID'
+                            onChange={(e) => set('game_id', e.target.value)}
+                            placeholder="Twitch game ID"
                             fullWidth
                         />
                     )}
                     {strategyMeta?.requiresGameIds && (
-                        <div className='flex flex-col gap-1.5'>
-                            <label className='text-sm font-medium text-foreground'>
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-sm font-medium text-foreground">
                                 Game IDs
                             </label>
                             <TagInput
                                 value={form.game_ids}
-                                onChange={v => set('game_ids', v)}
-                                placeholder='Add a Twitch game ID and press Enter'
+                                onChange={(v) => set('game_ids', v)}
+                                placeholder="Add a Twitch game ID and press Enter"
                             />
                         </div>
                     )}
                     {strategyMeta?.requiresBroadcasterId && (
                         <Input
-                            label='Broadcaster ID'
+                            label="Broadcaster ID"
                             value={form.broadcaster_id}
-                            onChange={e =>
+                            onChange={(e) =>
                                 set('broadcaster_id', e.target.value)
                             }
-                            placeholder='Twitch broadcaster ID'
+                            placeholder="Twitch broadcaster ID"
                             fullWidth
                         />
                     )}
@@ -503,91 +507,91 @@ export function PlaylistScriptForm({
             {/* Section 3 — Advanced Filters */}
             {!standardOnly && (
                 <CollapsibleSection
-                    title='Advanced Filters'
+                    title="Advanced Filters"
                     defaultOpen={false}
                 >
-                    <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {!strategyMeta?.requiresGameId && (
                             <Input
-                                label='Game ID'
+                                label="Game ID"
                                 value={form.game_id}
-                                onChange={e => set('game_id', e.target.value)}
-                                placeholder='Filter by Twitch game ID'
-                                helperText='Optional single-game filter'
+                                onChange={(e) => set('game_id', e.target.value)}
+                                placeholder="Filter by Twitch game ID"
+                                helperText="Optional single-game filter"
                                 fullWidth
                             />
                         )}
                         {!strategyMeta?.requiresBroadcasterId && (
                             <Input
-                                label='Broadcaster ID'
+                                label="Broadcaster ID"
                                 value={form.broadcaster_id}
-                                onChange={e =>
+                                onChange={(e) =>
                                     set('broadcaster_id', e.target.value)
                                 }
-                                placeholder='Filter by broadcaster ID'
+                                placeholder="Filter by broadcaster ID"
                                 fullWidth
                             />
                         )}
                         <Input
-                            label='Tag'
+                            label="Tag"
                             value={form.tag}
-                            onChange={e => set('tag', e.target.value)}
-                            placeholder='Include clips with this tag'
+                            onChange={(e) => set('tag', e.target.value)}
+                            placeholder="Include clips with this tag"
                             fullWidth
                         />
-                        <div className='flex flex-col gap-1.5'>
-                            <label className='text-sm font-medium text-foreground'>
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-sm font-medium text-foreground">
                                 Exclude Tags
                             </label>
                             <TagInput
                                 value={form.exclude_tags}
-                                onChange={v => set('exclude_tags', v)}
-                                placeholder='Tag to exclude'
+                                onChange={(v) => set('exclude_tags', v)}
+                                placeholder="Tag to exclude"
                             />
                         </div>
                         <Input
-                            label='Language'
+                            label="Language"
                             value={form.language}
-                            onChange={e => set('language', e.target.value)}
-                            placeholder='e.g. en'
-                            helperText='ISO 639-1 language code'
+                            onChange={(e) => set('language', e.target.value)}
+                            placeholder="e.g. en"
+                            helperText="ISO 639-1 language code"
                             fullWidth
                         />
                         <Input
-                            label='Min Vote Score'
-                            type='number'
+                            label="Min Vote Score"
+                            type="number"
                             min={0}
                             value={form.min_vote_score}
-                            onChange={e =>
+                            onChange={(e) =>
                                 set('min_vote_score', e.target.value)
                             }
-                            placeholder='0'
+                            placeholder="0"
                             fullWidth
                         />
                         <Input
-                            label='Min View Count'
-                            type='number'
+                            label="Min View Count"
+                            type="number"
                             min={0}
                             value={form.min_view_count}
-                            onChange={e =>
+                            onChange={(e) =>
                                 set('min_view_count', e.target.value)
                             }
-                            placeholder='0'
+                            placeholder="0"
                             fullWidth
                         />
                     </div>
-                    <div className='mt-4 flex flex-wrap gap-6'>
+                    <div className="mt-4 flex flex-wrap gap-6">
                         <Toggle
-                            label='Exclude NSFW'
+                            label="Exclude NSFW"
                             checked={form.exclude_nsfw}
-                            onChange={e =>
+                            onChange={(e) =>
                                 set('exclude_nsfw', e.target.checked)
                             }
                         />
                         <Toggle
-                            label='Top 10K Streamers Only'
+                            label="Top 10K Streamers Only"
                             checked={form.top_10k_streamers}
-                            onChange={e =>
+                            onChange={(e) =>
                                 set('top_10k_streamers', e.target.checked)
                             }
                         />
@@ -598,61 +602,68 @@ export function PlaylistScriptForm({
             {/* Section 4 — Schedule & Lifecycle */}
             <Card>
                 <CardHeader>
-                    <h3 className='text-lg font-semibold'>
+                    <h3 className="text-lg font-semibold">
                         Schedule & Lifecycle
                     </h3>
                 </CardHeader>
-                <CardBody className='space-y-4'>
-                    <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                        <div className='flex flex-col gap-1.5'>
-                            <label className='text-sm font-medium text-foreground'>
+                <CardBody className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-sm font-medium text-foreground">
                                 Schedule
                             </label>
                             <select
                                 value={form.schedule}
-                                onChange={e =>
+                                onChange={(e) =>
                                     set(
                                         'schedule',
                                         e.target
                                             .value as PlaylistScriptSchedule,
                                     )
                                 }
-                                className='w-full px-3 py-2.5 rounded-lg border border-border bg-background text-foreground min-h-[44px] focus:outline-none focus:ring-2 focus:ring-primary-500'
+                                className="w-full px-3 py-2.5 rounded-lg border border-border bg-background text-foreground min-h-[44px] focus:outline-none focus:ring-2 focus:ring-primary-500"
                             >
-                                {(standardOnly ?
-                                    ([
-                                        'manual',
-                                        'daily',
-                                        'weekly',
-                                    ] as PlaylistScriptSchedule[])
-                                :   (Object.keys(
-                                        SCHEDULE_LABELS,
-                                    ) as PlaylistScriptSchedule[])
-                                ).map(key => (
+                                {(standardOnly
+                                    ? ([
+                                          'manual',
+                                          'daily',
+                                          'weekly',
+                                      ] as PlaylistScriptSchedule[])
+                                    : (Object.keys(
+                                          SCHEDULE_LABELS,
+                                      ) as PlaylistScriptSchedule[])
+                                ).map((key) => (
                                     <option key={key} value={key}>
                                         {SCHEDULE_LABELS[key]}
                                     </option>
                                 ))}
                             </select>
+                            <p className="text-sm text-muted-foreground">
+                                {form.schedule === 'manual'
+                                    ? 'Manual scripts never run automatically, even when Active is enabled. Use Generate or choose a schedule.'
+                                    : !form.is_active
+                                      ? 'Inactive scripts will not run until Active is turned back on.'
+                                      : 'Scheduled scripts are picked up automatically by the background playlist scheduler.'}
+                            </p>
                         </div>
-                        <div className='flex flex-col gap-1.5'>
-                            <label className='text-sm font-medium text-foreground'>
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-sm font-medium text-foreground">
                                 Retention (days)
                             </label>
                             <input
-                                type='number'
+                                type="number"
                                 min={1}
                                 max={365}
                                 value={form.retention_days}
-                                onChange={e =>
+                                onChange={(e) =>
                                     set(
                                         'retention_days',
                                         Number(e.target.value),
                                     )
                                 }
-                                className='w-full px-3 py-2.5 rounded-lg border border-border bg-background text-foreground min-h-[44px] focus:outline-none focus:ring-2 focus:ring-primary-500'
+                                className="w-full px-3 py-2.5 rounded-lg border border-border bg-background text-foreground min-h-[44px] focus:outline-none focus:ring-2 focus:ring-primary-500"
                             />
-                            <p className='text-sm text-muted-foreground'>
+                            <p className="text-sm text-muted-foreground">
                                 Generated playlists older than{' '}
                                 {form.retention_days} day
                                 {form.retention_days !== 1 ? 's' : ''} are
@@ -662,38 +673,38 @@ export function PlaylistScriptForm({
                     </div>
 
                     {/* Title Template */}
-                    <div className='flex flex-col gap-1.5'>
-                        <label className='text-sm font-medium text-foreground'>
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-sm font-medium text-foreground">
                             Title Template
                         </label>
                         <input
                             ref={titleTemplateRef}
                             value={form.title_template}
-                            onChange={e =>
+                            onChange={(e) =>
                                 set('title_template', e.target.value)
                             }
-                            placeholder='{name} • {date}'
+                            placeholder="{name} • {date}"
                             maxLength={200}
-                            className='w-full px-3 py-2.5 rounded-lg border border-border bg-background text-foreground min-h-[44px] focus:outline-none focus:ring-2 focus:ring-primary-500'
+                            className="w-full px-3 py-2.5 rounded-lg border border-border bg-background text-foreground min-h-[44px] focus:outline-none focus:ring-2 focus:ring-primary-500"
                         />
-                        <div className='flex flex-wrap gap-1.5'>
+                        <div className="flex flex-wrap gap-1.5">
                             {TITLE_PLACEHOLDERS.map(({ token, label }) => (
                                 <button
                                     key={token}
-                                    type='button'
+                                    type="button"
                                     onClick={() => insertPlaceholder(token)}
-                                    className='inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-mono bg-accent text-accent-foreground hover:bg-accent/80 transition-colors'
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-mono bg-accent text-accent-foreground hover:bg-accent/80 transition-colors"
                                     title={label}
                                 >
                                     {token}
                                 </button>
                             ))}
                         </div>
-                        <div className='mt-1 px-3 py-2 bg-accent/50 rounded-lg text-sm'>
-                            <span className='text-muted-foreground'>
+                        <div className="mt-1 px-3 py-2 bg-accent/50 rounded-lg text-sm">
+                            <span className="text-muted-foreground">
                                 Preview:{' '}
                             </span>
-                            <span className='font-medium'>{titlePreview}</span>
+                            <span className="font-medium">{titlePreview}</span>
                         </div>
                     </div>
                 </CardBody>
@@ -710,11 +721,11 @@ export function PlaylistScriptForm({
             </div>
 
             {/* Actions */}
-            <div className='flex justify-end gap-3'>
+            <div className="flex justify-end gap-3">
                 {onCancel && (
                     <Button
-                        type='button'
-                        variant='ghost'
+                        type="button"
+                        variant="ghost"
                         onClick={onCancel}
                         disabled={isLoading}
                     >
@@ -722,7 +733,7 @@ export function PlaylistScriptForm({
                     </Button>
                 )}
                 <Button
-                    type='submit'
+                    type="submit"
                     loading={isLoading}
                     disabled={!form.name.trim()}
                 >

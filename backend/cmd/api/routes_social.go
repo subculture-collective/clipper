@@ -97,9 +97,9 @@ func registerSocialRoutes(v1 *gin.RouterGroup, h *Handlers, svcs *Services, infr
 	playlists := v1.Group("/playlists")
 	{
 		// Public playlist endpoints
-		playlists.GET("/public", h.Playlist.ListPublicPlaylists)
-		playlists.GET("/featured", h.Playlist.ListFeaturedPlaylists)
-		playlists.GET("/today", h.Playlist.GetPlaylistOfTheDay)
+		playlists.GET("/public", middleware.OptionalAuthMiddleware(svcs.Auth), h.Playlist.ListPublicPlaylists)
+		playlists.GET("/featured", middleware.OptionalAuthMiddleware(svcs.Auth), h.Playlist.ListFeaturedPlaylists)
+		playlists.GET("/today", middleware.OptionalAuthMiddleware(svcs.Auth), h.Playlist.GetPlaylistOfTheDay)
 		playlists.GET("/share/:token", middleware.OptionalAuthMiddleware(svcs.Auth), h.Playlist.GetPlaylistByShareToken)
 		playlists.GET("/:id", middleware.OptionalAuthMiddleware(svcs.Auth), h.Playlist.GetPlaylist)
 
@@ -118,6 +118,8 @@ func registerSocialRoutes(v1 *gin.RouterGroup, h *Handlers, svcs *Services, infr
 		// Playlist likes (social engagement)
 		playlists.POST("/:id/like", middleware.AuthMiddleware(svcs.Auth), middleware.RateLimitMiddleware(infra.Redis, 30, time.Minute), h.Playlist.LikePlaylist)
 		playlists.DELETE("/:id/like", middleware.AuthMiddleware(svcs.Auth), h.Playlist.UnlikePlaylist)
+		playlists.POST("/:id/bookmark", middleware.AuthMiddleware(svcs.Auth), middleware.RateLimitMiddleware(infra.Redis, 30, time.Minute), h.Playlist.BookmarkPlaylist)
+		playlists.DELETE("/:id/bookmark", middleware.AuthMiddleware(svcs.Auth), h.Playlist.UnbookmarkPlaylist)
 
 		// Playlist sharing and collaboration
 		playlists.GET("/:id/share-link", middleware.AuthMiddleware(svcs.Auth), middleware.RateLimitMiddleware(infra.Redis, 10, time.Hour), h.Playlist.GetShareLink)

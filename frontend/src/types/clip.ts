@@ -25,6 +25,7 @@ export interface Clip {
     created_at: string;
     imported_at: string;
     video_url?: string; // HLS video URL for clips with adaptive streaming support
+    stream_source?: 'twitch' | 'stream'; // 'twitch' = imported clip, 'stream' = created from live stream
     vote_score: number;
     comment_count: number;
     favorite_count: number;

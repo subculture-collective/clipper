@@ -1,33 +1,38 @@
 import { Container, SEO } from '../components';
 import { PlaylistCard } from '../components/playlist/PlaylistCard';
-import { useQuery } from '@tanstack/react-query';
-import apiClient from '../lib/api';
 import { Button } from '../components/ui';
-import { useState } from 'react';
-import type { PlaylistWithClips } from '../types/playlist';
+import { useEffect, useState } from 'react';
+import { useFeaturedPlaylists } from '../hooks/usePlaylist';
+import type { Playlist } from '../types/playlist';
 
 export function DiscoveryListsPage() {
-  const [offset, setOffset] = useState(0);
+  const [page, setPage] = useState(1);
+  const [lists, setLists] = useState<Playlist[]>([]);
   const pageSize = 12;
 
-  // Fetch featured/curated playlists (formerly discovery lists)
-  const { data: response, isLoading } = useQuery({
-    queryKey: ['playlists', 'curated', offset],
-    queryFn: async () => {
-      const res = await apiClient.get<{
-        success: boolean;
-        data: PlaylistWithClips[];
-        meta: {
-          total: number;
-          page: number;
-          limit: number;
-        };
-      }>(`/playlists?curated=true&featured=true&limit=${pageSize}&offset=${offset}`);
-      return res.data;
-    },
-  });
+  const { data: response, isLoading, isFetching } = useFeaturedPlaylists(
+    page,
+    pageSize,
+  );
 
-  const lists = response?.data || [];
+  useEffect(() => {
+    if (!response?.data) {
+      return;
+    }
+
+    setLists((current) => {
+      if (page === 1) {
+        return response.data;
+      }
+
+      const existingIds = new Set(current.map((list) => list.id));
+      const nextLists = response.data.filter((list) => !existingIds.has(list.id));
+      return [...current, ...nextLists];
+    });
+  }, [page, response]);
+
+  const total = response?.meta.total ?? 0;
+  const hasMore = lists.length < total;
 
   return (
     <>
@@ -44,7 +49,7 @@ export function DiscoveryListsPage() {
               Discovery Lists
             </h1>
             <p className="text-muted-foreground">
-              Explore curated collections of the best Twitch clips
+              Explore handpicked and auto-generated collections of the best Twitch clips
             </p>
           </div>
 
@@ -67,14 +72,15 @@ export function DiscoveryListsPage() {
               </div>
 
               {/* Load More Button */}
-              {lists.length === pageSize && (
+              {hasMore && (
                 <div className="text-center pt-8">
                   <Button
-                    onClick={() => setOffset((o) => o + pageSize)}
+                    onClick={() => setPage((current) => current + 1)}
                     variant="outline"
                     size="lg"
+                    disabled={isFetching}
                   >
-                    Load More Lists
+                    {isFetching ? 'Loading…' : 'Load More Lists'}
                   </Button>
                 </div>
               )}

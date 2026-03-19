@@ -24,6 +24,8 @@ export interface Playlist {
     clip_count?: number;
     has_processing_clips?: boolean;
     preview_clips?: Clip[];
+    is_liked?: boolean;
+    is_bookmarked?: boolean;
     current_user_permission?: 'view' | 'edit' | 'admin';
 }
 

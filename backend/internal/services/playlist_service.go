@@ -161,12 +161,17 @@ func (s *PlaylistService) GetPlaylist(ctx context.Context, playlistID uuid.UUID,
 		return nil, fmt.Errorf("failed to get creator: %w", err)
 	}
 
-	// Check if user has liked the playlist
+	// Check if user has liked/bookmarked the playlist
 	isLiked := false
+	isBookmarked := false
 	if userID != nil {
 		isLiked, err = s.playlistRepo.IsLiked(ctx, *userID, playlistID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to check if liked: %w", err)
+		}
+		isBookmarked, err = s.playlistRepo.IsBookmarked(ctx, *userID, playlistID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check if bookmarked: %w", err)
 		}
 	}
 
@@ -175,6 +180,7 @@ func (s *PlaylistService) GetPlaylist(ctx context.Context, playlistID uuid.UUID,
 		ClipCount: clipCount,
 		Clips:     clips,
 		IsLiked:   isLiked,
+		IsBookmarked: isBookmarked,
 		Creator:   creator,
 	}
 	result.CurrentUserPermission = currentPermission
@@ -223,12 +229,17 @@ func (s *PlaylistService) GetPlaylistByShareToken(ctx context.Context, shareToke
 		return nil, fmt.Errorf("failed to get creator: %w", err)
 	}
 
-	// Check if user has liked the playlist
+	// Check if user has liked/bookmarked the playlist
 	isLiked := false
+	isBookmarked := false
 	if userID != nil {
 		isLiked, err = s.playlistRepo.IsLiked(ctx, *userID, playlist.ID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to check if liked: %w", err)
+		}
+		isBookmarked, err = s.playlistRepo.IsBookmarked(ctx, *userID, playlist.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check if bookmarked: %w", err)
 		}
 	}
 
@@ -237,6 +248,7 @@ func (s *PlaylistService) GetPlaylistByShareToken(ctx context.Context, shareToke
 		ClipCount: clipCount,
 		Clips:     clips,
 		IsLiked:   isLiked,
+		IsBookmarked: isBookmarked,
 		Creator:   creator,
 	}
 	result.CurrentUserPermission = currentPermission
@@ -331,7 +343,7 @@ func (s *PlaylistService) DeletePlaylist(ctx context.Context, playlistID, userID
 // ListUserPlaylists retrieves playlists owned by a user
 func (s *PlaylistService) ListUserPlaylists(ctx context.Context, userID uuid.UUID, page, limit int) ([]*models.PlaylistListItem, int, error) {
 	offset := (page - 1) * limit
-	playlists, total, err := s.playlistRepo.ListByUserID(ctx, userID, limit, offset)
+	playlists, total, err := s.playlistRepo.ListByUserID(ctx, userID, &userID, limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to list playlists: %w", err)
 	}
@@ -340,9 +352,9 @@ func (s *PlaylistService) ListUserPlaylists(ctx context.Context, userID uuid.UUI
 }
 
 // ListPublicPlaylists retrieves public playlists for discovery
-func (s *PlaylistService) ListPublicPlaylists(ctx context.Context, page, limit int) ([]*models.PlaylistListItem, int, error) {
+func (s *PlaylistService) ListPublicPlaylists(ctx context.Context, userID *uuid.UUID, page, limit int) ([]*models.PlaylistListItem, int, error) {
 	offset := (page - 1) * limit
-	playlists, total, err := s.playlistRepo.ListPublic(ctx, limit, offset)
+	playlists, total, err := s.playlistRepo.ListPublic(ctx, userID, limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to list public playlists: %w", err)
 	}
@@ -351,9 +363,9 @@ func (s *PlaylistService) ListPublicPlaylists(ctx context.Context, page, limit i
 }
 
 // ListFeaturedPlaylists returns featured/curated playlists for public discovery.
-func (s *PlaylistService) ListFeaturedPlaylists(ctx context.Context, page, limit int) ([]*models.PlaylistListItem, int, error) {
+func (s *PlaylistService) ListFeaturedPlaylists(ctx context.Context, userID *uuid.UUID, page, limit int) ([]*models.PlaylistListItem, int, error) {
 	offset := (page - 1) * limit
-	playlists, total, err := s.playlistRepo.ListFeatured(ctx, limit, offset)
+	playlists, total, err := s.playlistRepo.ListFeatured(ctx, userID, limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to list featured playlists: %w", err)
 	}
@@ -361,8 +373,8 @@ func (s *PlaylistService) ListFeaturedPlaylists(ctx context.Context, page, limit
 }
 
 // GetPlaylistOfTheDay returns the most recent daily-generated playlist.
-func (s *PlaylistService) GetPlaylistOfTheDay(ctx context.Context) (*models.PlaylistListItem, error) {
-	return s.playlistRepo.GetPlaylistOfTheDay(ctx)
+func (s *PlaylistService) GetPlaylistOfTheDay(ctx context.Context, userID *uuid.UUID) (*models.PlaylistListItem, error) {
+	return s.playlistRepo.GetPlaylistOfTheDay(ctx, userID)
 }
 
 // AddClipsToPlaylist adds multiple clips to a playlist
@@ -526,6 +538,38 @@ func (s *PlaylistService) UnlikePlaylist(ctx context.Context, playlistID, userID
 	err := s.playlistRepo.UnlikePlaylist(ctx, userID, playlistID)
 	if err != nil {
 		return fmt.Errorf("failed to unlike playlist: %w", err)
+	}
+
+	return nil
+}
+
+// BookmarkPlaylist adds a bookmark to a playlist.
+func (s *PlaylistService) BookmarkPlaylist(ctx context.Context, playlistID, userID uuid.UUID) error {
+	playlist, err := s.playlistRepo.GetByID(ctx, playlistID)
+	if err != nil {
+		return fmt.Errorf("failed to get playlist: %w", err)
+	}
+	if playlist == nil {
+		return fmt.Errorf("playlist not found")
+	}
+
+	if playlist.Visibility == models.PlaylistVisibilityPrivate && playlist.UserID != userID {
+		return fmt.Errorf("cannot bookmark private playlists")
+	}
+
+	err = s.playlistRepo.BookmarkPlaylist(ctx, userID, playlistID)
+	if err != nil {
+		return fmt.Errorf("failed to bookmark playlist: %w", err)
+	}
+
+	return nil
+}
+
+// UnbookmarkPlaylist removes a bookmark from a playlist.
+func (s *PlaylistService) UnbookmarkPlaylist(ctx context.Context, playlistID, userID uuid.UUID) error {
+	err := s.playlistRepo.UnbookmarkPlaylist(ctx, userID, playlistID)
+	if err != nil {
+		return fmt.Errorf("failed to unbookmark playlist: %w", err)
 	}
 
 	return nil
