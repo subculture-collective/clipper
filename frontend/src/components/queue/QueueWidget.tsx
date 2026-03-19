@@ -295,37 +295,77 @@ export function QueueWidget() {
                     </div>
                 </div>
 
-                {/* Queue list showing all items with current highlighted */}
-                <div className='border-t border-border max-h-[200px] overflow-y-auto'>
+                {/* Queue list — full style with thumbnails */}
+                <div className='border-t border-border max-h-[250px] overflow-y-auto'>
                     {queueItems.map((item) => {
                         const isCurrentItem = item.id === currentItemId;
                         return (
                             <div
                                 key={item.id}
-                                onClick={() => !isCurrentItem && handlePlayClip(item)}
+                                draggable
+                                onDragStart={() => handleDragStart(item.id)}
+                                onDragOver={(e) => handleDragOver(e, item.id)}
+                                onDragLeave={handleDragLeave}
+                                onDrop={(e) => handleDrop(e, item.id)}
                                 className={cn(
-                                    'flex items-center gap-2 px-2 py-1.5 transition-colors',
-                                    isCurrentItem
-                                        ? 'bg-brand/10 border-l-2 border-brand'
-                                        : 'hover:bg-muted/50 cursor-pointer',
+                                    'flex items-center gap-2 p-2 hover:bg-muted/50 transition-colors group',
+                                    isCurrentItem && 'bg-brand/10 border-l-2 border-brand',
+                                    draggedId === item.id && 'opacity-50',
+                                    dragOverId === item.id && 'border-t-2 border-brand',
                                 )}
                             >
-                                {isCurrentItem && (
+                                <GripVertical className='h-3 w-3 text-muted-foreground cursor-grab active:cursor-grabbing shrink-0' />
+                                {isCurrentItem ? (
                                     <Play className='h-3 w-3 text-brand fill-brand shrink-0' />
-                                )}
+                                ) : null}
+
+                                {/* Thumbnail */}
+                                <div
+                                    onClick={() => handlePlayClip(item)}
+                                    className='relative w-14 h-9 shrink-0 rounded overflow-hidden cursor-pointer group/thumb'
+                                >
+                                    {item.clip?.thumbnail_url && (
+                                        <img
+                                            src={item.clip.thumbnail_url}
+                                            alt=''
+                                            className='w-full h-full object-cover'
+                                        />
+                                    )}
+                                    <div className='absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 flex items-center justify-center transition-opacity'>
+                                        <Play className='h-4 w-4 text-white fill-white' />
+                                    </div>
+                                    {item.clip?.duration && (
+                                        <span className='absolute bottom-0.5 right-0.5 text-[10px] bg-black/75 text-white px-0.5 rounded'>
+                                            {formatDuration(item.clip.duration)}
+                                        </span>
+                                    )}
+                                </div>
+
+                                {/* Clip info */}
                                 <div className='flex-1 min-w-0'>
                                     <p className={cn(
-                                        'text-xs line-clamp-1',
-                                        isCurrentItem ? 'font-medium text-brand' : 'text-foreground',
+                                        'text-xs font-medium line-clamp-1',
+                                        isCurrentItem && 'text-brand',
                                     )}>
                                         {item.clip?.title || 'Unknown Clip'}
                                     </p>
+                                    <Link
+                                        to={`/broadcaster/${item.clip?.broadcaster_id || item.clip?.broadcaster_name}`}
+                                        className='text-[10px] text-muted-foreground hover:text-foreground transition-colors line-clamp-1 cursor-pointer'
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        {item.clip?.broadcaster_name}
+                                    </Link>
                                 </div>
-                                {item.clip?.duration && (
-                                    <span className='text-[10px] text-muted-foreground shrink-0'>
-                                        {formatDuration(item.clip.duration)}
-                                    </span>
-                                )}
+
+                                {/* Remove */}
+                                <button
+                                    onClick={() => handleRemoveItem(item.id)}
+                                    className='p-0.5 opacity-0 group-hover:opacity-100 hover:text-error-600 rounded transition-all cursor-pointer text-muted-foreground'
+                                    aria-label='Remove from queue'
+                                >
+                                    <X className='h-3 w-3' />
+                                </button>
                             </div>
                         );
                     })}
