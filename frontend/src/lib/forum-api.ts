@@ -51,20 +51,36 @@ export const forumApi = {
       params.tags.forEach(tag => queryParams.append('tags', tag));
     }
 
-    const response = await apiClient.get<{ success: boolean; data: ForumThreadsResponse }>(
+    const response = await apiClient.get(
       `/forum/threads?${queryParams.toString()}`
     );
-    return response.data.data ?? response.data as unknown as ForumThreadsResponse;
+    const body = response.data;
+    // Backend returns { data: Thread[], meta: {...}, success } — map to our type
+    return {
+      threads: body.data ?? body.threads ?? [],
+      total: body.meta?.count ?? body.total ?? 0,
+      page: body.meta?.page ?? body.page ?? 1,
+      limit: body.meta?.limit ?? body.limit ?? 20,
+    };
   },
 
   /**
    * Get a single thread with its replies
    */
   async getThread(threadId: string): Promise<ForumThreadDetailResponse> {
-    const response = await apiClient.get<{ success: boolean; data: ForumThreadDetailResponse }>(
+    const response = await apiClient.get(
       `/forum/threads/${threadId}`
     );
-    return response.data.data ?? response.data as unknown as ForumThreadDetailResponse;
+    const body = response.data;
+    // Backend may return { data: { thread, replies }, success } or { thread, replies }
+    if (body.data?.thread) {
+      return body.data;
+    }
+    if (body.thread) {
+      return body;
+    }
+    // Fallback: body IS the thread detail
+    return { thread: body.data ?? body, replies: body.replies ?? [] };
   },
 
   /**
