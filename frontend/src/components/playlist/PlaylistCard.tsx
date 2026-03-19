@@ -10,7 +10,7 @@ import {
 } from '@/hooks/usePlaylist';
 import { useIsAuthenticated, useToast } from '@/hooks';
 import { Link } from 'react-router-dom';
-import { Heart, Lock, Users, Globe, Bookmark } from 'lucide-react';
+import { Heart, Lock, Users, Globe, Bookmark, MessageSquare } from 'lucide-react';
 import { ShareButton } from '../clip/ShareButton';
 import { PlaylistThumbnail } from './PlaylistThumbnail';
 
@@ -218,13 +218,33 @@ export function PlaylistCard({ playlist }: PlaylistCardProps) {
                     </h3>
 
                     {/* Description */}
-                    <div className="mb-3 min-h-10">
+                    <div className="mb-2 min-h-10">
                         {playlist.description && (
                             <p className="text-sm text-muted-foreground line-clamp-2">
                                 {playlist.description}
                             </p>
                         )}
                     </div>
+
+                    {/* Comment count + top comment preview */}
+                    {(playlist.comment_count ?? 0) > 0 && (
+                        <div className="mb-2 space-y-1">
+                            <div className="flex items-center gap-1.5 text-text-secondary text-[12px]">
+                                <MessageSquare className="h-3.5 w-3.5" />
+                                <span>{playlist.comment_count} comments</span>
+                            </div>
+                            {playlist.top_comment && (
+                                <div>
+                                    <p className="text-[12px] text-text-secondary italic line-clamp-1">
+                                        &ldquo;{playlist.top_comment.content}&rdquo;
+                                    </p>
+                                    <p className="text-[11px] text-text-tertiary">
+                                        &mdash; @{playlist.top_comment.username}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    )}
                     <div className="mt-auto space-y-2">
                         <div className="flex min-h-6 items-start justify-between gap-2">
                             <div className="flex min-w-0 flex-wrap items-start gap-1.5">

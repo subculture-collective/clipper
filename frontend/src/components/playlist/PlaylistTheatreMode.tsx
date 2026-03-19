@@ -11,6 +11,8 @@ import {
     Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui';
+import { Tab } from '@/components/ui/Tab';
+import { CommentSection } from '@/components/comment/CommentSection';
 import type { Clip } from '@/types/clip';
 
 export interface PlaylistItem {
@@ -51,6 +53,7 @@ export function PlaylistTheatreMode({
     const [draggedId, setDraggedId] = useState<string | null>(null);
     const [dragOverId, setDragOverId] = useState<string | null>(null);
     const [showSidebar, setShowSidebar] = useState(true);
+    const [activeTab, setActiveTab] = useState<'queue' | 'chat'>('queue');
     // Find current item and clip
     const currentItem = useMemo(
         () => items.find(item => item.id === currentItemId),
@@ -133,6 +136,14 @@ export function PlaylistTheatreMode({
                 e.preventDefault();
                 setShowSidebar(prev => !prev);
             }
+            if (e.key === 'c') {
+                e.preventDefault();
+                setActiveTab('chat');
+            }
+            if (e.key === 'q') {
+                e.preventDefault();
+                setActiveTab('queue');
+            }
         };
 
         window.addEventListener('keydown', handleKeyDown);
@@ -143,7 +154,7 @@ export function PlaylistTheatreMode({
         <div
             className={cn(
                 contained ?
-                    'relative w-full bg-neutral-950 rounded-xl overflow-hidden border border-neutral-800'
+                    'relative w-full bg-background rounded-xl overflow-hidden border border-border'
                 :   'fixed inset-0 z-50 bg-black',
                 className,
             )}
@@ -175,7 +186,7 @@ export function PlaylistTheatreMode({
                                     className='max-h-full'
                                 />
 
-                        :   <div className='text-center text-white/60'>
+                        :   <div className='text-center text-text-secondary'>
                                 <p className='text-lg'>No clip selected</p>
                                 <p className='text-sm mt-2'>
                                     Select a clip from the{' '}
@@ -191,10 +202,10 @@ export function PlaylistTheatreMode({
                 {!showSidebar && (
                     <button
                         onClick={() => setShowSidebar(true)}
-                        className='absolute top-4 right-4 z-10 p-2 bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-700 rounded-lg transition-colors'
+                        className='absolute top-4 right-4 z-10 p-2 bg-surface/80 hover:bg-surface-hover border border-border rounded-lg transition-colors'
                         aria-label='Show playlist'
                     >
-                        <ChevronLeft className='h-5 w-5 text-white rotate-180' />
+                        <ChevronLeft className='h-5 w-5 text-text-primary rotate-180' />
                     </button>
                 )}
 
@@ -202,28 +213,28 @@ export function PlaylistTheatreMode({
                 {showSidebar && (
                     <div
                         className={cn(
-                            'h-full bg-neutral-900 border-l border-neutral-800 flex flex-col',
+                            'h-full bg-surface border-l border-border flex flex-col',
                             contained ? 'w-80' : 'w-96',
                         )}
                     >
                         {/* Sidebar header */}
-                        <div className='p-4 border-b border-neutral-800'>
+                        <div className='p-4 border-b border-border'>
                             <div className='flex items-center justify-between'>
                                 <div className='flex items-center gap-2'>
                                     {onClose && (
                                         <button
                                             onClick={onClose}
-                                            className='p-1.5 hover:bg-white/10 rounded-lg transition-colors'
+                                            className='p-1.5 hover:bg-surface-hover rounded-lg transition-colors'
                                             aria-label='Exit theatre mode'
                                         >
-                                            <Minimize2 className='h-4 w-4 text-white' />
+                                            <Minimize2 className='h-4 w-4 text-text-primary' />
                                         </button>
                                     )}
                                     <div>
-                                        <h2 className='text-white font-semibold'>
+                                        <h2 className='text-text-primary font-semibold'>
                                             {isQueue ? 'Queue' : 'Playlist'}
                                         </h2>
-                                        <p className='text-white/60 text-sm'>
+                                        <p className='text-text-secondary text-sm'>
                                             {items.findIndex(
                                                 item => item.id === currentItemId,
                                             ) + 1}{' '}
@@ -243,23 +254,33 @@ export function PlaylistTheatreMode({
                                             ) ===
                                             items.length - 1
                                         }
-                                        className='text-white hover:bg-white/10'
+                                        className='text-text-primary hover:bg-surface-hover'
                                     >
                                         <SkipForward className='h-4 w-4 mr-1' />
                                         Next
                                     </Button>
                                     <button
                                         onClick={() => setShowSidebar(false)}
-                                        className='p-1.5 hover:bg-white/10 rounded-lg transition-colors'
+                                        className='p-1.5 hover:bg-surface-hover rounded-lg transition-colors'
                                         aria-label='Hide sidebar'
                                     >
-                                        <ChevronLeft className='h-4 w-4 text-white rotate-180' />
+                                        <ChevronLeft className='h-4 w-4 text-text-primary rotate-180' />
                                     </button>
                                 </div>
                             </div>
                         </div>
 
+                        <Tab
+                            tabs={[
+                                { id: 'queue', label: isQueue ? 'Queue' : 'Playlist' },
+                                { id: 'chat', label: 'Chat', badge: currentClip?.comment_count },
+                            ]}
+                            activeTab={activeTab}
+                            onTabChange={(id) => setActiveTab(id as 'queue' | 'chat')}
+                        />
+
                         {/* Scrollable items list */}
+                        {activeTab === 'queue' && (
                         <div className='flex-1 overflow-y-auto'>
                             {items.map((item, idx) => {
                                 const isCurrentItem = item.id === currentItemId;
@@ -278,7 +299,7 @@ export function PlaylistTheatreMode({
                                         onDragLeave={handleDragLeave}
                                         onDrop={e => handleDrop(e, item.id)}
                                         className={cn(
-                                            'group relative border-b border-neutral-800 hover:bg-neutral-800/50 transition-colors',
+                                            'group relative border-b border-border hover:bg-surface-hover transition-colors',
                                             isCurrentItem &&
                                                 'bg-primary-500/20',
                                             draggedId === item.id &&
@@ -289,7 +310,7 @@ export function PlaylistTheatreMode({
                                     >
                                         <div className='flex gap-2 p-3'>
                                             {/* Drag handle and number */}
-                                            <div className='flex items-center gap-2 text-white/40'>
+                                            <div className='flex items-center gap-2 text-text-tertiary'>
                                                 {onReorder && (
                                                     <GripVertical className='h-4 w-4 cursor-grab active:cursor-grabbing' />
                                                 )}
@@ -345,7 +366,7 @@ export function PlaylistTheatreMode({
                                                             'text-sm font-medium line-clamp-2',
                                                             isCurrentItem ?
                                                                 'text-primary-400'
-                                                            :   'text-white',
+                                                            :   'text-text-primary',
                                                             isPlayed &&
                                                                 'opacity-60',
                                                         )}
@@ -353,7 +374,7 @@ export function PlaylistTheatreMode({
                                                         {item.clip?.title ||
                                                             'Unknown Clip'}
                                                     </p>
-                                                    <p className='text-xs text-white/60 mt-0.5'>
+                                                    <p className='text-xs text-text-secondary mt-0.5'>
                                                         {
                                                             item.clip
                                                                 ?.broadcaster_name
@@ -361,7 +382,7 @@ export function PlaylistTheatreMode({
                                                     </p>
                                                 </button>
                                                 {isPlayed && (
-                                                    <div className='flex items-center gap-1 text-xs text-white/40 mt-1'>
+                                                    <div className='flex items-center gap-1 text-xs text-text-tertiary mt-1'>
                                                         <Check className='h-3 w-3' />
                                                         Watched
                                                     </div>
@@ -386,7 +407,7 @@ export function PlaylistTheatreMode({
                             })}
 
                             {items.length === 0 && (
-                                <div className='text-center py-12 text-white/40'>
+                                <div className='text-center py-12 text-text-tertiary'>
                                     <p>
                                         No clips in{' '}
                                         {isQueue ? 'queue' : 'playlist'}
@@ -394,19 +415,44 @@ export function PlaylistTheatreMode({
                                 </div>
                             )}
                         </div>
+                        )}
+
+                        {activeTab === 'chat' && currentClip && (
+                            <div className="flex-1 overflow-y-auto">
+                                <CommentSection
+                                    clipId={currentClip.id}
+                                    className="p-3"
+                                />
+                            </div>
+                        )}
+                        {activeTab === 'chat' && !currentClip && (
+                            <div className="flex-1 flex items-center justify-center text-text-tertiary text-sm">
+                                Select a clip to see comments
+                            </div>
+                        )}
 
                         {/* Keyboard shortcuts hint */}
-                        <div className='p-3 border-t border-neutral-800 bg-neutral-950/50'>
-                            <p className='text-xs text-white/40'>
-                                <kbd className='px-1.5 py-0.5 bg-neutral-800 rounded text-white/60'>
+                        <div className='p-3 border-t border-border bg-background/50'>
+                            <p className='text-xs text-text-tertiary'>
+                                <kbd className='px-1.5 py-0.5 bg-surface-raised rounded text-text-secondary'>
                                     N
                                 </kbd>{' '}
                                 Next clip
                                 {' • '}
-                                <kbd className='px-1.5 py-0.5 bg-neutral-800 rounded text-white/60'>
+                                <kbd className='px-1.5 py-0.5 bg-surface-raised rounded text-text-secondary'>
                                     S
                                 </kbd>{' '}
                                 Toggle sidebar
+                                {' • '}
+                                <kbd className='px-1.5 py-0.5 bg-surface-raised rounded text-text-secondary'>
+                                    Q
+                                </kbd>{' '}
+                                Queue
+                                {' • '}
+                                <kbd className='px-1.5 py-0.5 bg-surface-raised rounded text-text-secondary'>
+                                    C
+                                </kbd>{' '}
+                                Chat
                             </p>
                         </div>
                     </div>

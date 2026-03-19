@@ -267,8 +267,9 @@ export function ClipDetailPage() {
                 twitterCard='player'
                 structuredData={structuredData}
             />
-            <Container className='py-4 xs:py-6 md:py-8'>
-                <div className='max-w-4xl mx-auto'>
+            <div className='clip-detail-layout'>
+                {/* Left panel: video, title, metadata, actions */}
+                <div className='p-4 lg:p-6 lg:sticky lg:top-[56px] lg:overflow-y-auto lg:max-h-[calc(100vh-56px)]'>
                     <div className='mb-4 xs:mb-6'>
                         <h1 className='text-2xl xs:text-3xl font-bold mb-2'>
                             {clip.title}
@@ -369,10 +370,10 @@ export function ClipDetailPage() {
                             className={cn(
                                 'px-4 py-3 rounded-md transition-colors touch-target',
                                 clip.user_vote === 1 ?
-                                    'bg-green-600 text-white hover:bg-green-700'
-                                :   'bg-primary-500 text-white hover:bg-primary-600',
+                                    'bg-upvote text-white hover:bg-upvote/80'
+                                :   'bg-brand text-white hover:bg-brand-hover',
                                 (!isAuthenticated || isVoting || isBanned) &&
-                                    'opacity-50 cursor-not-allowed hover:bg-primary-500',
+                                    'opacity-50 cursor-not-allowed hover:bg-brand',
                             )}
                             aria-label={
                                 isAuthenticated ?
@@ -498,21 +499,22 @@ export function ClipDetailPage() {
                             )}
                         </p>
                     </div>
-
-                    <div
-                        className='mt-8 border-t border-border pt-8'
-                        id='comments'
-                    >
-                        <CommentSection
-                            clipId={clip.id}
-                            currentUserId={user?.id}
-                            isAdmin={user?.role === 'admin'}
-                            isBanned={!!isBanned}
-                            banReason={banReason}
-                        />
-                    </div>
                 </div>
-            </Container>
+
+                {/* Right panel: comments */}
+                <div
+                    id='comments'
+                    className='p-4 lg:p-6 lg:border-l lg:border-border lg:overflow-y-auto lg:max-h-[calc(100vh-56px)]'
+                >
+                    <CommentSection
+                        clipId={clip.id}
+                        currentUserId={user?.id}
+                        isAdmin={user?.role === 'admin'}
+                        isBanned={!!isBanned}
+                        banReason={banReason}
+                    />
+                </div>
+            </div>
         </>
     );
 }

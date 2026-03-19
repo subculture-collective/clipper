@@ -18,6 +18,7 @@ interface CommentActionsProps {
     onEdit?: () => void;
     depth?: number;
     maxDepth?: number;
+    variant?: 'expanded' | 'compact';
     className?: string;
 }
 
@@ -33,6 +34,7 @@ export const CommentActions: React.FC<CommentActionsProps> = ({
     onEdit,
     depth = 0,
     maxDepth = 10,
+    variant = 'expanded',
     className,
 }) => {
     const isAuthenticated = useIsAuthenticated();
@@ -44,6 +46,8 @@ export const CommentActions: React.FC<CommentActionsProps> = ({
     const [showReportDialog, setShowReportDialog] = React.useState(false);
     const [reportReason, setReportReason] = React.useState<string>('spam');
     const [reportDescription, setReportDescription] = React.useState('');
+
+    const isCompact = variant === 'compact';
 
     const computeWithinEditWindow = React.useCallback(() => {
         const createdTime = new Date(createdAt).getTime();
@@ -110,26 +114,26 @@ export const CommentActions: React.FC<CommentActionsProps> = ({
 
     return (
         <>
-            <div className={cn('flex items-center gap-3 text-sm', className)}>
+            <div className={cn('flex items-center gap-3 text-[12px]', className)}>
                 {canReply && (
                     <button
                         onClick={onReply}
-                        className='text-muted-foreground hover:text-foreground transition-colors font-medium'
+                        className='text-muted-foreground hover:text-cta transition-colors font-medium'
                     >
                         Reply
                     </button>
                 )}
 
-                {canEdit && (
+                {!isCompact && canEdit && (
                     <button
                         onClick={onEdit}
-                        className='text-muted-foreground hover:text-foreground transition-colors font-medium'
+                        className='text-muted-foreground hover:text-cta transition-colors font-medium'
                     >
                         Edit
                     </button>
                 )}
 
-                {canDelete && (
+                {!isCompact && canDelete && (
                     <button
                         onClick={() => setShowDeleteDialog(true)}
                         className='text-muted-foreground hover:text-error-500 transition-colors font-medium'
@@ -138,14 +142,16 @@ export const CommentActions: React.FC<CommentActionsProps> = ({
                     </button>
                 )}
 
-                <button
-                    onClick={handleShare}
-                    className='text-muted-foreground hover:text-foreground transition-colors font-medium'
-                >
-                    Share
-                </button>
+                {!isCompact && (
+                    <button
+                        onClick={handleShare}
+                        className='text-muted-foreground hover:text-cta transition-colors font-medium'
+                    >
+                        Share
+                    </button>
+                )}
 
-                {isAuthenticated && !isAuthor && (
+                {!isCompact && isAuthenticated && !isAuthor && (
                     <button
                         onClick={() => setShowReportDialog(true)}
                         className='text-muted-foreground hover:text-error-500 transition-colors font-medium'
