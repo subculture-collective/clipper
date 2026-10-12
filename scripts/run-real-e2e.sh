@@ -105,15 +105,27 @@ docker compose -f "$repo_root/docker-compose.test.yml" exec -T redis-test redis-
 provider_port_file=$(mktemp "$repo_root/.tmp/twitch-provider-port.XXXXXX")
 python3 "$repo_root/scripts/twitch-test-provider.py" "$provider_port" "$provider_port_file" >"$repo_root/.tmp/twitch-test-provider.log" 2>&1 &
 provider_pid=$!
-for attempt in {1..30}; do
-    if ! kill -0 "$provider_pid" 2>/dev/null; then echo "Fixture provider failed to start" >&2; exit 1; fi
+# Fixture startup can be delayed on a loaded hosted runner. Never probe port 0
+# or start the API until this owned process reports a valid, healthy listener.
+provider_deadline=$((SECONDS + 30))
+provider_ready=false
+while (( SECONDS < provider_deadline )); do
+    if ! kill -0 "$provider_pid" 2>/dev/null; then break; fi
     if [[ -s "$provider_port_file" ]]; then
         provider_port=$(cat "$provider_port_file")
-        if curl -fsS "http://127.0.0.1:$provider_port/health" >/dev/null; then break; fi
+        if [[ "$provider_port" =~ ^[0-9]+$ ]] && (( provider_port > 0 && provider_port <= 65535 )) \
+            && curl --max-time 1 -fsS "http://127.0.0.1:$provider_port/health" >/dev/null 2>&1; then
+            provider_ready=true
+            break
+        fi
     fi
     sleep 0.1
 done
-curl -fsS "http://127.0.0.1:$provider_port/health" >/dev/null
+if [[ "$provider_ready" != true ]]; then
+    echo "Fixture provider did not report a healthy port within 30 seconds" >&2
+    tail -50 "$repo_root/.tmp/twitch-test-provider.log" >&2
+    exit 1
+fi
 
 (
     cd "$repo_root/backend"

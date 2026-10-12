@@ -98,6 +98,7 @@ jobs:
             frontend/playwright-report
             frontend/test-results
             .tmp/backend-e2e.log
+            .tmp/twitch-test-provider.log
             .tmp/release-critical-tests.json
           if-no-files-found: warn
           retention-days: 30
