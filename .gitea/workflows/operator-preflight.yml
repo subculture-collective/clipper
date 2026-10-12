@@ -15,9 +15,13 @@ on:
   pull_request:
     branches: [main, develop]
 
+permissions:
+  contents: read
+
 jobs:
   contracts:
     name: Operator and recovery source contracts
+    timeout-minutes: 30
     runs-on: ubuntu-24.04
     steps:
       - uses: https://github.com/actions/checkout@v4

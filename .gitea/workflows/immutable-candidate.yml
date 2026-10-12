@@ -3,6 +3,9 @@ name: Immutable production candidate
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   candidate:
     name: Build, scan, sign, and publish immutable candidate

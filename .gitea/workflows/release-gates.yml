@@ -6,9 +6,13 @@ on:
   pull_request:
     branches: [main, develop]
 
+permissions:
+  contents: read
+
 jobs:
   security:
     name: Secret history gate
+    timeout-minutes: 45
     runs-on: ubuntu-24.04
     steps:
       - uses: https://github.com/actions/checkout@v4
@@ -29,6 +33,7 @@ jobs:
 
   documentation:
     name: Documentation and OpenAPI gate
+    timeout-minutes: 45
     runs-on: ubuntu-24.04
     steps:
       - uses: https://github.com/actions/checkout@v4
@@ -93,6 +98,7 @@ jobs:
             frontend/playwright-report
             frontend/test-results
             .tmp/backend-e2e.log
+            .tmp/twitch-test-provider.log
             .tmp/release-critical-tests.json
           if-no-files-found: warn
           retention-days: 30

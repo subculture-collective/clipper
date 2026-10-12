@@ -5,8 +5,8 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
 
-expected_version="1.26.6"
-expected_image="golang:${expected_version}-alpine@sha256:af8d6740070b8906d12eae1c3e3ea0957fb63f492051ea05e354c38ef9fe88df"
+expected_version="1.26.9"
+expected_image="golang:${expected_version}-alpine@sha256:3082400e369fa24d5fc60bca20edab3f6d604e0c5a690ec66b295eff4dd87ade"
 
 fail() {
   echo "Go toolchain contract: $*" >&2
@@ -21,8 +21,8 @@ for dockerfile in backend/Dockerfile backend/Dockerfile.crawler; do
     || fail "$dockerfile must use the approved Go ${expected_version} builder digest"
 done
 
-if grep -Eq '1\.26\.5' backend/go.mod backend/Dockerfile backend/Dockerfile.crawler; then
-  fail "vulnerable Go 1.26.5 release remains in an executable build input"
+if grep -Eq '^(toolchain go|FROM golang:)1\.26\.[0-8]([^0-9]|$)' backend/go.mod backend/Dockerfile backend/Dockerfile.crawler; then
+  fail "vulnerable Go 1.26 patch release remains in an executable build input"
 fi
 
 echo "Go toolchain contract: verified ${expected_version}"

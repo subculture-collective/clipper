@@ -1,7 +1,7 @@
 # Multi-stage Dockerfile for Go backend
 
 # Build stage
-FROM golang:1.26.6-alpine@sha256:af8d6740070b8906d12eae1c3e3ea0957fb63f492051ea05e354c38ef9fe88df AS builder
+FROM golang:1.26.9-alpine@sha256:3082400e369fa24d5fc60bca20edab3f6d604e0c5a690ec66b295eff4dd87ade AS builder
 
 # Install build dependencies
 RUN apk add --no-cache git make
@@ -31,8 +31,9 @@ LABEL org.opencontainers.image.revision="${OCI_REVISION}" \
       org.opencontainers.image.source="${OCI_SOURCE}"
 
 # Install media/runtime dependencies and pin the transcription engine.
+# Refresh the inherited PCRE2 and Perl packages with Debian security fixes.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates ffmpeg wget \
+    && apt-get install -y --no-install-recommends ca-certificates ffmpeg wget libpcre2-8-0 perl-base \
     && pip install --no-cache-dir faster-whisper==1.2.0 requests==2.34.2 \
     && rm -rf /var/lib/apt/lists/*
 
