@@ -3,6 +3,9 @@ name: Protected release evidence
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   verify:
     name: Release evidence gate
