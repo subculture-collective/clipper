@@ -31,8 +31,9 @@ LABEL org.opencontainers.image.revision="${OCI_REVISION}" \
       org.opencontainers.image.source="${OCI_SOURCE}"
 
 # Install media/runtime dependencies and pin the transcription engine.
+# Refresh the inherited PCRE2 and Perl packages with Debian security fixes.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates ffmpeg wget \
+    && apt-get install -y --no-install-recommends ca-certificates ffmpeg wget libpcre2-8-0 perl-base \
     && pip install --no-cache-dir faster-whisper==1.2.0 requests==2.34.2 \
     && rm -rf /var/lib/apt/lists/*
 
