@@ -240,6 +240,18 @@ port = int(sys.argv[1])
 
 class Backend(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
+        if self.path == "/sitemap.xml":
+            # Model the anonymous XML inventory owned by the real API.
+            if self.headers.get("Cookie") or self.headers.get("Authorization"):
+                self.send_error(400, "sitemap forwarded credentials")
+                return
+            body = b'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://clpr.tv/clip/contract-clip</loc></url></urlset>'
+            self.send_response(200)
+            self.send_header("Content-Type", "application/xml; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         share_prefix = "/api/v1/share/clips/"
         if self.path.startswith(share_prefix):
             clip_id = self.path[len(share_prefix):]
@@ -356,7 +368,8 @@ assert_status() {
 assert_header() {
   local name="$1"
   local value="$2"
-  grep -Eiq "^${name}: ${value}?$" "$tmp_dir/headers" || fail "missing $name: $value for the last request"
+  grep -Eiq "^${name}: ${value}
+?$" "$tmp_dir/headers" || fail "missing $name: $value for the last request"
 }
 
 for path in /health /health/ready /api/v1/config /robots.txt /sitemap.xml /.well-known/security.txt /favicon.ico; do
