@@ -18,6 +18,8 @@ Documentation for using, developing and deploying Clipper (now CLPR).
 
 For repository-backed navigation, use the [documentation reference inventory](reference-inventory.md). The [launch feature inventory](LAUNCH_FEATURE_INVENTORY.md) is authoritative when older design or implementation reports disagree with current release scope.
 
+For product messaging and campaign preparation, use the [clpr marketing packet and reusable starter](marketing/README.md).
+
 ## 🚀 Quick Start
 
 - **New Users?** Start with the [[users/user-guide|User Guide]]
