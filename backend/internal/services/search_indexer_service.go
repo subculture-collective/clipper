@@ -367,13 +367,29 @@ func (s *SearchIndexerService) bulkRequest(ctx context.Context, body *bytes.Buff
 	}
 
 	// Parse response to check for item-level errors
-	var bulkRes map[string]interface{}
+	var bulkRes struct {
+		Errors bool `json:"errors"`
+		Items  []map[string]struct {
+			Status int `json:"status"`
+			Error  *struct {
+				Type string `json:"type"`
+			} `json:"error"`
+		} `json:"items"`
+	}
 	if err := json.NewDecoder(res.Body).Decode(&bulkRes); err != nil {
 		return fmt.Errorf("failed to parse bulk response: %w", err)
 	}
 
-	if errors, ok := bulkRes["errors"].(bool); ok && errors {
-		utils.Warn("Some bulk operations failed, check items for details", nil)
+	if bulkRes.Errors {
+		for _, item := range bulkRes.Items {
+			for action, result := range item {
+				if result.Error != nil {
+					// Report the cause without echoing document values from the reason.
+					return fmt.Errorf("bulk item rejected: action=%s status=%d type=%s", action, result.Status, result.Error.Type)
+				}
+			}
+		}
+		return fmt.Errorf("bulk response reported item-level errors")
 	}
 
 	return nil

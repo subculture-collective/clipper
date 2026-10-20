@@ -39,6 +39,11 @@ services:
             - 'DISABLE_SECURITY_PLUGIN=true'
             - 'DISABLE_INSTALL_DEMO_CONFIG=true'
             - 'bootstrap.system_call_filter=false'
+            # This tiny disposable index shares a CI disk with image caches.
+            # Keep disk protection, using explicit free-space reserves.
+            - cluster.routing.allocation.disk.watermark.low=10gb
+            - cluster.routing.allocation.disk.watermark.high=7gb
+            - cluster.routing.allocation.disk.watermark.flood_stage=5gb
         ports:
             - '${TEST_OPENSEARCH_PORT:-9201}:9200'
             - '${TEST_OPENSEARCH_METRICS_PORT:-9601}:9600'
