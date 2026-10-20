@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Button, Container, SEO } from '../components';
 import { fetchClips } from '../lib/clip-api';
-import { SUPPORT_URL } from '../lib/support-link';
+import { STUDIO_SUPPORT_URL } from '../lib/support-link';
 
 const LIVE_CLIP_COUNT = 3;
 
@@ -106,7 +106,7 @@ export function AboutPage() {
             <p className='mb-5 max-w-3xl text-text-secondary'>Read the <Link to='/community-rules' className='text-link underline underline-offset-2'>community rules</Link> before you post or comment. They keep clpr decent for creators and viewers both.</p>
             <div className='flex flex-wrap gap-3'>
               <Button asChild><Link to='/contact'>Contact us</Link></Button>
-              <Button asChild variant='outline'><a href={SUPPORT_URL} target='_blank' rel='noopener noreferrer'>Support us on Patreon</a></Button>
+              <Button asChild variant='outline'><a href={STUDIO_SUPPORT_URL}>Support SUBCULT</a></Button>
             </div>
           </section>
         </div>

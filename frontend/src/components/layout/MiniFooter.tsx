@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useOverlapsTwitchPlayer } from '@/hooks/useTwitchPlayerLayer';
 import { cn } from '@/lib/utils';
-import { SUPPORT_URL } from '@/lib/support-link';
+import { STUDIO_SUPPORT_URL } from '@/lib/support-link';
 
 export function MiniFooter() {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -107,12 +107,10 @@ export function MiniFooter() {
                   About clpr
                 </Link>
                 <a
-                  href={SUPPORT_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href={STUDIO_SUPPORT_URL}
                   className="block text-sm text-foreground hover:text-link transition-colors"
                 >
-                  Patreon
+                  Support SUBCULT
                 </a>
               </div>
             </div>
@@ -153,16 +151,12 @@ export function MiniFooter() {
               <div className="space-y-1">
                 <a
                   href="https://discord.gg/TFwB4aJRef"
-                  target="_blank"
-                  rel="noopener noreferrer"
                   className="block text-sm text-foreground hover:text-link transition-colors"
                 >
                   Discord
                 </a>
                 <a
                   href="https://x.com/clpr_tv"
-                  target="_blank"
-                  rel="noopener noreferrer"
                   className="block text-sm text-foreground hover:text-link transition-colors"
                 >
                   Twitter

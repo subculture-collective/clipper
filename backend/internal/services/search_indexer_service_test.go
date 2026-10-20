@@ -1,13 +1,19 @@
 package services
 
 import (
+	"bytes"
+	"context"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
 	"git.subcult.tv/subculture-collective/clpr/internal/models"
+	"git.subcult.tv/subculture-collective/clpr/pkg/opensearch"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestClipIndexMappingSupportsSubmittedClipVisibility(t *testing.T) {
@@ -221,4 +227,31 @@ func TestEngagementScoreWeights(t *testing.T) {
 
 	assert.Equal(t, expected, score,
 		"Engagement score calculation should match expected weights")
+}
+
+func TestBulkRequestRejectsPartialFailures(t *testing.T) {
+	cases := []struct{ name, response, wantError string }{
+		{"success", `{"errors":false,"items":[{"index":{"status":201}}]}`, ""},
+		{"partial rejection", `{"errors":true,"items":[{"index":{"status":201}},{"index":{"status":429,"error":{"type":"cluster_block_exception","reason":"private document contents"}}}]}`, "status=429 type=cluster_block_exception"},
+		{"errors without details", `{"errors":true,"items":[]}`, "item-level errors"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(tc.response))
+			}))
+			defer server.Close()
+			client, err := opensearch.NewClient(&opensearch.Config{URL: server.URL})
+			require.NoError(t, err)
+			indexer := NewSearchIndexerService(client)
+			err = indexer.bulkRequest(context.Background(), bytes.NewBufferString("{}\n"))
+			if tc.wantError == "" {
+				require.NoError(t, err)
+			} else {
+				require.ErrorContains(t, err, tc.wantError)
+				require.NotContains(t, err.Error(), "private document contents")
+			}
+		})
+	}
 }
