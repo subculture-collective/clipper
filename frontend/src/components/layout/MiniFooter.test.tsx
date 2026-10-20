@@ -95,10 +95,9 @@ describe('MiniFooter', () => {
     const expandButton = screen.getByRole('button', { name: /show footer links/i });
     fireEvent.click(expandButton);
     
-    const patreonLink = screen.getByRole('link', { name: /patreon/i });
-    expect(patreonLink).toHaveAttribute('href', 'https://support.subcult.tv');
-    expect(patreonLink).toHaveAttribute('target', '_blank');
-    expect(patreonLink).toHaveAttribute('rel', 'noopener noreferrer');
+    const patreonLink = screen.getByRole('link', { name: /support subcult/i });
+    expect(patreonLink).toHaveAttribute('href', 'https://subcult.tv/support');
+    expect(patreonLink).not.toHaveAttribute('target');
   });
 
   it('should have proper accessibility attributes on buttons', () => {

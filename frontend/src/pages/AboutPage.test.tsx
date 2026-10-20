@@ -61,6 +61,6 @@ describe('AboutPage', () => {
     renderPage();
     expect(screen.getByRole('link', { name: /community rules/i })).toHaveAttribute('href', '/community-rules');
     expect(screen.getByRole('link', { name: /contact us/i })).toHaveAttribute('href', '/contact');
-    expect(screen.getByRole('link', { name: /patreon/i })).toHaveAttribute('href', 'https://support.subcult.tv');
+    expect(screen.getByRole('link', { name: /support subcult/i })).toHaveAttribute('href', 'https://subcult.tv/support');
   });
 });

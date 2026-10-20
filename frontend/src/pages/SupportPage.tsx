@@ -1,4 +1,3 @@
-import { ArrowUpRight } from 'lucide-react';
 import { Button, Container, SEO } from '../components';
 import { SUPPORT_URL } from '../lib/support-link';
 
@@ -32,13 +31,12 @@ export default function SupportPage() {
                         clpr is free.<br />Patreon is the tip jar.
                     </h1>
                     <p className='mt-6 max-w-2xl text-lg text-text-secondary'>
-                        Accounts are free and nothing sits behind a subscription. If clpr is useful to you, Patreon is an optional way to help Subcult keep it running.
+                        Accounts are free and nothing sits behind a subscription. If clpr is useful to you, Patreon is an optional way to support SUBCULT, the studio behind clpr and its other projects. Contributions do not go to featured streamers.
                     </p>
                     <div className='mt-8 flex flex-wrap items-center gap-x-4 gap-y-2'>
                         <Button asChild size='lg'>
-                            <a href={SUPPORT_URL} target='_blank' rel='noopener noreferrer'>
+                            <a href={SUPPORT_URL}>
                                 Support Subcult on Patreon
-                                <ArrowUpRight size={18} strokeWidth={2} className='ml-2' aria-hidden='true' />
                             </a>
                         </Button>
                         <span className='text-sm text-text-secondary'>Optional. No features attached.</span>
