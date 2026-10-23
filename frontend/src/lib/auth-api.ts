@@ -37,7 +37,7 @@ export interface TestLoginParams {
  * Generates code verifier/challenge and stores verifier securely
  */
 export async function initiateOAuth(redirect: (url: string) => void = url => { window.location.href = url; }) {
-  const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
+  const apiUrl = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
   // Generate PKCE parameters
   const { codeVerifier, codeChallenge, state } = await generatePKCEParams();
