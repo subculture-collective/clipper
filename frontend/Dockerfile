@@ -40,7 +40,7 @@ RUN rm -f .env .env.local
 RUN npm run routes:check && npm run routes:nginx && npm run build
 
 # Production stage
-FROM nginx:1.29-alpine@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de
+FROM nginx:1.31.7-alpine@sha256:892bb2152464f0c5d8972593a5f5afaf8054552580b699d95f8ff4af08c2d33d
 
 ARG OCI_REVISION=unknown
 ARG OCI_SOURCE=https://git.subcult.tv/subculture-collective/clpr
