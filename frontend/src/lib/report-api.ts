@@ -1,7 +1,7 @@
 import axios from 'axios';
 import type { CreateReportRequest, UpdateReportRequest, Report, ReportWithDetails, ReportListResponse } from '../types/report';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
 // Submit a report
 export const submitReport = async (data: CreateReportRequest): Promise<{ message: string; report: Report }> => {

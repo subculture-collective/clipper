@@ -72,7 +72,7 @@ describe('authentication boundary', () => {
         await initiateOAuth(redirect);
         expect(mocks.setSecureItem.mock.calls).toEqual([['oauth_code_verifier', 'verifier'], ['oauth_state', 'state']]);
         const target = new URL(redirect.mock.calls[0][0], window.location.origin);
-        expect(target.href).toMatch(apiBase || 'http://localhost:8080/api/v1');
+        expect(target.href).toMatch(apiBase || '/api/v1');
         expect(target.pathname).toMatch(/\/auth\/twitch$/);
         expect(Object.fromEntries(target.searchParams)).toEqual({ code_challenge: 'challenge', code_challenge_method: 'S256', state: 'state' });
         expect(mocks.setSecureItem.mock.invocationCallOrder.at(-1)).toBeLessThan(redirect.mock.invocationCallOrder[0]);

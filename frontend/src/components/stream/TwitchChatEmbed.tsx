@@ -39,7 +39,7 @@ export function TwitchChatEmbed({ channel, position = 'side' }: TwitchChatEmbedP
 
   const handleTwitchLogin = () => {
     // Redirect to backend OAuth endpoint
-    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api/v1';
     window.location.href = `${apiBaseUrl}/twitch/oauth/authorize`;
   };
 
